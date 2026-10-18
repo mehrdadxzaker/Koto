@@ -424,6 +424,7 @@ def freeze():
     if (ROOT / 'frozen-manifest.json').exists():
         raise RuntimeError('Preserve the frozen treatment')
     corpus = read(DIRECTORY / 'corpus.json')
+    (ROOT / 'inspections').mkdir(mode=0o700, exist_ok=False)
     plan = {'criteria_version': 'local-repair.v1', 'subject': subject(), 'cases': [
         {key: row[key] for key in ('case_id', 'partition', 'family', 'task_sha256', 'checks_sha256')}
         for row in corpus['entries']]}
@@ -474,6 +475,25 @@ def case_probe_plan(case, plan):
             'max_requests': 8, 'max_elapsed_seconds': 90}
 
 
+def verified_inspection(case_id):
+    """Require the operator's exact-patch inspection outside tool write roots.
+
+    Submitted Python shares the checker interpreter, so its completion token is
+    only an early-exit guard. The existing independent operator review must rule
+    out assertion, oracle, process, or receipt interference before acceptance.
+    """
+    output = ROOT / 'episodes' / case_id
+    result = read(output / 'result.json')
+    record = read(ROOT / 'inspections' / (case_id + '.json'))
+    expected = {'case_id': case_id, 'result_sha256': file_hash(output / 'result.json'),
+                'implementation_sha256': file_hash(output / 'implementation-after.py'),
+                'patch_sha256': file_hash(output / 'implementation.patch'),
+                'no_harness_interference': True, 'independent_assertions_verified': True}
+    if not result['mechanical_passed'] or any(record.get(k) != v for k, v in expected.items()):
+        raise RuntimeError('Missing or mismatched independent operator inspection: ' + case_id)
+    return record
+
+
 def run_case(experiment, case, plan):
     output = ROOT / 'episodes' / case['case_id']
     output.mkdir(mode=0o700, exist_ok=False)
@@ -520,7 +540,8 @@ def run_case(experiment, case, plan):
         events = [json.loads(line) for line in (ROOT / (label + '.jsonl')).read_text().splitlines()]
         report['tool_events'] = [e['item'] for e in events if e.get('type') == 'item.completed'
                                 and e.get('item', {}).get('type') in {'command_execution', 'file_change'}]
-        report['passed'] = bool(report['tool_events'] and report['implementation_changed'] and safe
+        report['operator_inspection_required'] = True
+        report['mechanical_passed'] = bool(report['tool_events'] and report['implementation_changed'] and safe
             and report['checks_unchanged'] and report['check_exit_code'] == 0
             and report.get('native', {}).get('termination') == 'completed'
             and report['native']['exit_code'] == 0 and report['native']['elapsed_ms'] <= 90000
@@ -529,7 +550,7 @@ def run_case(experiment, case, plan):
         for suffix in ('.jsonl', '.stderr', '-argv.json'):
             shutil.copy2(ROOT / (label + suffix), output / ('native' + suffix))
     print(json.dumps({key: report.get(key) for key in ('case_id', 'native_episodes', 'trace_requests',
-        'implementation_changed', 'check_exit_code', 'passed')}), flush=True)
+        'implementation_changed', 'check_exit_code', 'mechanical_passed')}), flush=True)
     return report
 
 
@@ -541,8 +562,9 @@ def run(stage):
     corpus, plan = read(DIRECTORY / 'corpus.json'), read(ROOT / 'coding-plan.json')
     if stage == 'qualification':
         canary = read(ROOT / 'episodes/dev-clamp/result.json')
-        if not canary['passed']:
+        if not canary['mechanical_passed']:
             raise RuntimeError('The remaining battery requires a passing canary')
+        verified_inspection('dev-clamp')
     cases = corpus['entries'][:1] if stage == 'canary' else corpus['entries'][1:]
     write(marker, {'campaign': CAMPAIGN, 'cases': [c['case_id'] for c in cases], 'quality_retries': 0}, exclusive=True)
     experiment = retained.Experiment()
@@ -557,18 +579,23 @@ def run(stage):
         write(ROOT / (stage + '-result.json'), report, exclusive=True)
     if not report.get('settings_restored') or not report.get('owned_listeners_closed'):
         raise RuntimeError('Owned cleanup failed')
-    if not all(row['passed'] for row in report['cases']):
+    if not all(row['mechanical_passed'] for row in report['cases']):
         return 1
     return 0
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('operation', choices=('prepare', 'preflight', 'freeze', 'canary', 'qualification'))
+    parser.add_argument('operation', choices=('prepare', 'preflight', 'freeze', 'canary', 'qualification', 'audit'))
     args = parser.parse_args()
     if args.operation == 'prepare': initialize()
     elif args.operation == 'preflight': capture()
     elif args.operation == 'freeze': freeze()
+    elif args.operation == 'audit':
+        verify_freeze()
+        for case in read(DIRECTORY / 'corpus.json')['entries']:
+            verified_inspection(case['case_id'])
+        print(json.dumps({'independently_inspected_passes': 16, 'automatic_admission_effect': 'none'}))
     else: return run(args.operation)
     return 0
 

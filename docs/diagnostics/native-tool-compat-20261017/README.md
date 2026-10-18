@@ -35,6 +35,10 @@ The existing router must not promote arbitrary assistant text into commands.
   exit 0 from assertions actually finishing. The final supplied repair passes;
   the early-exit implementation has process exit 0 but fails the completion
   guard. These corrections affect the experiment harness, not product routing.
+  Because submitted code shares the checker interpreter, the token is not a
+  security boundary. Protected, exact-patch operator inspection is mandatory
+  before the canary can unlock the remaining battery and before any of the 16
+  cases can be accepted. This retains the existing independent-review contract.
 
 The original v7 run did **not** retain raw engine SSE or unparsed generated
 tokens. Its client-visible message therefore cannot distinguish nonconforming

@@ -63,7 +63,14 @@ the repository. There is no live client installation or automatic connection.
    checks, and normal native exit 0 within the budget. A successful process exit
    alone never passes. The independent checker must also emit a fresh completion
    receipt after all assertions return; raw checker process status is recorded
-   separately and an early exit is rejected. The recorder preserves public engine/router SSE bodies,
+   separately and a direct early exit is rejected. This token shares the Python
+   interpreter with submitted code and is not an adversarial attestation.
+   Mechanical results remain provisional until the independent operator inspects
+   the exact implementation, patch, native events and checks for harness/oracle,
+   process or receipt interference. An inspection record bound to their hashes
+   lives outside tool write roots. Qualification cannot start without that
+   canary inspection; final acceptance requires the bound inspection of all 16.
+   The recorder preserves public engine/router SSE bodies,
    native events, follow-up inputs and public status; it saves no auth headers.
 3. Only if the canary passes, use exactly the same frozen setup for the other
    three development cases and **12 fresh held-out cases**, one attempt each.
