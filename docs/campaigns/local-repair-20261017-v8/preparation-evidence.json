@@ -1,0 +1,105 @@
+{
+  "document_version": 1,
+  "campaign_id": "local-repair-20261017-v8",
+  "native_model_inferences": 0,
+  "reference_implementations_are_model_evidence": false,
+  "cases": [
+    {
+      "case_id": "dev-clamp",
+      "baseline_exit_code": 1,
+      "reference_exit_code": 0,
+      "checks_unchanged": true
+    },
+    {
+      "case_id": "dev-strip-prefix",
+      "baseline_exit_code": 1,
+      "reference_exit_code": 0,
+      "checks_unchanged": true
+    },
+    {
+      "case_id": "dev-rotate-left",
+      "baseline_exit_code": 1,
+      "reference_exit_code": 0,
+      "checks_unchanged": true
+    },
+    {
+      "case_id": "dev-positive-counter",
+      "baseline_exit_code": 1,
+      "reference_exit_code": 0,
+      "checks_unchanged": true
+    },
+    {
+      "case_id": "held-half-open",
+      "baseline_exit_code": 1,
+      "reference_exit_code": 0,
+      "checks_unchanged": true
+    },
+    {
+      "case_id": "held-discount-cents",
+      "baseline_exit_code": 1,
+      "reference_exit_code": 0,
+      "checks_unchanged": true
+    },
+    {
+      "case_id": "held-next-even",
+      "baseline_exit_code": 1,
+      "reference_exit_code": 0,
+      "checks_unchanged": true
+    },
+    {
+      "case_id": "held-one-suffix",
+      "baseline_exit_code": 1,
+      "reference_exit_code": 0,
+      "checks_unchanged": true
+    },
+    {
+      "case_id": "held-horizontal-runs",
+      "baseline_exit_code": 1,
+      "reference_exit_code": 0,
+      "checks_unchanged": true
+    },
+    {
+      "case_id": "held-clean-csv",
+      "baseline_exit_code": 1,
+      "reference_exit_code": 0,
+      "checks_unchanged": true
+    },
+    {
+      "case_id": "held-last-occurrences",
+      "baseline_exit_code": 1,
+      "reference_exit_code": 0,
+      "checks_unchanged": true
+    },
+    {
+      "case_id": "held-padded-pairs",
+      "baseline_exit_code": 1,
+      "reference_exit_code": 0,
+      "checks_unchanged": true
+    },
+    {
+      "case_id": "held-window-sums",
+      "baseline_exit_code": 1,
+      "reference_exit_code": 0,
+      "checks_unchanged": true
+    },
+    {
+      "case_id": "held-integer-pair",
+      "baseline_exit_code": 1,
+      "reference_exit_code": 0,
+      "checks_unchanged": true
+    },
+    {
+      "case_id": "held-bounded-push",
+      "baseline_exit_code": 1,
+      "reference_exit_code": 0,
+      "checks_unchanged": true
+    },
+    {
+      "case_id": "held-toggle-copy",
+      "baseline_exit_code": 1,
+      "reference_exit_code": 0,
+      "checks_unchanged": true
+    }
+  ],
+  "passed": true
+}
