@@ -123,7 +123,7 @@ compute and subscription plan cost; this version activates on latency benefit.
 
 ## Privacy, migration and rollback
 
-`history learning disable` stops learning and selection, including derivatives
+`history learning disable` stops personal learning and selection, including derivatives
 from responses still pending at opt-out. Separately consented ordinary history
 can continue. `history disable` also
 invalidates learning consent. Deleting/expiring history removes its examples;
@@ -136,7 +136,9 @@ New `koto.personal-*` and `koto.model-selection` receipts are version 1. Learnin
 adds optional `selection`/`quality` metadata to encrypted history entry version 3;
 existing v1/v2 entries and historical shadow/setup receipt readers remain.
 Admission status v3 adds `personal_selection`; relay metadata v5 adds selection
-headers. Existing configurations without learning retain their legacy behavior.
+headers. Without learning consent, automatic requests keep their selected
+commercial baseline. Explicit local choices, continuation affinity and advanced
+manual benchmark configurations retain their separate authority.
 Manual benchmark v1 files remain readable and usable as advanced tooling.
 
 The old `shadow_router` configuration and `client setup --shadow-router` are

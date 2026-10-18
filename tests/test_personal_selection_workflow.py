@@ -52,6 +52,23 @@ class PersonalSelectionWorkflowTests(unittest.TestCase):
         value["policies"]["organization"]["allowed_models"].append("local-second")
         return value
 
+    def test_missing_or_revoked_learning_consent_keeps_the_commercial_baseline(self):
+        with workflow.provider("7") as (local, local_calls), workflow.provider("7") as (cloud, cloud_calls):
+            with self.fixture.connected_client(self.fixture.admission_configuration(local, cloud, mode="auto")) as submit:
+                for action in ("before_consent", "observe", "disabled"):
+                    if action == "observe":
+                        self.history("enable")
+                        self.history("learning", "enable")
+                    elif action == "disabled":
+                        self.history("learning", "disable")
+                    with self.subTest(state=action):
+                        response = submit(request={"model": "cloud-code", "input": "Summarize seven boxes."})
+                        self.assertEqual(response["headers"].get("x-hormuz-destination-locality"), "cloud")
+                        denied = submit(request={"model": "cloud-code", "input": "Summarize seven boxes."},
+                                        headers={"X-Hormuz-Routing-Mode": "local_only", "X-Hormuz-Task-Selection": "router"})
+                        self.assertEqual(denied["status"], 503, denied)
+            self.assertEqual((len(local_calls), len(cloud_calls)), (0, 3))
+
     def test_one_classifier_observes_multiple_local_classes_without_an_extra_model_call(self):
         def slower_cloud(body):
             time.sleep(0.04)
@@ -103,6 +120,8 @@ class PersonalSelectionWorkflowTests(unittest.TestCase):
                                          ("Translate salut into English", "cloud-code")):
                     response = submit(request={"model": "cloud-code", "input": prompt})
                     self.assertEqual(response["headers"].get("x-koto-executed-model"), expected, response)
+                    if expected != "cloud-code":
+                        self.assertEqual(response["headers"].get("x-hormuz-policy-decision"), "fallback")
                 self.assertEqual(tuple(len(calls) - count for calls, count in zip((local_calls, second_calls, cloud_calls), before)), (1, 1, 2))
                 state = submit(method="GET", path="/router/state")["body"]
                 validate_contract(state)

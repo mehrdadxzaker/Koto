@@ -421,12 +421,18 @@ class RouteAdmission:
             learning, learning_records = handler.server.local_history.learning_snapshot(identity.actor_id)
         except (OSError, ValueError):
             learning, learning_records = {"enabled": True, "mode": "auto", "validation": None}, []
+        if (mode == "auto" and not continuation and not probes
+                and self.destinations.resolve(decision.route).locality == "cloud"):
+            selected, reason = decision, "permitted_baseline"
+            candidates[decision.resolved_alias] = decision
+            selection_candidates = {decision.resolved_alias: decision}
+        if (mode == "local_only" and not continuation and not probes and not learning["enabled"]
+                and not self.settings.scorecard and self.destinations.resolve(decision.route).locality == "cloud"):
+            raise RouteAdmissionError("personal_evidence_unavailable", 503)
         if learning["enabled"] and not continuation and not probes and handler._route_admission_task_selection != "model":
             if self.destinations.resolve(decision.route).locality == "cloud":
                 if mode == "auto":
-                    selected, reason = decision, "personal_baseline"
-                    candidates[decision.resolved_alias] = decision
-                    selection_candidates = {decision.resolved_alias: decision}
+                    reason = "personal_baseline"
                 from .personal_selection import recommend
                 advice = recommend(self.config, learning, learning_records, value, set(candidates), decision.resolved_alias)
                 if mode == "local_only" and (learning["mode"] != "auto" or not advice["validated"]

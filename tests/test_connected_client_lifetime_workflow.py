@@ -1610,18 +1610,18 @@ class ConnectedClientLifetimeWorkflowTests(unittest.TestCase):
                 selected["headers"].get("x-hormuz-destination"),
                 selected["headers"].get("x-hormuz-routing-mode"),
                 selected["headers"].get("x-hormuz-routing-reason")),
-                (200, "cloud-code", "LOCAL_DESTINATION", "local-llama", "auto", "qualified_local"))
+                (200, "cloud-code", "ORIGINAL_DESTINATION", "openai", "auto", "permitted_baseline"))
             blocked = self.client("unknown-task", "local-only")
             self.assertEqual((blocked["status"], blocked["body"]["error"]["code"]),
                              (503, "hormuz_route_local_route_unavailable"))
-            self.assertEqual((len(local_requests), cloud_requests), (1, []))
+            self.assertEqual((len(local_requests), len(cloud_requests)), (0, 1))
             disconnected = json.loads(self.command("disconnect").stdout)
             validate_contract(disconnected)
             restored = self.client()
             self.assertEqual((disconnected["phase"], disconnected["router"], restored["provider"],
                 restored["body"]["output"][0]["content"][0]["text"]),
                 ("disconnected", "stopped", "original", "ORIGINAL_DESTINATION"))
-            self.assertEqual((len(local_requests), len(cloud_requests)), (1, 1))
+            self.assertEqual((len(local_requests), len(cloud_requests)), (0, 2))
 
     def test_lifecycle_receipts_are_discoverable_strict_versioned_contracts(self):
         with self.configured():
