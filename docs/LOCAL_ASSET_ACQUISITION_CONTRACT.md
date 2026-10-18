@@ -50,18 +50,16 @@ unqualified. These are observed candidate facts, not general minimum hardware
 requirements or a production support declaration. App-bundled Codex engines,
 other clients and other host rows need their own reviewed catalog and evidence.
 
-The only current bundled acquisition catalog instead declares Codex 0.147.0.
-Its returned setup arguments explicitly select that profile; shared setup
-correctly rejects a different actual executable version. Retain this historical
-catalog and its generations unchanged. Do not downgrade the user's Codex or
-silently relabel its profile to make the mismatch disappear.
-
-The remaining implementation must select a reviewed catalog matching the actual
-target client before download and return setup arguments matching that same
-client/profile. Reuse the existing client's version detection and setup
-validation rather than adding a competing compatibility decision. Missing or
-unsupported rows fail explicitly before transfer. Explicit older catalogs remain
-usable with their matching older client, with their original limitations.
+At the inspected baseline, the only bundled acquisition catalog declared Codex
+0.147.0, so setup correctly rejected a different actual executable version.
+That catalog and its generations remain unchanged. The implementation now
+selects reviewed 0.147.0, 0.160.0 or 0.162.0-alpha.17.2 catalogs using the shared
+bounded client version check, before download. Each embeds the corresponding
+existing setup profile; the app-engine row does not qualify desktop activation.
+See [the acquisition workflow](LOCAL_ASSET_ACQUISITION.md) for exact flags.
+Missing, unsupported or mismatched rows fail before transfer. An explicit older
+catalog remains usable offline for its declared supported client, with setup
+independently requiring that matching executable and its original limitations.
 
 A reviewed 0.160 acquisition row may reuse the first candidate's exact existing
 artifact pins while retaining unknown coding readiness. The
@@ -139,11 +137,10 @@ require matching model-quality, actual client/plugin/cloud and fresh-user
 distribution evidence. This contract does not select a local-only subset of the
 approved product scope or authorize paid API fallback.
 
-The owner confirmed this acquisition policy. Record its resolution on the
-decision ticket and link it from the map. Carry the concrete version-alignment
-gap into the final spec and dependency-ordered implementation work, including:
+The owner confirmed this acquisition policy. Public-workflow tests now cover
+the version-alignment implementation:
 
-- Preview a target 0.160 client using a matching reviewed catalog, with literal
+- Preview each pinned client using a matching reviewed catalog, with literal
   expected metadata, no network and no settings changes; an incompatible or
   missing row must fail before transfer. Retain the old 0.147 compatibility case.
 - Use synthetic artifacts through acquire -> setup -> real router request ->
@@ -151,8 +148,13 @@ gap into the final spec and dependency-ordered implementation work, including:
   the actual client; unknown coding must still block ordinary repair and make
   no cloud request. Observe client output and controlled external traffic.
 - Reuse existing transport, integrity, interruption, offline and ownership tests.
-  Add only missing public-workflow coverage for the new catalog selection and
-  update/rollback handoff. Verify old generations and user edits survive.
+  Verify stalled version probes are bounded and reaped, and old generations and
+  user edits survive acquisition, setup and disconnect with the next client.
+
+These synthetic checks complete the software handoff, not real model quality,
+fresh-user distribution or actual client/plugin/cloud qualification. Those gates
+remain in the closure contract; candidate trials remain paused during product
+realignment.
 
 No new public schema version is declared by this decision. During implementation,
 retain strict existing version-1 catalog/receipt/error fixtures and versioned

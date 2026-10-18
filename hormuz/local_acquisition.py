@@ -7,16 +7,22 @@ from pathlib import Path
 import platform
 import shutil
 import stat
+import subprocess
 import tempfile
 import time
 
 from .asset_download import AssetDownloader, AssetDownloadError
+from .client_versions import SUPPORTED_CODEX_VERSIONS
 from .compaction_formats import strict_json_loads
 from .contracts import ContractValidationError, validate_contract
 from .managed_llama import ManagedLlamaError, ManagedLlamaProfile, checksum_timeout, extract_runtime
 
 
-DEFAULT_CATALOG = "local-acquisition-codex-0147-llama-b11617-qwen3-4b-v1.json"
+DEFAULT_CATALOGS = {
+    "0.147.0": "local-acquisition-codex-0147-llama-b11617-qwen3-4b-v1.json",
+    "0.160.0": "local-acquisition-codex-0160-llama-b11617-qwen3-4b-v1.json",
+    "0.162.0-alpha.17.2": "local-acquisition-codex-app-0162-llama-b11617-qwen3-4b-v3.json",
+}
 EXPANSION_LIMIT = 1024**3
 
 
@@ -84,17 +90,29 @@ def _sync(path):
         os.close(descriptor)
 
 
-def _catalog(path):
+def _catalog(path, executable):
     try:
-        source = Path(path).expanduser() if path else Path(__file__).with_name(DEFAULT_CATALOG)
+        client_version = None
+        if executable or not path:
+            from .connected_client import _qualify_client
+
+            program = shutil.which(executable or "codex")
+            if program is None:
+                raise ValueError()
+            client_version = _qualify_client(program)
+        source = Path(path).expanduser() if path else Path(__file__).with_name(DEFAULT_CATALOGS[client_version])
         value = strict_json_loads(_safe_file(source, 65536, private=False))
         if type(value) is not dict:
             raise ValueError()
         validate_contract(value)
         if value["schema_id"] != "hormuz.local-acquisition-catalog":
             raise ValueError()
+        target = value["profile"]["client_version"]
+        if target not in SUPPORTED_CODEX_VERSIONS or (client_version and target != client_version):
+            raise ValueError()
         return value
-    except (OSError, ValueError, TypeError, KeyError, RuntimeError, ContractValidationError, LocalAcquisitionError):
+    except (OSError, ValueError, TypeError, KeyError, RuntimeError, ContractValidationError,
+            LocalAcquisitionError, subprocess.SubprocessError):
         raise LocalAcquisitionError("catalog_invalid") from None
 
 
@@ -211,7 +229,7 @@ def _remaining_bytes(catalog, generation):
 def acquire_local(args):
     if os.name != "posix":
         raise LocalAcquisitionError("platform_unsupported")
-    catalog = _catalog(args.catalog)
+    catalog = _catalog(args.catalog, args.executable)
     if (catalog["profile"]["system"], catalog["profile"]["machine"]) != (platform.system(), platform.machine()):
         raise LocalAcquisitionError("platform_unsupported")
     if not 1 <= len(args.directory) <= 4096 or any(ord(c) < 32 or ord(c) == 127 for c in args.directory):

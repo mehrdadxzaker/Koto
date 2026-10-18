@@ -103,6 +103,80 @@ class LocalAcquisitionWorkflowTests(unittest.TestCase):
         self.root = self.client.root
         self.directory = self.root / "assets"
 
+    def test_default_preview_matches_the_selected_client_without_creating_assets_or_changing_settings(self):
+        settings = self.client.home / "config.toml"
+        settings.write_text('model = "personal-commercial-model"\n')
+        before = settings.read_bytes()
+        bootstrap = ('import platform; platform.system=lambda:"Darwin"; platform.machine=lambda:"arm64"; '
+                     'from hormuz.cli import main; raise SystemExit(main())')
+        cases = (("0.147.0", "codex0147-llamab11617-qwen3-4b-macos-arm64-experiment-v1"),
+                 ("0.160.0", "codex0160-llamab11617-qwen3-4b-single-agent-http-experiment-v1"),
+                 ("0.162.0-alpha.17.2", "codex-app0162-llamab11617-qwen3-4b-interactive-review-360s-v3"))
+        binary = self.root / "bin"
+        binary.mkdir()
+        (binary / "codex").symlink_to(self.client.executable)
+        environment = {**self.client.environment, "PATH": str(binary) + os.pathsep + os.environ.get("PATH", "")}
+        # A symlinked executable reads the version alongside that executable.
+        for version, expected in cases:
+            with self.subTest(client=version):
+                (self.root / "client-version.txt").write_text(version)
+                (binary / "client-version.txt").write_text(version)
+                for selection in (["--executable", str(self.client.executable)], []):
+                    result = subprocess.run([sys.executable, "-c", bootstrap, "client", "acquire", "codex",
+                        "--directory", str(self.directory), *selection, "--dry-run"],
+                        env=environment, capture_output=True, text=True, timeout=10)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    receipt = json.loads(result.stdout)
+                    validate_contract(receipt)
+                    self.assertEqual(receipt["catalog_id"], expected)
+                    self.assertEqual((receipt["operation"], receipt["state"], receipt["setup_arguments"]),
+                                     ("preview", "planned", []))
+                    self.assertEqual(settings.read_bytes(), before)
+                    self.assertFalse(self.directory.exists())
+
+    def test_missing_unsupported_or_mismatched_clients_block_before_transfer_or_settings_changes(self):
+        value, payloads = self.prepare()
+        before = (self.client.home / "config.toml").read_bytes()
+        with artifacts(payloads) as (origin, observed, _):
+            catalog = self.catalog(value, origin)
+            cases = (("client_mismatch", "0.160.0", self.client.executable, "0.147.0"),
+                     ("unsupported_executable", "0.999.0", self.client.executable, "0.147.0"),
+                     ("missing_executable", "0.147.0", self.root / "missing-codex", "0.147.0"),
+                     ("unsupported_catalog", "0.147.0", None, "0.999.0"))
+            for name, actual, executable, declared in cases:
+                with self.subTest(case=name):
+                    (self.root / "client-version.txt").write_text(actual)
+                    catalog["profile"]["client_version"] = declared
+                    (self.root / "catalog.json").write_text(json.dumps(catalog))
+                    options = ["--executable", str(executable)] if executable else []
+                    for mode in ("--download", "--offline", "--dry-run"):
+                        failed = self.acquire(*options, mode, check=False)
+                        self.assertEqual(failed.returncode, 2, failed.stderr)
+                        error = json.loads(failed.stderr)
+                        validate_contract(error)
+                        self.assertEqual(error["error"], {"code": "catalog_invalid", "action": "select_reviewed_catalog"})
+                        self.assertFalse(self.directory.exists())
+                        self.assertEqual((self.client.home / "config.toml").read_bytes(), before)
+                        self.assertEqual(observed, [])
+
+    def test_a_stalled_version_probe_returns_a_fixed_error_and_reaps_its_process(self):
+        value, _ = self.prepare()
+        self.catalog(value, "http://127.0.0.1:1")
+        before = (self.client.home / "config.toml").read_bytes()
+        pid = self.root / "probe-pid"
+        self.client.executable.write_text(
+            f"#!{sys.executable}\nimport os, time\nfrom pathlib import Path\n"
+            f"Path({str(pid)!r}).write_text(str(os.getpid()))\nos.close(1)\ntime.sleep(30)\n")
+        failed = self.acquire("--executable", str(self.client.executable), "--download", check=False)
+        self.assertEqual(failed.returncode, 2, failed.stderr)
+        error = json.loads(failed.stderr)
+        validate_contract(error)
+        self.assertEqual(error["error"]["code"], "catalog_invalid")
+        self.assertFalse(self.directory.exists())
+        self.assertEqual((self.client.home / "config.toml").read_bytes(), before)
+        with self.assertRaises(ProcessLookupError):
+            os.kill(int(pid.read_text()), 0)
+
     def invocation(self, *options, bootstrap=None):
         launcher = ([sys.executable, "-c", bootstrap] if bootstrap is not None else
                     [sys.executable, "-m", "hormuz"])
@@ -148,37 +222,54 @@ class LocalAcquisitionWorkflowTests(unittest.TestCase):
             managed = value["managed_llama"]
             payloads = {"/runtime": Path(managed["runtime_archive"]).read_bytes(),
                         "/model": Path(managed["model_file"]).read_bytes()}
-            with artifacts(payloads) as (origin, observed, _):
-                self.catalog(value, origin)
+            retained = {}
+            for version in ("0.147.0", "0.160.0"):
+                (self.root / "client-version.txt").write_text(version)
+                if version == "0.160.0":
+                    with (self.client.home / "config.toml").open("a") as settings:
+                        settings.write("# user preference added between generations\n")
                 original = (self.client.home / "config.toml").read_text()
-                preview = json.loads(self.acquire().stdout)
-                validate_contract(preview)
-                self.assertEqual((preview["operation"], preview["state"]), ("preview", "planned"))
-                self.assertEqual(preview["setup_arguments"], [])
-                self.assertFalse(self.directory.exists())
-                self.assertEqual(observed, [])
-                ready = json.loads(self.acquire("--download").stdout)
-                validate_contract(ready)
-                self.assertEqual((ready["operation"], ready["state"]), ("acquire", "ready"))
-                self.assertEqual(ready["storage"]["download_bytes"], 0)
-                self.assertEqual(ready["storage"]["required_free_bytes"], 0)
-                saved = json.loads((Path(ready["directory"]) / "receipt.json").read_text())
-                self.assertEqual(saved["storage"], ready["storage"])
-                self.assertEqual([item[0] for item in observed], ["/runtime", "/model"])
-                self.assertTrue(all("Authorization" not in headers for _, headers in observed))
+                with artifacts(payloads) as (origin, observed, _):
+                    catalog = self.catalog(value, origin)
+                    catalog["profile"]["client_version"] = version
+                    catalog["profile"]["task_types"].extend(["code_change", "code_review"])
+                    (self.root / "catalog.json").write_text(json.dumps(catalog))
+                    preview = json.loads(self.acquire("--executable", str(self.client.executable)).stdout)
+                    validate_contract(preview)
+                    self.assertEqual((preview["operation"], preview["state"]), ("preview", "planned"))
+                    self.assertEqual(preview["setup_arguments"], [])
+                    self.assertFalse(Path(preview["directory"]).exists())
+                    self.assertEqual(observed, [])
+                    ready = json.loads(self.acquire("--download", "--executable", str(self.client.executable)).stdout)
+                    validate_contract(ready)
+                    self.assertEqual((ready["operation"], ready["state"]), ("acquire", "ready"))
+                    self.assertEqual(ready["storage"]["download_bytes"], 0)
+                    self.assertEqual(ready["storage"]["required_free_bytes"], 0)
+                    saved = json.loads((Path(ready["directory"]) / "receipt.json").read_text())
+                    self.assertEqual(saved["storage"], ready["storage"])
+                    self.assertEqual([item[0] for item in observed], ["/runtime", "/model"])
+                    self.assertTrue(all("Authorization" not in headers for _, headers in observed))
+                    self.assertFalse(self.client.path.exists())
+                reused = json.loads(self.acquire("--offline", "--executable", str(self.client.executable)).stdout)
+                self.assertEqual((reused["operation"], reused["state"]), ("reuse", "ready"))
+                self.assertEqual(reused["directory"], ready["directory"])
+                profile = json.loads(Path(reused["setup_arguments"][1]).read_text())
+                self.assertEqual(profile["client_version"], version)
+                self.addCleanup(lambda: self.client.command("disconnect", check=False))
+                connected = json.loads(self.client.command("setup", *reused["setup_arguments"]).stdout)
+                self.assertEqual(connected["connection"]["phase"], "connected")
+                self.assertEqual(self.client.client()["body"]["output"][0]["content"][0]["text"], "MANAGED_LOCAL")
+                route = self.client.client("router-state")["body"]["routes"][0]
+                self.assertEqual(route["coding_readiness"], "unknown")
+                self.assertEqual(self.client.client("code-change", "local-only")["status"], 503)
+                self.assertEqual(json.loads(self.client.command("status").stdout)["phase"], "connected")
+                self.assertEqual(json.loads(self.client.command("disconnect").stdout)["local_runtime"]["state"], "stopped")
                 self.assertEqual((self.client.home / "config.toml").read_text(), original)
-                self.assertFalse(self.client.path.exists())
-            reused = json.loads(self.acquire("--offline").stdout)
-            self.assertEqual((reused["operation"], reused["state"]), ("reuse", "ready"))
-            self.assertEqual(reused["directory"], ready["directory"])
-            self.addCleanup(lambda: self.client.command("disconnect", check=False))
-            connected = json.loads(self.client.command("setup", *reused["setup_arguments"]).stdout)
-            self.assertEqual(connected["connection"]["phase"], "connected")
-            self.assertEqual(self.client.client()["body"]["output"][0]["content"][0]["text"], "MANAGED_LOCAL")
-            self.assertEqual(json.loads(self.client.command("status").stdout)["phase"], "connected")
-            self.assertEqual(json.loads(self.client.command("disconnect").stdout)["local_runtime"]["state"], "stopped")
-            self.assertEqual((self.client.home / "config.toml").read_text(), original)
-            self.assertTrue(Path(ready["directory"]).is_dir())
+                self.assertTrue(Path(ready["directory"]).is_dir())
+                for path, data in retained.items():
+                    self.assertEqual(path.read_bytes(), data)
+                retained.update({path: path.read_bytes() for path in Path(ready["directory"]).iterdir() if path.is_file()})
+                self.client.path.unlink()
             self.assertEqual(cloud_requests, [])
 
     def test_interrupted_download_resumes_only_the_owned_pinned_range(self):
