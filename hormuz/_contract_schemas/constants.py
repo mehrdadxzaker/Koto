@@ -198,6 +198,8 @@ PUBLIC_ERROR_CODES_V1 = frozenset(
 PUBLIC_ERROR_CODES_V2 = frozenset({*PUBLIC_ERROR_CODES_V1, "hormuz_storage_unavailable"})
 
 ROUTE_ADMISSION_ERROR_CODES = frozenset({
+    "hormuz_route_personal_evidence_unavailable", "hormuz_route_personal_evidence_changed",
+    "hormuz_route_invalid_history_evaluation", "hormuz_route_history_evaluation_changed",
     "hormuz_route_invalid_benchmark_mode",
     "hormuz_route_invalid_task_selection",
     "hormuz_route_invalid_routing_mode", "hormuz_route_affinity_required",
@@ -210,6 +212,9 @@ PUBLIC_ERROR_CODES = frozenset({*PUBLIC_ERROR_CODES_V2, "hormuz_custody_restrict
                               *ROUTE_ADMISSION_ERROR_CODES, *CONNECTED_CLIENT_ERROR_ACTIONS})
 
 _CURRENT_SCHEMA_VERSIONS = {
+    "koto.personal-selection-status": 1, "koto.personal-scorecard": 1,
+    "koto.personal-selection-feedback": 1, "koto.personal-selection-validation": 1,
+    "koto.personal-selection-evaluation": 1, "koto.model-selection": 1,
     "hormuz.chat-task": 1,
     "hormuz.chat-models": 1,
     "hormuz.chat-error": 1,

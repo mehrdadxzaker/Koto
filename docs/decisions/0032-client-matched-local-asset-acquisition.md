@@ -1,4 +1,4 @@
-# 0031: Client-matched acquisition with retained asset generations
+# 0032: Client-matched acquisition with retained asset generations
 
 Status: accepted decision, October 17, 2026; implementation handoff remains.
 

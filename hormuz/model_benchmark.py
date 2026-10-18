@@ -466,7 +466,7 @@ class RouterClient:
             result[route.alias] = live["generation"]
         return result
 
-    def request(self, payload, *, timeout=12, method="POST", path="/v1/responses"):
+    def request(self, payload, *, timeout=12, method="POST", path="/v1/responses", extra_headers=None):
         connection = self.connection
         started = time.monotonic()
         if connection.sock is None:
@@ -488,7 +488,7 @@ class RouterClient:
             connection.request(method, path, None if payload is None else json.dumps(payload), headers={
                 "Authorization": "Bearer " + self.token, "Content-Type": "application/json",
                 "User-Agent": "Koto codex-benchmark", "X-Hormuz-Routing-Mode": "local_only",
-                "X-Hormuz-Benchmark": "1"})
+                "X-Hormuz-Benchmark": "1", **(extra_headers or {})})
             response = connection.getresponse()
             headers_ms = (time.monotonic() - started) * 1000
             if response.status != 200:

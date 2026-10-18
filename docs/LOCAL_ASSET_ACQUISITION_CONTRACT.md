@@ -6,6 +6,10 @@ Accepted by the owner on October 17, 2026. This decision does not implement an
 installer, acquire assets, activate a connection or establish a supported coding
 model.
 
+Acquisition supports admitting local alternatives into the
+[personal model selection pool](PERSONAL_MODEL_SELECTION.md). Its adopted
+policy is [ADR 0032](decisions/0032-client-matched-local-asset-acquisition.md).
+
 The inspected baseline is protected main
 `d006beb6a21e527c01692b7591c62aa820fea41f`. Reuse
 [ADR 0026](decisions/0026-verified-local-asset-acquisition.md),

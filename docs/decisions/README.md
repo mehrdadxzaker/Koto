@@ -1,7 +1,9 @@
 # Architecture decisions
 
-[ADR 0018](0018-customer-local-router-scope.md) records the current owner-approved
-product scope: a local router, CLI and shared skills-only plugin setup.
+[ADR 0031](0031-personal-model-selection.md) centers the current product on
+history → scorecard → classifier → model execution → observed outcome.
+[ADR 0018](0018-customer-local-router-scope.md) preserves the local router, CLI
+and shared skills-only plugin boundary supporting that loop.
 
 [ADR 0022](0022-opt-in-device-local-history.md) adds separately consented,
 encrypted device-local history for review, deletion, export and spending
@@ -29,7 +31,7 @@ benchmarks and explicit scorecard preferences within admitted local routes.
 [ADR 0030](0030-bounded-coding-qualification-probes.md) records explicit,
 ephemeral local coding probes without changing ordinary coding readiness.
 
-[ADR 0031](0031-client-matched-local-asset-acquisition.md) records client-matched
+[ADR 0032](0032-client-matched-local-asset-acquisition.md) records client-matched
 reviewed acquisition catalogs, explicit private asset directories and retained
 generations, with removal remaining a separate inspected action. Its contract
 leaves implementation and production qualification as separate gates.

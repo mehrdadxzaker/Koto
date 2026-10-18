@@ -41,7 +41,6 @@ from . import work_gateway
 from .work_http import handle_work_request
 from .work_runtime import WorkRuntimeError
 from .route_admission import RouteAdmission, RouteAdmissionError
-from .shadow_routing import ShadowRouter, ShadowClientCanceled
 from .local_transport import open_local_upstream as _owned_local_upstream
 from .native_codex_catalog import CATALOG_PATH, handle_native_catalog
 from .native_codex_responses import RESPONSES_PATH, handle_native_responses, handle_native_status
@@ -413,8 +412,8 @@ class GatewayServer(ThreadingHTTPServer):
                 routes=config.model_routes,
             )
             work_gateway.initialize(self, environ=environ)
-            self.route_admission = RouteAdmission(config, self.destinations)
-            self.shadow_router = ShadowRouter(config, self.destinations, self.route_admission, self.work_runtime)
+            self.local_history = LocalHistory(config.source_path, environ=environ)
+            self.route_admission = RouteAdmission(config, self.destinations, history=self.local_history)
             protected_values = [
                 ("hormuz_identity_token", identity.token)
                 for identity in config.identities_by_token.values()
@@ -426,7 +425,6 @@ class GatewayServer(ThreadingHTTPServer):
                 if len(value) >= 8
             )
             self.secret_redactor = SecretRedactor(config.secret_controls, tuple(protected_values))
-            self.local_history = LocalHistory(config.source_path, environ=environ)
             self.history_redactor = history_redactor(config.secret_controls, [
                 ("credential", value) for value in (
                     *self.upstream_credentials.values(),
@@ -569,6 +567,12 @@ class GatewayRequestHandler(BaseHTTPRequestHandler):
                     else:
                         schema = "hormuz.route-admission"
                         value = self.server.route_admission.status(identity, self.server.policy_engine)
+                    if value.get("schema_version") == 3 and schema == "hormuz.route-admission":
+                        from .contracts import validate_contract
+                        validate_contract(value)
+                        self._send_json(HTTPStatus.OK, value, contract_header_value="hormuz.route-admission;v=3",
+                                        extra_headers={"X-Hormuz-Chat-Tasks": "v1"})
+                        return
                     self._send_contract_json(HTTPStatus.OK, schema, value,
                         extra_headers={'X-Hormuz-Chat-Tasks':'v1'} if path == '/v1/router/state' else None)
                 except _STORAGE_FAILURES as error:
@@ -725,6 +729,10 @@ class GatewayRequestHandler(BaseHTTPRequestHandler):
             return
         protocol, default_client, account_usage = route
         self._history_generation = history_consent(self.server.local_history, identity.actor_id)
+        try:
+            self._learning_ingress = self.server.local_history.learning_consent(identity.actor_id).get("generation")
+        except (OSError, ValueError):
+            self._learning_ingress = None
         try:
             self._proxy_generation(
                 identity=identity,
@@ -1082,16 +1090,6 @@ class GatewayRequestHandler(BaseHTTPRequestHandler):
                 entered = True
                 with ExitStack() as resources:
                     self._provider_response_resources = resources
-                    if options["failover_applied_reason"] is None and not getattr(self, "_coding_probe", False):
-                        try:
-                            self.server.shadow_router.observe(self, options["identity"], options["decision"],
-                                options["request_value"], options["attempt"], client=options["client"])
-                        except ShadowClientCanceled:
-                            self.server.store.finalize_request_attempt(attempt=options["attempt"],
-                                organization_id=options["identity"].organization_id, status="failed", cost_microusd=0)
-                            work_gateway.settle(self, options["identity"], options["attempt"], cost=0, status="failed")
-                            self.close_connection = True
-                            return
                     history_capture = HistoryCapture.begin(self.server.local_history,
                         identity=options["identity"], client=options["client"], protocol=options["protocol"],
                         decision=options["decision"],
@@ -1099,6 +1097,16 @@ class GatewayRequestHandler(BaseHTTPRequestHandler):
                         request_value=options["request_value"], redactor=self.server.history_redactor,
                         generation=self._history_generation)
                     if history_capture is not None:
+                        try:
+                            learning = self.server.local_history.learning_consent(options["identity"].actor_id)
+                        except (OSError, ValueError):
+                            learning = {"enabled": False}
+                        if learning["enabled"] and learning.get("generation") == self._learning_ingress:
+                            from .personal_selection import capture_context
+                            history_capture.entry["selection"] = capture_context(self.server.config, options["decision"],
+                                options["request_value"], learning["generation"], history_capture.entry,
+                                getattr(self, "_personal_selection", {}))
+                            history_capture.evaluation_source = getattr(self, "_evaluation_source", None)
                         headers = self.server.route_admission.response_headers(self, options["decision"].route)
                         history_capture.entry["routing_evidence"] = {
                             "schema_version": 1, "policy_action": options["policy_action"],
