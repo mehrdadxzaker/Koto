@@ -51,8 +51,12 @@ def main():
     parser.add_argument('--mode', choices=('text', 'function'), required=True)
     parser.add_argument('--minimal', action='store_true', help='Use the same supplied command in text and function form')
     parser.add_argument('--v8-driver', action='store_true', help='Exercise the isolated v8 launcher and trace tap')
+    parser.add_argument('--premature-checker-exit', action='store_true',
+                        help='Negative control: a checker process exit zero must not prove assertion completion')
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
+    if args.premature_checker_exit and (not args.v8_driver or args.mode != 'function'):
+        parser.error('The premature-exit control requires --v8-driver --mode function')
     if args.output.exists():
         raise RuntimeError('Preserve an existing diagnostic result')
     args.output.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
@@ -62,7 +66,8 @@ def main():
     native_events = [json.loads(line) for line in (V7 / 'development-native.jsonl').read_text().splitlines()]
     frozen_text = next(e['item']['text'] for e in native_events
                        if e.get('item', {}).get('type') == 'agent_message')
-    with tempfile.TemporaryDirectory(prefix='koto-native-tool-replay-') as temporary:
+    with tempfile.TemporaryDirectory(prefix='koto-native-tool-replay-',
+                                     dir='/private/tmp' if args.v8_driver else None) as temporary:
         root = Path(temporary)
         root.chmod(0o700)
         runner.ROOT, runner.PYTHON = root, PYTHON
@@ -114,6 +119,8 @@ def main():
             payload = ('from pathlib import Path\n'
                        'for forbidden in ' + repr([
                            '/private/tmp/koto-tool-compat-preparation-20261017/checkers/dev-clamp.py',
+                           '/private/tmp/koto-566-preparation-20261017/checker-references.json',
+                           '/private/tmp/koto-566-native-v7-20261017/oracle.py',
                            str(REPOSITORY / 'docs/campaigns/local-repair-20261017-v8/corpus.json')]) + ':\n'
                        ' try:\n  Path(forbidden).read_text()\n'
                        ' except PermissionError:\n  pass\n'
@@ -127,6 +134,9 @@ def main():
                        'print("checker_inventory_and_write_isolation_passed")\n')
             import shlex
             command = 'python3 -c ' + shlex.quote(payload)
+            if args.premature_checker_exit:
+                command = 'python3 -c ' + shlex.quote(
+                    'from pathlib import Path; Path("solution.py").write_text("import os; os._exit(0)\\n")')
         arguments = json.dumps({'cmd': command, 'max_output_tokens': 512})
         if args.minimal and args.mode == 'text':
             final_message['content'][0]['text'] = '```json\n' + json.dumps({'name': 'exec_command', 'arguments': json.loads(arguments)}) + '\n```'
@@ -155,7 +165,7 @@ def main():
             driver.ROOT = driver.retained.ROOT = root
             driver.DIRECTORY = root / 'driver-artifacts'
             driver.DIRECTORY.mkdir(mode=0o700)
-            driver.capture()
+            driver.capture(inspect_engine=False)
         else:
             runner.preflight()
         capture = json.loads((root / 'captured-request.json').read_text())
@@ -175,9 +185,17 @@ def main():
                 'max_requests': 2, 'max_elapsed_seconds': 30}
         write(root / 'probe-plan.json', plan)
         experiment = runner.Experiment()
-        report = {'mode': args.mode, 'minimal': args.minimal, 'native_model_inferences': 0,
+        check_receipts = []
+        def independent_check():
+            if driver:
+                receipt = driver.checker(baseline)
+                check_receipts.append(receipt)
+                return receipt['exit_code']
+            return runner.independent_check()
+        report = {'mode': args.mode, 'minimal': args.minimal,
+                  'premature_checker_exit': args.premature_checker_exit, 'native_model_inferences': 0,
                   'response_origin': 'reconstructed client text' if args.mode == 'text' else 'supplied synthetic function call',
-                  'model_quality_evidence': False, 'baseline_exit_code': runner.independent_check()}
+                  'model_quality_evidence': False, 'baseline_exit_code': independent_check()}
         before = (root / 'project/solution.py').read_bytes()
         try:
             report['setup'] = experiment.connect()
@@ -195,8 +213,9 @@ def main():
         finally:
             experiment.close(report)
             report['implementation_changed'] = before != (root / 'project/solution.py').read_bytes()
-            report['check_exit_code'] = runner.independent_check()
+            report['check_exit_code'] = independent_check()
             report['checks_unchanged'] = digest((root / 'oracle.py').read_bytes()) == baseline['checks_sha256']
+            report['independent_checks'] = check_receipts
             events = [json.loads(line) for line in (root / 'replay-native.jsonl').read_text().splitlines()]
             report['native_events'] = events
             report['executed_commands'] = sum(e.get('item', {}).get('type') == 'command_execution'
@@ -209,6 +228,8 @@ def main():
         print(json.dumps(summary))
         if not (report['checks_unchanged'] and report.get('settings_restored') and report.get('owned_listeners_closed')):
             return 2
+        if args.premature_checker_exit:
+            return 0 if report['executed_commands'] and report['implementation_changed'] and report['check_exit_code'] != 0 else 1
         return 0 if report['executed_commands'] and report['implementation_changed'] and report['check_exit_code'] == 0 else 1
 
 

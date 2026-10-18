@@ -19,6 +19,8 @@ import signal
 import socket
 import stat
 import subprocess
+import secrets
+import tempfile
 import threading
 import time
 
@@ -75,18 +77,41 @@ def checker(case):
     oracle = PRIVATE / 'checkers' / (case['case_id'] + '.py')
     if file_hash(oracle) != case['checks_sha256']:
         raise RuntimeError('Independent checker changed')
+    completion = secrets.token_hex(24)
     code = ('import runpy,sys\noracle=sys.argv.pop(1)\nsys.argv[0]=oracle\ntry:\n'
             ' runpy.run_path(oracle,run_name="__main__")\nexcept AssertionError:\n sys.exit(1)\n'
-            'except BaseException:\n sys.exit(2)\n')
-    try:
-        result = subprocess.run(['/usr/bin/sandbox-exec', '-p',
+            'except BaseException:\n sys.exit(2)\nprint(' + repr(completion) + ',flush=True)\n')
+    with tempfile.TemporaryFile(dir=ROOT / 'tmp') as output:
+        process = subprocess.Popen(['/usr/bin/sandbox-exec', '-p',
             '(version 1)(allow default)(deny network*)(deny file-write*)', str(PYTHON),
             '-I', '-B', '-c', code, str(oracle), str(ROOT / 'project/solution.py')],
             cwd=ROOT / 'tmp', env={'PATH': '/usr/bin:/bin', 'HOME': str(ROOT / 'tmp')},
-            stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=2)
-        return result.returncode
-    except subprocess.TimeoutExpired:
-        return None
+            stdin=subprocess.DEVNULL, stdout=output, stderr=subprocess.DEVNULL, start_new_session=True)
+        deadline = time.monotonic() + 2
+        bounded = True
+        try:
+            while process.poll() is None:
+                if time.monotonic() >= deadline or os.fstat(output.fileno()).st_size > 8192:
+                    bounded = False
+                    break
+                try:
+                    process.wait(timeout=0.05)
+                except subprocess.TimeoutExpired:
+                    pass
+        finally:
+            retained.stop(process)
+        output.seek(0)
+        observed = output.read(8193)
+        receipt = {'process_exit_code': process.returncode,
+                   'assertions_completed': observed == (completion + '\n').encode(),
+                   'output_bytes': os.fstat(output.fileno()).st_size, 'within_budget': bounded}
+        if not bounded or len(observed) > 8192:
+            return {**receipt, 'exit_code': None}
+        # Exit zero alone can be produced by os._exit before any assertion.
+        # A fresh completion receipt is emitted only after the oracle returns.
+        if process.returncode == 0:
+            return {**receipt, 'exit_code': 0 if receipt['assertions_completed'] else 2}
+        return {**receipt, 'exit_code': 1 if process.returncode == 1 else 2}
 
 
 def prepare_case(case):
@@ -109,8 +134,11 @@ def permission_overrides():
     # Use the client's own sandbox once: macOS rejects nested seatbelt sandboxes.
     # Exact deny rules keep the independent checker and held-out inventory out of
     # tool execution while allowing writes only in the disposable project/temp.
-    filesystem = {':root': 'read', str(ROOT / 'project'): 'write',
-                  str(ROOT / 'tmp'): 'write', str(PRIVATE): 'deny', str(SOURCE): 'deny'}
+    filesystem = {':root': 'read', '/private/tmp': 'deny', str(ROOT): 'read',
+                  str(ROOT / 'project'): 'write', str(ROOT / 'tmp'): 'write',
+                  str(PRIVATE): 'deny', str(SOURCE): 'deny',
+                  '/Users/mehrdadz/Downloads/memoWiki': 'deny',
+                  '/Users/mehrdadz/.codex': 'deny'}
     table = '{' + ','.join(json.dumps(key) + '=' + json.dumps(value)
                           for key, value in filesystem.items()) + '}'
     return ['-c', 'default_permissions="bounded-repair"',
@@ -287,7 +315,7 @@ def initialize():
         shutil.copy2(ROOT / name, DIRECTORY / name)
 
 
-def capture():
+def capture(*, inspect_engine=True):
     if (ROOT / 'preflight.json').exists():
         raise RuntimeError('Preserve an existing preflight')
     experiment = retained.Experiment()
@@ -312,9 +340,30 @@ def capture():
             self.send_header('Content-Length', str(len(raw)))
             self.end_headers()
             self.wfile.write(raw)
-    server = thread = None
+    server = thread = engine = None
     try:
         report['setup'] = experiment.connect()
+        if inspect_engine:
+            engine = http.client.HTTPConnection('127.0.0.1', experiment.ports[1], timeout=5)
+        report['metadata_requests'] = []
+        def metadata(method, path, value=None):
+            if len(report['metadata_requests']) >= 3 or (method, path) not in {
+                    ('GET', '/props'), ('POST', '/v1/responses/input_tokens'), ('POST', '/apply-template')}:
+                raise RuntimeError('Only three zero-inference metadata requests are allowed')
+            body = None if value is None else canonical(value)
+            engine.request(method, path, body=body,
+                           headers={} if body is None else {'Content-Type': 'application/json'})
+            response = engine.getresponse()
+            raw = response.read(BYTE_LIMIT + 1)
+            report['metadata_requests'].append({'method': method, 'path': path, 'status': response.status})
+            if response.status != 200 or len(raw) > BYTE_LIMIT:
+                raise RuntimeError('Zero-inference metadata request failed')
+            return json.loads(raw)
+        if inspect_engine:
+            properties = metadata('GET', '/props')
+            write(ROOT / 'engine-properties.json', {k: properties[k] for k in (
+                'default_generation_settings', 'total_slots', 'model_alias', 'model_ftype',
+                'chat_template', 'chat_template_caps', 'build_info')})
         server = http.server.HTTPServer(('127.0.0.1', 0), Capture)
         thread = threading.Thread(target=server.serve_forever, kwargs={'poll_interval': 0.05}, daemon=False)
         thread.start()
@@ -324,7 +373,27 @@ def capture():
         report['work_state'] = experiment.public('work/state')
         if len(captured) != 1 or report['work_state']['totals']['attempts'] != 0:
             raise RuntimeError('Preflight must not forward a model request')
+        request = captured[0]
+        if inspect_engine:
+            report['input_tokens'] = metadata('POST', '/v1/responses/input_tokens', request)
+        chat = {'messages': [{'role': 'system', 'content': request['instructions']}] + [
+            {'role': item['role'], 'content': '\n'.join(part['text'] for part in item['content']
+                                                       if part['type'] == 'input_text')}
+            for item in request['input']], 'tools': [
+            {'type': 'function', 'function': {k: v for k, v in tool.items() if k != 'type'}}
+            for tool in request['tools']], 'add_generation_prompt': True,
+            'tool_choice': 'auto', 'parallel_tool_calls': True}
+        if inspect_engine:
+            rendered = metadata('POST', '/apply-template', chat)
+            prompt = rendered['prompt']
+            report['rendered_tool_names'] = [tool['name'] for tool in request['tools'] if tool['name'] in prompt]
+            report['developer_guidance_rendered'] = request['input'][0]['content'][0]['text'] in prompt
+            report['rendered_prompt_sha256'] = sha(prompt.encode())
+            if len(report['rendered_tool_names']) != len(request['tools']) or not report['developer_guidance_rendered']:
+                raise RuntimeError('Actual engine template omitted native tools or developer guidance')
     finally:
+        if engine:
+            engine.close()
         if server:
             server.shutdown(); server.server_close()
         if thread:
@@ -332,7 +401,8 @@ def capture():
         experiment.close(report)
         write(ROOT / 'preflight.json', report)
         for name in ('preflight.json', 'preflight-native.jsonl', 'preflight-native.stderr',
-                     'preflight-native-argv.json', 'captured-request.json', 'request-profile.json', 'first-input.json'):
+                     'preflight-native-argv.json', 'captured-request.json', 'request-profile.json',
+                     'first-input.json', 'engine-properties.json'):
             if (ROOT / name).exists():
                 shutil.copy2(ROOT / name, DIRECTORY / name)
     if not report.get('settings_restored') or not report.get('owned_listeners_closed'):
@@ -409,8 +479,10 @@ def run_case(experiment, case, plan):
     output.mkdir(mode=0o700, exist_ok=False)
     prepare_case(case)
     before = (ROOT / 'project/solution.py').read_bytes()
+    baseline_check = checker(case)
     report = {'case_id': case['case_id'], 'partition': case['partition'], 'native_episodes': 0,
-              'quality_retries': 0, 'automatic_admission_effect': 'none', 'baseline_exit_code': checker(case)}
+              'quality_retries': 0, 'automatic_admission_effect': 'none',
+              'baseline_check': baseline_check, 'baseline_exit_code': baseline_check['exit_code']}
     if report['baseline_exit_code'] != 1:
         raise RuntimeError('Baseline must fail by assertion before native launch')
     probe_plan = case_probe_plan(case, plan)
@@ -437,7 +509,8 @@ def run_case(experiment, case, plan):
         report['implementation_safe'] = safe
         after = implementation.read_bytes() if safe else before
         report['implementation_changed'] = after != before
-        report['check_exit_code'] = checker(case) if safe else None
+        report['checker_after'] = checker(case) if safe else None
+        report['check_exit_code'] = report['checker_after']['exit_code'] if safe else None
         report['checks_unchanged'] = file_hash(PRIVATE / 'checkers' / (case['case_id'] + '.py')) == case['checks_sha256']
         patch = ''.join(difflib.unified_diff(before.decode().splitlines(keepends=True), after.decode().splitlines(keepends=True),
                                            fromfile='solution.py.before', tofile='solution.py.after'))

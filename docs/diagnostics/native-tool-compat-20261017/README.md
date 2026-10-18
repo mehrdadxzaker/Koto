@@ -27,6 +27,14 @@ The existing router must not promote arbitrary assistant text into commands.
   failed because the proposed outer macOS sandbox prevented Codex from starting
   its inner tool sandbox (exit 71). Removing that nested harness sandbox in
   favor of the client's permission profile corrects this preparation defect.
+- Exact-head review then found readable answers in prior temporary generations
+  and an early-exit false pass in the checker wrapper. The retained
+  [red/green guard controls](guard-controls.json) reproduce both before the fix.
+  Tools now cannot read other temporary generations or the primary checkout and
+  live Codex home. A fresh checker completion receipt distinguishes raw process
+  exit 0 from assertions actually finishing. The final supplied repair passes;
+  the early-exit implementation has process exit 0 but fails the completion
+  guard. These corrections affect the experiment harness, not product routing.
 
 The original v7 run did **not** retain raw engine SSE or unparsed generated
 tokens. Its client-visible message therefore cannot distinguish nonconforming

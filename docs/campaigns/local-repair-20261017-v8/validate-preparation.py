@@ -2,51 +2,49 @@
 
 import argparse
 import hashlib
+import importlib.util
 import json
 from pathlib import Path
-import subprocess
-import sys
 import tempfile
 
 
 DIRECTORY = Path(__file__).resolve().parent
-WRAPPER = ("import runpy,sys\noracle=sys.argv.pop(1)\nsys.argv[0]=oracle\ntry:\n"
-           " runpy.run_path(oracle,run_name='__main__')\nexcept AssertionError:\n sys.exit(1)\n"
-           "except BaseException:\n sys.exit(2)\n")
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--references", type=Path, required=True)
+    parser.add_argument("--output", type=Path, default=DIRECTORY / 'checker-completion-validation.json')
     arguments = parser.parse_args()
-    target = DIRECTORY / "preparation-evidence.json"
+    target = arguments.output
     if target.exists() or (DIRECTORY / "frozen-manifest.json").exists():
         raise RuntimeError("Preserve existing preparation evidence")
     corpus = json.loads((DIRECTORY / "corpus.json").read_text())
     references = json.loads(arguments.references.read_text())
     outcomes = []
+    spec = importlib.util.spec_from_file_location('frozen_campaign', DIRECTORY / 'campaign-runner.py')
+    driver = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(driver)
     with tempfile.TemporaryDirectory(prefix="koto-569-v8-checkers-") as temporary:
         root = Path(temporary)
+        driver.ROOT = driver.retained.ROOT = root
+        (root / 'project').mkdir()
+        (root / 'tmp').mkdir()
         for case in corpus["entries"]:
-            oracle = root / "oracle.py"
-            oracle.chmod(0o600) if oracle.exists() else None
-            oracle.write_text(case["checks"])
-            oracle.chmod(0o400)
+            oracle = driver.PRIVATE / 'checkers' / (case['case_id'] + '.py')
             codes = {}
             for label, code in (("baseline", case["files"]["solution.py"]), ("reference", references[case["case_id"]])):
-                implementation = root / "implementation.py"
+                implementation = root / "project/solution.py"
                 implementation.write_text(code)
-                result = subprocess.run(["/usr/bin/sandbox-exec", "-p",
-                    "(version 1)(allow default)(deny network*)(deny file-write*)", sys.executable,
-                    "-I", "-B", "-c", WRAPPER, str(oracle), str(implementation)],
-                    cwd=root, env={"PATH": "/usr/bin:/bin"}, stdin=subprocess.DEVNULL,
-                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=2)
-                codes[label + "_exit_code"] = result.returncode
+                receipt = driver.checker(case)
+                codes[label + '_check'] = receipt
+                codes[label + "_exit_code"] = receipt['exit_code']
             outcomes.append({"case_id": case["case_id"], **codes,
                 "checks_unchanged": hashlib.sha256(oracle.read_bytes()).hexdigest() == case["checks_sha256"]})
     passed = len(outcomes) == 16 and all(row["baseline_exit_code"] == 1 and row["reference_exit_code"] == 0
+                                        and row['reference_check']['assertions_completed']
                                         and row["checks_unchanged"] for row in outcomes)
-    evidence = {"document_version": 1, "campaign_id": corpus["campaign_id"], "native_model_inferences": 0,
+    evidence = {"document_version": 2, "campaign_id": corpus["campaign_id"], "native_model_inferences": 0,
                 "reference_implementations_are_model_evidence": False, "cases": outcomes, "passed": passed}
     target.write_text(json.dumps(evidence, indent=2) + "\n")
     print(json.dumps({"cases": len(outcomes), "native_model_inferences": 0, "passed": passed}))

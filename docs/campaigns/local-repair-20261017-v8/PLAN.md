@@ -32,8 +32,9 @@ source and is not presented as a model-only comparison.
 
 Use a fresh private Codex home, network-disabled command tools, no approvals or
 agents, an explicit private permission profile, and only disposable project/temp
-write roots. Exact deny rules prevent tools reading the checker directory and
-this source checkout (including the held-out inventory). The native client uses
+write roots. Exact deny rules prevent tools reading the checker directory,
+other private temporary generations, this source checkout (including the
+held-out inventory), the primary checkout and the live Codex home. The native client uses
 its own sandbox once; nested macOS sandboxes are incompatible. User settings
 are fingerprinted only, never copied into this home or altered.
 
@@ -60,7 +61,9 @@ the repository. There is no live client installation or automatic connection.
 2. Success requires observed native command/file tool execution, an actual safe
    `solution.py` edit and patch hash, independent checker exit 0 with unchanged
    checks, and normal native exit 0 within the budget. A successful process exit
-   alone never passes. The recorder preserves public engine/router SSE bodies,
+   alone never passes. The independent checker must also emit a fresh completion
+   receipt after all assertions return; raw checker process status is recorded
+   separately and an early exit is rejected. The recorder preserves public engine/router SSE bodies,
    native events, follow-up inputs and public status; it saves no auth headers.
 3. Only if the canary passes, use exactly the same frozen setup for the other
    three development cases and **12 fresh held-out cases**, one attempt each.
@@ -71,8 +74,10 @@ the repository. There is no live client installation or automatic connection.
    commands or change a checker after seeing a result.
 
 The prepared corpus was independently validated: all sixteen broken baselines
-exit 1 by assertion; all sixteen private reference implementations exit 0 in a
-two-second, no-network/no-write checker sandbox. These are preparation results.
+exit 1 by assertion; all sixteen private reference implementations exit 0 with
+completed assertions in a two-second, no-network/no-write checker sandbox.
+Both original sensitivity validation and the tightened completion validation
+are retained. These are preparation results.
 
 ## Admission and preservation
 
