@@ -1,0 +1,66 @@
+{
+  "campaign_id": "local-repair-20261018-v14",
+  "selected_model": "Qwen3-Coder-30B-A3B-Instruct-Q4_K_M",
+  "selection": "Previously tried faster sparse coder, with a new native instruction treatment; prior failed campaigns remain immutable.",
+  "publisher_source": "https://huggingface.co/Qwen/Qwen3-Coder-30B-A3B-Instruct",
+  "publisher_parameters": {
+    "total_billions": 30.5,
+    "activated_billions": 3.3,
+    "thinking_mode": false
+  },
+  "quantization_source": "unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF",
+  "verified_local_artifact_bytes": 18556689568,
+  "verified_local_artifact_sha256": "fadc3e5f8d42bf7e894a785b05082e47daee4df26680389817e2093056f088ad",
+  "new_downloads": 0,
+  "prior_same_host_native_trial": {
+    "wire": "docs/campaigns/local-repair-20261017-v9/native-episodes/dev-clamp/trace/wire.json",
+    "wire_sha256": "49fbc5295b3c6ca1e03d926a89e74cb1ada98d374adf0a6e9af9a38ee1147e7e",
+    "requests": 8,
+    "elapsed_ms": 28534,
+    "native_exit_code": 1,
+    "independent_assertions_passed": true,
+    "normal_turn_completed": false,
+    "failure": "Request cap, three malformed patch bodies and unsupported macOS cat flag",
+    "decoder_tokens_per_second_min": 35.25971685202907,
+    "decoder_tokens_per_second_max": 36.76667293163457,
+    "decoder_tokens_per_second_median": 36.34413559220241,
+    "first_prompt_tokens": 7016,
+    "first_prompt_ms": 9140.42
+  },
+  "previous_Devstral_v12": {
+    "decoder_tokens_per_second_approx": 7.8,
+    "accepted_cases": 5,
+    "total_cases": 16,
+    "deadline_failures": 11
+  },
+  "revised_treatment": "Same concise native client/developer instruction bytes as v12; simple full-file writes and concise checks permitted; candidate model/template changes, managed runtime flags and native tool schemas unchanged.",
+  "alternatives_not_selected": [
+    {
+      "candidate": "Devstral Small 2 24B Q4_K_M",
+      "reason": "Measured dense-model decoding and11of16deadline failures despite concise native profile."
+    },
+    {
+      "candidate": "Qwen2.5-Coder7B Q4_K_M",
+      "reason": "Retained actual native trial produced tool-shaped assistant text and zero executable tools."
+    },
+    {
+      "candidate": "New unmeasured local models",
+      "reason": "No same-host native tool/speed evidence; choose the existing verified candidate with observed executable calls and sufficient measured decode speed for this bounded attempt."
+    }
+  ],
+  "hypotheses_before_inference": [
+    {
+      "rank": 1,
+      "prediction": "Replacing dense Devstral with the retained sparse Qwen coder increases actual decode speed relative to7.8tokens/second under the unchanged managed profile."
+    },
+    {
+      "rank": 2,
+      "prediction": "Reusing concise native guidance reduces Qwen initial input tokens from7016 and avoids its previous malformed patch/unsupported shell rounds."
+    },
+    {
+      "rank": 3,
+      "prediction": "Model behavior may still waste calls or make ordinary repair errors; any such frozen canary or held-out failure prevents qualification rather than triggering a retry."
+    }
+  ],
+  "claim_scope": "Prior runs used different instructions/tasks and are candidate-selection evidence, not an observed result for the new frozen profile. Only the newly authorized canary measures its actual repair outcome."
+}
