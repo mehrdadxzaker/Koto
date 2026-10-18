@@ -127,7 +127,7 @@ coding readiness and disabled automatic coding remain preserved. Executable
 tool compatibility is demonstrated for this corrected combination; bounded
 repair completion and full qualification remain unmet.
 
-## Latest outcome: Devstral v12 canary passed; qualification failed
+## Devstral v12 canary passed; qualification failed
 
 The [v12 treatment](../../campaigns/local-repair-20261018-v12/PLAN.md) uses
 concise native instructions and task-independent shell/edit/check guidance,
@@ -155,4 +155,37 @@ prevent reliable bounded repair. All raw episode evidence and protected
 inspections are retained. The 238 frozen inputs and live Codex settings stayed
 unchanged, owned processes/listeners were stopped, and local-only enforcement
 remains intact. No passing receipt exists; automatic coding stays disabled.
+
+## Latest outcome: faster Qwen v14 exhausted requests before completion
+
+The [v14 plan](../../campaigns/local-repair-20261018-v14/PLAN.md) selects the
+existing verified Qwen3-Coder-30B-A3B Q4_K_M artifact with the exact concise v12
+instruction bytes and unchanged managed runtime/tool/budget profile. The v13
+preparation remains frozen and unrun: independent review found two confounded
+checker negatives. Their false acceptance is reproduced against the original
+checkers, then rejected by the replacement checkers before any model inference.
+All sixteen correct private references still pass, and the replacement honestly
+records the inherited, still-unexposed task inventory.
+
+The [one actual canary](../../campaigns/local-repair-20261018-v14/OUTCOME.md)
+processed its first 3,595-token prompt in 4.65 seconds and decoded at 37.95–42.30
+tokens/second (median 40.15). It executed six commands, made the correct edit and
+passed completed independent assertions, but exhausted eight requests and
+exited 1 at 42.395 seconds with no normal native completion. Every response
+included a structured call; seven observed continuation pairs preserve the
+exact name and arguments. The final call has no recorded continuation.
+
+The native ephemeral session advertised goal tools. Two engine responses called
+`update_goal(status="complete")`; the recorded first result says goal tools
+require a persistent thread. Rereading and repeated print-based checks continued
+after successful execution. The recorder rejected the ninth attempted request
+before router/model dispatch. No elapsed deadline or malformed patch caused
+this failure. The raw public engine SSE and native outcomes retain this
+termination/tool-selection boundary; unparsed generation tokens are unavailable.
+
+The remaining fifteen cases did not run. No retry, toolset change, passing
+receipt or automatic activation occurred. All 236 replacement and 229 unrun
+predecessor inputs rehash unchanged; live settings, hard local-only enforcement,
+unknown coding readiness and empty automatic task lists remain preserved.
+The probe was revoked and owned processes/listeners stopped.
 

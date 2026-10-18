@@ -1,0 +1,48 @@
+{
+  "campaign_id": "local-repair-20261018-v14",
+  "registered_at_utc": "2026-10-18T18:28:51.516099+00:00",
+  "published_freeze_commit": "118548a6743d9ef1b38f2072e57b3bf02930be2a",
+  "published_checkpoint": "https://github.com/mehrdadxzaker/hormuz/issues/569#issuecomment-6253534506",
+  "plan_sha256": "c5e7a49c1acfe67a72c9cef635aa4acec85631bf3b4f68a3f303d88773e8b3da",
+  "manifest_sha256": "517954ff923bf161bc036f5b998c568a3acdf5895a4523621ce5d699f4b449ef",
+  "frozen_inputs": 236,
+  "owner_authorization": "Choose a faster local model candidate, preflight and freeze it, then run one canary at8requests/90seconds/512tokens. Qualify only if it passes. Preserve failed evidence, local-only enforcement and my Codex settings.",
+  "pre_inference_reviews": {
+    "spec": {
+      "head": "118548a6743d9ef1b38f2072e57b3bf02930be2a",
+      "approved": true,
+      "blocking_findings": 0
+    },
+    "standards_ai_technical_lead": {
+      "head": "118548a6743d9ef1b38f2072e57b3bf02930be2a",
+      "approved": true,
+      "blocking_findings": 0
+    }
+  },
+  "actual_model_completions_before_registration": 0,
+  "superseded_v13_actual_model_completions": 0,
+  "budget": {
+    "canary_episodes": 1,
+    "total_episodes_if_canary_passes": 16,
+    "max_requests_per_episode": 8,
+    "max_elapsed_seconds_per_episode": 90,
+    "max_output_tokens_per_generation": 512,
+    "quality_retries": 0,
+    "transport_retries": 0,
+    "parallel_native_episodes": 1
+  },
+  "protected_native_acceptance": {
+    "required_turn_completed_events": 1,
+    "allowed_top_level_errors_or_turn_failures": 0,
+    "normal_native_exit_code": 0,
+    "elapsed_ms_at_most": 90000,
+    "safe_actual_edit_and_completed_independent_assertions_required": true
+  },
+  "live_codex_config_before": {
+    "bytes": 11790,
+    "sha256": "428f5d89b103c14d4ad0f3e626dd96f3d6c8104c9fa94371b9db95277a617388",
+    "contents_retained": false
+  },
+  "automatic_coding_activation_authorized": false,
+  "passing_receipt_installation_authorized": false
+}

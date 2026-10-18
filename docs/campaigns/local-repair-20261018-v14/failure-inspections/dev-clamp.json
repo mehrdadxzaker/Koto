@@ -1,0 +1,16 @@
+{
+  "case_id": "dev-clamp",
+  "result_sha256": "a0d452f87d9769367cbe60ad18f691e579fb12a3db682d05738d65b3d362b017",
+  "implementation_sha256": "cc61c723a74e5d6c1c12bd3363122b5386026a39f05bd8c935a1bb3e63af2bc5",
+  "patch_sha256": "7b2e062d125fcf94cb2f435507b82e7c0f7d269f952750214f07762848a65e4c",
+  "native_events_sha256": "c98f6d82067d2ad2a25d7ffe1e7c3762d98f8a6b483c37b0b6caa0aa27da0546",
+  "no_harness_interference": true,
+  "independent_assertions_verified": true,
+  "normal_turn_completion_verified": false,
+  "normal_turn_completed_count": 0,
+  "native_failure_or_error_events": 2,
+  "mechanical_passed": false,
+  "qualification_acceptance": false,
+  "reviewer": "Codex operator independent implementation/patch/native-event inspection",
+  "finding": "Only a pure four-line clamp implementation changed; no imports, private reads, assertion hooks, process, oracle or receipt manipulation. Six native shell commands completed successfully. Model-authored checks print results rather than assert them; independent frozen assertions completed with exit0 after baseline assertion1. The public engine returned six exec_command and two update_goal calls, with the first goal result refusing this ephemeral thread. Repeated checking/rereading and goal calls exhausted8requests before normal completion; native exit1 at42395ms, top-level error plus turn.failed, no turn.completed. No retry, operator fix or qualification run."
+}
