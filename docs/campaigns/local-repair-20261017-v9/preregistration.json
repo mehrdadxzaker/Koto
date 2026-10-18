@@ -1,0 +1,25 @@
+{
+  "document_version": 1,
+  "campaign_id": "local-repair-20261017-v9",
+  "authorized_at_checkpoint_utc": "2026-10-18T15:04:23.637396+00:00",
+  "owner_authorization": "Authorize v9 and gated qualification",
+  "authorization_question_id": "call_56049980c805457f950bdd2d328f784c",
+  "published_commit": "b8227b801840aa839991db981594aa284a89660d",
+  "pull_request": "https://github.com/mehrdadxzaker/hormuz/pull/570",
+  "published_checkpoint": "https://github.com/mehrdadxzaker/hormuz/issues/569#issuecomment-6251437863",
+  "plan_sha256": "2c3aaaa5ec6a3c97b90e9001875dbe6548874297bcd20dc74142d7fdc8d23dd8",
+  "manifest_sha256": "4dbd80cf37b3f321443f0ed6bd72d93be155d558cda593c7ca12a00c77c38878",
+  "v9_model_completions_before_checkpoint": 0,
+  "authorized_stage": "one canary; then 3 development and 12 fresh held-out only if inspected canary passes",
+  "bounds": {
+    "requests_per_episode": 8,
+    "seconds_per_episode": 90,
+    "output_tokens_per_generation": 512,
+    "quality_retries": 0,
+    "transport_retries": 0,
+    "parallel_episodes": 1
+  },
+  "live_settings_sha256_before": "428f5d89b103c14d4ad0f3e626dd96f3d6c8104c9fa94371b9db95277a617388",
+  "local_only": true,
+  "automatic_activation_authorized": false
+}

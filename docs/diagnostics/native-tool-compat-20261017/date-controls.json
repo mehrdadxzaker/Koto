@@ -1,0 +1,137 @@
+{
+  "document_version": 1,
+  "scope": "native supplied controls; not model quality",
+  "actual_rejection": {
+    "only_semantic_difference": "native user environment current_date changed from 2026-10-17 to 2026-10-18",
+    "instruction_tool_profile_identical": true,
+    "date_bound_input_matches_actual_capture": true,
+    "provider_attempts": 0
+  },
+  "controls": [
+    {
+      "control": "date-red",
+      "expected": "denied before fixture dispatch",
+      "control_passed": true,
+      "raw_report_sha256": "239a98160a2daf8e5abe31c49f066174b7ac66d158356d25a31ff1986888ee31",
+      "model_inferences": 0,
+      "fixture_requests": 0,
+      "native": {
+        "exit_code": 1,
+        "termination": "completed",
+        "elapsed_ms": 329
+      },
+      "tool_events": 0,
+      "implementation_changed": false,
+      "independent_check": 1,
+      "checks_unchanged": true,
+      "routing_mode": "local_only",
+      "coding_readiness": "unknown",
+      "automatic_task_types": [],
+      "native_errors": [
+        {
+          "type": "error",
+          "message": "unexpected status 403 Forbidden: Route admission requires attention: probe_request_mismatch, url: http://127.0.0.1:56975/v1/responses"
+        },
+        {
+          "type": "turn.failed",
+          "error": {
+            "message": "unexpected status 403 Forbidden: Route admission requires attention: probe_request_mismatch, url: http://127.0.0.1:56975/v1/responses"
+          }
+        }
+      ],
+      "settings_restored": true,
+      "owned_listeners_closed": true
+    },
+    {
+      "control": "date-green",
+      "expected": "supplied native tool edit/check succeeds",
+      "control_passed": true,
+      "raw_report_sha256": "5fa15775f4eb69ec7bd1076f89a70f1d404c179c9989255610ed255ffe81b295",
+      "model_inferences": 0,
+      "fixture_requests": 2,
+      "native": {
+        "exit_code": 0,
+        "termination": "completed",
+        "elapsed_ms": 439
+      },
+      "tool_events": 1,
+      "implementation_changed": true,
+      "independent_check": 0,
+      "checks_unchanged": true,
+      "routing_mode": "local_only",
+      "coding_readiness": "unknown",
+      "automatic_task_types": [],
+      "native_errors": [],
+      "settings_restored": true,
+      "owned_listeners_closed": true
+    },
+    {
+      "control": "permission-denied",
+      "expected": "denied before fixture dispatch",
+      "control_passed": true,
+      "raw_report_sha256": "9d1de5361cd9436bc3d4e3de3a8f9b0253ef8bf08dde7b75b91981d85176fbf4",
+      "model_inferences": 0,
+      "fixture_requests": 0,
+      "native": {
+        "exit_code": 1,
+        "termination": "completed",
+        "elapsed_ms": 349
+      },
+      "tool_events": 0,
+      "implementation_changed": false,
+      "independent_check": 1,
+      "checks_unchanged": true,
+      "routing_mode": "local_only",
+      "coding_readiness": "unknown",
+      "automatic_task_types": [],
+      "native_errors": [
+        {
+          "type": "error",
+          "message": "unexpected status 403 Forbidden: Route admission requires attention: probe_request_mismatch, url: http://127.0.0.1:57067/v1/responses"
+        },
+        {
+          "type": "turn.failed",
+          "error": {
+            "message": "unexpected status 403 Forbidden: Route admission requires attention: probe_request_mismatch, url: http://127.0.0.1:57067/v1/responses"
+          }
+        }
+      ],
+      "settings_restored": true,
+      "owned_listeners_closed": true
+    },
+    {
+      "control": "tool-schema-denied",
+      "expected": "denied before fixture dispatch",
+      "control_passed": true,
+      "raw_report_sha256": "78fc6a01d4474264b7c628b2a9f6a78be93b5f2c3c4e21ae7f2fe5885670246a",
+      "model_inferences": 0,
+      "fixture_requests": 0,
+      "native": {
+        "exit_code": 1,
+        "termination": "completed",
+        "elapsed_ms": 320
+      },
+      "tool_events": 0,
+      "implementation_changed": false,
+      "independent_check": 1,
+      "checks_unchanged": true,
+      "routing_mode": "local_only",
+      "coding_readiness": "unknown",
+      "automatic_task_types": [],
+      "native_errors": [
+        {
+          "type": "error",
+          "message": "unexpected status 403 Forbidden: Route admission requires attention: probe_request_mismatch, url: http://127.0.0.1:57103/v1/responses"
+        },
+        {
+          "type": "turn.failed",
+          "error": {
+            "message": "unexpected status 403 Forbidden: Route admission requires attention: probe_request_mismatch, url: http://127.0.0.1:57103/v1/responses"
+          }
+        }
+      ],
+      "settings_restored": true,
+      "owned_listeners_closed": true
+    }
+  ]
+}

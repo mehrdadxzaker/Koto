@@ -9,6 +9,7 @@ import hashlib
 import importlib.util
 import json
 from pathlib import Path
+import re
 import shutil
 import sys
 import tarfile
@@ -53,6 +54,10 @@ def main():
     parser.add_argument('--v8-driver', action='store_true', help='Exercise the isolated v8 launcher and trace tap')
     parser.add_argument('--driver-version', choices=('v8', 'v9'), default='v8')
     parser.add_argument('--supplied-command', type=Path, help='Replay one supplied shell command, not model output')
+    parser.add_argument('--stale-environment-date', help='Negative control: bind a stale native user environment date')
+    parser.add_argument('--bind-current-date', action='store_true', help='Bind only the probe plan native user date before arming')
+    parser.add_argument('--alter-permission-context', action='store_true', help='Negative control: change one captured writable root')
+    parser.add_argument('--alter-tool-schema', action='store_true', help='Negative control: change one captured tool description')
     parser.add_argument('--premature-checker-exit', action='store_true',
                         help='Negative control: a checker process exit zero must not prove assertion completion')
     parser.add_argument('--output', type=Path, required=True)
@@ -175,6 +180,41 @@ def main():
         else:
             runner.preflight()
         capture = json.loads((root / 'captured-request.json').read_text())
+        if args.stale_environment_date:
+            if not re.fullmatch(r'\d{4}-\d{2}-\d{2}', args.stale_environment_date):
+                raise ValueError('Use an ISO date for the stale-date control')
+            changed = 0
+            for item in capture['input']:
+                if item.get('role') != 'user':
+                    continue
+                for part in item.get('content', []):
+                    text = part.get('text', '')
+                    if text.startswith('<environment_context>'):
+                        part['text'], count = re.subn(r'(?<=<current_date>)\d{4}-\d{2}-\d{2}(?=</current_date>)',
+                                                     args.stale_environment_date, text)
+                        changed += count
+            if changed != 1:
+                raise RuntimeError('Expected exactly one native environment date')
+        if args.bind_current_date:
+            binding = load_module('native_date_binding', Path(__file__).with_name('native-date-binding.py'))
+            capture['input'] = binding.bind_native_date(capture['input'])
+        if args.alter_permission_context:
+            changed = 0
+            for item in capture['input']:
+                if item.get('role') != 'user':
+                    continue
+                for part in item.get('content', []):
+                    text = part.get('text', '')
+                    if text.startswith('<environment_context>'):
+                        expected = '<entry access="write"><path>' + str(root / 'project') + '</path></entry>'
+                        if text.count(expected) != 1:
+                            raise RuntimeError('Expected the exact captured native writable root')
+                        part['text'] = text.replace(expected, expected.replace('access="write"', 'access="read"'))
+                        changed += 1
+            if changed != 1:
+                raise RuntimeError('Expected one native permission context')
+        if args.alter_tool_schema:
+            capture['tools'][0]['description'] += ' Changed by the negative control.'
         subject = {'client_version': profile['client_version'], 'system': profile['system'],
                    'machine': profile['machine'], 'runtime_profile': 'managed-llama.v1',
                    'runtime_sha256': pins['runtime_archive']['sha256'],
@@ -199,6 +239,10 @@ def main():
                 return receipt['exit_code']
             return runner.independent_check()
         report = {'mode': args.mode, 'minimal': args.minimal, 'driver_version': args.driver_version,
+                  'stale_environment_date': args.stale_environment_date,
+                  'bind_current_date': args.bind_current_date,
+                  'alter_permission_context': args.alter_permission_context,
+                  'alter_tool_schema': args.alter_tool_schema,
                   'supplied_command_sha256': digest(command.encode()) if args.supplied_command else None,
                   'premature_checker_exit': args.premature_checker_exit, 'native_model_inferences': 0,
                   'response_origin': 'reconstructed client text' if args.mode == 'text' else 'supplied synthetic function call',
