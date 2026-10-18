@@ -1,0 +1,201 @@
+{
+  "document_version": 5,
+  "campaign_id": "local-repair-20261017-v7",
+  "criteria_version": "local-repair.v1",
+  "purpose": "model-only Qwen2.5-Coder-7B treatment",
+  "native_episodes_performed": 0,
+  "entries": [
+    {
+      "case_id": "dev-clamp",
+      "partition": "development",
+      "family": "arithmetic",
+      "goal": "Fix the Python implementation in solution.py. Repair clamp(value, lower, upper): return value bounded by the inclusive lower and upper limits. Raise ValueError when lower exceeds upper. Inputs are integers. Do not change the public function name. Make the edit and check the behavior. /no_think",
+      "files": {
+        "solution.py": "def clamp(value, lower, upper):\n    return max(lower, value)\n"
+      },
+      "checks": "import runpy\nimport sys\n\ns = runpy.run_path(sys.argv[1])\nf = s['clamp']\nassert f(12, 2, 8) == 8\nassert f(-5, -3, 4) == -3\nassert f(0, -3, 4) == 0\nassert f(4, 4, 4) == 4\ntry:\n    f(2, 4, 1)\nexcept ValueError:\n    pass\nelse:\n    raise AssertionError('inverted bounds accepted')\n",
+      "task_sha256": "33fd16c7939f008528fdcd40d4911c9d323eec130318414f0683d8bd7a2bc5aa",
+      "checks_sha256": "da25b64603054b72230db061e79855ed9d3f32b6f31076fa5755ac4eec12b942"
+    },
+    {
+      "case_id": "dev-strip-prefix",
+      "partition": "development",
+      "family": "text",
+      "goal": "Fix the Python implementation in solution.py. Repair strip_prefix(text, prefix): remove exactly one prefix only when it is at the beginning of text; otherwise return the original text. An empty prefix leaves text unchanged. Preserve Unicode and later occurrences. Make the edit and check the behavior. /no_think",
+      "files": {
+        "solution.py": "def strip_prefix(text, prefix):\n    return text.replace(prefix, '')\n"
+      },
+      "checks": "import runpy\nimport sys\n\ns = runpy.run_path(sys.argv[1])\nf = s['strip_prefix']\nassert f('abcabc', 'abc') == 'abc'\nassert f('xabc', 'abc') == 'xabc'\nassert f('abc', '') == 'abc'\nassert f('', 'x') == ''\nassert f('αβα', 'α') == 'βα'\nassert f('same', 'same') == ''\n",
+      "task_sha256": "ac666d5237460f22274f88ec968dec3498caa5e45251b0fc62379a429f5ca7d1",
+      "checks_sha256": "fcc045ad3370cc3e2e8306bb1f1ec3105eda3b1566d72877c25269822dd8ff8d"
+    },
+    {
+      "case_id": "dev-rotate-left",
+      "partition": "development",
+      "family": "collections",
+      "goal": "Fix the Python implementation in solution.py. Repair rotate_left(items, steps): return a new list rotated left by integer steps modulo the list length. Negative steps rotate right. Empty input returns a new empty list. Preserve elements and do not mutate the input. Make the edit and check the behavior. /no_think",
+      "files": {
+        "solution.py": "def rotate_left(items, steps):\n    return items[steps:] + items[:steps]\n"
+      },
+      "checks": "import runpy\nimport sys\n\ns = runpy.run_path(sys.argv[1])\nf = s['rotate_left']\na = [1, 2, 3, 4]\nassert f(a, 5) == [2, 3, 4, 1]\nassert f(a, -5) == [4, 1, 2, 3]\nassert f(a, 0) == a and f(a, 0) is not a\nassert a == [1, 2, 3, 4]\nempty = []\nassert f(empty, 10) == [] and f(empty, 10) is not empty\nassert f([[1], [2]], 3) == [[2], [1]]\n",
+      "task_sha256": "b90c5095ab8c1f6e0c1da0e665b881cd3014f318acaca864caa38482eaea3002",
+      "checks_sha256": "3f83dd8fc94581f1d72a6952b1e0f0c4988e90c0ec9001383c325de44954d3b1"
+    },
+    {
+      "case_id": "dev-positive-counter",
+      "partition": "development",
+      "family": "validation_state",
+      "goal": "Fix the Python implementation in solution.py. Repair Counter.increment(step=1). Accept only strict positive integers (bool is invalid). Raise ValueError before mutation for invalid step. Add a valid step to value and return the new value; a new counter starts at zero. Make the edit and check the behavior. /no_think",
+      "files": {
+        "solution.py": "class Counter:\n    def __init__(self):\n        self.value = 0\n    def increment(self, step=1):\n        self.value += step\n        return self.value\n"
+      },
+      "checks": "import runpy\nimport sys\n\ns = runpy.run_path(sys.argv[1])\nc = s['Counter']()\nassert c.increment() == 1\nassert c.increment(3) == 4\nfor bad in [0, -1, True, False, 1.5, '2', None]:\n    try:\n        c.increment(bad)\n    except ValueError:\n        pass\n    else:\n        raise AssertionError('invalid step accepted')\n    assert c.value == 4\nassert c.increment(2) == 6\n",
+      "task_sha256": "40cf635d46f648cb990a97596d31fb79be3641b52a957c701a1b4a06b5148d5f",
+      "checks_sha256": "65e4123e7ba3a0b5e8f953213a1078d170b9fe997e27372efe413719edabb6d3"
+    },
+    {
+      "case_id": "held-ceil-multiple",
+      "partition": "held_out",
+      "family": "arithmetic",
+      "goal": "Fix the Python implementation in solution.py. Repair ceil_multiple(value, step): for integer value and positive integer step, return the smallest multiple of step greater than or equal to value. Raise ValueError for step <= 0. Make the edit and check the behavior. /no_think",
+      "files": {
+        "solution.py": "def ceil_multiple(value, step):\n    return (value // step) * step\n"
+      },
+      "checks": "import runpy\nimport sys\ns = runpy.run_path(sys.argv[1])\nf=s['ceil_multiple']\nassert f(5,3)==6\nassert f(-5,3)==-3\nassert f(-6,3)==-6\nassert f(0,4)==0\nassert f(12,4)==12\nfor step in [0,-1]:\n try: f(2,step)\n except ValueError: pass\n else: raise AssertionError('invalid step accepted')\n",
+      "task_sha256": "1d9ed128133b1cc7e41a5de783fded8cd2b0526d7ef8ac2dd6cd9823f6d2f6c2",
+      "checks_sha256": "130269b1f980c8f32d4d3d61fc5eb7ce5ae59edfbcd51dd770e4e9fdecf28a1c"
+    },
+    {
+      "case_id": "held-clock-shift",
+      "partition": "held_out",
+      "family": "arithmetic",
+      "goal": "Fix the Python implementation in solution.py. Repair clock_shift(hour, delta): return the integer hour after adding a signed integer delta on a 24-hour clock. Input hour is 0 through 23. Wrap in both directions. Make the edit and check the behavior. /no_think",
+      "files": {
+        "solution.py": "def clock_shift(hour, delta):\n    return hour + delta\n"
+      },
+      "checks": "import runpy\nimport sys\ns = runpy.run_path(sys.argv[1])\nf=s['clock_shift']\nassert f(23,2)==1\nassert f(0,-1)==23\nassert f(7,48)==7\nassert f(4,-29)==23\nassert f(0,0)==0\n",
+      "task_sha256": "6b9f0c2a7bf308711db6f4526d4d7012a463149a5875069ce6a81d98f1e80402",
+      "checks_sha256": "f50c94a19f171240f5c00690cce1fcc063a74e63da39b28c353113256ce48997"
+    },
+    {
+      "case_id": "held-century-number",
+      "partition": "held_out",
+      "family": "arithmetic",
+      "goal": "Fix the Python implementation in solution.py. Repair century(year): return the one-based century number of a positive integer year; years 1 through 100 are century 1. Raise ValueError for nonpositive years. Make the edit and check the behavior. /no_think",
+      "files": {
+        "solution.py": "def century(year):\n    return year // 100\n"
+      },
+      "checks": "import runpy\nimport sys\ns = runpy.run_path(sys.argv[1])\nf=s['century']\nassert f(1)==1\nassert f(100)==1\nassert f(101)==2\nassert f(2000)==20\nassert f(2001)==21\nfor year in [0,-5]:\n try: f(year)\n except ValueError: pass\n else: raise AssertionError('invalid year accepted')\n",
+      "task_sha256": "c1c781c60a12ee59db496b50598554c04599b6d2f410c2e0b1ee95e7fcd2024a",
+      "checks_sha256": "1bd1f2ab02d5b5a62daebec52ec8b41bde6a7dd660c4a1b385e81a9aea80df64"
+    },
+    {
+      "case_id": "held-nonblank-lines",
+      "partition": "held_out",
+      "family": "text",
+      "goal": "Fix the Python implementation in solution.py. Repair nonblank_lines(text): return a new list of ASCII-newline-separated segments containing at least one non-whitespace character. Preserve retained segments exactly and in order. Empty and whitespace-only segments are omitted; Unicode whitespace counts as whitespace. Make the edit and check the behavior. /no_think",
+      "files": {
+        "solution.py": "def nonblank_lines(text):\n    return text.split('\\n')\n"
+      },
+      "checks": "import runpy\nimport sys\ns = runpy.run_path(sys.argv[1])\nf=s['nonblank_lines']\nassert f('\\n abc \\n\\t\\nβ\\n')==[' abc ','β']\nassert f('')==[]\nassert f(' \\n\\t')==[]\nassert f('x\\ry')==['x\\ry']\nassert f('x\\n\\u2003\\ny')==['x','y']\n",
+      "task_sha256": "aa205797ea815f0f2b056e260828ed286a7be935b4c16dd1acd25522daef658f",
+      "checks_sha256": "b33399e8ad0d86058ff4f45978a1f98f0f8bfff3b43c0a3cf642f283ab0b05bf"
+    },
+    {
+      "case_id": "held-final-newline",
+      "partition": "held_out",
+      "family": "text",
+      "goal": "Fix the Python implementation in solution.py. Repair final_newline(text): leave empty text unchanged; for nonempty text append one ASCII newline only when it does not already end in newline. Preserve existing trailing newlines and Unicode. Make the edit and check the behavior. /no_think",
+      "files": {
+        "solution.py": "def final_newline(text):\n    return text + '\\n'\n"
+      },
+      "checks": "import runpy\nimport sys\ns = runpy.run_path(sys.argv[1])\nf=s['final_newline']\nassert f('')==''\nassert f('x')=='x\\n'\nassert f('x\\n')=='x\\n'\nassert f('x\\n\\n')=='x\\n\\n'\nassert f('α')=='α\\n'\n",
+      "task_sha256": "17589962c92a79f2b259a43f7c871f21d0c4be939973416eda6f5cbea8ac7f30",
+      "checks_sha256": "9459bfc4aa437fe146fa47a885d4375a16ab30b36918090ba70b22eeea7cbe28"
+    },
+    {
+      "case_id": "held-replace-tabs",
+      "partition": "held_out",
+      "family": "text",
+      "goal": "Fix the Python implementation in solution.py. Repair replace_tabs(text, width): replace each tab with exactly width ASCII spaces, independently of its column. Width is a nonnegative integer; negative width raises ValueError. Preserve all other characters. Make the edit and check the behavior. /no_think",
+      "files": {
+        "solution.py": "def replace_tabs(text, width):\n    return text.expandtabs(width)\n"
+      },
+      "checks": "import runpy\nimport sys\ns = runpy.run_path(sys.argv[1])\nf=s['replace_tabs']\nassert f('a\\tb',3)=='a   b'\nassert f('\\t\\t',2)=='    '\nassert f('α\\tb',1)=='α b'\nassert f('a\\tb',0)=='ab'\nassert f('',4)==''\ntry: f('x',-1)\nexcept ValueError: pass\nelse: raise AssertionError('negative width accepted')\n",
+      "task_sha256": "b8c94503ea6fe651531643aa7dc5d7576224493b92048ed5ab38a8a55cec6409",
+      "checks_sha256": "9f4e2c96016cdb98a0fe33e16effdd85498299936f3c9042951be7a69810aebb"
+    },
+    {
+      "case_id": "held-adjacent-pairs",
+      "partition": "held_out",
+      "family": "collections",
+      "goal": "Fix the Python implementation in solution.py. Repair adjacent_pairs(items): return a new list of adjacent two-item tuples, in order, without mutating the input. Inputs of length zero or one produce an empty list. Support unhashable elements. Make the edit and check the behavior. /no_think",
+      "files": {
+        "solution.py": "def adjacent_pairs(items):\n    return list(zip(items, items))\n"
+      },
+      "checks": "import runpy\nimport sys\ns = runpy.run_path(sys.argv[1])\nf=s['adjacent_pairs']\na=[1,2,3]\nassert f(a)==[(1,2),(2,3)]\nassert a==[1,2,3]\nassert f([])==[]\nassert f([1])==[]\nassert f([[1],[2]])==[([1],[2])]\n",
+      "task_sha256": "3a4e3a1642642fa7fd99a8ebf5a39a18da279d28f5676ea81af06778c8f0483b",
+      "checks_sha256": "83c5f315c25a1303dce09374b51978f6bfa17880873332446f0177f9f7daaba8"
+    },
+    {
+      "case_id": "held-without-none",
+      "partition": "held_out",
+      "family": "collections",
+      "goal": "Fix the Python implementation in solution.py. Repair without_none(items): return a new list removing only None entries. Keep false, zero, empty strings and empty containers. Preserve input and order. Make the edit and check the behavior. /no_think",
+      "files": {
+        "solution.py": "def without_none(items):\n    return [value for value in items if value]\n"
+      },
+      "checks": "import runpy\nimport sys\ns = runpy.run_path(sys.argv[1])\nf=s['without_none']\na=[None,False,0,'',[],{},'x',None]\nassert f(a)==[False,0,'',[],{},'x']\nassert a==[None,False,0,'',[],{},'x',None]\nassert f([])==[]\nassert f([None,None])==[]\nassert f(a) is not a\n",
+      "task_sha256": "e4513f7d2c379f93af7a74539c041cf3ab182d4c2d32883dc6bf7d4e99e9a30d",
+      "checks_sha256": "2d744d3f39871fc4e08f8a255f3da2e78e6f963ec0dd8018511d243b428fde13"
+    },
+    {
+      "case_id": "held-group-pairs",
+      "partition": "held_out",
+      "family": "collections",
+      "goal": "Fix the Python implementation in solution.py. Repair group_pairs(pairs): return a dictionary mapping each hashable key to a list of all its values in encounter order. Preserve the input list and keep duplicate and falsy values. Empty input returns an empty dictionary. Make the edit and check the behavior. /no_think",
+      "files": {
+        "solution.py": "def group_pairs(pairs):\n    return dict(pairs)\n"
+      },
+      "checks": "import runpy\nimport sys\ns = runpy.run_path(sys.argv[1])\nf=s['group_pairs']\na=[('a',1),('b',False),('a',1),('a',None)]\nassert f(a)=={'a':[1,1,None],'b':[False]}\nassert a==[('a',1),('b',False),('a',1),('a',None)]\nassert f([])=={}\nassert f([(0,[])])=={0:[[]]}\n",
+      "task_sha256": "cc830f6723e6d2a4f48f84622383c818696aa2e552bf559897378e4e1d4d95ab",
+      "checks_sha256": "12a483448b4accc13615d77c979f47d5ee24df14c67773441c077805c53cb962"
+    },
+    {
+      "case_id": "held-parse-boolean",
+      "partition": "held_out",
+      "family": "validation_state",
+      "goal": "Fix the Python implementation in solution.py. Repair parse_boolean(text): strip outer whitespace and ignore case, accepting only true or 1 as True, false or 0 as False. Input is a string. All other strings raise ValueError. Make the edit and check the behavior. /no_think",
+      "files": {
+        "solution.py": "def parse_boolean(text):\n    return bool(text)\n"
+      },
+      "checks": "import runpy\nimport sys\ns = runpy.run_path(sys.argv[1])\nf=s['parse_boolean']\nassert f('false') is False\nassert f(' TRUE ') is True\nassert f(' 0 ') is False\nassert f('1') is True\nfor text in ['', 'yes', '10', ' true false ']:\n try: f(text)\n except ValueError: pass\n else: raise AssertionError('invalid boolean accepted')\n",
+      "task_sha256": "106d4957eb9d48a0c15885f12b186a8280491f2e069f1fbe5a370bdef46bfae0",
+      "checks_sha256": "162f6c62ce0c11051d6287463bcbb36e392adde5da0f91c51cb2634c1c8005a4"
+    },
+    {
+      "case_id": "held-ascii-identifier",
+      "partition": "held_out",
+      "family": "validation_state",
+      "goal": "Fix the Python implementation in solution.py. Repair ascii_identifier(text): return True exactly for nonempty ASCII identifiers whose first character is A-Z, a-z or underscore and whose remaining characters are ASCII letters, digits or underscores. Keywords are permitted. Return bool. Make the edit and check the behavior. /no_think",
+      "files": {
+        "solution.py": "def ascii_identifier(text):\n    return text.isidentifier()\n"
+      },
+      "checks": "import runpy\nimport sys\ns = runpy.run_path(sys.argv[1])\nf=s['ascii_identifier']\nassert f('α') is False\nassert f('foo_2') is True\nassert f('_') is True\nassert f('2foo') is False\nassert f('') is False\nassert f('hello-world') is False\nassert f('class') is True\nassert f('foo\\n') is False\n",
+      "task_sha256": "6cb351b1f0bcd6ccd0bcc6d5c0e3a9a3249fe5d85f9e5089787f66bca1e2064b",
+      "checks_sha256": "abeb80b77f21a6cf3d11c0d0d75e744abf88acf47024a7fe448c4e71135a9c11"
+    },
+    {
+      "case_id": "held-consume-stock",
+      "partition": "held_out",
+      "family": "validation_state",
+      "goal": "Fix the Python implementation in solution.py. Repair consume_stock(counts, key): counts maps keys to nonnegative integer stock. If key has positive stock, decrement that key once and return True. Otherwise return False without any mutation, including for missing keys. Do not alter other keys. Make the edit and check the behavior. /no_think",
+      "files": {
+        "solution.py": "def consume_stock(counts, key):\n    counts[key] = counts.get(key, 0) - 1\n    return True\n"
+      },
+      "checks": "import runpy\nimport sys\ns = runpy.run_path(sys.argv[1])\nf=s['consume_stock']\na={'x':1,'y':0}\nassert f(a,'x') is True and a=={'x':0,'y':0}\nassert f(a,'x') is False and a=={'x':0,'y':0}\nassert f(a,'z') is False and a=={'x':0,'y':0}\nb={'x':2,'y':4}\nassert f(b,'x') is True and b=={'x':1,'y':4}\n",
+      "task_sha256": "8954c80e1e6d69ef8a57dc2f4d1d657cc1f205e15b96e72bfa4de7a5ba853f99",
+      "checks_sha256": "7e0070036cb9c7a68e9a9c98a3a499fc87639098b2355f44291b2e5732186cd3"
+    }
+  ]
+}
