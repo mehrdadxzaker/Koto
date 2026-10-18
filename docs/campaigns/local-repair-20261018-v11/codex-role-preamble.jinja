@@ -1,0 +1,14 @@
+{#- Codex text-message compatibility, version 1. The engine already maps developer to system. #}
+{%- set codex = namespace(messages=[]) %}
+{%- for message in messages %}
+    {%- if (message['role'] == 'system' or message['role'] == 'user') and codex.messages|length > 0 and codex.messages[-1]['role'] == message['role'] %}
+        {%- set previous = codex.messages[-1] %}
+        {%- set left = [{'type':'text', 'text':previous['content']}] if previous['content'] is string else previous['content'] %}
+        {%- set right = [{'type':'text', 'text':message['content']}] if message['content'] is string else message['content'] %}
+        {%- set joined = {'role':message['role'], 'content':left + [{'type':'text', 'text':'\n\n'}] + right} %}
+        {%- set codex.messages = codex.messages[:-1] + [joined] %}
+    {%- else %}
+        {%- set codex.messages = codex.messages + [message] %}
+    {%- endif %}
+{%- endfor %}
+{%- set messages = codex.messages %}
