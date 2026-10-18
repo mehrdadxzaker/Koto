@@ -14,7 +14,7 @@ Choose a private directory with an existing parent. The default invocation is
 an offline preview, and `--dry-run` is an equivalent explicit spelling:
 
 ```sh
-koto client acquire codex --directory /absolute/private/hormuz-assets
+koto client acquire codex --directory /absolute/private/hormuz-assets --executable /absolute/path/to/codex
 ```
 
 The receipt shows the exact source URLs, SHA-256, byte sizes, license identifiers
@@ -23,7 +23,7 @@ disk space. Preview creates no directory, lock, configuration or network request
 If the shown files and licenses match the user's request, explicitly download:
 
 ```sh
-koto client acquire codex --directory /absolute/private/hormuz-assets --download
+koto client acquire codex --directory /absolute/private/hormuz-assets --executable /absolute/path/to/codex --download
 ```
 
 A ready receipt's `setup_arguments` is an argument array for the existing
@@ -36,7 +36,7 @@ Normal status, request and disconnect behavior stays with the connection owner.
 To require a completed installation while offline:
 
 ```sh
-koto client acquire codex --directory /absolute/private/hormuz-assets --offline
+koto client acquire codex --directory /absolute/private/hormuz-assets --executable /absolute/path/to/codex --offline
 ```
 
 Completed installations are reverified on every reuse, including archive/model
@@ -46,7 +46,23 @@ Missing offline assets fail explicitly. Damaged assets, unexpected files, unsafe
 links or changed metadata are preserved and block reuse; select a new directory
 or inspect the existing files before taking any cleanup action.
 
-## Experimental catalog and scope
+## Client-matched experimental catalogs
+
+Without `--catalog`, acquisition runs the existing bounded, credential-isolated
+version check on `--executable` (default `codex` from PATH), then selects a
+bundled reviewed catalog for that exact client. Missing or unsupported clients
+return `catalog_invalid` before creating asset state or transferring bytes.
+The existing setup owner checks the executable again before connection.
+
+| Client version | Reviewed acquisition catalog | Scope |
+| --- | --- | --- |
+| 0.147.0 | [Original catalog](../hormuz/local-acquisition-codex-0147-llama-b11617-qwen3-4b-v1.json) | Original experimental CLI profile, preserved unchanged |
+| 0.160.0 | [CLI catalog](../hormuz/local-acquisition-codex-0160-llama-b11617-qwen3-4b-v1.json) | Existing single-agent HTTP profile |
+| 0.162.0-alpha.17.2 | [App-engine catalog](../hormuz/local-acquisition-codex-app-0162-llama-b11617-qwen3-4b-v3.json) | Existing interactive profile; normal desktop activation remains unqualified |
+
+These catalogs reuse the same previously reviewed artifact pins and their exact
+existing setup profiles. Separate catalog digests keep their generations apart.
+None supplies passing coding evidence or enables automatic model selection.
 
 The bundled [version-1 catalog](../hormuz/local-acquisition-codex-0147-llama-b11617-qwen3-4b-v1.json)
 retains the [existing experimental row](qualifications/codex-0147-llama-b11617-qwen3-4b.md):
@@ -77,6 +93,12 @@ owner's first-release envelope remain separate decisions. Existing failed
 autonomous coding results remain unchanged.
 
 An operator can explicitly select `--catalog /absolute/reviewed-catalog.json`.
+For preview and offline reuse, omitting `--executable` selects the catalog's
+declared supported client without running a client; setup still requires a
+matching actual client. Downloads always check the selected executable (default
+`codex` from PATH), including with an explicit catalog. Supply both flags to
+check a particular executable for every operation. A
+mismatch returns the existing `catalog_invalid` error and preserves all state.
 That is trust in a reviewed source declaration. It is not signed certification,
 model discovery or permission to expand capabilities. The strict version-1
 catalog embeds a versioned setup profile and two artifacts whose digests must
