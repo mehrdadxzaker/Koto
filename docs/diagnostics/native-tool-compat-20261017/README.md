@@ -81,3 +81,26 @@ Primary references: [pinned llama.cpp function calling](https://raw.githubuserco
 [Responses tool normalization](https://raw.githubusercontent.com/ggml-org/llama.cpp/b11617/tools/server/server-chat.cpp),
 [Qwen2.5 tool format](https://qwen.readthedocs.io/en/v2.5/framework/function_call.html),
 and [Codex permission profiles](https://learn.chatgpt.com/docs/permissions).
+# Latest outcome: v9 failed its completion gate
+
+The [v9 outcome](../../campaigns/local-repair-20261017-v9/OUTCOME.md) retains
+one zero-inference admission rejection and the corrected, separately sealed
+actual-model canary. Codex executed five shell commands, made the correct edit
+and passed the unchanged independent checker, but exhausted eight requests and
+exited 1. All eight outputs were structured calls; the first seven arguments
+were preserved exactly into the next native input. The remaining battery did
+not run, and automatic coding remains disabled.
+
+[Date-binding controls](date-controls.json) reproduce and correct the operator's
+stale-date expectation while keeping changed permissions and tools denied. The
+owner's October 18 approval was valid. This does not relax router matching.
+
+The [selected next candidate](next-candidate.json) is a pinned community GGUF
+of [Mistral's Devstral Small 2 24B](https://huggingface.co/mistralai/Devstral-Small-2-24B-Instruct-2512).
+Mistral describes it as a coding-agent model supporting local Mac 32 GB use.
+This motivates a different model family; it proves neither native Codex fit nor
+bounded success. Artifact identity and a proposed 8-request/90-second/512-token
+canary are recorded, with no download, new model attempt or activation. A new
+setup, native tool/template preflight, frozen profile and fresh held-out set
+remain necessary before another candidate trial.
+

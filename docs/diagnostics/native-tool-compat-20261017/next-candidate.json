@@ -1,0 +1,25 @@
+{
+  "document_version": 1,
+  "status": "selected next candidate; no download or inference; new setup/preflight and budget required",
+  "base_model": "mistralai/Devstral-Small-2-24B-Instruct-2512",
+  "publisher_repository": "bartowski/mistralai_Devstral-Small-2-24B-Instruct-2512-GGUF",
+  "immutable_revision": "027695770ae1de77c2f6fb19f8e1ba9d65fcd15d",
+  "filename": "mistralai_Devstral-Small-2-24B-Instruct-2512-Q4_K_M.gguf",
+  "declared_bytes": 14334438272,
+  "publisher_declared_sha256": "bfd11c8679c6b81eb43763505465d7dcfa72e460ab1c220ecc235a3efadd7f7f",
+  "locally_verified_sha256": null,
+  "declared_license": "apache-2.0",
+  "metadata_response_sha256": "a5a0fe5829598d6cb8bfaf9eb87d806841be69700d9f78f1aa2973a65019c79f",
+  "base_model_source": "https://huggingface.co/mistralai/Devstral-Small-2-24B-Instruct-2512",
+  "artifact_source": "https://huggingface.co/bartowski/mistralai_Devstral-Small-2-24B-Instruct-2512-GGUF/blob/027695770ae1de77c2f6fb19f8e1ba9d65fcd15d/mistralai_Devstral-Small-2-24B-Instruct-2512-Q4_K_M.gguf",
+  "proposed_model_episode_bounds": {
+    "canary": 1,
+    "requests": 8,
+    "elapsed_seconds": 90,
+    "output_tokens_per_generation": 512,
+    "retries": 0,
+    "parallel_episodes": 1
+  },
+  "automatic_activation": false,
+  "rationale": "Select a different model family designed for coding agents and tool use after two Qwen3-Coder canaries failed normal completion through invalid patch/platform arguments. Publisher describes local Mac32GB deployment. Exact Codex/runtime fit, timing and quality remain unknown; no benchmark is treated as qualification."
+}
