@@ -48,18 +48,24 @@ model/engine tool-format boundary failure, with working downstream transport.
 The controls use product source `d006beb6`; v7 used its older frozen source.
 They are a compatibility probe, not an exact replay of every original byte.
 
-## Next experiment
+## Real native experiment
 
-The [v8 campaign](../../campaigns/local-repair-20261017-v8/PLAN.md) selects a
-function-calling-oriented Qwen3-Coder candidate and records raw HTTP SSE bodies,
+The [v8 campaign](../../campaigns/local-repair-20261017-v8/PLAN.md) selected a
+function-calling-oriented Qwen3-Coder candidate and recorded raw HTTP SSE bodies,
 router outcome/status, native tool events, edit hashes and independent checks.
 The route has no `codex_llama_v1` adapter, so the router forwards the engine SSE
 body unchanged. This captures the engine's public response, not unparsed tokens.
 
-One authorized canary precedes the remaining development and fresh held-out
-cases. There is no quality retry, fallback, text-to-command coercion or automatic
-coding admission. Original v3-v7 evidence and the user's live settings remain
-untouched. Uncertainty is retained until real native results settle it.
+The [actual outcome](../../campaigns/local-repair-20261017-v8/OUTCOME.md) contains
+eight structured calls, four executed commands, a real correct edit and an
+independent checker pass. The episode nevertheless failed the frozen
+normal-completion requirement after consuming its eight-request budget. No
+held-out case ran. Three malformed patch hunks and a sandboxed zsh temp-file
+failure are separately reproduced by [supplied red/green controls](shell-controls.json).
+The prepared v9 treatment fixes the shell environment and clarifies the actual
+patch grammar; it requires separate authorization before another model episode.
+No quality retry, fallback, text-to-command coercion or automatic coding
+admission occurred. Original evidence and live Codex settings remain untouched.
 
 ## Reproduce the controls
 

@@ -1,0 +1,10 @@
+{
+  "checkpoint_scope": "local_only",
+  "publication": "Sealed immutable local commit and reviewable Codex workspace artifact; GitHub export blocked pending explicit owner permission",
+  "git_head": "2cb645fcb13637ab7042a5033aa1c6290b1bac4f",
+  "source_review_head": "81ca7ab6eb1b94ba061cc80d90f8eac27a6bfe93",
+  "manifest_sha256": "98641727d237002f55df66c4be696104d93f0c35522b2966c11c6229e4a36dac",
+  "plan_sha256": "983891cfb5c723ad2f88335eea7e9b40f7c38b042f29d3e1e4de67edfeb9cf48",
+  "created_at": "2026-10-18T03:00:50.605667+00:00",
+  "native_model_inferences_before_checkpoint": 0
+}

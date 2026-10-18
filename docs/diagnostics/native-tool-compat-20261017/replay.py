@@ -51,6 +51,8 @@ def main():
     parser.add_argument('--mode', choices=('text', 'function'), required=True)
     parser.add_argument('--minimal', action='store_true', help='Use the same supplied command in text and function form')
     parser.add_argument('--v8-driver', action='store_true', help='Exercise the isolated v8 launcher and trace tap')
+    parser.add_argument('--driver-version', choices=('v8', 'v9'), default='v8')
+    parser.add_argument('--supplied-command', type=Path, help='Replay one supplied shell command, not model output')
     parser.add_argument('--premature-checker-exit', action='store_true',
                         help='Negative control: a checker process exit zero must not prove assertion completion')
     parser.add_argument('--output', type=Path, required=True)
@@ -137,6 +139,10 @@ def main():
             if args.premature_checker_exit:
                 command = 'python3 -c ' + shlex.quote(
                     'from pathlib import Path; Path("solution.py").write_text("import os; os._exit(0)\\n")')
+        if args.supplied_command:
+            command = args.supplied_command.read_text()
+            if len(command.encode()) > 65536:
+                raise RuntimeError('Supplied command exceeds the request bound')
         arguments = json.dumps({'cmd': command, 'max_output_tokens': 512})
         if args.minimal and args.mode == 'text':
             final_message['content'][0]['text'] = '```json\n' + json.dumps({'name': 'exec_command', 'arguments': json.loads(arguments)}) + '\n```'
@@ -161,7 +167,7 @@ def main():
         write(root / 'engine/frames.json', frames)
         driver = None
         if args.v8_driver:
-            driver = load_module('v8_native_driver', REPOSITORY / 'docs/campaigns/local-repair-20261017-v8/campaign-runner.py')
+            driver = load_module('native_driver', REPOSITORY / ('docs/campaigns/local-repair-20261017-' + args.driver_version + '/campaign-runner.py'))
             driver.ROOT = driver.retained.ROOT = root
             driver.DIRECTORY = root / 'driver-artifacts'
             driver.DIRECTORY.mkdir(mode=0o700)
@@ -192,7 +198,8 @@ def main():
                 check_receipts.append(receipt)
                 return receipt['exit_code']
             return runner.independent_check()
-        report = {'mode': args.mode, 'minimal': args.minimal,
+        report = {'mode': args.mode, 'minimal': args.minimal, 'driver_version': args.driver_version,
+                  'supplied_command_sha256': digest(command.encode()) if args.supplied_command else None,
                   'premature_checker_exit': args.premature_checker_exit, 'native_model_inferences': 0,
                   'response_origin': 'reconstructed client text' if args.mode == 'text' else 'supplied synthetic function call',
                   'model_quality_evidence': False, 'baseline_exit_code': independent_check()}
@@ -220,17 +227,19 @@ def main():
             report['native_events'] = events
             report['executed_commands'] = sum(e.get('item', {}).get('type') == 'command_execution'
                                                and e.get('type') == 'item.completed' for e in events)
+            report['executed_tools'] = sum(e.get('item', {}).get('type') in {'command_execution', 'file_change'}
+                                          and e.get('type') == 'item.completed' for e in events)
             report['upstream_requests'] = [json.loads(p.read_text()) for p in sorted((root / 'engine').glob('request-*.json'))]
             report['response_frames'] = frames[:len(report['upstream_requests'])]
             write(args.output, report)
-        summary = {k: report.get(k) for k in ('mode', 'native_model_inferences', 'executed_commands',
+        summary = {k: report.get(k) for k in ('mode', 'native_model_inferences', 'executed_commands', 'executed_tools',
                    'implementation_changed', 'check_exit_code', 'checks_unchanged', 'settings_restored', 'owned_listeners_closed')}
         print(json.dumps(summary))
         if not (report['checks_unchanged'] and report.get('settings_restored') and report.get('owned_listeners_closed')):
             return 2
         if args.premature_checker_exit:
-            return 0 if report['executed_commands'] and report['implementation_changed'] and report['check_exit_code'] != 0 else 1
-        return 0 if report['executed_commands'] and report['implementation_changed'] and report['check_exit_code'] == 0 else 1
+            return 0 if report['executed_tools'] and report['implementation_changed'] and report['check_exit_code'] != 0 else 1
+        return 0 if report['executed_tools'] and report['implementation_changed'] and report['check_exit_code'] == 0 else 1
 
 
 if __name__ == '__main__':
