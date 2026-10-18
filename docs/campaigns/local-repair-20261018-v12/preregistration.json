@@ -1,0 +1,34 @@
+{
+  "document_version": 1,
+  "campaign_id": "local-repair-20261018-v12",
+  "registered_at": "2026-10-18T16:53:50.443554+00:00",
+  "freeze_commit": "8ffc263bc0e7e30881423f02b9254bec0a57000b",
+  "checkpoint_url": "https://github.com/mehrdadxzaker/hormuz/issues/569#issuecomment-6252552887",
+  "plan_sha256": "8b998aea28df31c29110e37e5945fba12b1bd15f7f6de466afd9d9c301416816",
+  "frozen_manifest_sha256": "8b08460fa18bf09377b34fb147a6cf3001db618b79f8f8c22a4c5369bb165bf5",
+  "review": {
+    "spec": "approved exact 8ffc263",
+    "standards_ai_technical_lead": "approved exact 8ffc263"
+  },
+  "owner_authorization": "Fix the latency and tool-use inefficiency, freeze the revised Devstral setup, then run one canary at 8 requests/90 seconds/512 tokens. Qualify only if it passes. Preserve failed evidence, local-only enforcement and my Codex settings.",
+  "budget": {
+    "canary_episodes": 1,
+    "total_episodes_if_canary_passes": 16,
+    "max_requests_per_episode": 8,
+    "max_elapsed_seconds_per_episode": 90,
+    "max_output_tokens_per_generation": 512,
+    "quality_retries": 0,
+    "transport_retries": 0,
+    "parallel_native_episodes": 1
+  },
+  "model_completion_requests_before_registration": 0,
+  "superseded_v11_actual_model_completion_requests": 0,
+  "prior_evidence_preserved": true,
+  "local_only": true,
+  "automatic_admission_effect": "none",
+  "live_codex_config_fingerprint": {
+    "bytes": 11790,
+    "sha256": "428f5d89b103c14d4ad0f3e626dd96f3d6c8104c9fa94371b9db95277a617388"
+  },
+  "operator_native_gate": "Before any protected pass record: exactly one turn.completed, zero turn.failed/error, normal native exit0<=90000ms, actual tools/edit, completed independent assertions, and no harness interference. Bind native events hash in the protected inspection."
+}

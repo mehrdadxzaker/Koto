@@ -102,7 +102,7 @@ This motivates a different model family; it proves neither native Codex fit nor
 bounded success. That proposal preceded the separately authorized v10 campaign
 below; the original candidate record remains unchanged.
 
-## Latest outcome: Devstral v10 reached the elapsed cap
+## Devstral v10 reached the elapsed cap
 
 The [v10 frozen plan](../../campaigns/local-repair-20261018-v10/PLAN.md) retains
 the stock Devstral template's real native role-alternation rejection, reproduced
@@ -126,4 +126,33 @@ owned listeners and processes were cleaned up. Local-only enforcement, unknown
 coding readiness and disabled automatic coding remain preserved. Executable
 tool compatibility is demonstrated for this corrected combination; bounded
 repair completion and full qualification remain unmet.
+
+## Latest outcome: Devstral v12 canary passed; qualification failed
+
+The [v12 treatment](../../campaigns/local-repair-20261018-v12/PLAN.md) uses
+concise native instructions and task-independent shell/edit/check guidance,
+with the same model, runtime, tools, isolation and eight-request / 90-second /
+512-token limits. Its preflight test first failed on retained v10 input volume,
+then passed after reducing native input from 6,833 to 3,356 tokens. The earlier
+v11 preparation was superseded before any inference after semantic inventory
+review; its evidence remains unchanged.
+
+The [actual v12 outcome](../../campaigns/local-repair-20261018-v12/OUTCOME.md)
+contains a real successful canary: five local requests, actual shell execution,
+a safe edit, completed independent assertions and normal native completion in
+65.470 seconds. Initial engine prompt processing fell from 38.9 to 19.3 seconds
+in this single comparison. Only that protected inspected pass unlocked the
+remaining three development and twelve fresh held-out cases, each run once.
+
+Full qualification failed: 5/16 accepted cases (3/4 development, 2/12 held-out),
+15 edits, 14 independent checker passes and 11 deadline expirations. One timed
+out after an incorrect edit; another never edited the baseline. Correct edits
+that failed to complete normally remain failures. All 56 completed structured
+calls reached the next native input with unchanged names and arguments across
+72 local requests; the recorded transport works for this frozen combination.
+Slow generation, inefficient tool rounds and ordinary model errors still
+prevent reliable bounded repair. All raw episode evidence and protected
+inspections are retained. The 238 frozen inputs and live Codex settings stayed
+unchanged, owned processes/listeners were stopped, and local-only enforcement
+remains intact. No passing receipt exists; automatic coding stays disabled.
 
