@@ -29,6 +29,11 @@ benchmarks and explicit scorecard preferences within admitted local routes.
 [ADR 0030](0030-bounded-coding-qualification-probes.md) records explicit,
 ephemeral local coding probes without changing ordinary coding readiness.
 
+[ADR 0031](0031-client-matched-local-asset-acquisition.md) records client-matched
+reviewed acquisition catalogs, explicit private asset directories and retained
+generations, with removal remaining a separate inspected action. Its contract
+leaves implementation and production qualification as separate gates.
+
 Earlier records remain historical evidence. Their enterprise/UI product scope
 is superseded by ADR 0018; retaining a record does not reactivate its product or
 acceptance gates. Do not rewrite accepted rationale; supersede it with a new
