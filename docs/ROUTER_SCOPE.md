@@ -1,54 +1,51 @@
-# Customer-local router scope
+# Personal model selection scope
 
-Decision owner: product owner. Approved October 14, 2026 in the cleanup
-conversation; recorded in [#523](https://github.com/Xpounder-com/hormuz/issues/523)
-and [ADR 0018](decisions/0018-customer-local-router-scope.md).
+Product owner decision: October 18, 2026. [ADR 0031](decisions/0031-personal-model-selection.md)
+refines the existing customer-local router architecture and supersedes its
+local-only ranking and separate binary classifier as the product focus.
 
-One public workflow governs implementation and TDD:
-**connect → submit a coding-client request through the router → inspect
-result/status → disconnect**.
+**Koto adds local models to the pool alongside the commercial model already in
+use, and learns from the user's checked historical work which model to choose.**
+The first pool contains the client's selected commercial model and qualified
+local alternatives. Other commercial providers and clients require their own
+compatible, authorized adapters.
 
-| Keep | Retire |
+One loop governs the product: **history → scorecard → classifier → model
+execution → observed outcome**. The public verification workflow remains
+**connect → coding-client request → inspect result/status → disconnect**.
+
+## Keep and simplify
+
+| Keep | Remove from the active product path |
 | --- | --- |
-| Local router, CLI and skills-only setup adapter | Standalone coding/chat UI and native/Electron clients |
-| Local/open-source inference; exact runtime/model qualification | Koto-owned agent execution app |
-| Automatic admission and hard local-only enforcement | Hosted/enterprise accounts, console and workspace platform |
-| Destination/credential ownership, policy and secret controls | Billing, SSO and commercial entitlement front doors |
-| Streaming, tool affinity, cancellation and unknown outcomes | PostgreSQL, HA, Kubernetes and hosted deployment gates |
-| Recoverable setup and conditional configuration restoration | Unrelated product roadmaps, research UI and campaign tooling |
+| Opt-in encrypted history and checked task outcomes | Mandatory hand-authored benchmark suites |
+| One local multiclass selector with observation and validated automatic modes | Separate binary LLM routing calls |
+| Current commercial baseline plus qualified local candidates | An unrestricted cross-provider commercial marketplace |
+| Policy, credential isolation, local-only and continuation affinity | A second agent loop or standalone coding/chat app |
+| Minimal CLI/plugin setup, status and restoration | Hosted accounts, billing, enterprise front doors and native shells |
+| Bounded local evaluations and retained failure evidence | Repeated candidate trials without a declared product acceptance purpose |
 
-Coding clients own execution permissions, tools and their agent loop. MCP is not
-the inference-routing path; add it only for a demonstrated integration need.
-The public plugin should call shared CLI operations, not embed another installer.
+Manual benchmarks remain an advanced interface. Historical contracts, frozen
+campaigns, failed trials and their independent checkers remain recoverable and
+are not rewritten as successful qualifications.
 
-## Implementation order
+## Active implementation order
 
-1. Destination ownership [#524](https://github.com/Xpounder-com/hormuz/pull/524),
-   admission [#525](https://github.com/Xpounder-com/hormuz/pull/525) and lifetime
-   [#526](https://github.com/Xpounder-com/hormuz/pull/526) are merged at
-   `8489d9d3a467442dca4b91d196928e325dd01a18`. The retirement branch is rebased
-   onto that checkpoint and retains their final routing and lifetime fixes.
-2. Retire unrelated source, packaging, documentation and CI. Preserve shared
-   local accounting, privacy controls and historical SQLite evidence readers.
-3. Qualify one real llama.cpp/runtime/model/client combination: task results,
-   readiness, tools, streaming, cancellation and exact versions. No fabricated
-   qualification IDs or quality claims.
-4. Qualify one documented cloud/authentication path. Plan use requires actual
-   consent and eligibility; login is not subscription entitlement. Never
-   silently fall back to paid API usage.
-5. The [skills-only package](AGENT_INSTALLATION.md) now exposes setup, status,
-   troubleshooting and disconnect over the shared connection implementation.
-   Qualify runtime setup, installation/platform behavior and distribution
-   separately. Its manifests do not complete the real qualification steps
-   above. Additional client adapters require their own work; non-Claude
-   main-model substitution is not promised.
+1. Connect separately consented history to automatically derived personal
+   scorecards, preserving failed and unknown outcomes.
+2. Use checked examples to classify fresh requests into model choices locally.
+   Keep the current commercial baseline when evidence is insufficient.
+3. Validate held-out quality and measurable latency benefit before activation.
+   Selection never supplies missing coding qualification or cloud permission.
+4. Prove the supported client workflow: real tool execution, streaming,
+   continuation affinity, cancellation and settings restoration. Acquisition and
+   compatibility work must directly support admitting a model into this pool.
+5. Qualify representative real user workloads and the documented provider/client
+   path before release claims. Routine synthetic tests establish behavior only.
 
-The cleanup does not finish #523. Synthetic tests establish routing/lifetime
-behavior, not real model quality, subscription eligibility, OS support or plugin
-acceptance. The executable pin is in [connection lifetime](CONNECTED_CLIENT_LIFETIME.md).
-
-56 off-direction product issues were closed as **not planned**, not completed.
-[Operational cleanup](OPERATIONS_CLEANUP.md) remains open. Cloud resources,
-bills, credentials, user data and published releases were not changed. Removed
-source and historical acceptance evidence remain recoverable from Git commit
+The active backlog and acceptance are in [personal model selection](PERSONAL_MODEL_SELECTION.md).
+Further real-model candidate trials are paused during this realignment.
+External resource cleanup remains the separate [operations track](OPERATIONS_CLEANUP.md).
+Existing releases, user data, live accounts, financial records and Codex settings
+are preserved. Earlier retired source remains recoverable from Git commit
 `8489d9d3a467442dca4b91d196928e325dd01a18`.

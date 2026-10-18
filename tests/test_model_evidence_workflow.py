@@ -111,81 +111,43 @@ class ModelEvidenceWorkflowTests(unittest.TestCase):
                                               *assets, '--output', str(output))
                 yield assets, output, report, received
 
-    def test_shadow_enabled_qualification_rejects_before_any_model_request(self):
-        with self.probe_provider() as (endpoint, received), self.probe_provider() as (classifier, classified):
+    def test_retired_shadow_configuration_rejects_before_any_model_qualification(self):
+        with self.probe_provider() as (endpoint, received):
             value = self.probe_configuration(endpoint)
-            value['upstreams']['local-classifier'] = {'protocol': 'openai', 'base_url': classifier,
-                                                       'locality': 'local', 'authentication': 'none'}
-            value['model_routes']['local-router'] = {'protocol': 'openai', 'destination': 'local-classifier',
-                'upstream_model': 'fixture-router', 'model_revision': 'fixture-router-v1',
-                'capabilities': ['responses', 'text']}
-            value['policies']['organization']['allowed_models'].append('local-router')
-            value['shadow_router'] = {'schema_version': 1, 'mode': 'shadow', 'model': 'local-router',
-                                      'local_model': 'local-code'}
+            value['shadow_router'] = {'schema_version': 1, 'mode': 'shadow', 'model': 'local-code', 'local_model': 'local-code'}
+            self.config.write_text(json.dumps(value))
             assets = self.harness.model_arguments()
             output = self.root / 'shadow-qualification.json'
+            before = self.config.read_bytes()
+            result = subprocess.run([sys.executable, '-m', 'hormuz', '--config', str(self.config),
+                'model', 'qualify', '--model', 'local-code', *assets, '--output', str(output)],
+                env=self.harness.environment, capture_output=True, text=True, timeout=20)
+            self.assertEqual(result.returncode, 2, result.stderr)
+            self.assertEqual(json.loads(result.stdout)['error']['code'], 'capability_unavailable')
+            self.assertFalse(output.exists())
+            self.assertEqual(self.config.read_bytes(), before)
+            self.assertEqual(received, [])
+            value.pop('shadow_router')
             with self.fixture.connected_client(value):
-                before = self.config.read_bytes()
-                result = subprocess.run([sys.executable, '-m', 'hormuz', '--config', str(self.config),
-                    'model', 'qualify', '--model', 'local-code', *assets, '--output', str(output)],
-                    env=self.harness.environment, capture_output=True, text=True, timeout=20)
-                self.assertEqual(classified, [], 'qualification must not start extra classifier requests')
-                self.assertEqual(received, [])
-                self.assertEqual(result.returncode, 2, result.stderr or result.stdout)
-                self.assertEqual(json.loads(result.stdout), {'schema_id': 'hormuz.capability-error',
-                    'schema_version': 1, 'error': {'code': 'qualification_shadow_router_unsupported'}})
-                self.assertEqual(result.stderr, '')
-                self.assertFalse(output.exists())
-                self.assertEqual(self.config.read_bytes(), before)
-
-            # A separately selected configuration without the shadow feature
-            # retains the established four-request qualification workflow.
-            standalone = copy.deepcopy(value)
-            standalone.pop('shadow_router')
-            with self.fixture.connected_client(standalone):
-                before = self.config.read_bytes()
-                report = self.harness.command('model', 'qualify', '--model', 'local-code',
-                                             *assets, '--output', str(output))
+                report = self.harness.command('model', 'qualify', '--model', 'local-code', *assets, '--output', str(output))
                 self.assertEqual(report['result'], 'passed')
-                self.assertEqual(self.config.read_bytes(), before)
-                self.assertEqual(classified, [])
                 self.assertEqual(len(received), 4)
 
-    def test_copied_configuration_cannot_hide_live_shadow_classification(self):
-        with self.probe_provider() as (endpoint, received), self.probe_provider() as (classifier, classified):
+    def test_older_live_router_shadow_classification_blocks_model_qualification(self):
+        state = {'schema_id': 'hormuz.ai-work-state', 'schema_version': 3,
+                 'connection': {'routes': [], 'shadow_router_enabled': True}}
+        with self.probe_provider(work_state=state) as (endpoint, received):
             value = self.probe_configuration(endpoint)
-            value['upstreams']['local-classifier'] = {'protocol': 'openai', 'base_url': classifier,
-                                                       'locality': 'local', 'authentication': 'none'}
-            value['model_routes']['local-router'] = {'protocol': 'openai', 'destination': 'local-classifier',
-                'upstream_model': 'fixture-router', 'model_revision': 'fixture-router-v1',
-                'capabilities': ['responses', 'text']}
-            value['policies']['organization']['allowed_models'].append('local-router')
-            value['shadow_router'] = {'schema_version': 1, 'mode': 'shadow', 'model': 'local-router',
-                                      'local_model': 'local-code'}
-            selected = copy.deepcopy(value)
-            selected.pop('shadow_router')
-            alternate = self.root / 'selected-qualification.json'
-            alternate.write_text(json.dumps(selected))
-            assets = self.harness.model_arguments()
+            value['listen']['port'] = int(endpoint.rsplit(':', 1)[1])
+            self.config.write_text(json.dumps(value))
             output = self.root / 'copied-qualification.json'
-            with self.fixture.connected_client(value):
-                live_before = self.config.read_bytes()
-                selected_before = alternate.read_bytes()
-                result = subprocess.run([sys.executable, '-m', 'hormuz', '--config', str(alternate),
-                    'model', 'qualify', '--model', 'local-code', *assets, '--output', str(output)],
-                    env=self.harness.environment, capture_output=True, text=True, timeout=20)
-                self.assertEqual(classified, [], 'live shadow classification must be checked before model probes')
-                self.assertEqual(received, [])
-                self.assertEqual(result.returncode, 2, result.stderr or result.stdout)
-                report = json.loads(result.stdout)
-                self.assertEqual(report['result'], 'failed')
-                self.assertEqual(report['checks'], [{'name': 'transport', 'passed': False,
-                    'code': 'qualification_shadow_router_unsupported'}])
-                self.assertIsNone(report['execution'])
-                self.assertEqual(json.loads(output.read_bytes()), report)
-                self.assertEqual(result.stderr, '')
-                self.assertEqual(self.config.read_bytes(), live_before)
-                self.assertEqual(alternate.read_bytes(), selected_before)
+            report = self.harness.command('model', 'qualify', '--model', 'local-code',
+                *self.harness.model_arguments(), '--output', str(output), expected=2)
+            self.assertEqual(report['checks'], [{'name': 'transport', 'passed': False,
+                                               'code': 'qualification_shadow_router_unsupported'}])
+            self.assertEqual(report['result'], 'failed')
+            self.assertIsNone(report['execution'])
+            self.assertEqual(received, [])
 
     def test_unverified_execution_features_cannot_start_model_probes(self):
         state = {'schema_id': 'hormuz.ai-work-state', 'schema_version': 3, 'connection': {'routes': []}}

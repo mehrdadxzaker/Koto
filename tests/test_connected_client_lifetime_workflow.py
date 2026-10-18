@@ -203,6 +203,40 @@ finally:
 
 
 class ConnectedClientLifetimeWorkflowTests(unittest.TestCase):
+    def test_automatic_connection_rejects_invalid_selected_model_without_touching_settings(self):
+        with provider("UNUSED") as (endpoint, calls):
+            value = destination_workflow.ExecutionDestinationWorkflowTests.configuration(self, endpoint, endpoint)
+            value["model_routes"]["current-commercial"] = {"protocol": "openai", "upstream_model": "original-model"}
+            value["policies"]["organization"]["allowed_models"].append("current-commercial")
+            value["route_admission"] = {"mode": "auto", "local_routes": {}}
+            self.path.write_text(json.dumps(value))
+            settings = self.home / "config.toml"
+            settings.write_text('model = []\n')
+            before = settings.read_bytes()
+            result = self.command("connect", check=False)
+            self.assertEqual(result.returncode, 2, result.stderr)
+            self.assertNotIn("Traceback", result.stderr)
+            self.assertEqual(settings.read_bytes(), before)
+            self.assertEqual(calls, [])
+
+    def test_automatic_connection_preserves_the_selected_commercial_model_and_disconnect_restores_settings(self):
+        with provider("LOCAL_MUST_STAY_UNUSED") as (local, local_calls), provider("COMMERCIAL_BASELINE") as (cloud, cloud_calls):
+            value = destination_workflow.ExecutionDestinationWorkflowTests.configuration(self, local, cloud)
+            value["model_routes"]["current-commercial"] = {"protocol": "openai", "upstream_model": "original-model"}
+            value["policies"]["organization"]["allowed_models"].append("current-commercial")
+            value["route_admission"] = {"mode": "auto", "local_routes": {}}
+            self.path.write_text(json.dumps(value))
+            settings = self.home / "config.toml"
+            original = 'personality = "none"\nmodel = "original-model"\n'
+            settings.write_text(original)
+            self.addCleanup(lambda: self.command("disconnect", check=False))
+            self.command("connect")
+            self.assertEqual(self.client("inspect")["model"], "current-commercial")
+            self.assertEqual(self.client()["body"]["output"][0]["content"][0]["text"], "COMMERCIAL_BASELINE")
+            self.command("disconnect")
+            self.assertEqual(settings.read_text(), original)
+            self.assertEqual((len(local_calls), len(cloud_calls)), (0, 1))
+
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
@@ -937,30 +971,16 @@ class ConnectedClientLifetimeWorkflowTests(unittest.TestCase):
             self.assertTrue((engine / "stopped").exists())
             self.assertEqual(requests, [])
 
-    def test_local_setup_enables_shadow_routing_without_manual_configuration_or_tokens(self):
+    def test_retired_shadow_setup_leaves_settings_assets_and_configuration_unchanged(self):
         with provider("CLOUD_MUST_STAY_UNUSED") as (cloud, requests):
             value, _, engine = self.managed_configuration(cloud)
             options = self.local_setup_options(value)[:-2]
-            self.environment.pop("DESTINATION_WORKFLOW_TOKEN", None)
-            self.environment.pop("HORMUZ_GATEWAY_TOKEN", None)
-            self.addCleanup(lambda: self.command("disconnect", check=False))
-            preview = json.loads(self.command("setup", *options, "--shadow-router", "--dry-run").stdout)
-            self.assertEqual((preview["schema_version"], preview["configuration"]["shadow_router"]), (3, "shadow"))
+            before = self.client("inspect")
+            result = self.command("setup", *options, "--shadow-router", "--dry-run", check=False)
+            self.assertEqual(result.returncode, 2)
+            self.assertEqual(json.loads(result.stderr)["error"]["code"], "connected_client_configuration_invalid")
             self.assertFalse(self.path.exists())
-            connected = json.loads(self.command("setup", *options, "--shadow-router").stdout)
-            validate_contract(connected)
-            validate_contract(json.loads((Path(__file__).parent / "fixtures/local-setup-v3.json").read_text()))
-            result = self.client()
-            self.assertEqual(result["body"]["output"][0]["content"][0]["text"], "MANAGED_LOCAL")
-            work = self.client("work-state")["body"]["works"][0]
-            advice = work["attempts"][0]["shadow_routing"]
-            self.assertEqual((advice["status"], advice["recommendation"], advice["actual_locality"]),
-                             ("classified", "local", "local"))
-            repeated = json.loads(self.command("setup", *options, "--shadow-router").stdout)
-            self.assertEqual(repeated["connection"]["generation"], connected["connection"]["generation"])
-            self.command("disconnect")
-            self.assertEqual(self.client("inspect")["model"], "original-model")
-            self.assertTrue((engine / "stopped").exists())
+            self.assertEqual(self.client("inspect"), before)
             self.assertEqual(requests, [])
 
     def test_local_credential_preview_leaves_no_persistent_credential_or_connection(self):
@@ -1575,7 +1595,7 @@ class ConnectedClientLifetimeWorkflowTests(unittest.TestCase):
             value = json.loads(self.path.read_text())
             local_route = {**value["model_routes"]["local-code"],
                            "model_revision": "fixture-weights-v1", "capabilities": ["responses", "text"]}
-            value["model_routes"] = {"cloud-code": {"protocol": "openai", "upstream_model": "cloud-model"},
+            value["model_routes"] = {"cloud-code": {"protocol": "openai", "upstream_model": "original-model"},
                                      "local-code": local_route}
             value["policies"]["organization"]["allowed_models"] = ["cloud-code", "local-code"]
             value["route_admission"] = {"mode": "auto", "local_routes": {"local-code": {
@@ -1590,18 +1610,18 @@ class ConnectedClientLifetimeWorkflowTests(unittest.TestCase):
                 selected["headers"].get("x-hormuz-destination"),
                 selected["headers"].get("x-hormuz-routing-mode"),
                 selected["headers"].get("x-hormuz-routing-reason")),
-                (200, "cloud-code", "LOCAL_DESTINATION", "local-llama", "auto", "qualified_local"))
+                (200, "cloud-code", "ORIGINAL_DESTINATION", "openai", "auto", "permitted_baseline"))
             blocked = self.client("unknown-task", "local-only")
             self.assertEqual((blocked["status"], blocked["body"]["error"]["code"]),
                              (503, "hormuz_route_local_route_unavailable"))
-            self.assertEqual((len(local_requests), cloud_requests), (1, []))
+            self.assertEqual((len(local_requests), len(cloud_requests)), (0, 1))
             disconnected = json.loads(self.command("disconnect").stdout)
             validate_contract(disconnected)
             restored = self.client()
             self.assertEqual((disconnected["phase"], disconnected["router"], restored["provider"],
                 restored["body"]["output"][0]["content"][0]["text"]),
                 ("disconnected", "stopped", "original", "ORIGINAL_DESTINATION"))
-            self.assertEqual((len(local_requests), len(cloud_requests)), (1, 1))
+            self.assertEqual((len(local_requests), len(cloud_requests)), (0, 2))
 
     def test_lifecycle_receipts_are_discoverable_strict_versioned_contracts(self):
         with self.configured():
