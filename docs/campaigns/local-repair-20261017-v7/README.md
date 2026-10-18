@@ -5,6 +5,12 @@ v6 failure](https://github.com/mehrdadxzaker/hormuz/issues/566), with the explic
 October 17, 2026 instruction to choose, freeze and run one bounded repair while
 preserving prior evidence, local-only enforcement and the owner's Codex settings.
 
+**Retained outcome: the one repair failed.** The model returned tool-call-shaped
+JSON as text, with no observed tool execution or implementation edit. See the
+[outcome](OUTCOME.md), [observation](observation.json) and
+[native events](development-native.jsonl). The candidate remains unqualified;
+the sections below retain the original preregistration.
+
 ## Candidate decision
 
 Select **Qwen2.5-Coder-7B-Instruct Q4_K_M** as an experimental, unqualified
