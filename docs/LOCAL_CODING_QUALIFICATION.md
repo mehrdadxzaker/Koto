@@ -159,6 +159,23 @@ made no edit and failed independent checks after malformed patch commands.
 The v4 denial before inference is retained separately. No held-out case ran,
 no passing receipt was installed, and this candidate remains unqualified.
 
+The separately frozen [version-six treatment](campaigns/local-repair-20261016-v6/README.md)
+added explicit developer guidance for the existing shell patch helper, while
+retaining v5's runtime, client, model and generation bounds. Its one development
+episode also made no edit and failed unchanged independent checks. Five local
+submissions retained one work and continuation affinity; normal coding was
+denied before the explicit probe. No held-out case or quality retry ran, no
+receipt was installed, and coding readiness remains unknown. The
+[native diagnosis](diagnostics/native-patch-20261016/README.md) found no demonstrated
+router argument-loss defect; supplied-patch controls are not model quality.
+
+The [version-seven model treatment](campaigns/local-repair-20261017-v7/README.md)
+selected Qwen2.5-Coder-7B-Instruct with the same native tools, explicit guidance
+and generation bounds. Its one local submission completed normally but returned
+tool-call-shaped JSON as text, made no edit and failed independent checks. No
+held-out case ran, no receipt was installed, and ordinary coding remains
+unqualified. No native tool continuation was exercised by that episode.
+
 ## Contracts, migration and rollback
 
 The version-1 `hormuz.local-coding-evidence` receipt contains a frozen `plan`, its

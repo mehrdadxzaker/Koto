@@ -1,0 +1,139 @@
+{
+  "criteria_version": "local-repair.v1",
+  "subject": {
+    "client_version": "0.160.0",
+    "system": "Darwin",
+    "machine": "arm64",
+    "runtime_profile": "managed-llama.v1",
+    "runtime_sha256": "051bb0b55b3e5e72081aa819131ba30c74d910acc915b28bab298757472e39d9",
+    "model_revision": "sha256:fadc3e5f8d42bf7e894a785b05082e47daee4df26680389817e2093056f088ad",
+    "upstream_model": "Qwen3-Coder-30B-A3B-Instruct-Q4_K_M",
+    "protocol": "openai",
+    "capabilities": [
+      "responses",
+      "text",
+      "streaming",
+      "tools",
+      "codex_http",
+      "codex_http_0160"
+    ],
+    "max_request_bytes": 65536,
+    "max_output_tokens": 512,
+    "upstream_timeout_seconds": 90,
+    "request_profile_sha256": "6c7d0d338e2c8fafca3c357f2dba0745ebae3c8bcbe8cea8e68ff4592f8a05af"
+  },
+  "cases": [
+    {
+      "case_id": "dev-clamp",
+      "partition": "development",
+      "family": "arithmetic",
+      "task_sha256": "33fd16c7939f008528fdcd40d4911c9d323eec130318414f0683d8bd7a2bc5aa",
+      "checks_sha256": "da25b64603054b72230db061e79855ed9d3f32b6f31076fa5755ac4eec12b942"
+    },
+    {
+      "case_id": "dev-strip-prefix",
+      "partition": "development",
+      "family": "text",
+      "task_sha256": "ac666d5237460f22274f88ec968dec3498caa5e45251b0fc62379a429f5ca7d1",
+      "checks_sha256": "fcc045ad3370cc3e2e8306bb1f1ec3105eda3b1566d72877c25269822dd8ff8d"
+    },
+    {
+      "case_id": "dev-rotate-left",
+      "partition": "development",
+      "family": "collections",
+      "task_sha256": "b90c5095ab8c1f6e0c1da0e665b881cd3014f318acaca864caa38482eaea3002",
+      "checks_sha256": "3f83dd8fc94581f1d72a6952b1e0f0c4988e90c0ec9001383c325de44954d3b1"
+    },
+    {
+      "case_id": "dev-positive-counter",
+      "partition": "development",
+      "family": "validation_state",
+      "task_sha256": "40cf635d46f648cb990a97596d31fb79be3641b52a957c701a1b4a06b5148d5f",
+      "checks_sha256": "65e4123e7ba3a0b5e8f953213a1078d170b9fe997e27372efe413719edabb6d3"
+    },
+    {
+      "case_id": "held-bounded-distance",
+      "partition": "held_out",
+      "family": "arithmetic",
+      "task_sha256": "57b2633f75802b18d65fc5c1d98468ce8e7472e90d85f0bd3593c78b9fcf236c",
+      "checks_sha256": "ce81574f41fa1136753eb9a685544333dec46fe0ddb8cd47c66c6ba41c493b51"
+    },
+    {
+      "case_id": "held-ceiling-div",
+      "partition": "held_out",
+      "family": "arithmetic",
+      "task_sha256": "2cf6854d875e8576b0b12b8f5ac7c00ca4d4fbc911d048b8e4c2fdf6eba8f808",
+      "checks_sha256": "f9b60d210c592ee6c45ae6dd0a79372e88b90fcc8b821a1039bd4b32b88e0c27"
+    },
+    {
+      "case_id": "held-overlap-length",
+      "partition": "held_out",
+      "family": "arithmetic",
+      "task_sha256": "3ae52eb80847c50703f9c0f4703cf61ab06239346e4886ba9cf7a623f4910c6c",
+      "checks_sha256": "f870d84fbdfb2862de344bbc6f6b1f3cf8a2af4cdeda64533552445d939e8fbc"
+    },
+    {
+      "case_id": "held-case-prefix",
+      "partition": "held_out",
+      "family": "text",
+      "task_sha256": "26a4e14f978d2483df4479cfe48fe0e85956033c442cb79b94a354f8be5d9839",
+      "checks_sha256": "41bb651312bd893bfffcc335b7167af311e1461b4a781b884f52e85c373b7e8e"
+    },
+    {
+      "case_id": "held-normalize-lf",
+      "partition": "held_out",
+      "family": "text",
+      "task_sha256": "38968c2bac406de3211bb5cf7e74ca8e0ad7a8a979f96383ee908dd7ef93b415",
+      "checks_sha256": "9349360261b3e13b98136c484b87eb53990b65e356defd9701e82378b77771f6"
+    },
+    {
+      "case_id": "held-one-final-lf",
+      "partition": "held_out",
+      "family": "text",
+      "task_sha256": "8d447b97e1a431c00669b007fc1c3944bc3f36ea685c73192485c0e4ef86f115",
+      "checks_sha256": "9d5323a3efb631c3f1fcb2aeed79ed376f74e588e1b4c32d623bba928aec1c77"
+    },
+    {
+      "case_id": "held-interleave",
+      "partition": "held_out",
+      "family": "collections",
+      "task_sha256": "6e4506704f0d3d0b3638ead25569518f9d2c6fe4b15994b03768c71fa93a9de0",
+      "checks_sha256": "5a95f56231543bd6ff09f2373b97fbfec81fe868badc3927b0ada6f37d49033a"
+    },
+    {
+      "case_id": "held-group-runs",
+      "partition": "held_out",
+      "family": "collections",
+      "task_sha256": "4148859bc2d374ec724e944c8b7b8a9b4d8a5a253da22fbdd6d04110b279cc87",
+      "checks_sha256": "c74a524a638e6762e053a58a92116861a07446e195a32239348aea3fe44d5af5"
+    },
+    {
+      "case_id": "held-without-indices",
+      "partition": "held_out",
+      "family": "collections",
+      "task_sha256": "e73395f5db18d8d03ff16b9ddaece8c2f83c7eb22dbf335bf08105cef9c2bfb2",
+      "checks_sha256": "1c09344814257e7f36ccb8ef7aa01f537a67c8c909489cdd2939af79b875ad84"
+    },
+    {
+      "case_id": "held-parse-port",
+      "partition": "held_out",
+      "family": "validation_state",
+      "task_sha256": "3cdad2df1e48f49f97a2d23df27cb3900420d292d891203f3320d9eb47b0e953",
+      "checks_sha256": "55fef4023c1c9336f2330c4aa78ebe8e097020a33dde2afbe3085e90d4fdea67"
+    },
+    {
+      "case_id": "held-countdown-copy",
+      "partition": "held_out",
+      "family": "validation_state",
+      "task_sha256": "231f3563f9ed162ef83bc55f113074f9fb43ddf2ee8c49080849a3cdbdc6a939",
+      "checks_sha256": "8f0cb7ae9d48b9689991cb78c5aa292cea5c81540cf89606779978c310f711b9"
+    },
+    {
+      "case_id": "held-normalized-flag",
+      "partition": "held_out",
+      "family": "validation_state",
+      "task_sha256": "73e934706a6de1e33bd1a95b5d79ae34b84f22ea58cfa4468755059f8998e080",
+      "checks_sha256": "972732e4ecc5ce4edc4ccf0f6777a21611f78a2cdffd135f674cfbbdbb8e139f"
+    }
+  ]
+}

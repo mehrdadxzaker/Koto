@@ -1,0 +1,11 @@
+{
+  "campaign_id": "local-repair-20261018-v13",
+  "frozen_commit": "322f36527f72fbde098d9dc7ebe90e6c2edeff3f",
+  "disposition": "superseded_before_inference",
+  "actual_model_completions": 0,
+  "canary_started": false,
+  "qualification_started": false,
+  "replacement": "local-repair-20261018-v14",
+  "frozen_inputs_unchanged": true,
+  "reason": "Independent review found confounded missing negative assertions: otherwise-valid day=True and existing nonstring/empty rename source. The private correct references already reject them. Retain red sensitivity evidence and replace preparation before any model call."
+}

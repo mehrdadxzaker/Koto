@@ -1,0 +1,413 @@
+{
+  "document_version": 1,
+  "controls": [
+    {
+      "artifact": "/private/tmp/koto-tool-compat-replay-20261017/heredoc-red.json",
+      "sha256": "53e41ea49c86aecc01084178b3346bdde0b3c25b7e81b92488dcbf4cccb9e0b8",
+      "native_model_inferences": 0,
+      "model_quality_evidence": false,
+      "native": {
+        "exit_code": 0,
+        "termination": "completed",
+        "elapsed_ms": 468
+      },
+      "driver_version": null,
+      "supplied_command_sha256": null,
+      "executed_commands": 0,
+      "executed_tools": null,
+      "implementation_changed": true,
+      "check_exit_code": 2,
+      "independent_checks": [
+        {
+          "process_exit_code": 1,
+          "assertions_completed": false,
+          "output_bytes": 0,
+          "within_budget": true,
+          "exit_code": 1
+        },
+        {
+          "process_exit_code": 2,
+          "assertions_completed": false,
+          "output_bytes": 0,
+          "within_budget": true,
+          "exit_code": 2
+        }
+      ],
+      "checks_unchanged": true,
+      "settings_restored": true,
+      "owned_listeners_closed": true,
+      "native_events": [
+        {
+          "type": "thread.started",
+          "thread_id": "01a14cf8-f4fe-77c1-aafd-79d4ad69b3e1"
+        },
+        {
+          "type": "turn.started"
+        },
+        {
+          "type": "item.completed",
+          "item": {
+            "id": "item_0",
+            "type": "agent_message",
+            "text": "Transport control completed."
+          }
+        },
+        {
+          "type": "turn.completed",
+          "usage": {
+            "input_tokens": 16,
+            "cached_input_tokens": 0,
+            "cache_write_input_tokens": 0,
+            "output_tokens": 16,
+            "reasoning_output_tokens": 0
+          }
+        }
+      ],
+      "outputs": [
+        "Chunk ID: 8f9475\nWall time: 0.0000 seconds\nProcess exited with code 1\nOriginal token count: 19\nOutput:\nzsh:1: can't create temp file for here document: operation not permitted\n"
+      ]
+    },
+    {
+      "artifact": "/private/tmp/koto-tool-compat-replay-20261017/heredoc-green.json",
+      "sha256": "3c49a3c5a045343027462b3d8efe95760ae6d0963b4805cd5aa2bb3b0f4f1cf9",
+      "native_model_inferences": 0,
+      "model_quality_evidence": false,
+      "native": {
+        "exit_code": 0,
+        "termination": "completed",
+        "elapsed_ms": 400
+      },
+      "driver_version": null,
+      "supplied_command_sha256": null,
+      "executed_commands": 1,
+      "executed_tools": null,
+      "implementation_changed": true,
+      "check_exit_code": 0,
+      "independent_checks": [
+        {
+          "process_exit_code": 1,
+          "assertions_completed": false,
+          "output_bytes": 0,
+          "within_budget": true,
+          "exit_code": 1
+        },
+        {
+          "process_exit_code": 0,
+          "assertions_completed": true,
+          "output_bytes": 49,
+          "within_budget": true,
+          "exit_code": 0
+        }
+      ],
+      "checks_unchanged": true,
+      "settings_restored": true,
+      "owned_listeners_closed": true,
+      "native_events": [
+        {
+          "type": "thread.started",
+          "thread_id": "01a14cf9-1a54-7bc2-9111-5960ecc2b2ec"
+        },
+        {
+          "type": "turn.started"
+        },
+        {
+          "type": "item.started",
+          "item": {
+            "id": "item_0",
+            "type": "command_execution",
+            "command": "/bin/zsh -lc \"cat > solution.py <<'EOF'\ndef clamp(value, lower, upper):\n    if lower > upper:\n        raise ValueError(\\\"inverted bounds\\\")\n    return max(lower, min(value, upper))\nEOF\n\"",
+            "aggregated_output": "",
+            "exit_code": null,
+            "status": "in_progress"
+          }
+        },
+        {
+          "type": "item.completed",
+          "item": {
+            "id": "item_0",
+            "type": "command_execution",
+            "command": "/bin/zsh -lc \"cat > solution.py <<'EOF'\ndef clamp(value, lower, upper):\n    if lower > upper:\n        raise ValueError(\\\"inverted bounds\\\")\n    return max(lower, min(value, upper))\nEOF\n\"",
+            "aggregated_output": "",
+            "exit_code": 0,
+            "status": "completed"
+          }
+        },
+        {
+          "type": "item.completed",
+          "item": {
+            "id": "item_1",
+            "type": "agent_message",
+            "text": "Transport control completed."
+          }
+        },
+        {
+          "type": "turn.completed",
+          "usage": {
+            "input_tokens": 16,
+            "cached_input_tokens": 0,
+            "cache_write_input_tokens": 0,
+            "output_tokens": 16,
+            "reasoning_output_tokens": 0
+          }
+        }
+      ],
+      "outputs": [
+        "Chunk ID: 41a547\nWall time: 0.0000 seconds\nProcess exited with code 0\nOriginal token count: 0\nOutput:\n"
+      ]
+    },
+    {
+      "artifact": "/private/tmp/koto-tool-compat-replay-20261017/patch-grammar-red.json",
+      "sha256": "4c75c5c72771eb01ddc79bf11eb22dc1e9586b2091bebd46403c7eba9269164b",
+      "native_model_inferences": 0,
+      "model_quality_evidence": false,
+      "native": {
+        "exit_code": 0,
+        "termination": "completed",
+        "elapsed_ms": 394
+      },
+      "driver_version": null,
+      "supplied_command_sha256": null,
+      "executed_commands": 0,
+      "executed_tools": null,
+      "implementation_changed": false,
+      "check_exit_code": 1,
+      "independent_checks": [
+        {
+          "process_exit_code": 1,
+          "assertions_completed": false,
+          "output_bytes": 0,
+          "within_budget": true,
+          "exit_code": 1
+        },
+        {
+          "process_exit_code": 1,
+          "assertions_completed": false,
+          "output_bytes": 0,
+          "within_budget": true,
+          "exit_code": 1
+        }
+      ],
+      "checks_unchanged": true,
+      "settings_restored": true,
+      "owned_listeners_closed": true,
+      "native_events": [
+        {
+          "type": "thread.started",
+          "thread_id": "01a14cf9-ab21-7212-94e7-f3e22dd9ee78"
+        },
+        {
+          "type": "turn.started"
+        },
+        {
+          "type": "item.completed",
+          "item": {
+            "id": "item_0",
+            "type": "agent_message",
+            "text": "Transport control completed."
+          }
+        },
+        {
+          "type": "turn.completed",
+          "usage": {
+            "input_tokens": 16,
+            "cached_input_tokens": 0,
+            "cache_write_input_tokens": 0,
+            "output_tokens": 16,
+            "reasoning_output_tokens": 0
+          }
+        }
+      ],
+      "outputs": [
+        "apply_patch verification failed: Failed to find context '-1,2 +1,5 @@' in /private/tmp/koto-native-tool-replay-kapay12z/project/solution.py"
+      ]
+    },
+    {
+      "artifact": "/private/tmp/koto-tool-compat-replay-20261017/patch-grammar-green.json",
+      "sha256": "f07285db2b1fc3ff60afbf18bbd469d855d258794e60532c076d70a40e240de8",
+      "native_model_inferences": 0,
+      "model_quality_evidence": false,
+      "native": {
+        "exit_code": 0,
+        "termination": "completed",
+        "elapsed_ms": 459
+      },
+      "driver_version": null,
+      "supplied_command_sha256": null,
+      "executed_commands": 0,
+      "executed_tools": null,
+      "implementation_changed": true,
+      "check_exit_code": 0,
+      "independent_checks": [
+        {
+          "process_exit_code": 1,
+          "assertions_completed": false,
+          "output_bytes": 0,
+          "within_budget": true,
+          "exit_code": 1
+        },
+        {
+          "process_exit_code": 0,
+          "assertions_completed": true,
+          "output_bytes": 49,
+          "within_budget": true,
+          "exit_code": 0
+        }
+      ],
+      "checks_unchanged": true,
+      "settings_restored": true,
+      "owned_listeners_closed": true,
+      "native_events": [
+        {
+          "type": "thread.started",
+          "thread_id": "01a14cf9-e3d2-7131-86e4-6c88b3d80b3f"
+        },
+        {
+          "type": "turn.started"
+        },
+        {
+          "type": "item.started",
+          "item": {
+            "id": "item_0",
+            "type": "file_change",
+            "changes": [
+              {
+                "path": "/private/tmp/koto-native-tool-replay-afc1p3pi/project/solution.py",
+                "kind": "update"
+              }
+            ],
+            "status": "in_progress"
+          }
+        },
+        {
+          "type": "item.completed",
+          "item": {
+            "id": "item_0",
+            "type": "file_change",
+            "changes": [
+              {
+                "path": "/private/tmp/koto-native-tool-replay-afc1p3pi/project/solution.py",
+                "kind": "update"
+              }
+            ],
+            "status": "completed"
+          }
+        },
+        {
+          "type": "item.completed",
+          "item": {
+            "id": "item_1",
+            "type": "agent_message",
+            "text": "Transport control completed."
+          }
+        },
+        {
+          "type": "turn.completed",
+          "usage": {
+            "input_tokens": 16,
+            "cached_input_tokens": 0,
+            "cache_write_input_tokens": 0,
+            "output_tokens": 16,
+            "reasoning_output_tokens": 0
+          }
+        }
+      ],
+      "outputs": [
+        "Wall time: 0.0000 seconds\nOutput:\nExit code: 0\nWall time: 0 seconds\nOutput:\nSuccess. Updated the following files:\nM solution.py\n"
+      ]
+    },
+    {
+      "artifact": "/private/tmp/koto-tool-compat-replay-20261017/patch-grammar-final-green.json",
+      "sha256": "9818bc7f47da20513fb960383702c0d1d0afe45dbc2b1bebd87877b95781fd34",
+      "native_model_inferences": 0,
+      "model_quality_evidence": false,
+      "native": {
+        "exit_code": 0,
+        "termination": "completed",
+        "elapsed_ms": 440
+      },
+      "driver_version": "v9",
+      "supplied_command_sha256": "303334fdf45451bf36c69af4683ccde545dc3dcdec38098ca91b29535156d97f",
+      "executed_commands": 0,
+      "executed_tools": 1,
+      "implementation_changed": true,
+      "check_exit_code": 0,
+      "independent_checks": [
+        {
+          "process_exit_code": 1,
+          "assertions_completed": false,
+          "output_bytes": 0,
+          "within_budget": true,
+          "exit_code": 1
+        },
+        {
+          "process_exit_code": 0,
+          "assertions_completed": true,
+          "output_bytes": 49,
+          "within_budget": true,
+          "exit_code": 0
+        }
+      ],
+      "checks_unchanged": true,
+      "settings_restored": true,
+      "owned_listeners_closed": true,
+      "native_events": [
+        {
+          "type": "thread.started",
+          "thread_id": "01a14cfb-1637-7f82-a9c5-15d7fec8c24c"
+        },
+        {
+          "type": "turn.started"
+        },
+        {
+          "type": "item.started",
+          "item": {
+            "id": "item_0",
+            "type": "file_change",
+            "changes": [
+              {
+                "path": "/private/tmp/koto-native-tool-replay-xkj4p1do/project/solution.py",
+                "kind": "update"
+              }
+            ],
+            "status": "in_progress"
+          }
+        },
+        {
+          "type": "item.completed",
+          "item": {
+            "id": "item_0",
+            "type": "file_change",
+            "changes": [
+              {
+                "path": "/private/tmp/koto-native-tool-replay-xkj4p1do/project/solution.py",
+                "kind": "update"
+              }
+            ],
+            "status": "completed"
+          }
+        },
+        {
+          "type": "item.completed",
+          "item": {
+            "id": "item_1",
+            "type": "agent_message",
+            "text": "Transport control completed."
+          }
+        },
+        {
+          "type": "turn.completed",
+          "usage": {
+            "input_tokens": 16,
+            "cached_input_tokens": 0,
+            "cache_write_input_tokens": 0,
+            "output_tokens": 16,
+            "reasoning_output_tokens": 0
+          }
+        }
+      ],
+      "outputs": [
+        "Wall time: 0.0000 seconds\nOutput:\nExit code: 0\nWall time: 0 seconds\nOutput:\nSuccess. Updated the following files:\nM solution.py\n"
+      ]
+    }
+  ]
+}

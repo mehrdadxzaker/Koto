@@ -880,28 +880,30 @@ class ModelBenchmarkWorkflowTests(unittest.TestCase):
                           result["headers"].get("x-hormuz-scorecard-status")),
                          ("fixture-local-model", "no_target_match"))
 
-    def test_benchmark_rejects_shadow_helpers_before_starting_any_model_requests(self):
+    def test_benchmark_rejects_retired_shadow_configuration_before_model_requests(self):
         with workflow.provider("7") as (endpoint, received):
             value = self.fixture.admission_configuration(endpoint, endpoint)
-            value["ai_work"] = {"enabled": True, "database": str(self.root / "work.sqlite3")}
             value["shadow_router"] = {"schema_version": 1, "mode": "shadow", "model": "local-code", "local_model": "local-code"}
-            with self.fixture.connected_client(value):
-                result = self.run_benchmark("local-code", expected=2)
-        self.assertEqual((result["error"]["code"], received), ("benchmark_shadow_router_unsupported", []))
+            self.config_path.write_text(json.dumps(value))
+            result = self.run_benchmark("local-code", expected=2)
+        self.assertEqual((result["error"]["code"], received), ("benchmark_unavailable", []))
 
-    def test_live_shadow_helpers_cannot_add_calls_after_the_config_file_changes(self):
-        suite = self.suite()
-        suite["cases"] = suite["cases"][:1]
-        suite["targets"]["min_cases"] = 1
-        with workflow.provider("7") as (endpoint, received):
+    def test_older_live_router_with_shadow_helpers_cannot_add_benchmark_calls(self):
+        from hormuz.config import GatewayConfig
+        from unittest.mock import patch
+        runtime = {"schema_id": "hormuz.benchmark-runtime", "schema_version": 1,
+                   "actor_id": "developer", "organization_id": "default", "shadow_router_enabled": True,
+                   "policy_content_sha256": "0" * 64, "routes": []}
+        with workflow.provider("7", get_responses={"/v1/router/benchmark-state": runtime}) as (endpoint, received):
             value = self.fixture.admission_configuration(endpoint, endpoint)
-            value["ai_work"] = {"enabled": True, "database": str(self.root / "work.sqlite3")}
-            value["shadow_router"] = {"schema_version": 1, "mode": "shadow", "model": "local-code", "local_model": "local-code"}
-            with self.fixture.connected_client(value):
-                changed = json.loads(self.config_path.read_text())
-                changed.pop("shadow_router")
-                self.config_path.write_text(json.dumps(changed))
-                result = self.run_benchmark("local-code", suite=suite, expected=2)
+            value["listen"]["port"] = int(endpoint.rsplit(":", 1)[1])
+            self.config_path.write_text(json.dumps(value))
+            with patch.dict(os.environ, self.fixture.environment):
+                config = GatewayConfig.load(self.config_path)
+            identity = next(iter(config.identities_by_token.values()))
+            runtime.update(actor_id=identity.actor_id, organization_id=identity.organization_id,
+                           policy_content_sha256=config.policy_content_sha256)
+            result = self.run_benchmark("local-code", expected=2)
         self.assertEqual((result["error"]["code"], received), ("benchmark_shadow_router_unsupported", []))
 
     def test_different_generation_budget_does_not_inherit_a_benchmark_quality_score(self):

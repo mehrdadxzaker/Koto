@@ -1,0 +1,4 @@
+{"type":"thread.started","thread_id":"01a14f8b-83a3-7e83-ba5a-5a7e092e905e"}
+{"type":"turn.started"}
+{"type":"error","message":"unexpected status 403 Forbidden: Route admission requires attention: probe_request_mismatch, url: http://127.0.0.1:56910/v1/responses"}
+{"type":"turn.failed","error":{"message":"unexpected status 403 Forbidden: Route admission requires attention: probe_request_mismatch, url: http://127.0.0.1:56910/v1/responses"}}

@@ -1,0 +1,179 @@
+{
+  "document_version": 1,
+  "controls": [
+    {
+      "artifact": "/private/tmp/koto-tool-compat-replay-20261017/prior-answer-isolation-red.json",
+      "artifact_sha256": "23d0c202df0a330847c6d4d2cc0a16b28a41ddfde528d727616f2bda8d2faf76",
+      "mode": "function",
+      "premature_checker_exit": false,
+      "native_model_inferences": 0,
+      "model_quality_evidence": false,
+      "native": {
+        "exit_code": 0,
+        "termination": "completed",
+        "elapsed_ms": 503
+      },
+      "baseline_exit_code": 1,
+      "executed_commands": 1,
+      "implementation_changed": false,
+      "check_exit_code": 1,
+      "independent_checks": null,
+      "checks_unchanged": true,
+      "settings_restored": true,
+      "owned_listeners_closed": true,
+      "function_outputs": [
+        "Chunk ID: 4a2184\nWall time: 0.0000 seconds\nProcess exited with code 1\nOriginal token count: 32\nOutput:\nTraceback (most recent call last):\n  File \"<string>\", line 8, in <module>\nAssertionError: independent inventory was readable\n"
+      ]
+    },
+    {
+      "artifact": "/private/tmp/koto-tool-compat-replay-20261017/premature-checker-exit-red.json",
+      "artifact_sha256": "2942de5c4d6621fc46b9db9b3d073e07e7e664effd43cec663d3f5fac3fed68a",
+      "mode": "function",
+      "premature_checker_exit": true,
+      "native_model_inferences": 0,
+      "model_quality_evidence": false,
+      "native": {
+        "exit_code": 0,
+        "termination": "completed",
+        "elapsed_ms": 509
+      },
+      "baseline_exit_code": 1,
+      "executed_commands": 1,
+      "implementation_changed": true,
+      "check_exit_code": 0,
+      "independent_checks": null,
+      "checks_unchanged": true,
+      "settings_restored": true,
+      "owned_listeners_closed": true,
+      "function_outputs": [
+        "Chunk ID: 88e0ef\nWall time: 0.0000 seconds\nProcess exited with code 0\nOriginal token count: 0\nOutput:\n"
+      ]
+    },
+    {
+      "artifact": "/private/tmp/koto-tool-compat-replay-20261017/prior-answer-isolation-green.json",
+      "artifact_sha256": "e7b6dde959141f274f9027493375fc158767517dd10df259a5732b2c977345c3",
+      "mode": "function",
+      "premature_checker_exit": false,
+      "native_model_inferences": 0,
+      "model_quality_evidence": false,
+      "native": {
+        "exit_code": 0,
+        "termination": "completed",
+        "elapsed_ms": 454
+      },
+      "baseline_exit_code": 1,
+      "executed_commands": 1,
+      "implementation_changed": true,
+      "check_exit_code": 0,
+      "independent_checks": null,
+      "checks_unchanged": true,
+      "settings_restored": true,
+      "owned_listeners_closed": true,
+      "function_outputs": [
+        "Chunk ID: 9927d5\nWall time: 0.0000 seconds\nProcess exited with code 0\nOriginal token count: 12\nOutput:\nchecker_inventory_and_write_isolation_passed\n"
+      ]
+    },
+    {
+      "artifact": "/private/tmp/koto-tool-compat-replay-20261017/premature-checker-exit-green.json",
+      "artifact_sha256": "4ea2258c9c5a3815c4437da51a5a5b8af15e7ed462c9530096f118b827c89f04",
+      "mode": "function",
+      "premature_checker_exit": true,
+      "native_model_inferences": 0,
+      "model_quality_evidence": false,
+      "native": {
+        "exit_code": 0,
+        "termination": "completed",
+        "elapsed_ms": 517
+      },
+      "baseline_exit_code": 1,
+      "executed_commands": 1,
+      "implementation_changed": true,
+      "check_exit_code": 2,
+      "independent_checks": null,
+      "checks_unchanged": true,
+      "settings_restored": true,
+      "owned_listeners_closed": true,
+      "function_outputs": [
+        "Chunk ID: 085954\nWall time: 0.0000 seconds\nProcess exited with code 0\nOriginal token count: 0\nOutput:\n"
+      ]
+    },
+    {
+      "artifact": "/private/tmp/koto-tool-compat-replay-20261017/final-isolation-control.json",
+      "artifact_sha256": "d0787424391576343fd5c7b8956c471aba32b230b01848fcf1487c26ce4b60b0",
+      "mode": "function",
+      "premature_checker_exit": false,
+      "native_model_inferences": 0,
+      "model_quality_evidence": false,
+      "native": {
+        "exit_code": 0,
+        "termination": "completed",
+        "elapsed_ms": 460
+      },
+      "baseline_exit_code": 1,
+      "executed_commands": 1,
+      "implementation_changed": true,
+      "check_exit_code": 0,
+      "independent_checks": [
+        {
+          "process_exit_code": 1,
+          "assertions_completed": false,
+          "output_bytes": 0,
+          "within_budget": true,
+          "exit_code": 1
+        },
+        {
+          "process_exit_code": 0,
+          "assertions_completed": true,
+          "output_bytes": 49,
+          "within_budget": true,
+          "exit_code": 0
+        }
+      ],
+      "checks_unchanged": true,
+      "settings_restored": true,
+      "owned_listeners_closed": true,
+      "function_outputs": [
+        "Chunk ID: dea89e\nWall time: 0.0000 seconds\nProcess exited with code 0\nOriginal token count: 12\nOutput:\nchecker_inventory_and_write_isolation_passed\n"
+      ]
+    },
+    {
+      "artifact": "/private/tmp/koto-tool-compat-replay-20261017/final-premature-exit-control.json",
+      "artifact_sha256": "55dc0db35c09a553797b06e57563609191c472d3d1122a79a3bef9f3d85bb515",
+      "mode": "function",
+      "premature_checker_exit": true,
+      "native_model_inferences": 0,
+      "model_quality_evidence": false,
+      "native": {
+        "exit_code": 0,
+        "termination": "completed",
+        "elapsed_ms": 516
+      },
+      "baseline_exit_code": 1,
+      "executed_commands": 1,
+      "implementation_changed": true,
+      "check_exit_code": 2,
+      "independent_checks": [
+        {
+          "process_exit_code": 1,
+          "assertions_completed": false,
+          "output_bytes": 0,
+          "within_budget": true,
+          "exit_code": 1
+        },
+        {
+          "process_exit_code": 0,
+          "assertions_completed": false,
+          "output_bytes": 0,
+          "within_budget": true,
+          "exit_code": 2
+        }
+      ],
+      "checks_unchanged": true,
+      "settings_restored": true,
+      "owned_listeners_closed": true,
+      "function_outputs": [
+        "Chunk ID: a26f83\nWall time: 0.0000 seconds\nProcess exited with code 0\nOriginal token count: 0\nOutput:\n"
+      ]
+    }
+  ]
+}

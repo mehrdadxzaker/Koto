@@ -1,0 +1,329 @@
+{
+  "document_version": 2,
+  "campaign_id": "local-repair-20261018-v13",
+  "native_model_inferences": 0,
+  "reference_implementations_are_model_evidence": false,
+  "cases": [
+    {
+      "case_id": "dev-clamp",
+      "baseline_check": {
+        "process_exit_code": 71,
+        "assertions_completed": false,
+        "output_bytes": 0,
+        "within_budget": true,
+        "exit_code": 2
+      },
+      "baseline_exit_code": 2,
+      "reference_check": {
+        "process_exit_code": 71,
+        "assertions_completed": false,
+        "output_bytes": 0,
+        "within_budget": true,
+        "exit_code": 2
+      },
+      "reference_exit_code": 2,
+      "checks_unchanged": true
+    },
+    {
+      "case_id": "dev-strip-prefix",
+      "baseline_check": {
+        "process_exit_code": 71,
+        "assertions_completed": false,
+        "output_bytes": 0,
+        "within_budget": true,
+        "exit_code": 2
+      },
+      "baseline_exit_code": 2,
+      "reference_check": {
+        "process_exit_code": 71,
+        "assertions_completed": false,
+        "output_bytes": 0,
+        "within_budget": true,
+        "exit_code": 2
+      },
+      "reference_exit_code": 2,
+      "checks_unchanged": true
+    },
+    {
+      "case_id": "dev-rotate-left",
+      "baseline_check": {
+        "process_exit_code": 71,
+        "assertions_completed": false,
+        "output_bytes": 0,
+        "within_budget": true,
+        "exit_code": 2
+      },
+      "baseline_exit_code": 2,
+      "reference_check": {
+        "process_exit_code": 71,
+        "assertions_completed": false,
+        "output_bytes": 0,
+        "within_budget": true,
+        "exit_code": 2
+      },
+      "reference_exit_code": 2,
+      "checks_unchanged": true
+    },
+    {
+      "case_id": "dev-positive-counter",
+      "baseline_check": {
+        "process_exit_code": 71,
+        "assertions_completed": false,
+        "output_bytes": 0,
+        "within_budget": true,
+        "exit_code": 2
+      },
+      "baseline_exit_code": 2,
+      "reference_check": {
+        "process_exit_code": 71,
+        "assertions_completed": false,
+        "output_bytes": 0,
+        "within_budget": true,
+        "exit_code": 2
+      },
+      "reference_exit_code": 2,
+      "checks_unchanged": true
+    },
+    {
+      "case_id": "held-factorial",
+      "baseline_check": {
+        "process_exit_code": 71,
+        "assertions_completed": false,
+        "output_bytes": 0,
+        "within_budget": true,
+        "exit_code": 2
+      },
+      "baseline_exit_code": 2,
+      "reference_check": {
+        "process_exit_code": 71,
+        "assertions_completed": false,
+        "output_bytes": 0,
+        "within_budget": true,
+        "exit_code": 2
+      },
+      "reference_exit_code": 2,
+      "checks_unchanged": true
+    },
+    {
+      "case_id": "held-integer-square-root",
+      "baseline_check": {
+        "process_exit_code": 71,
+        "assertions_completed": false,
+        "output_bytes": 0,
+        "within_budget": true,
+        "exit_code": 2
+      },
+      "baseline_exit_code": 2,
+      "reference_check": {
+        "process_exit_code": 71,
+        "assertions_completed": false,
+        "output_bytes": 0,
+        "within_budget": true,
+        "exit_code": 2
+      },
+      "reference_exit_code": 2,
+      "checks_unchanged": true
+    },
+    {
+      "case_id": "held-binomial",
+      "baseline_check": {
+        "process_exit_code": 71,
+        "assertions_completed": false,
+        "output_bytes": 0,
+        "within_budget": true,
+        "exit_code": 2
+      },
+      "baseline_exit_code": 2,
+      "reference_check": {
+        "process_exit_code": 71,
+        "assertions_completed": false,
+        "output_bytes": 0,
+        "within_budget": true,
+        "exit_code": 2
+      },
+      "reference_exit_code": 2,
+      "checks_unchanged": true
+    },
+    {
+      "case_id": "held-reverse-word-order",
+      "baseline_check": {
+        "process_exit_code": 71,
+        "assertions_completed": false,
+        "output_bytes": 0,
+        "within_budget": true,
+        "exit_code": 2
+      },
+      "baseline_exit_code": 2,
+      "reference_check": {
+        "process_exit_code": 71,
+        "assertions_completed": false,
+        "output_bytes": 0,
+        "within_budget": true,
+        "exit_code": 2
+      },
+      "reference_exit_code": 2,
+      "checks_unchanged": true
+    },
+    {
+      "case_id": "held-balanced-brackets",
+      "baseline_check": {
+        "process_exit_code": 71,
+        "assertions_completed": false,
+        "output_bytes": 0,
+        "within_budget": true,
+        "exit_code": 2
+      },
+      "baseline_exit_code": 2,
+      "reference_check": {
+        "process_exit_code": 71,
+        "assertions_completed": false,
+        "output_bytes": 0,
+        "within_budget": true,
+        "exit_code": 2
+      },
+      "reference_exit_code": 2,
+      "checks_unchanged": true
+    },
+    {
+      "case_id": "held-longest-word",
+      "baseline_check": {
+        "process_exit_code": 71,
+        "assertions_completed": false,
+        "output_bytes": 0,
+        "within_budget": true,
+        "exit_code": 2
+      },
+      "baseline_exit_code": 2,
+      "reference_check": {
+        "process_exit_code": 71,
+        "assertions_completed": false,
+        "output_bytes": 0,
+        "within_budget": true,
+        "exit_code": 2
+      },
+      "reference_exit_code": 2,
+      "checks_unchanged": true
+    },
+    {
+      "case_id": "held-cartesian-pairs",
+      "baseline_check": {
+        "process_exit_code": 71,
+        "assertions_completed": false,
+        "output_bytes": 0,
+        "within_budget": true,
+        "exit_code": 2
+      },
+      "baseline_exit_code": 2,
+      "reference_check": {
+        "process_exit_code": 71,
+        "assertions_completed": false,
+        "output_bytes": 0,
+        "within_budget": true,
+        "exit_code": 2
+      },
+      "reference_exit_code": 2,
+      "checks_unchanged": true
+    },
+    {
+      "case_id": "held-merge-sorted",
+      "baseline_check": {
+        "process_exit_code": 71,
+        "assertions_completed": false,
+        "output_bytes": 0,
+        "within_budget": true,
+        "exit_code": 2
+      },
+      "baseline_exit_code": 2,
+      "reference_check": {
+        "process_exit_code": 71,
+        "assertions_completed": false,
+        "output_bytes": 0,
+        "within_budget": true,
+        "exit_code": 2
+      },
+      "reference_exit_code": 2,
+      "checks_unchanged": true
+    },
+    {
+      "case_id": "held-main-diagonal",
+      "baseline_check": {
+        "process_exit_code": 71,
+        "assertions_completed": false,
+        "output_bytes": 0,
+        "within_budget": true,
+        "exit_code": 2
+      },
+      "baseline_exit_code": 2,
+      "reference_check": {
+        "process_exit_code": 71,
+        "assertions_completed": false,
+        "output_bytes": 0,
+        "within_budget": true,
+        "exit_code": 2
+      },
+      "reference_exit_code": 2,
+      "checks_unchanged": true
+    },
+    {
+      "case_id": "held-rename-key",
+      "baseline_check": {
+        "process_exit_code": 71,
+        "assertions_completed": false,
+        "output_bytes": 0,
+        "within_budget": true,
+        "exit_code": 2
+      },
+      "baseline_exit_code": 2,
+      "reference_check": {
+        "process_exit_code": 71,
+        "assertions_completed": false,
+        "output_bytes": 0,
+        "within_budget": true,
+        "exit_code": 2
+      },
+      "reference_exit_code": 2,
+      "checks_unchanged": true
+    },
+    {
+      "case_id": "held-gregorian-date",
+      "baseline_check": {
+        "process_exit_code": 71,
+        "assertions_completed": false,
+        "output_bytes": 0,
+        "within_budget": true,
+        "exit_code": 2
+      },
+      "baseline_exit_code": 2,
+      "reference_check": {
+        "process_exit_code": 71,
+        "assertions_completed": false,
+        "output_bytes": 0,
+        "within_budget": true,
+        "exit_code": 2
+      },
+      "reference_exit_code": 2,
+      "checks_unchanged": true
+    },
+    {
+      "case_id": "held-ipv4-components",
+      "baseline_check": {
+        "process_exit_code": 71,
+        "assertions_completed": false,
+        "output_bytes": 0,
+        "within_budget": true,
+        "exit_code": 2
+      },
+      "baseline_exit_code": 2,
+      "reference_check": {
+        "process_exit_code": 71,
+        "assertions_completed": false,
+        "output_bytes": 0,
+        "within_budget": true,
+        "exit_code": 2
+      },
+      "reference_exit_code": 2,
+      "checks_unchanged": true
+    }
+  ],
+  "passed": false
+}

@@ -397,7 +397,7 @@ def _control(record, command, **payload):
         if command == "routing":
             admission = value.get("admission")
             if (not isinstance(admission, dict) or admission.get("schema_id") != "hormuz.route-admission"
-                    or admission.get("schema_version") != 2):
+                    or admission.get("schema_version") not in (2, 3)):
                 raise ValueError()
             validate_contract(admission)
             return admission
@@ -681,6 +681,20 @@ class ConnectedClientLifetime:
             original_text = _read(self.config_path)
             text = original_text or ""
             document = _document(text)
+            if config.route_admission.mode == "auto":
+                commercial = {alias: route for alias, route in config.model_routes.items()
+                              if route.protocol == "openai" and config.upstreams[route.destination_id].locality == "cloud"
+                              and config.upstreams[route.destination_id].authentication != "codex_chatgpt"
+                              and (policy.allowed_models is None or alias in policy.allowed_models)}
+                if commercial:
+                    selected = document.get("model")
+                    if not isinstance(selected, str):
+                        raise ConnectedClientError("configuration_shape_unsupported")
+                    matches = ([selected] if selected in commercial else
+                               [alias for alias, route in commercial.items() if route.upstream_model == selected])
+                    if len(matches) != 1:
+                        raise ConnectedClientError("model_unavailable")
+                    model = matches[0]
             generation = secrets.token_hex(16)
             provider = "hormuz_" + generation
             installed = {"model": model, "model_provider": provider, "web_search": "disabled"}

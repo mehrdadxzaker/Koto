@@ -64,6 +64,7 @@ from ._contract_schemas.local_coding import EVIDENCE_FIELDS, validate_evidence a
 from ._contract_schemas.coding_probe import (PLAN_FIELDS as PROBE_PLAN_FIELDS, STATUS_FIELDS as PROBE_STATUS_FIELDS,
     validate_plan as _validate_probe_plan, validate_status as _validate_probe_status, validate_error as _validate_probe_error)
 from ._contract_schemas.benchmark import FIELDS as BENCHMARK_FIELDS, validate_benchmark as _validate_benchmark
+from ._contract_schemas.personal_selection import FIELDS as SELECTION_FIELDS, validate as _validate_selection
 from ._contract_schemas.cloud_readiness import FIELDS as CLOUD_READINESS_FIELDS, validate_readiness as _validate_cloud_readiness
 from ._contract_schemas.codex_app_bridge import FIELDS as APP_BRIDGE_FIELDS, validate_install as _validate_app_bridge_install
 from ._contract_schemas.chat_task import (TASK_FIELDS as CHAT_TASK_FIELDS, MODELS_FIELDS as CHAT_MODELS_FIELDS,
@@ -516,11 +517,20 @@ def contract_manifest() -> dict[str, object]:
                  "X-Hormuz-Destination-Generation", "X-Hormuz-Routing-Mode", "X-Hormuz-Routing-Reason",
                  "X-Hormuz-Scorecard-Status", "X-Hormuz-Scorecard-SHA256",
                  "X-Hormuz-Benchmark-Request-Bytes", "X-Hormuz-Benchmark-Max-Output-Tokens"]),
+            _manifest_schema(RELAY_METADATA_SCHEMA_ID, 5, "http-headers", "hormuz",
+                ["X-Hormuz-Contract", "X-Hormuz-Requested-Model", "X-Hormuz-Routed-Model", "X-Hormuz-Destination",
+                 "X-Hormuz-Destination-Locality", "X-Hormuz-Destination-Generation", "X-Hormuz-Routing-Mode",
+                 "X-Hormuz-Routing-Reason", "X-Koto-Selection-Mode", "X-Koto-Selection-Model",
+                 "X-Koto-Selection-Status", "X-Koto-Selection-Similarity", "X-Koto-Executed-Model"]),
             *[_manifest_schema(schema, 1, "response" if schema == "hormuz.benchmark-runtime" else "cli-output", "hormuz", fields)
               for schema, fields in BENCHMARK_FIELDS.items()],
+            *[_manifest_schema(schema, 1, "cli-output", "hormuz", sorted({"schema_id", "schema_version", *fields}))
+              for schema, fields in SELECTION_FIELDS.items()],
             *[_manifest_schema(ROUTE_ADMISSION_SCHEMA_ID, version, "response", "hormuz",
                 ["schema_id", "schema_version", "mode", "task_classifier", "local_capacity", "routes"])
               for version in (1, 2)],
+            _manifest_schema(ROUTE_ADMISSION_SCHEMA_ID, 3, "response", "hormuz",
+                ["schema_id", "schema_version", "mode", "task_classifier", "local_capacity", "routes", "personal_selection"]),
             _manifest_schema("hormuz.cloud-readiness", 1, "cli-output", "hormuz", sorted(CLOUD_READINESS_FIELDS)),
             _manifest_schema(NATIVE_CATALOG_SCHEMA_ID, NATIVE_CATALOG_SCHEMA_VERSION, "http-headers", "hormuz",
                 ["X-Hormuz-Contract"]),
@@ -613,6 +623,7 @@ def validate_contract(value: Mapping[str, Any]) -> None:
     schema_version = _value_integer(value, "schema_version")
     validator = {
         **{(schema, 1): _validate_benchmark for schema in BENCHMARK_FIELDS},
+        **{(schema, 1): _validate_selection for schema in SELECTION_FIELDS},
         ("hormuz.local-acquisition-catalog", 1): _validate_acquisition_catalog,
         ("hormuz.codex-app-bridge-install", 1): _validate_app_bridge_install,
         ("hormuz.chat-task", 1): _validate_chat_task,
@@ -645,6 +656,7 @@ def validate_contract(value: Mapping[str, Any]) -> None:
         (CONNECTED_CLIENT_ERROR_SCHEMA_ID, CONNECTED_CLIENT_ERROR_SCHEMA_VERSION): _validate_connected_client_error,
         (ROUTE_ADMISSION_SCHEMA_ID, 1): _validate_route_admission,
         (ROUTE_ADMISSION_SCHEMA_ID, 2): _validate_route_admission,
+        (ROUTE_ADMISSION_SCHEMA_ID, 3): _validate_route_admission,
         (HEALTH_SCHEMA_ID, 1): _validate_health,
         (READINESS_SCHEMA_ID, READINESS_SCHEMA_VERSION): _validate_readiness,
         (IDENTITY_SCHEMA_ID, 1): _validate_identity,

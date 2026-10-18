@@ -1,0 +1,373 @@
+{
+  "campaign_id": "local-repair-20261018-v14",
+  "case_id": "dev-clamp",
+  "freeze_commit": "118548a6743d9ef1b38f2072e57b3bf02930be2a",
+  "actual_model_episodes": 1,
+  "local_model_submissions": 8,
+  "completed_structured_function_calls": 8,
+  "function_call_names": {
+    "exec_command": 6,
+    "update_goal": 2
+  },
+  "completed_native_command_items": 6,
+  "native": {
+    "exit_code": 1,
+    "termination": "completed",
+    "elapsed_ms": 42395
+  },
+  "trial_passed": false,
+  "failure": "Request cap exhausted before normal native completion; ninth attempted submission rejected by recorder before router/model dispatch, not elapsed timeout.",
+  "probe_state_after_native": "exhausted",
+  "remaining_probe_ms_after_native": 47459,
+  "native_turn_completed_count": 0,
+  "native_error_or_failure_events": 2,
+  "implementation_changed": true,
+  "implementation_sha256": "cc61c723a74e5d6c1c12bd3363122b5386026a39f05bd8c935a1bb3e63af2bc5",
+  "patch_sha256": "7b2e062d125fcf94cb2f435507b82e7c0f7d269f952750214f07762848a65e4c",
+  "baseline_check": {
+    "process_exit_code": 1,
+    "assertions_completed": false,
+    "output_bytes": 0,
+    "within_budget": true,
+    "exit_code": 1
+  },
+  "independent_check_after": {
+    "process_exit_code": 0,
+    "assertions_completed": true,
+    "output_bytes": 49,
+    "within_budget": true,
+    "exit_code": 0
+  },
+  "model_self_checks": "Three executed print-based checks, not assertion suites. Their values/errors were manually reviewed; independent assertions are a separate protected result.",
+  "quality_episode_retries": 0,
+  "provider_retries": 0,
+  "failovers": 0,
+  "answer_cache_hits": 0,
+  "held_out_episodes": 0,
+  "remaining_battery_run": false,
+  "automatic_coding_enabled": false,
+  "coding_readiness": "unknown",
+  "tool_history_pairs_preserved": 7,
+  "completed_calls_without_recorded_followup": 1,
+  "first_prompt_tokens": 3595,
+  "first_prompt_ms": 4651.37,
+  "previous_devstral_v12_first_prompt_ms": 19296.205,
+  "decoder_tokens_per_second_min": 37.94725262469462,
+  "decoder_tokens_per_second_max": 42.3017809049761,
+  "decoder_tokens_per_second_median": 40.14615667418177,
+  "completed_generations": 8,
+  "interrupted_generations_with_unknown_final_usage": 0,
+  "maximum_observed_output_tokens": 329,
+  "total_observed_output_tokens": 1399,
+  "work_ids": [
+    "work-0f49f337d8a4437cbed8f575001acbb5"
+  ],
+  "destination_generations": [
+    "1854a4e38090a6e0aa2a9a6ff30cbfd8a8eab15870adefdbaff307920719e919"
+  ],
+  "work_attempt_detail_coverage": {
+    "retained": 5,
+    "total": 8,
+    "truncated": true
+  },
+  "latency_claim_scope": "One failed canary measures actual faster prompt/decode speed; it does not establish successful repair completion or qualification.",
+  "termination_finding": "Engine responses5and8 contain update_goal(status=complete). The recorded result after5 says Goal tools require a persistent thread. All eight responses contain a structured call, so none provides a tool-free final response. Repeated checking/rereading follows otherwise successful execution. Native --ephemeral and advertised goal schemas are both retained; no toolset correction or new attempt is made.",
+  "attribution_limit": "Raw public engine SSE and native tool results are retained. No unparsed generated tokens; do not uniquely attribute structured-output decisions to generation versus the engine parser. No dropped or mutated function names/arguments in the seven observed continuation pairs.",
+  "automatic_admission_effect": "none",
+  "calls": [
+    {
+      "submission": 1,
+      "http_status": 200,
+      "routing_reason": "qualification_probe",
+      "response_sha256": "b7335bb1c36cfb9662cae8aed33b743e9926c3b7f239cf88bc9347c3b9f31f8e",
+      "usage": {
+        "input_tokens": 3595,
+        "output_tokens": 92,
+        "total_tokens": 3687,
+        "input_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "engine_timings": {
+        "cache_n": 0,
+        "prompt_n": 3595,
+        "prompt_ms": 4651.37,
+        "prompt_per_token_ms": 1.2938442280945757,
+        "prompt_per_second": 772.8905677252079,
+        "predicted_n": 92,
+        "predicted_ms": 2184.66,
+        "predicted_per_token_ms": 24.007252747252746,
+        "predicted_per_second": 41.65407889557186
+      },
+      "function_calls": [
+        {
+          "name": "exec_command",
+          "arguments": "{\"cmd\":\"cat solution.py\"}",
+          "call_id": "call_uEGZjV3V6e2NjR2HVb650GMndMY17uhY",
+          "continuation_name_arguments_preserved": true,
+          "observed_tool_outputs": [
+            "Chunk ID: d2e710\nWall time: 0.0000 seconds\nProcess exited with code 0\nOriginal token count: 16\nOutput:\ndef clamp(value, lower, upper):\n    return max(lower, value)\n"
+          ]
+        }
+      ],
+      "assistant_message_count": 1
+    },
+    {
+      "submission": 2,
+      "http_status": 200,
+      "routing_reason": "session_affinity",
+      "response_sha256": "1282f0a7276d31e93b7e2f2fc4c5aed6aa96cad67e730952e004c6b7a009aa7c",
+      "usage": {
+        "input_tokens": 3754,
+        "output_tokens": 109,
+        "total_tokens": 3863,
+        "input_tokens_details": {
+          "cached_tokens": 3661
+        }
+      },
+      "engine_timings": {
+        "cache_n": 3661,
+        "prompt_n": 93,
+        "prompt_ms": 238.661,
+        "prompt_per_token_ms": 2.566247311827957,
+        "prompt_per_second": 389.6740565069282,
+        "predicted_n": 109,
+        "predicted_ms": 2553.084,
+        "predicted_per_token_ms": 23.639666666666667,
+        "predicted_per_second": 42.3017809049761
+      },
+      "function_calls": [
+        {
+          "name": "exec_command",
+          "arguments": "{\"cmd\":\"cat > solution.py << 'EOF'\\ndef clamp(value, lower, upper):\\n    if lower > upper:\\n        raise ValueError(\\\"lower cannot exceed upper\\\")\\n    return max(lower, min(upper, value))\\nEOF\"}",
+          "call_id": "call_gVTRYCV9Rn9eBXNH4V2CLBQuOQNT3ERX",
+          "continuation_name_arguments_preserved": true,
+          "observed_tool_outputs": [
+            "Chunk ID: 530493\nWall time: 0.0000 seconds\nProcess exited with code 0\nOriginal token count: 0\nOutput:\n"
+          ]
+        }
+      ],
+      "assistant_message_count": 1
+    },
+    {
+      "submission": 3,
+      "http_status": 200,
+      "routing_reason": "session_affinity",
+      "response_sha256": "3db504fa9db0a2f3240de6b56eb748635549149b0b5f3ee3c3cc7bc7f45f6a8e",
+      "usage": {
+        "input_tokens": 3915,
+        "output_tokens": 226,
+        "total_tokens": 4141,
+        "input_tokens_details": {
+          "cached_tokens": 3862
+        }
+      },
+      "engine_timings": {
+        "cache_n": 3862,
+        "prompt_n": 53,
+        "prompt_ms": 192.383,
+        "prompt_per_token_ms": 3.629867924528302,
+        "prompt_per_second": 275.49211728687044,
+        "predicted_n": 226,
+        "predicted_ms": 5344.657,
+        "predicted_per_token_ms": 23.75403111111111,
+        "predicted_per_second": 42.098117802508185
+      },
+      "function_calls": [
+        {
+          "name": "exec_command",
+          "arguments": "{\"cmd\":\"python3 -c \\\"\\nfrom solution import clamp\\n\\n# Test normal clamping\\nprint('Testing normal clamping:')\\nprint(clamp(5, 1, 10))   # Should return 5\\nprint(clamp(0, 1, 10))   # Should return 1 (lower bound)\\nprint(clamp(15, 1, 10))  # Should return 10 (upper bound)\\n\\n# Test edge cases\\nprint('Testing edge cases:')\\nprint(clamp(1, 1, 10))   # Should return 1\\nprint(clamp(10, 1, 10))  # Should return 10\\n\\n# Test ValueError case\\nprint('Testing ValueError:')\\ntry:\\n    clamp(5, 10, 1)\\nexcept ValueError as e:\\n    print(f'ValueError caught: {e}')\\n\\nprint('All tests completed successfully!')\\n\\\"\"}",
+          "call_id": "call_ctrnJP29oR7UrHQPKI3xOHGxuPlEQ1Cf",
+          "continuation_name_arguments_preserved": true,
+          "observed_tool_outputs": [
+            "Chunk ID: 04bb7a\nWall time: 0.0000 seconds\nProcess exited with code 0\nOriginal token count: 39\nOutput:\nTesting normal clamping:\n5\n1\n10\nTesting edge cases:\n1\n10\nTesting ValueError:\nValueError caught: lower cannot exceed upper\nAll tests completed successfully!\n"
+          ]
+        }
+      ],
+      "assistant_message_count": 1
+    },
+    {
+      "submission": 4,
+      "http_status": 200,
+      "routing_reason": "session_affinity",
+      "response_sha256": "5b24b5743cb87ac3c5c6678da146223be6859222291556833f5a16c0d3ffd348",
+      "usage": {
+        "input_tokens": 4231,
+        "output_tokens": 201,
+        "total_tokens": 4432,
+        "input_tokens_details": {
+          "cached_tokens": 4140
+        }
+      },
+      "engine_timings": {
+        "cache_n": 4140,
+        "prompt_n": 91,
+        "prompt_ms": 230.97,
+        "prompt_per_token_ms": 2.538131868131868,
+        "prompt_per_second": 393.9905615447894,
+        "predicted_n": 201,
+        "predicted_ms": 4945.884,
+        "predicted_per_token_ms": 24.72942,
+        "predicted_per_second": 40.43766493512585
+      },
+      "function_calls": [
+        {
+          "name": "exec_command",
+          "arguments": "{\"cmd\":\"python3 -c \\\"\\nfrom solution import clamp\\n\\n# Test with negative numbers\\nprint('Testing with negative numbers:')\\nprint(clamp(-5, -10, -1))  # Should return -5\\nprint(clamp(-15, -10, -1)) # Should return -10\\nprint(clamp(0, -10, -1))   # Should return -1\\n\\n# Test with zero\\nprint('Testing with zero:')\\nprint(clamp(0, 0, 5))      # Should return 0\\nprint(clamp(-1, 0, 5))     # Should return 0\\nprint(clamp(6, 0, 5))      # Should return 5\\n\\nprint('Additional tests completed successfully!')\\n\\\"\"}",
+          "call_id": "call_ILdsveWmbUwLQMB8M2vqYiKiO6Y2ZIFS",
+          "continuation_name_arguments_preserved": true,
+          "observed_tool_outputs": [
+            "Chunk ID: ac1466\nWall time: 0.0000 seconds\nProcess exited with code 0\nOriginal token count: 27\nOutput:\nTesting with negative numbers:\n-5\n-10\n-1\nTesting with zero:\n0\n0\n5\nAdditional tests completed successfully!\n"
+          ]
+        }
+      ],
+      "assistant_message_count": 1
+    },
+    {
+      "submission": 5,
+      "http_status": 200,
+      "routing_reason": "session_affinity",
+      "response_sha256": "c424ca19fb00c8b68c6964750e735c9e9120758c4763bc360a4dd3fce06e23f4",
+      "usage": {
+        "input_tokens": 4513,
+        "output_tokens": 143,
+        "total_tokens": 4656,
+        "input_tokens_details": {
+          "cached_tokens": 4431
+        }
+      },
+      "engine_timings": {
+        "cache_n": 4431,
+        "prompt_n": 82,
+        "prompt_ms": 238.955,
+        "prompt_per_token_ms": 2.9140853658536585,
+        "prompt_per_second": 343.16084618442795,
+        "predicted_n": 143,
+        "predicted_ms": 3562.947,
+        "predicted_per_token_ms": 25.09117605633803,
+        "predicted_per_second": 39.85464841323769
+      },
+      "function_calls": [
+        {
+          "name": "update_goal",
+          "arguments": "{\"status\":\"complete\"}",
+          "call_id": "call_2qKpLcnad8zpv0nKObS3i7wn3gV1pfHC",
+          "continuation_name_arguments_preserved": true,
+          "observed_tool_outputs": [
+            "Goal tools require a persistent thread."
+          ]
+        }
+      ],
+      "assistant_message_count": 1
+    },
+    {
+      "submission": 6,
+      "http_status": 200,
+      "routing_reason": "session_affinity",
+      "response_sha256": "976256c707b76957456eeeae012b363b6723b935f3ac7ea48965f3b1d50db4b9",
+      "usage": {
+        "input_tokens": 4676,
+        "output_tokens": 162,
+        "total_tokens": 4838,
+        "input_tokens_details": {
+          "cached_tokens": 4655
+        }
+      },
+      "engine_timings": {
+        "cache_n": 4655,
+        "prompt_n": 21,
+        "prompt_ms": 235.111,
+        "prompt_per_token_ms": 11.195761904761904,
+        "prompt_per_second": 89.31951291092294,
+        "predicted_n": 162,
+        "predicted_ms": 4096.113,
+        "predicted_per_token_ms": 25.441695652173916,
+        "predicted_per_second": 39.30555626761273
+      },
+      "function_calls": [
+        {
+          "name": "exec_command",
+          "arguments": "{\"cmd\":\"cat solution.py\"}",
+          "call_id": "call_9xFuUN4t2e8yt14negLAPv2Pr9PbkGBh",
+          "continuation_name_arguments_preserved": true,
+          "observed_tool_outputs": [
+            "Chunk ID: a7c68c\nWall time: 0.0000 seconds\nProcess exited with code 0\nOriginal token count: 38\nOutput:\ndef clamp(value, lower, upper):\n    if lower > upper:\n        raise ValueError(\"lower cannot exceed upper\")\n    return max(lower, min(upper, value))\n"
+          ]
+        }
+      ],
+      "assistant_message_count": 1
+    },
+    {
+      "submission": 7,
+      "http_status": 200,
+      "routing_reason": "session_affinity",
+      "response_sha256": "484b1ff28fee4664544122e2b310158151744c35b471bbf3ca6e3da8d4a0c056",
+      "usage": {
+        "input_tokens": 4924,
+        "output_tokens": 329,
+        "total_tokens": 5253,
+        "input_tokens_details": {
+          "cached_tokens": 4812
+        }
+      },
+      "engine_timings": {
+        "cache_n": 4812,
+        "prompt_n": 112,
+        "prompt_ms": 295.434,
+        "prompt_per_token_ms": 2.6378035714285715,
+        "prompt_per_second": 379.1032853361495,
+        "predicted_n": 329,
+        "predicted_ms": 8643.577,
+        "predicted_per_token_ms": 26.35236890243902,
+        "predicted_per_second": 37.94725262469462
+      },
+      "function_calls": [
+        {
+          "name": "exec_command",
+          "arguments": "{\"cmd\":\"python3 -c \\\"\\nfrom solution import clamp\\n\\n# Test cases to verify the implementation\\nprint('Testing clamp function:')\\nprint('clamp(5, 1, 10):', clamp(5, 1, 10))    # Should return 5\\nprint('clamp(0, 1, 10):', clamp(0, 1, 10))    # Should return 1\\nprint('clamp(15, 1, 10):', clamp(15, 1, 10))  # Should return 10\\ntry:\\n    clamp(5, 10, 1)\\nexcept ValueError as e:\\n    print('ValueError correctly raised:', e)\\n\\nprint('All tests passed!')\\n\\\"\"}",
+          "call_id": "call_t1liuf2ooM7jOKyMVh25onkkWc3n3POH",
+          "continuation_name_arguments_preserved": true,
+          "observed_tool_outputs": [
+            "Chunk ID: f736aa\nWall time: 0.0000 seconds\nProcess exited with code 0\nOriginal token count: 39\nOutput:\nTesting clamp function:\nclamp(5, 1, 10): 5\nclamp(0, 1, 10): 1\nclamp(15, 1, 10): 10\nValueError correctly raised: lower cannot exceed upper\nAll tests passed!\n"
+          ]
+        }
+      ],
+      "assistant_message_count": 1
+    },
+    {
+      "submission": 8,
+      "http_status": 200,
+      "routing_reason": "session_affinity",
+      "response_sha256": "c517f3347033a04db9e237641def90100c983e858c96fb4ed3edca1911e4d9a3",
+      "usage": {
+        "input_tokens": 5366,
+        "output_tokens": 137,
+        "total_tokens": 5503,
+        "input_tokens_details": {
+          "cached_tokens": 5252
+        }
+      },
+      "engine_timings": {
+        "cache_n": 5252,
+        "prompt_n": 114,
+        "prompt_ms": 275.008,
+        "prompt_per_token_ms": 2.4123508771929822,
+        "prompt_per_second": 414.5333953921341,
+        "predicted_n": 137,
+        "predicted_ms": 3550.331,
+        "predicted_per_token_ms": 26.105375000000002,
+        "predicted_per_second": 38.30628749826425
+      },
+      "function_calls": [
+        {
+          "name": "update_goal",
+          "arguments": "{\"status\":\"complete\"}",
+          "call_id": "call_EHKOLP7eiFjePAimI3jo4FKK6pchrByR",
+          "continuation_name_arguments_preserved": null,
+          "followup_observation": "No subsequent request body retained: the recorder rejected the ninth attempted submission before router/model dispatch."
+        }
+      ],
+      "assistant_message_count": 1
+    }
+  ]
+}

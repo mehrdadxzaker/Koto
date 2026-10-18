@@ -1,0 +1,1579 @@
+{
+  "campaign_id": "local-repair-20261018-v12",
+  "archive": "qualification-evidence.tar.gz",
+  "archive_bytes": 871444,
+  "archive_sha256": "6866e5f5d52a351b2beda1781478b08f9d07092fe0de49eee1dcde02bcb33d94",
+  "regular_members": 241,
+  "original_bytes": 7454473,
+  "round_trip_verified": true,
+  "members": [
+    {
+      "path": "canary-result.json",
+      "bytes": 34395,
+      "sha256": "ba23ced69ca977cebc37ca8114043adb7dfd228f1d39956314d84d7fd8adf4a6"
+    },
+    {
+      "path": "canary-started.json",
+      "bytes": 104,
+      "sha256": "729a22dec219683b19ea1374f14a8f023e61674bef5421c4b06518c9778abf57"
+    },
+    {
+      "path": "coding-plan.json",
+      "bytes": 5545,
+      "sha256": "d23432414cc7092062cb1bd9101ba730708e80cea6aff5ed6594d28668aac4f6"
+    },
+    {
+      "path": "episodes/dev-clamp/episode-started.json",
+      "bytes": 79,
+      "sha256": "157058c1fca27abeaeacec81d9132184e4d57523c0154b015d5e61941603b4a8"
+    },
+    {
+      "path": "episodes/dev-clamp/implementation-after.py",
+      "bytes": 143,
+      "sha256": "8b49a826cc9b20c5142f6d3bdcda6367a4bfe4e32ee73e579fc29c545e67bfaf"
+    },
+    {
+      "path": "episodes/dev-clamp/implementation.patch",
+      "bytes": 238,
+      "sha256": "50ed6102440b7c2c9f3e649bc531f3e8893815a76b235d827060331a5017313c"
+    },
+    {
+      "path": "episodes/dev-clamp/native-argv.json",
+      "bytes": 3046,
+      "sha256": "47a2da4a4e9fc228da3c570a2d562d821c2a01affa5349a21fe064c117683e2b"
+    },
+    {
+      "path": "episodes/dev-clamp/native.jsonl",
+      "bytes": 2787,
+      "sha256": "5110fdfebc0c587362c317c531cc83aa89c15cc6ee1f2f61002267959f656573"
+    },
+    {
+      "path": "episodes/dev-clamp/native.stderr",
+      "bytes": 265,
+      "sha256": "e3a986e4e4af45c18d4f21b35c12ea181617a2948e26cf7d5bba22acc6cf25e5"
+    },
+    {
+      "path": "episodes/dev-clamp/probe-plan.json",
+      "bytes": 1385,
+      "sha256": "66808344f1b81fb98b7e0577a77db33fa597ea9d2b55596bdaf18a4a4f0dad76"
+    },
+    {
+      "path": "episodes/dev-clamp/result.json",
+      "bytes": 22713,
+      "sha256": "f643f85c0d658e8ffbba78adacd362916d0201a1035db53b419a842983fc1b86"
+    },
+    {
+      "path": "episodes/dev-clamp/trace/response-01.sse.gz",
+      "bytes": 643,
+      "sha256": "207a1a053722d3f4f7459c53d6a9ecd15f98ac4636784680f1d7d85f816f5a61"
+    },
+    {
+      "path": "episodes/dev-clamp/trace/response-02.sse.gz",
+      "bytes": 992,
+      "sha256": "16c6c6e0711094cb1f587c19511697dc152558e6363e0e2c147c75d9e3008939"
+    },
+    {
+      "path": "episodes/dev-clamp/trace/response-03.sse.gz",
+      "bytes": 901,
+      "sha256": "27ed40486cf3d2ff999169a00d7f91d72161fe5b99aa0c3225b681d7e2ec297f"
+    },
+    {
+      "path": "episodes/dev-clamp/trace/response-04.sse.gz",
+      "bytes": 1288,
+      "sha256": "d1342d4e009d53e2108234c6d7709a5ae3c268dc38f617e8d74714cf046f7fef"
+    },
+    {
+      "path": "episodes/dev-clamp/trace/response-05.sse.gz",
+      "bytes": 649,
+      "sha256": "e8586784ca5a1a427eb0ed0d45f8c6a8ffef41c093c265dc8cf6d5f0785f28a7"
+    },
+    {
+      "path": "episodes/dev-clamp/trace/wire.json",
+      "bytes": 172171,
+      "sha256": "0c91f4450ef5f86c3654dee590343c708d757028635f3db88f38655956196b37"
+    },
+    {
+      "path": "episodes/dev-positive-counter/episode-started.json",
+      "bytes": 90,
+      "sha256": "688e27eaa70e8387b87111b2cb15deb1018d609fba20227f3adcbc69d914f933"
+    },
+    {
+      "path": "episodes/dev-positive-counter/implementation-after.py",
+      "bytes": 365,
+      "sha256": "0fab6e76156b22973017133f9572ef1e8ce0b5e21f0d8b4680453f6f77fd35ab"
+    },
+    {
+      "path": "episodes/dev-positive-counter/implementation.patch",
+      "bytes": 419,
+      "sha256": "c054f16d0c48c7b43f6df19416a1626c4a0fe36da5b8e52172bcfd8a3d575118"
+    },
+    {
+      "path": "episodes/dev-positive-counter/native-argv.json",
+      "bytes": 3068,
+      "sha256": "0603213be876ead226b911be4c5cad60c6e38c6011662ffce2dee23a9ee10064"
+    },
+    {
+      "path": "episodes/dev-positive-counter/native.jsonl",
+      "bytes": 4295,
+      "sha256": "c113056bc4439cd3ed273e38635e1f4b097b69d179a84006d62e11bd6158681b"
+    },
+    {
+      "path": "episodes/dev-positive-counter/native.stderr",
+      "bytes": 265,
+      "sha256": "0d97ca13fc2e34750f15a683245d10ea68230a64f6f26470e4a58cf3c079118b"
+    },
+    {
+      "path": "episodes/dev-positive-counter/probe-plan.json",
+      "bytes": 1396,
+      "sha256": "32876e9b249157151fb5346e3114fc43164bbbe34bacb857f0c9179048c1ebef"
+    },
+    {
+      "path": "episodes/dev-positive-counter/result.json",
+      "bytes": 61292,
+      "sha256": "a441a2089a86fcc0b8d140ea788c0c1f842e716cefa5117344e560094fd54bc0"
+    },
+    {
+      "path": "episodes/dev-positive-counter/trace/response-01.sse.gz",
+      "bytes": 641,
+      "sha256": "c118a5c9e58a92706ccbd90f96c3962b7cb5cc35adb7de3ad9baf4395d7a18f9"
+    },
+    {
+      "path": "episodes/dev-positive-counter/trace/response-02.sse.gz",
+      "bytes": 1269,
+      "sha256": "e821f53db59e3cade49ac68e278dccfb60095734e67aac8e5d0263403c8152f1"
+    },
+    {
+      "path": "episodes/dev-positive-counter/trace/response-03.sse.gz",
+      "bytes": 1159,
+      "sha256": "eed73061668e5655825cb4e1f234b8ab5bbfb80f7582b7091b1959be8db77944"
+    },
+    {
+      "path": "episodes/dev-positive-counter/trace/response-04.sse.gz",
+      "bytes": 1585,
+      "sha256": "17c2d912a48c64947512c45662d0a1a3d83d10edcfb12ef8c31b06cc658de0ee"
+    },
+    {
+      "path": "episodes/dev-positive-counter/trace/response-05.sse.gz",
+      "bytes": 648,
+      "sha256": "e756f9df78f473886d44f4dceea71d96178f4f42452ce6279407b65b7fdab7e1"
+    },
+    {
+      "path": "episodes/dev-positive-counter/trace/wire.json",
+      "bytes": 205937,
+      "sha256": "b863b241e961355d9334903fab3efa76ab2ac3fff496a5ca44914de499631b6c"
+    },
+    {
+      "path": "episodes/dev-rotate-left/episode-started.json",
+      "bytes": 85,
+      "sha256": "8faf1048c7dfa2186ac6654253c8e2dac1409936852b080493aa07659515595b"
+    },
+    {
+      "path": "episodes/dev-rotate-left/implementation-after.py",
+      "bytes": 179,
+      "sha256": "64e70df70a16a981a619b23345e1f4d94a295f006c6bcfa87140e879a8cbd4a4"
+    },
+    {
+      "path": "episodes/dev-rotate-left/implementation.patch",
+      "bytes": 288,
+      "sha256": "70ae6f8b59b72939a20163ce72cd94d75abbb5a7e4d9984ce7f270f71d72215f"
+    },
+    {
+      "path": "episodes/dev-rotate-left/native-argv.json",
+      "bytes": 3065,
+      "sha256": "ff64065a1616d225ff72ad927c5fd8a3afc4e6897484fa9808f16b7045a4b39d"
+    },
+    {
+      "path": "episodes/dev-rotate-left/native.jsonl",
+      "bytes": 3341,
+      "sha256": "6845f1d0a4c32c250d271f4b25dd8d1d05d23d45cfbd4fc54594d5622ca89e98"
+    },
+    {
+      "path": "episodes/dev-rotate-left/native.stderr",
+      "bytes": 39,
+      "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+    },
+    {
+      "path": "episodes/dev-rotate-left/probe-plan.json",
+      "bytes": 1391,
+      "sha256": "7e8a650c62d00819dc42a54a16516c2be5cd970ad3f0e7f8e4c1aed7fbb09a1e"
+    },
+    {
+      "path": "episodes/dev-rotate-left/result.json",
+      "bytes": 47291,
+      "sha256": "5806b294338d0ecc0cdd65fdfedd604d8e1f3d5f484ba7e51a3c61b7ccce35e5"
+    },
+    {
+      "path": "episodes/dev-rotate-left/trace/response-01.sse.gz",
+      "bytes": 642,
+      "sha256": "2c776daf2f6d5f4673d95c53c09492be1d18c966eb6f08265716be700e690b12"
+    },
+    {
+      "path": "episodes/dev-rotate-left/trace/response-02.sse.gz",
+      "bytes": 1598,
+      "sha256": "2223443dad8c521c219871d2e7c251c55ee04f1ff23c326ad64b788004c72051"
+    },
+    {
+      "path": "episodes/dev-rotate-left/trace/response-03.sse.gz",
+      "bytes": 940,
+      "sha256": "704dd414f61ca4195f79eb46a225bb160a4c4a4731da56014fa9ae15d71cb55f"
+    },
+    {
+      "path": "episodes/dev-rotate-left/trace/response-04.sse.gz",
+      "bytes": 918,
+      "sha256": "36c925fa323284aafd0053e4c5cd985f3c665826185f1ee0786446aa382958e1"
+    },
+    {
+      "path": "episodes/dev-rotate-left/trace/wire.json",
+      "bytes": 193712,
+      "sha256": "2d78d99ae8146830294e01782f03a7c5a772f2ce07d4c6cf423c81df9b9d2a23"
+    },
+    {
+      "path": "episodes/dev-strip-prefix/episode-started.json",
+      "bytes": 86,
+      "sha256": "e45f9a508f4f06735f90a63aee505f19a482aeec0951e812027de3706c9ac175"
+    },
+    {
+      "path": "episodes/dev-strip-prefix/implementation-after.py",
+      "bytes": 153,
+      "sha256": "4617998017ec67c93a714f0f17767179001ee7f04fd61bb2f670e0d51a6ca968"
+    },
+    {
+      "path": "episodes/dev-strip-prefix/implementation.patch",
+      "bytes": 257,
+      "sha256": "e605a0748b0b18cee0e5a2a16595cce29a34ad6e84f70f7aea1f39155d7ab3e8"
+    },
+    {
+      "path": "episodes/dev-strip-prefix/native-argv.json",
+      "bytes": 3063,
+      "sha256": "78fbf36dafa7f440c5d02aa8f90eb90d359480a1223b781ed23679889b07568c"
+    },
+    {
+      "path": "episodes/dev-strip-prefix/native.jsonl",
+      "bytes": 2699,
+      "sha256": "f53391cb866b78b9b4b0e67ee4d67d86190590f870f083b622f34f3bd84c437a"
+    },
+    {
+      "path": "episodes/dev-strip-prefix/native.stderr",
+      "bytes": 265,
+      "sha256": "5446bb28ccb1dbef14342d554ef8cdf48b19f8d216ad9670423d9fa5d22d2ae2"
+    },
+    {
+      "path": "episodes/dev-strip-prefix/probe-plan.json",
+      "bytes": 1392,
+      "sha256": "47a4195b5050e7e7c155a256bd7dda3e8221b0f405bdb8df46e077dc6d2fc46c"
+    },
+    {
+      "path": "episodes/dev-strip-prefix/result.json",
+      "bytes": 35241,
+      "sha256": "5e5bb6462475d5f91231178fe481c30561f50d21e83bf15eb3d65e14d184bab4"
+    },
+    {
+      "path": "episodes/dev-strip-prefix/trace/response-01.sse.gz",
+      "bytes": 639,
+      "sha256": "02b2c22ba9424cfa33ba6cee10f0518942d8cbe4d177f6c86bdce0afc6937600"
+    },
+    {
+      "path": "episodes/dev-strip-prefix/trace/response-02.sse.gz",
+      "bytes": 976,
+      "sha256": "3818aebdbd2b3d58471077fefd2ed61aac24d6c81da87ff7fd1ba0fa359ab373"
+    },
+    {
+      "path": "episodes/dev-strip-prefix/trace/response-03.sse.gz",
+      "bytes": 872,
+      "sha256": "1689aa2dc47673a72af048fc9c52e9a9e22b0038a9f03db8a41ed5baef9c9946"
+    },
+    {
+      "path": "episodes/dev-strip-prefix/trace/response-04.sse.gz",
+      "bytes": 1028,
+      "sha256": "e308ee601a21e632f0c97e1521d085264743fa0c544a2d02656b4dada76ab57a"
+    },
+    {
+      "path": "episodes/dev-strip-prefix/trace/response-05.sse.gz",
+      "bytes": 628,
+      "sha256": "d9a2c525c2a3b333f1521627544bfb0c372c151f819c7568fa98c5c5f63218a0"
+    },
+    {
+      "path": "episodes/dev-strip-prefix/trace/wire.json",
+      "bytes": 163211,
+      "sha256": "3849d464a48d44d23c808ba139442cdc7f0a52f09c339702f19983e019441576"
+    },
+    {
+      "path": "episodes/held-ascii-rot13/episode-started.json",
+      "bytes": 86,
+      "sha256": "a3fbeb25370222033996ed25dd37ea12306ca1371aad706548d51e760a754b5e"
+    },
+    {
+      "path": "episodes/held-ascii-rot13/implementation-after.py",
+      "bytes": 530,
+      "sha256": "da2f44077fda3cf5bf641918af3e7d6948286e6e9427ab42fc4d9821d32c2263"
+    },
+    {
+      "path": "episodes/held-ascii-rot13/implementation.patch",
+      "bytes": 632,
+      "sha256": "ab2d3a0037fa0ae83530aec2fac41edb8c1d1ad17eb1bcd4f0927c20f10e9d01"
+    },
+    {
+      "path": "episodes/held-ascii-rot13/native-argv.json",
+      "bytes": 3064,
+      "sha256": "e404b4fb075d4b11c9b6bd4ef7b1fbfb964a07213a6dcbe25195bd199b22a423"
+    },
+    {
+      "path": "episodes/held-ascii-rot13/native.jsonl",
+      "bytes": 6136,
+      "sha256": "a6d8d7cc8fb34e50e73cdc2ab5b9dc112aff7919b3d2d78990f7890da813e975"
+    },
+    {
+      "path": "episodes/held-ascii-rot13/native.stderr",
+      "bytes": 39,
+      "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+    },
+    {
+      "path": "episodes/held-ascii-rot13/probe-plan.json",
+      "bytes": 1392,
+      "sha256": "61a42ce85d65342f003d3e0cc9a735176b52fdaa10dc8b0510083b6530c2009d"
+    },
+    {
+      "path": "episodes/held-ascii-rot13/result.json",
+      "bytes": 114613,
+      "sha256": "d0d49a30d2dbc6044a7230ba88c927b8faefc184668a09e3e55bad65aa5182ee"
+    },
+    {
+      "path": "episodes/held-ascii-rot13/trace/response-01.sse.gz",
+      "bytes": 639,
+      "sha256": "a10c32085b05270974f0c5ea4e74d9d0ec12895cafbd1f1d53f3ac9dd7ae7ecf"
+    },
+    {
+      "path": "episodes/held-ascii-rot13/trace/response-02.sse.gz",
+      "bytes": 1313,
+      "sha256": "924e3f6abc6106cd46d1c606331c8a644e9dc9b3f1df52c1fb32866885ee3364"
+    },
+    {
+      "path": "episodes/held-ascii-rot13/trace/response-03.sse.gz",
+      "bytes": 1314,
+      "sha256": "614577e30da93ff924be2ba0d328bebb3cb2e0f1e9b7e74496f30838edf100b0"
+    },
+    {
+      "path": "episodes/held-ascii-rot13/trace/response-04.sse.gz",
+      "bytes": 1180,
+      "sha256": "e9c7e2a93390bff64dac0ae3a855679e30013a0416698559edc0f044f383eca5"
+    },
+    {
+      "path": "episodes/held-ascii-rot13/trace/response-05.sse.gz",
+      "bytes": 1311,
+      "sha256": "76e075b930cfab78e7141027b07e40fa7d06ebc2f7e21069b46cdedbcb11bf58"
+    },
+    {
+      "path": "episodes/held-ascii-rot13/trace/response-06.sse.gz",
+      "bytes": 334,
+      "sha256": "537b680295670695b25ba9411e368a75bdc91be2a4fddba208f3d452eb160a1a"
+    },
+    {
+      "path": "episodes/held-ascii-rot13/trace/wire.json",
+      "bytes": 253611,
+      "sha256": "1e70a73e9b959a1222c1626ebf81a2f3bd347b6b7897bc9cebe514af559ebfcb"
+    },
+    {
+      "path": "episodes/held-decimal-digit-sum/episode-started.json",
+      "bytes": 92,
+      "sha256": "420cc0a1a894528b02deb5965f66d6006b4b8717c9561132605d8f53582f8eb4"
+    },
+    {
+      "path": "episodes/held-decimal-digit-sum/implementation-after.py",
+      "bytes": 126,
+      "sha256": "692c213a7cccca215ebf3155368b19afe688f359bc01e16fdf809dac9d0b5ca8"
+    },
+    {
+      "path": "episodes/held-decimal-digit-sum/implementation.patch",
+      "bytes": 220,
+      "sha256": "9f1f449e5c90f2d8500258c6677d15f4fb99af5db1f021369bdd7e18247e94b2"
+    },
+    {
+      "path": "episodes/held-decimal-digit-sum/native-argv.json",
+      "bytes": 3044,
+      "sha256": "abea1e124620de459a3d590e5f2124f25497c2e5b5f7e6cce62fdaf15debf359"
+    },
+    {
+      "path": "episodes/held-decimal-digit-sum/native.jsonl",
+      "bytes": 3683,
+      "sha256": "8ebba11bcd1e4de7df830a4b0660970ac43af91d968b968a48770c67329960e9"
+    },
+    {
+      "path": "episodes/held-decimal-digit-sum/native.stderr",
+      "bytes": 39,
+      "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+    },
+    {
+      "path": "episodes/held-decimal-digit-sum/probe-plan.json",
+      "bytes": 1398,
+      "sha256": "61eefa3378115494a8ebcfb39197ac3f6c8d205eff54ce189f5193f5274d53a3"
+    },
+    {
+      "path": "episodes/held-decimal-digit-sum/result.json",
+      "bytes": 86292,
+      "sha256": "ef779ec465689362e8be77630e6535a75c66756d37c34c6b484da9311c0d6807"
+    },
+    {
+      "path": "episodes/held-decimal-digit-sum/trace/response-01.sse.gz",
+      "bytes": 636,
+      "sha256": "92938864ff5963d0e08468d43a9ae2158c63c08855e0d8556394bb2c16eccdf4"
+    },
+    {
+      "path": "episodes/held-decimal-digit-sum/trace/response-02.sse.gz",
+      "bytes": 1185,
+      "sha256": "5a39751a82360e1eda898fd6c6c18ade58cfa3b4f55fcb9c2cbbb0c7e0b1751c"
+    },
+    {
+      "path": "episodes/held-decimal-digit-sum/trace/response-03.sse.gz",
+      "bytes": 1188,
+      "sha256": "760802e172ffd92a05ce7b3dc962b8dbcbdc5ff75553bf280573affe6487ed8f"
+    },
+    {
+      "path": "episodes/held-decimal-digit-sum/trace/response-04.sse.gz",
+      "bytes": 824,
+      "sha256": "31fc058498bd981690ed0268598fcda11684c6599c6c83ad8cdf09aea434218f"
+    },
+    {
+      "path": "episodes/held-decimal-digit-sum/trace/response-05.sse.gz",
+      "bytes": 1027,
+      "sha256": "fff0441d689b6bf0edda458256145ffb2c15fdf19db216799d96d7870cddf41d"
+    },
+    {
+      "path": "episodes/held-decimal-digit-sum/trace/wire.json",
+      "bytes": 221748,
+      "sha256": "57dc30596b0ccbdd2f3a86e1c056a115c55e040ac39983f7dbcc8f5cb7a1c318"
+    },
+    {
+      "path": "episodes/held-euclidean-gcd/episode-started.json",
+      "bytes": 88,
+      "sha256": "e9669d7adf025eaa28042b1a2a67b1cbbdb1392d91e4d6d008df66a1bade4e04"
+    },
+    {
+      "path": "episodes/held-euclidean-gcd/implementation-after.py",
+      "bytes": 95,
+      "sha256": "bebec20a1804e986133291af91ad50225f47ad5bf71621443f4fcf0c34902a2d"
+    },
+    {
+      "path": "episodes/held-euclidean-gcd/implementation.patch",
+      "bytes": 193,
+      "sha256": "b6ddec24a55584e38eccd6830f9bcd2d49e81af56d469a6b7baaa05579e13335"
+    },
+    {
+      "path": "episodes/held-euclidean-gcd/native-argv.json",
+      "bytes": 3044,
+      "sha256": "f8597f88d7295587f3a3091bf6e4910cee6daf65732b8c66b3b314efa754aa1a"
+    },
+    {
+      "path": "episodes/held-euclidean-gcd/native.jsonl",
+      "bytes": 5035,
+      "sha256": "e6bc84828bd8b1dcf09220be65a7ac1376c21237353fc1cb03a0719df6c0b40b"
+    },
+    {
+      "path": "episodes/held-euclidean-gcd/native.stderr",
+      "bytes": 39,
+      "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+    },
+    {
+      "path": "episodes/held-euclidean-gcd/probe-plan.json",
+      "bytes": 1394,
+      "sha256": "4fae1887a9f286faa1d271d7a9586d0c01a29d92dd2cb20e63c771df648ab421"
+    },
+    {
+      "path": "episodes/held-euclidean-gcd/result.json",
+      "bytes": 100336,
+      "sha256": "358d590eac5325ed6c09d560ae861a4b5f16a913a84d9bfb1eb93be081484765"
+    },
+    {
+      "path": "episodes/held-euclidean-gcd/trace/response-01.sse.gz",
+      "bytes": 641,
+      "sha256": "530f5b5b8ef8eb19dde06aa7035d6d6fa9e5f1648537660b44729e1838e2206e"
+    },
+    {
+      "path": "episodes/held-euclidean-gcd/trace/response-02.sse.gz",
+      "bytes": 1298,
+      "sha256": "3da4ad5187a46fd6e1bb2613f86b55ba1ded92abe35f8fd7631175c29ddb71fc"
+    },
+    {
+      "path": "episodes/held-euclidean-gcd/trace/response-03.sse.gz",
+      "bytes": 1401,
+      "sha256": "f7fcf79f20de821cd35af70109f262607c93ed13e6259428fec416a07c49e07e"
+    },
+    {
+      "path": "episodes/held-euclidean-gcd/trace/response-04.sse.gz",
+      "bytes": 1920,
+      "sha256": "d756ab5d0db20f58660aced93edb341bbef847b4ee9f9b8b27e4e4fe568b22d6"
+    },
+    {
+      "path": "episodes/held-euclidean-gcd/trace/response-05.sse.gz",
+      "bytes": 512,
+      "sha256": "020bbe902d01501527540ea165a2901936ba2864b531c9bdd2eda1cf101646ea"
+    },
+    {
+      "path": "episodes/held-euclidean-gcd/trace/wire.json",
+      "bytes": 228775,
+      "sha256": "a9acd50982010b501c34a123d35f9ac7a6b852f012d80c148e7ec76fae1d5d04"
+    },
+    {
+      "path": "episodes/held-flatten-one-level/episode-started.json",
+      "bytes": 92,
+      "sha256": "017c4695e42dc8297aac0f4dd1c0d5fd0c60af2ba60ce081f525cef934b6fd53"
+    },
+    {
+      "path": "episodes/held-flatten-one-level/implementation-after.py",
+      "bytes": 124,
+      "sha256": "ff40347c05faa19c5fb92a0d36e2a50d6528322259727bc022d9d14dc37de935"
+    },
+    {
+      "path": "episodes/held-flatten-one-level/implementation.patch",
+      "bytes": 293,
+      "sha256": "3d4b41293841b924ed2c8ef3c939466f6bbe54bffb886d0312243a8687824a26"
+    },
+    {
+      "path": "episodes/held-flatten-one-level/native-argv.json",
+      "bytes": 3100,
+      "sha256": "3f5fa1f9bf6ff2e200ab01f6c79b475af6df62cde09205a1f614fbb3d946e30f"
+    },
+    {
+      "path": "episodes/held-flatten-one-level/native.jsonl",
+      "bytes": 4714,
+      "sha256": "1580dbbc9ba18ecbfe991340bf10b57647b0d050ed799e1a06c7c4d8ec784bf1"
+    },
+    {
+      "path": "episodes/held-flatten-one-level/native.stderr",
+      "bytes": 39,
+      "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+    },
+    {
+      "path": "episodes/held-flatten-one-level/probe-plan.json",
+      "bytes": 1398,
+      "sha256": "0243bbd590fe3fb86259143d0afe8b049df85a740dcfabe9c4d678ca5fd2f964"
+    },
+    {
+      "path": "episodes/held-flatten-one-level/result.json",
+      "bytes": 173882,
+      "sha256": "f87e8340cbd00d5dcc009ac7abd2cf11b251de9446b2c256a6dd433e51c44527"
+    },
+    {
+      "path": "episodes/held-flatten-one-level/trace/response-01.sse.gz",
+      "bytes": 638,
+      "sha256": "99783013b710fac6a46bd73e4a86db4ae449049e7e31ef15c300dbbf6109a595"
+    },
+    {
+      "path": "episodes/held-flatten-one-level/trace/response-02.sse.gz",
+      "bytes": 2112,
+      "sha256": "68a97667ff5e5ef0f035c1a2acd15a4581c25be41b397eb1a1ba8a322e022b36"
+    },
+    {
+      "path": "episodes/held-flatten-one-level/trace/response-03.sse.gz",
+      "bytes": 1416,
+      "sha256": "7d0ea2bbe1e9a936673c6a7d95b1ca5f6ffedac7ae8050e4ed4abf19da67a718"
+    },
+    {
+      "path": "episodes/held-flatten-one-level/trace/response-04.sse.gz",
+      "bytes": 580,
+      "sha256": "959613f59987d101c3710459aba2a9748f0fc5abfa7f25a6039bba8b7aaea625"
+    },
+    {
+      "path": "episodes/held-flatten-one-level/trace/wire.json",
+      "bytes": 199539,
+      "sha256": "e849ba9b1bc8c734950999049df845fdc43a2e6f017fac1b1d1ec2267a317e9b"
+    },
+    {
+      "path": "episodes/held-inverse-permutation/episode-started.json",
+      "bytes": 94,
+      "sha256": "aa9cd00fc161844804efaad3c4bd805e079358a1656217e93f3e7271360fece2"
+    },
+    {
+      "path": "episodes/held-inverse-permutation/implementation-after.py",
+      "bytes": 63,
+      "sha256": "959f43499c1a73ed77ebe3c95636fc8aa5ad7da5c5339e92a5b406c40830c39f"
+    },
+    {
+      "path": "episodes/held-inverse-permutation/implementation.patch",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "episodes/held-inverse-permutation/native-argv.json",
+      "bytes": 3215,
+      "sha256": "d67be409571e04a9c2bfba57d071c994d0abe8929e64274452e8e19f1148031f"
+    },
+    {
+      "path": "episodes/held-inverse-permutation/native.jsonl",
+      "bytes": 3070,
+      "sha256": "3532d90152d20f81309996dfdb5c778d60ce30eee8a3d53cc9339ca31a136902"
+    },
+    {
+      "path": "episodes/held-inverse-permutation/native.stderr",
+      "bytes": 39,
+      "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+    },
+    {
+      "path": "episodes/held-inverse-permutation/probe-plan.json",
+      "bytes": 1400,
+      "sha256": "afcba0d1b8fca766569f3e60f699f48627d82d778a6889098276759b24bb4cfa"
+    },
+    {
+      "path": "episodes/held-inverse-permutation/result.json",
+      "bytes": 207955,
+      "sha256": "7aa26b82ad18b73267bb23e052f8623166380538ab1427a3dd1baaf9d82dd0eb"
+    },
+    {
+      "path": "episodes/held-inverse-permutation/trace/response-01.sse.gz",
+      "bytes": 637,
+      "sha256": "9abddf0d7315c08cfc13165476cb3ab49e953ed81a48490a97ff862dc881062c"
+    },
+    {
+      "path": "episodes/held-inverse-permutation/trace/response-02.sse.gz",
+      "bytes": 1682,
+      "sha256": "e3a3a9879270ff711ec5735211220a6334a6a07c086336b8aa1c7d531879e155"
+    },
+    {
+      "path": "episodes/held-inverse-permutation/trace/response-03.sse.gz",
+      "bytes": 1007,
+      "sha256": "b69434dc5073224cb91c34ca14143f5dd8ce176944a467219fc604aa14288942"
+    },
+    {
+      "path": "episodes/held-inverse-permutation/trace/wire.json",
+      "bytes": 168905,
+      "sha256": "50142a8ba011c261ffbd1348c5fb0ec921a819cf46e382742a41627344548f7d"
+    },
+    {
+      "path": "episodes/held-is-subsequence/episode-started.json",
+      "bytes": 89,
+      "sha256": "ce9c68ce8aa5b63ca403ce72872e06c93a5d0af1efbc798d219b8ec2195a6692"
+    },
+    {
+      "path": "episodes/held-is-subsequence/implementation-after.py",
+      "bytes": 723,
+      "sha256": "c5cf78904f199a7b06853401dfef2724f884657b19abaddda926033f106440dc"
+    },
+    {
+      "path": "episodes/held-is-subsequence/implementation.patch",
+      "bytes": 836,
+      "sha256": "e41188283422cab584ffff98958f60894b6cb20bf44394d77be4d6642276bb29"
+    },
+    {
+      "path": "episodes/held-is-subsequence/native-argv.json",
+      "bytes": 3150,
+      "sha256": "b6b1d48adfcd0cc332caf0b391cc0746e4a9b2475a010d1fb3ce60e75d3aea13"
+    },
+    {
+      "path": "episodes/held-is-subsequence/native.jsonl",
+      "bytes": 6996,
+      "sha256": "c37eecaafe1c557abf37019eef1a3d934b2b75e1e21388c41df706caf3da1ce0"
+    },
+    {
+      "path": "episodes/held-is-subsequence/native.stderr",
+      "bytes": 39,
+      "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+    },
+    {
+      "path": "episodes/held-is-subsequence/probe-plan.json",
+      "bytes": 1395,
+      "sha256": "ba53b82f670040ca51480bdb94b55f4cb872ee0d406908a0c3cd12803af7955a"
+    },
+    {
+      "path": "episodes/held-is-subsequence/result.json",
+      "bytes": 140159,
+      "sha256": "a7b8dd87ddef70456b499d830e66f3fd09e878b0ccb22de3b89688dac5f2dcec"
+    },
+    {
+      "path": "episodes/held-is-subsequence/trace/response-01.sse.gz",
+      "bytes": 968,
+      "sha256": "8ad32ea481575339c24a45e0fbf5054480ca6350faed07e1a20e6d9dbdbc5807"
+    },
+    {
+      "path": "episodes/held-is-subsequence/trace/response-02.sse.gz",
+      "bytes": 2159,
+      "sha256": "452ea1216c107df09432b23dd120d270b211b26adbee87529ef098def00bdf2b"
+    },
+    {
+      "path": "episodes/held-is-subsequence/trace/response-03.sse.gz",
+      "bytes": 2527,
+      "sha256": "a47106469fa4c0d86a7c5b834c906b5ef8da109190b2ed36d8f737b24dda3615"
+    },
+    {
+      "path": "episodes/held-is-subsequence/trace/response-04.sse.gz",
+      "bytes": 305,
+      "sha256": "1f9b65a0ef9e1656b31dd0eab6ab21b67a0a7dcfd3269817e5fab9ddeb3cbc7d"
+    },
+    {
+      "path": "episodes/held-is-subsequence/trace/wire.json",
+      "bytes": 207933,
+      "sha256": "81ef8689bc29618ecae422dff998400d4bd9f44c7f15e080c731200f1828b333"
+    },
+    {
+      "path": "episodes/held-mask-ascii-digits/episode-started.json",
+      "bytes": 92,
+      "sha256": "dde441f4d6594dc4a18f53bcc7895df6a69497ebc78a1f05812d9753004765aa"
+    },
+    {
+      "path": "episodes/held-mask-ascii-digits/implementation-after.py",
+      "bytes": 234,
+      "sha256": "aac645921b31d84cc3df647eec68260540f780310b449a1eacae09cd7dc1de7c"
+    },
+    {
+      "path": "episodes/held-mask-ascii-digits/implementation.patch",
+      "bytes": 361,
+      "sha256": "788566b0c5cd1272dcb76a9751ed2c1d4b5b5a195930294dd8a7265aae7a36d2"
+    },
+    {
+      "path": "episodes/held-mask-ascii-digits/native-argv.json",
+      "bytes": 3095,
+      "sha256": "2018f561f7029709bdbd495738e4ee8befc84c541d1c344f0b9e8bdc67ae8a84"
+    },
+    {
+      "path": "episodes/held-mask-ascii-digits/native.jsonl",
+      "bytes": 4943,
+      "sha256": "19293ddb7c73a6b84017cbb453d67ceb2df1c7324bb459e846508743005a1471"
+    },
+    {
+      "path": "episodes/held-mask-ascii-digits/native.stderr",
+      "bytes": 39,
+      "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+    },
+    {
+      "path": "episodes/held-mask-ascii-digits/probe-plan.json",
+      "bytes": 1398,
+      "sha256": "a6af6ce233fb5bd5299134638f4907718048bf32dc0261bf5c1b53b4cc50b068"
+    },
+    {
+      "path": "episodes/held-mask-ascii-digits/result.json",
+      "bytes": 127551,
+      "sha256": "c1f255d0ea0d1bc018d07e1931f370dc19d275554f47a3c7a3582174899fee42"
+    },
+    {
+      "path": "episodes/held-mask-ascii-digits/trace/response-01.sse.gz",
+      "bytes": 639,
+      "sha256": "4018ec45bee9a9ed056bf9e701898b39aeac46adcd1bdc78c70ad02f92272987"
+    },
+    {
+      "path": "episodes/held-mask-ascii-digits/trace/response-02.sse.gz",
+      "bytes": 1113,
+      "sha256": "e80c4e0759304eefb82165b5dd1cf7f69db8e5d25518eba2c4d9816553400f05"
+    },
+    {
+      "path": "episodes/held-mask-ascii-digits/trace/response-03.sse.gz",
+      "bytes": 1887,
+      "sha256": "b398a0858fd6e58b30a6621ebea548f954d3d405f8f4ca30c8c0da6b14b9651e"
+    },
+    {
+      "path": "episodes/held-mask-ascii-digits/trace/response-04.sse.gz",
+      "bytes": 1124,
+      "sha256": "4ccf8b61cb4b6df20b4df6b40c1a7ea79f1d642a3e28d8c9f69a21c16768fd95"
+    },
+    {
+      "path": "episodes/held-mask-ascii-digits/trace/response-05.sse.gz",
+      "bytes": 726,
+      "sha256": "721f0a1e65fe0ac3ac8e17a664c6e1af77493ea8f05529b579b01dfb7681c5c4"
+    },
+    {
+      "path": "episodes/held-mask-ascii-digits/trace/wire.json",
+      "bytes": 223666,
+      "sha256": "04334f6423fc2ce24915515c33faa5e31ae2b72db958692989ba85a26417a1cc"
+    },
+    {
+      "path": "episodes/held-prefix-products/episode-started.json",
+      "bytes": 90,
+      "sha256": "a4d41addc6bf15ee18d27e695a31464ea9b6cc1c918a7657818a86bd11a13a3d"
+    },
+    {
+      "path": "episodes/held-prefix-products/implementation-after.py",
+      "bytes": 193,
+      "sha256": "eb756d9e232f0959a453c0f555401bd0b6c3b37d0ee667c26309c2b859db43ca"
+    },
+    {
+      "path": "episodes/held-prefix-products/implementation.patch",
+      "bytes": 288,
+      "sha256": "91ededc901e3bf22a52a2253b8d57fd986eece6101ef4dbddd51f078179968e2"
+    },
+    {
+      "path": "episodes/held-prefix-products/native-argv.json",
+      "bytes": 3109,
+      "sha256": "d01181eb615c73e1334776ee4973482850c10e028e6f17212f8e9eec7475118e"
+    },
+    {
+      "path": "episodes/held-prefix-products/native.jsonl",
+      "bytes": 2608,
+      "sha256": "96ca1b5a64bfa7254f8c17f34c17d278d10269ea95fefabb58c4b614be6e14c7"
+    },
+    {
+      "path": "episodes/held-prefix-products/native.stderr",
+      "bytes": 39,
+      "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+    },
+    {
+      "path": "episodes/held-prefix-products/probe-plan.json",
+      "bytes": 1396,
+      "sha256": "a0763d0b2128c26dffaa16da2a1875d8a79dbad87c87046078c6255b104a8fb4"
+    },
+    {
+      "path": "episodes/held-prefix-products/result.json",
+      "bytes": 149547,
+      "sha256": "1b16d5c20975848643c17fed5ddd8c62719941fc010d216210e80bbf09231c5e"
+    },
+    {
+      "path": "episodes/held-prefix-products/trace/response-01.sse.gz",
+      "bytes": 642,
+      "sha256": "358b009c2d26255c747af651b303cceb48b52acc6ffcc7d4a832b8384cb84c8e"
+    },
+    {
+      "path": "episodes/held-prefix-products/trace/response-02.sse.gz",
+      "bytes": 933,
+      "sha256": "6f7bf38bc94c8e60beaec2218dc2526065dc9bed6690378009f2a1b7a3804606"
+    },
+    {
+      "path": "episodes/held-prefix-products/trace/response-03.sse.gz",
+      "bytes": 1092,
+      "sha256": "1daba032e67fbf655dc2cfdc15c66b9f944f6c2489d7edd9ebf2c20af2c6f519"
+    },
+    {
+      "path": "episodes/held-prefix-products/trace/response-04.sse.gz",
+      "bytes": 651,
+      "sha256": "871619405ca411bb745a678c8ab69a2c4e3503fed594ec57d1a4aafa0173cfbe"
+    },
+    {
+      "path": "episodes/held-prefix-products/trace/wire.json",
+      "bytes": 129634,
+      "sha256": "0d755ec2b0d710b560c986e88a7356920002361111601f545275e270c7da8e11"
+    },
+    {
+      "path": "episodes/held-register-name/episode-started.json",
+      "bytes": 88,
+      "sha256": "8c6e6d06a57c43e8bd9504ff10200edb036711046d30f43a0694a848a46cfe45"
+    },
+    {
+      "path": "episodes/held-register-name/implementation-after.py",
+      "bytes": 545,
+      "sha256": "8d7334cfbafaf9aa7ec4b5bdc8ed0f08a4cf3acfb8db37e6d29b2330dfdb8c94"
+    },
+    {
+      "path": "episodes/held-register-name/implementation.patch",
+      "bytes": 655,
+      "sha256": "1ebfb09d5c26a7a94cc548b6d3b12fc04449d7225fa838c4d0d31744b325f601"
+    },
+    {
+      "path": "episodes/held-register-name/native-argv.json",
+      "bytes": 3240,
+      "sha256": "52d169c145455e7288c7f98f3d4a3087549dcc4d270e58030310e4be96c1461c"
+    },
+    {
+      "path": "episodes/held-register-name/native.jsonl",
+      "bytes": 5553,
+      "sha256": "f80e1473d4a1216be7566fc2aab28ef3c72497c73b695baac6d490f1a224cd7e"
+    },
+    {
+      "path": "episodes/held-register-name/native.stderr",
+      "bytes": 39,
+      "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+    },
+    {
+      "path": "episodes/held-register-name/probe-plan.json",
+      "bytes": 1394,
+      "sha256": "2827f429e43470ce936dd8a30413492b02b21319497898eeaca1d1e4f64d0191"
+    },
+    {
+      "path": "episodes/held-register-name/result.json",
+      "bytes": 199898,
+      "sha256": "55cf6c484bf602b1a6b4bbf27c9dc14d657aa8a8341773932a2dfe39ae91444f"
+    },
+    {
+      "path": "episodes/held-register-name/trace/response-01.sse.gz",
+      "bytes": 644,
+      "sha256": "b800ff369c45425597898af4807f2cc7c13e76a5a1fbec9bcc19db09815ba226"
+    },
+    {
+      "path": "episodes/held-register-name/trace/response-02.sse.gz",
+      "bytes": 1325,
+      "sha256": "50822ae79ef5abe7aac744f71372ece6a96aef431f15a8f3fa3e1b2b36f1d304"
+    },
+    {
+      "path": "episodes/held-register-name/trace/response-03.sse.gz",
+      "bytes": 1678,
+      "sha256": "74b4c8d61991728f7489c19f3e9b89515e40408d0f8f221c4b214d22e1e6245a"
+    },
+    {
+      "path": "episodes/held-register-name/trace/response-04.sse.gz",
+      "bytes": 716,
+      "sha256": "8ead85d06c527301905a733fbbdeb491827f47f9e964344d86d2787225867586"
+    },
+    {
+      "path": "episodes/held-register-name/trace/response-05.sse.gz",
+      "bytes": 795,
+      "sha256": "7aab1f3ca905d86fa60126c3ffdec45080b9a92a7e8c508f89d67d754d2120dc"
+    },
+    {
+      "path": "episodes/held-register-name/trace/wire.json",
+      "bytes": 223392,
+      "sha256": "423299c6395b07b858a53d47ad487c1c6dbf9e1e223fd5cc0efea4de33a6a35c"
+    },
+    {
+      "path": "episodes/held-traffic-transition/episode-started.json",
+      "bytes": 93,
+      "sha256": "31f7a3f43b22f31abddf136fadd1f400d6d474d07882ad064a383f5ed8be0673"
+    },
+    {
+      "path": "episodes/held-traffic-transition/implementation-after.py",
+      "bytes": 622,
+      "sha256": "a2f4e4d9fd81d4b0e720a7e698ddd0a00db11714203e6eb2f0a1ef8595484d99"
+    },
+    {
+      "path": "episodes/held-traffic-transition/implementation.patch",
+      "bytes": 762,
+      "sha256": "cf29455a9c1ddc6c40514b6fa6d5faabd0435537e641e5d91a01ad4c2ef72bd7"
+    },
+    {
+      "path": "episodes/held-traffic-transition/native-argv.json",
+      "bytes": 3180,
+      "sha256": "8c26750bc415087b2bad80dacdfcab500df7b33723fc51a4cf1777b007133b52"
+    },
+    {
+      "path": "episodes/held-traffic-transition/native.jsonl",
+      "bytes": 2446,
+      "sha256": "c42c4df309147d5dd02d2ce12b1798b91ebe3d9fa74eaee7434f1de2e395e6e4"
+    },
+    {
+      "path": "episodes/held-traffic-transition/native.stderr",
+      "bytes": 265,
+      "sha256": "76c3bced73730577ed3dcaa53896dc5599d629ac853a26debe666bfad38fdde9"
+    },
+    {
+      "path": "episodes/held-traffic-transition/probe-plan.json",
+      "bytes": 1399,
+      "sha256": "fb46aa5e311aef0cf2c15996282ce82f455f219f9d7d4d89c8375deaf2a90ea2"
+    },
+    {
+      "path": "episodes/held-traffic-transition/result.json",
+      "bytes": 184416,
+      "sha256": "a0759cea0dfaf31e05a537d990a00b59c8ca2b51f2956c05c98ee5f7c0494af1"
+    },
+    {
+      "path": "episodes/held-traffic-transition/trace/response-01.sse.gz",
+      "bytes": 639,
+      "sha256": "26eb7789e0f7bca721f7166c462c11a21ed8dcda5d0c07a900eb1c1e647e9d9d"
+    },
+    {
+      "path": "episodes/held-traffic-transition/trace/response-02.sse.gz",
+      "bytes": 1612,
+      "sha256": "79139eceb7121a6e2d38109ce7d4b078261bdda1b5204d877fffaae987e9a145"
+    },
+    {
+      "path": "episodes/held-traffic-transition/trace/response-03.sse.gz",
+      "bytes": 1413,
+      "sha256": "c5d395966bce16048ae7b8ca6be1354a5163edb3582c010cac2b56ffecee6086"
+    },
+    {
+      "path": "episodes/held-traffic-transition/trace/response-04.sse.gz",
+      "bytes": 869,
+      "sha256": "267dbf3b0dcd218774a66e34ec4c11c06ba568ad80ce31679722147511143d62"
+    },
+    {
+      "path": "episodes/held-traffic-transition/trace/wire.json",
+      "bytes": 197213,
+      "sha256": "1a7e584b7ecddd85613a6c3cabf3c14474f644b4fbc08034b5be4fdbc83246e8"
+    },
+    {
+      "path": "episodes/held-transpose-rectangle/episode-started.json",
+      "bytes": 94,
+      "sha256": "9f1fc065f25e8895134f6273830412cba85ba7f2ad371d2629ac9bad05629692"
+    },
+    {
+      "path": "episodes/held-transpose-rectangle/implementation-after.py",
+      "bytes": 467,
+      "sha256": "477761f236fbc224e04f1c83311ee8cf2548cdb61911ea47923d049cba846e41"
+    },
+    {
+      "path": "episodes/held-transpose-rectangle/implementation.patch",
+      "bytes": 568,
+      "sha256": "c71570d95581f1843d1d817dfc7a21e09198dd8971e1ad8eec6cc8e85e15de2f"
+    },
+    {
+      "path": "episodes/held-transpose-rectangle/native-argv.json",
+      "bytes": 3132,
+      "sha256": "7d8d6c282eba8e2a5970b041e35bdccd1d81aedbbabc560c5444b18fa6819259"
+    },
+    {
+      "path": "episodes/held-transpose-rectangle/native.jsonl",
+      "bytes": 3865,
+      "sha256": "fb0aa39b6e0dd3295dbceba3614561247d74ceb652800ce1eaf051ece88ac964"
+    },
+    {
+      "path": "episodes/held-transpose-rectangle/native.stderr",
+      "bytes": 39,
+      "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+    },
+    {
+      "path": "episodes/held-transpose-rectangle/probe-plan.json",
+      "bytes": 1400,
+      "sha256": "ed1e0c48c627febfe2735da81ce366bdede43f602d299a76955d3f3ca4ac8c26"
+    },
+    {
+      "path": "episodes/held-transpose-rectangle/result.json",
+      "bytes": 161920,
+      "sha256": "09cfc2f031ba58a2e1d5a56d1b7de1c9670a039a21d5d1d549113f04cccd3761"
+    },
+    {
+      "path": "episodes/held-transpose-rectangle/trace/response-01.sse.gz",
+      "bytes": 641,
+      "sha256": "0083321ce7785ad728105a58fd909cc3d173c894962d71cd1fedad2d62408279"
+    },
+    {
+      "path": "episodes/held-transpose-rectangle/trace/response-02.sse.gz",
+      "bytes": 1265,
+      "sha256": "c5bd820e402d462cbc5d6664806f0770438f0143f84ae63bbcdeb284a4af3a55"
+    },
+    {
+      "path": "episodes/held-transpose-rectangle/trace/response-03.sse.gz",
+      "bytes": 1541,
+      "sha256": "8330ac05b5d1f116869abe44fea7a9c6bc9ee67741dafcd011559c6cfc0d128e"
+    },
+    {
+      "path": "episodes/held-transpose-rectangle/trace/response-04.sse.gz",
+      "bytes": 652,
+      "sha256": "df17a97ac445b80454d14e97b26981655e6b0be819801706cdfcb89e2b30238d"
+    },
+    {
+      "path": "episodes/held-transpose-rectangle/trace/wire.json",
+      "bytes": 154421,
+      "sha256": "8f6893fcdc8a526d72cc7fa7f333df441e459650372d11b18fa4983fca1d4716"
+    },
+    {
+      "path": "episodes/held-triangular-number/episode-started.json",
+      "bytes": 92,
+      "sha256": "61a23a839ddc92c4df892c0c4d7f3dc7e46cf5f7c696a8643bc9c800bbb1e273"
+    },
+    {
+      "path": "episodes/held-triangular-number/implementation-after.py",
+      "bytes": 240,
+      "sha256": "b55c4adfcccb1a9280215e9846ccb4b2909282e0df58290ea0089350c8ee2af3"
+    },
+    {
+      "path": "episodes/held-triangular-number/implementation.patch",
+      "bytes": 323,
+      "sha256": "1e0a748d640b98a96afa2267a6c51479a68bcf4de596ec939ffcc5832edae10a"
+    },
+    {
+      "path": "episodes/held-triangular-number/native-argv.json",
+      "bytes": 3068,
+      "sha256": "0ab0c2f405e3918694ea1d052f4e886543010ebd18804661af6e0b8fea6c4fe1"
+    },
+    {
+      "path": "episodes/held-triangular-number/native.jsonl",
+      "bytes": 3745,
+      "sha256": "6430cd6e47bb5ee2fa2c25de2d57918c77b5f33f7285db07b344ac8beb1d117a"
+    },
+    {
+      "path": "episodes/held-triangular-number/native.stderr",
+      "bytes": 39,
+      "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+    },
+    {
+      "path": "episodes/held-triangular-number/probe-plan.json",
+      "bytes": 1398,
+      "sha256": "938b7016513bd65f39b00150407a3144faccc00259deb13505a7f58de5720f57"
+    },
+    {
+      "path": "episodes/held-triangular-number/result.json",
+      "bytes": 72779,
+      "sha256": "53d09bb6e42fd5def926078c2071359bee0aa3f64924031a35c14d4544233fbb"
+    },
+    {
+      "path": "episodes/held-triangular-number/trace/response-01.sse.gz",
+      "bytes": 644,
+      "sha256": "7622e2e5071d639ff7f37714278ae8fb384e37d45879d6e7910360aa2e1e3284"
+    },
+    {
+      "path": "episodes/held-triangular-number/trace/response-02.sse.gz",
+      "bytes": 1619,
+      "sha256": "4fe6ef2b92eb30453cf95edd5944e60a51dd06821d74045925649fe7f7ac2cef"
+    },
+    {
+      "path": "episodes/held-triangular-number/trace/response-03.sse.gz",
+      "bytes": 1031,
+      "sha256": "e2ee9a5dc530b1a8be728dc29ca1785967e43b17e3dab9c3047fd4008312ccff"
+    },
+    {
+      "path": "episodes/held-triangular-number/trace/response-04.sse.gz",
+      "bytes": 935,
+      "sha256": "c71a76443f1e459c12dee2872df6288c3d325a30a13c8c7f9ba98fcd3ed27eb0"
+    },
+    {
+      "path": "episodes/held-triangular-number/trace/wire.json",
+      "bytes": 194062,
+      "sha256": "648a34b3fa1976a157152db3128f8f2b31efc3d3980a837920643c699e6cddc1"
+    },
+    {
+      "path": "failure-inspections/dev-rotate-left.json",
+      "bytes": 1142,
+      "sha256": "1408b6266a30db645c8c69f58259f850c007afb702ab6646e1e76caf47b944c3"
+    },
+    {
+      "path": "failure-inspections/held-ascii-rot13.json",
+      "bytes": 1141,
+      "sha256": "d213ad6fc24ae0d969face28bd1c47b694689d31e280cb4a08dd38807ad92d7b"
+    },
+    {
+      "path": "failure-inspections/held-decimal-digit-sum.json",
+      "bytes": 1075,
+      "sha256": "3e0530619009cbefa0e7e69d5da9be9341183ca22061ed465f60dc32765ed9c0"
+    },
+    {
+      "path": "failure-inspections/held-euclidean-gcd.json",
+      "bytes": 1041,
+      "sha256": "4f15d698fa6d735ec6332fd84dd8af63cd434d2448243a689fb8cff77e9faebc"
+    },
+    {
+      "path": "failure-inspections/held-flatten-one-level.json",
+      "bytes": 1036,
+      "sha256": "193b3df8883c9f9072ea8941f71f42420891bc77cdad4c9546fd9c3e210a5ef3"
+    },
+    {
+      "path": "failure-inspections/held-inverse-permutation.json",
+      "bytes": 1141,
+      "sha256": "0372fee05aa5d75dbf0780679afdaf2d91a0839598cfccb0a0f1bb31213efb97"
+    },
+    {
+      "path": "failure-inspections/held-is-subsequence.json",
+      "bytes": 1103,
+      "sha256": "7cc49a03d02f9216422a18d523220ab59b23b17f49e0f051277c412bbeff498c"
+    },
+    {
+      "path": "failure-inspections/held-mask-ascii-digits.json",
+      "bytes": 1062,
+      "sha256": "ac8b06c35ad60c2e64a396ffceb2b0ad6bc35291984c354a73ccc24660eaa7fa"
+    },
+    {
+      "path": "failure-inspections/held-register-name.json",
+      "bytes": 1237,
+      "sha256": "d7c766948260e3ec3133578306d3d747fe693ea30361f5cec564318d82fbd851"
+    },
+    {
+      "path": "failure-inspections/held-traffic-transition.json",
+      "bytes": 1100,
+      "sha256": "ed90d68a1e9733ce1b705e2ded81c4f45cafb14ce6df3a504861d546386ed111"
+    },
+    {
+      "path": "failure-inspections/held-triangular-number.json",
+      "bytes": 1073,
+      "sha256": "313b89ba4c576e6cc4d5ff73f6303573cb717ede84d57dbf91e7fc683b03034a"
+    },
+    {
+      "path": "frozen-manifest.json",
+      "bytes": 52356,
+      "sha256": "8b08460fa18bf09377b34fb147a6cf3001db618b79f8f8c22a4c5369bb165bf5"
+    },
+    {
+      "path": "inspections/dev-clamp.json",
+      "bytes": 1109,
+      "sha256": "b24b44ce7046ceda1606c2348d4c160cc2bd57bf0e3f37d0ed23a5b573b0910a"
+    },
+    {
+      "path": "inspections/dev-positive-counter.json",
+      "bytes": 1070,
+      "sha256": "8bda4d6b764560f241a540a0d196899138118177b09b3750d25687184ef8a344"
+    },
+    {
+      "path": "inspections/dev-strip-prefix.json",
+      "bytes": 997,
+      "sha256": "8884f893643012dfa1a6c3d7fb6a4d51e903dbd18421c3202e5ed10402a90c52"
+    },
+    {
+      "path": "inspections/held-prefix-products.json",
+      "bytes": 1037,
+      "sha256": "b8497130dfd1b0942523cd24ee7b2084a362a1fa6acfe43acb7f56828b71c0fb"
+    },
+    {
+      "path": "inspections/held-transpose-rectangle.json",
+      "bytes": 1084,
+      "sha256": "14ec2963b3e39a57481f7e34b219612d2560b5a58595ea5e7b001be0c6433224"
+    },
+    {
+      "path": "pins.json",
+      "bytes": 1225,
+      "sha256": "d67032d93f61a149b227de8abd16cfdb4e604583b7d3fd04c484c17e5bc0a942"
+    },
+    {
+      "path": "preregistration.json",
+      "bytes": 1780,
+      "sha256": "f1aba199bb9009a9af091bf1c8f0882d28ab1c95a146e7d442b5191156a6f95d"
+    },
+    {
+      "path": "qualification-result.json",
+      "bytes": 2088911,
+      "sha256": "d2834fae058477056f703785a4fa034e7b3791795b7ee3cd1e0ad0aeb04e1a8f"
+    },
+    {
+      "path": "qualification-started.json",
+      "bytes": 508,
+      "sha256": "1f06ce7b02a199b57d9fe9d9eb71fad72afee3a237dc423b8bd8ea76434b86c7"
+    },
+    {
+      "path": "setup-profile.json",
+      "bytes": 772,
+      "sha256": "b22f33c6445e13aeb610177cbbc151b2020fe6e9e9ba58a8c191ec1fe5095603"
+    }
+  ],
+  "raw_sse_decoding_verified": [
+    {
+      "path": "episodes/dev-clamp/trace/response-01.sse.gz",
+      "decoded_bytes": 3218,
+      "decoded_sha256": "43f89c92bedfcced542bed72a4501f78fb09dd8932f4c5065e619e5c8672da0e"
+    },
+    {
+      "path": "episodes/dev-clamp/trace/response-02.sse.gz",
+      "decoded_bytes": 13184,
+      "decoded_sha256": "05f89d750f805b775e73ac806c59e3ea0eee8683ecdbb0aebb833fcd7368b829"
+    },
+    {
+      "path": "episodes/dev-clamp/trace/response-03.sse.gz",
+      "decoded_bytes": 10542,
+      "decoded_sha256": "890df9642ba04e1b13c5d75eb7b88947de48e1fec104f23ed1b4f4ec95dcaf4a"
+    },
+    {
+      "path": "episodes/dev-clamp/trace/response-04.sse.gz",
+      "decoded_bytes": 29118,
+      "decoded_sha256": "af99aa46caabb94c05dec83d21f9ef85308353fc6e648732bb226680cb25870e"
+    },
+    {
+      "path": "episodes/dev-clamp/trace/response-05.sse.gz",
+      "decoded_bytes": 2613,
+      "decoded_sha256": "2b6fd00fb951dab9e4a930755a524572276bb49791a59e5638a1bfbe6197bd9a"
+    },
+    {
+      "path": "episodes/dev-strip-prefix/trace/response-01.sse.gz",
+      "decoded_bytes": 3218,
+      "decoded_sha256": "dfa40f2c8097e6d9921f6bcafc6abf57f11645c82c2d58a0019e2a0c50fe5442"
+    },
+    {
+      "path": "episodes/dev-strip-prefix/trace/response-02.sse.gz",
+      "decoded_bytes": 12954,
+      "decoded_sha256": "541cad58cbd51e09565aa156c8172ccb859b1e11b45d88361cab54ba0c1ae7e8"
+    },
+    {
+      "path": "episodes/dev-strip-prefix/trace/response-03.sse.gz",
+      "decoded_bytes": 10087,
+      "decoded_sha256": "b33ca01b645c571b38a830103c7b8e8bd432747d1313664ce806dac15d1efa2f"
+    },
+    {
+      "path": "episodes/dev-strip-prefix/trace/response-04.sse.gz",
+      "decoded_bytes": 20384,
+      "decoded_sha256": "6a6a176cd38f19d1a624e394eeccc965a6f60c3bf275ed4cb93ed2bf17b9f57e"
+    },
+    {
+      "path": "episodes/dev-strip-prefix/trace/response-05.sse.gz",
+      "decoded_bytes": 2401,
+      "decoded_sha256": "1c04b271274c5d899210da5222a55d586e65144ce75eee8e23964d04d236beb0"
+    },
+    {
+      "path": "episodes/dev-rotate-left/trace/response-01.sse.gz",
+      "decoded_bytes": 3221,
+      "decoded_sha256": "3a22bb3e33ca1d82e3c6232014244a92b7f3dffbd9b8236bddcafff5f12d7244"
+    },
+    {
+      "path": "episodes/dev-rotate-left/trace/response-02.sse.gz",
+      "decoded_bytes": 47669,
+      "decoded_sha256": "73d8e7c0de861f998f1feeacb6ec9c105f451df26e64a88fa3f85190705ad468"
+    },
+    {
+      "path": "episodes/dev-rotate-left/trace/response-03.sse.gz",
+      "decoded_bytes": 11949,
+      "decoded_sha256": "a68fc1304a611cb008d93281e7b19c18b364d69de2d6b977ce91f4e2315a2044"
+    },
+    {
+      "path": "episodes/dev-rotate-left/trace/response-04.sse.gz",
+      "decoded_bytes": 44861,
+      "decoded_sha256": "01f2f878989d95eb5e2b204a526293d01ac149e6c21a98636a95fca532e202ba"
+    },
+    {
+      "path": "episodes/dev-positive-counter/trace/response-01.sse.gz",
+      "decoded_bytes": 3221,
+      "decoded_sha256": "858778cdceaaded11addfd2dd53a193cff51c16d6fab60bac42b8203791db14e"
+    },
+    {
+      "path": "episodes/dev-positive-counter/trace/response-02.sse.gz",
+      "decoded_bytes": 21864,
+      "decoded_sha256": "ebbf784dd50032c7a611bc2471ee52b2bbadf8d330cee42c0036f40e998dc758"
+    },
+    {
+      "path": "episodes/dev-positive-counter/trace/response-03.sse.gz",
+      "decoded_bytes": 19016,
+      "decoded_sha256": "a6c7c9a91a643092ab5fb709360b602ae1554834be772d29522141ff90844f3c"
+    },
+    {
+      "path": "episodes/dev-positive-counter/trace/response-04.sse.gz",
+      "decoded_bytes": 45235,
+      "decoded_sha256": "8543d112a2f2bc619341043f2eaa880cf4b289d7343652918b6f0aeb0ef3aa56"
+    },
+    {
+      "path": "episodes/dev-positive-counter/trace/response-05.sse.gz",
+      "decoded_bytes": 2614,
+      "decoded_sha256": "ae262be1ddc12c81f082432653913b75d1f7e6ba75f158e75fb49f811e63f5da"
+    },
+    {
+      "path": "episodes/held-triangular-number/trace/response-01.sse.gz",
+      "decoded_bytes": 3221,
+      "decoded_sha256": "80e1569828862e90c34fb82892adc5e160de70b7ff896304be4b93ce5ed09fab"
+    },
+    {
+      "path": "episodes/held-triangular-number/trace/response-02.sse.gz",
+      "decoded_bytes": 45612,
+      "decoded_sha256": "57dcc6fbbcd1b89dabf5f5950381d1d3fb00259fdef266ddf4657465a2df606e"
+    },
+    {
+      "path": "episodes/held-triangular-number/trace/response-03.sse.gz",
+      "decoded_bytes": 15401,
+      "decoded_sha256": "c28c3fb8b4c37da9f2f68a382b151db653ba10d131aebfd74c6a45afa6ce270a"
+    },
+    {
+      "path": "episodes/held-triangular-number/trace/response-04.sse.gz",
+      "decoded_bytes": 43325,
+      "decoded_sha256": "05b8d077a11220e827164e8f478673139c6dfe51530b7e0157c12f0aff0ebfe9"
+    },
+    {
+      "path": "episodes/held-decimal-digit-sum/trace/response-01.sse.gz",
+      "decoded_bytes": 3211,
+      "decoded_sha256": "2b7abe20f2a192db3457a47aa1c6349806a0e860a0f3836c9fd28641309e24b1"
+    },
+    {
+      "path": "episodes/held-decimal-digit-sum/trace/response-02.sse.gz",
+      "decoded_bytes": 28525,
+      "decoded_sha256": "c1f61f9cf5ca35403001834c6983a1d2d7b1a3926436b4dfbaf95aa37ef7142a"
+    },
+    {
+      "path": "episodes/held-decimal-digit-sum/trace/response-03.sse.gz",
+      "decoded_bytes": 28525,
+      "decoded_sha256": "930df9ece208724db755ccd04a5c92ffd40fa9775e2c3eaf3860843b6d5e0f25"
+    },
+    {
+      "path": "episodes/held-decimal-digit-sum/trace/response-04.sse.gz",
+      "decoded_bytes": 12098,
+      "decoded_sha256": "1ccb7ae36389fb78fb04f11f6d42f43100d638f365f633704c34a58384554299"
+    },
+    {
+      "path": "episodes/held-decimal-digit-sum/trace/response-05.sse.gz",
+      "decoded_bytes": 38184,
+      "decoded_sha256": "b33994e42ae43f7abd94752b2a34cdcd96aef7f4b9b99956e53f846fd940f1e9"
+    },
+    {
+      "path": "episodes/held-euclidean-gcd/trace/response-01.sse.gz",
+      "decoded_bytes": 3220,
+      "decoded_sha256": "9e679b7a62a8aa75eb3f2e3d1a7ac96d0609a6a1ae2830588b59dd37b635a174"
+    },
+    {
+      "path": "episodes/held-euclidean-gcd/trace/response-02.sse.gz",
+      "decoded_bytes": 16814,
+      "decoded_sha256": "4ebac20aaa9b081f71b2aa2a63a72dbed6ba595daba06a1a9bf7112c1eff1c27"
+    },
+    {
+      "path": "episodes/held-euclidean-gcd/trace/response-03.sse.gz",
+      "decoded_bytes": 41015,
+      "decoded_sha256": "5e333129ed13ca7ec9743aba1eec706f1d301d27c256dca8db35f7ae3dadd7eb"
+    },
+    {
+      "path": "episodes/held-euclidean-gcd/trace/response-04.sse.gz",
+      "decoded_bytes": 49333,
+      "decoded_sha256": "733dc865b62fbaa4e4f70cee2e4cc89b5543211afe22e0e4c52d0b6ef9de70bf"
+    },
+    {
+      "path": "episodes/held-euclidean-gcd/trace/response-05.sse.gz",
+      "decoded_bytes": 4438,
+      "decoded_sha256": "9ce7df8d555909ced990137fda18bf5d47426a8340fb33cd83d82ff2851533d5"
+    },
+    {
+      "path": "episodes/held-ascii-rot13/trace/response-01.sse.gz",
+      "decoded_bytes": 3219,
+      "decoded_sha256": "0d8a18ddc916538bd9244e9dbbc339221677e475bf4b2bdc1232cff994ea7f86"
+    },
+    {
+      "path": "episodes/held-ascii-rot13/trace/response-02.sse.gz",
+      "decoded_bytes": 28943,
+      "decoded_sha256": "f0bf8ce7be68312632009797e413c650afc9bfd291c949232fff71c41469407b"
+    },
+    {
+      "path": "episodes/held-ascii-rot13/trace/response-03.sse.gz",
+      "decoded_bytes": 28796,
+      "decoded_sha256": "b1d1d3c524bf97beb64be218713edc7f634522f1bcf78e376be83ae73c9a37ac"
+    },
+    {
+      "path": "episodes/held-ascii-rot13/trace/response-04.sse.gz",
+      "decoded_bytes": 23560,
+      "decoded_sha256": "76d02bf93c4a3b653f7534a5a58d3b102ac20a5f3ff93a01676a036202cf532a"
+    },
+    {
+      "path": "episodes/held-ascii-rot13/trace/response-05.sse.gz",
+      "decoded_bytes": 28943,
+      "decoded_sha256": "b655f85e1b4d58477a3c8ad7b3bcc637bd0ba83128dfb4d88252d2414003a74f"
+    },
+    {
+      "path": "episodes/held-ascii-rot13/trace/response-06.sse.gz",
+      "decoded_bytes": 2402,
+      "decoded_sha256": "832474ac86f7aef94926ce7ba12594baa63d23703c7f35afbbbfdb9e60b7d324"
+    },
+    {
+      "path": "episodes/held-mask-ascii-digits/trace/response-01.sse.gz",
+      "decoded_bytes": 3220,
+      "decoded_sha256": "08adadcf6065a4234afa8cce9bba4a4ebc31245d08d0073857ad82973520d6e0"
+    },
+    {
+      "path": "episodes/held-mask-ascii-digits/trace/response-02.sse.gz",
+      "decoded_bytes": 15993,
+      "decoded_sha256": "c863c3328e5bd09288b2b3f427fe643f80f93927d79482457b1ff4f0247aac90"
+    },
+    {
+      "path": "episodes/held-mask-ascii-digits/trace/response-03.sse.gz",
+      "decoded_bytes": 53197,
+      "decoded_sha256": "51ed2404b947dc703a5b3bb79eb3f8ed0f254d9971b3ca9036564b55c3b4ee56"
+    },
+    {
+      "path": "episodes/held-mask-ascii-digits/trace/response-04.sse.gz",
+      "decoded_bytes": 16333,
+      "decoded_sha256": "a909c4b7c94faea75e2a270ced02ee58639b92cfa3ddf74660897e3132c0b5c6"
+    },
+    {
+      "path": "episodes/held-mask-ascii-digits/trace/response-05.sse.gz",
+      "decoded_bytes": 23228,
+      "decoded_sha256": "677486d709d19e8659d5b5b68c84a9967022326f214bb11954986545e4bb8861"
+    },
+    {
+      "path": "episodes/held-is-subsequence/trace/response-01.sse.gz",
+      "decoded_bytes": 7339,
+      "decoded_sha256": "7f583bafa90b6643299608a593b863cf8e638ae513212b53f81a236ff4323060"
+    },
+    {
+      "path": "episodes/held-is-subsequence/trace/response-02.sse.gz",
+      "decoded_bytes": 42946,
+      "decoded_sha256": "0230267cbb4ea13d82eb468b8293348419dd6681fd4f96c2d22f16c7515fe4fd"
+    },
+    {
+      "path": "episodes/held-is-subsequence/trace/response-03.sse.gz",
+      "decoded_bytes": 63618,
+      "decoded_sha256": "1e4c5451a5c338088d96914172b1db93175f925818c0513db759338329380de8"
+    },
+    {
+      "path": "episodes/held-is-subsequence/trace/response-04.sse.gz",
+      "decoded_bytes": 848,
+      "decoded_sha256": "f742d60ecd5129a7f21ff65a2bed15d773cf996c845e15b797d57dc7de45b60c"
+    },
+    {
+      "path": "episodes/held-prefix-products/trace/response-01.sse.gz",
+      "decoded_bytes": 3220,
+      "decoded_sha256": "05413a167b22714dd44eb4b6074ebde6db0602ca08436c82d901b02387760b5d"
+    },
+    {
+      "path": "episodes/held-prefix-products/trace/response-02.sse.gz",
+      "decoded_bytes": 11522,
+      "decoded_sha256": "ee691416296507ea04efa523d1bf99ee6826d4a6eb725194ae891ff4b36e09d8"
+    },
+    {
+      "path": "episodes/held-prefix-products/trace/response-03.sse.gz",
+      "decoded_bytes": 22577,
+      "decoded_sha256": "1b92b2e85f02a8811bf34f4a472803e902abcd70f5a482ad3afbc35dec3e5a4c"
+    },
+    {
+      "path": "episodes/held-prefix-products/trace/response-04.sse.gz",
+      "decoded_bytes": 2613,
+      "decoded_sha256": "269e8255529395be5bc03a7fae0da611377b16b1765cc3db5313583be54a2d44"
+    },
+    {
+      "path": "episodes/held-transpose-rectangle/trace/response-01.sse.gz",
+      "decoded_bytes": 3219,
+      "decoded_sha256": "a6f099a13837d7bf49fbeb3db5897dc58f3a8e888e6767a4dcf6441aa6ce2395"
+    },
+    {
+      "path": "episodes/held-transpose-rectangle/trace/response-02.sse.gz",
+      "decoded_bytes": 23747,
+      "decoded_sha256": "8c62b65510e47ec96bb7a55828e080850f3ed194d50cfe3061251b13692a8e26"
+    },
+    {
+      "path": "episodes/held-transpose-rectangle/trace/response-03.sse.gz",
+      "decoded_bytes": 35327,
+      "decoded_sha256": "59a22533e7e1a999fae562d3253a1885cbc7f89033787bc164d9442d1de73d4b"
+    },
+    {
+      "path": "episodes/held-transpose-rectangle/trace/response-04.sse.gz",
+      "decoded_bytes": 2612,
+      "decoded_sha256": "d4e7d5df6d0d0db314f99c4f2957a7f00eb9e655951be856acd91e9608aa2f69"
+    },
+    {
+      "path": "episodes/held-flatten-one-level/trace/response-01.sse.gz",
+      "decoded_bytes": 3221,
+      "decoded_sha256": "47c44534240a23f61b5d28ded3f9cf15b04e0fb2857679afc0ab737d0f8a801b"
+    },
+    {
+      "path": "episodes/held-flatten-one-level/trace/response-02.sse.gz",
+      "decoded_bytes": 73808,
+      "decoded_sha256": "e70a4e97300c19f86bd33686526b77f99b8507d1e01a34a5341fc76abd2c0731"
+    },
+    {
+      "path": "episodes/held-flatten-one-level/trace/response-03.sse.gz",
+      "decoded_bytes": 18206,
+      "decoded_sha256": "7932c2148d37fabbaa76e8982b2c4c6703f3bf1d6e7034cc81e17e52d4800ce2"
+    },
+    {
+      "path": "episodes/held-flatten-one-level/trace/response-04.sse.gz",
+      "decoded_bytes": 15258,
+      "decoded_sha256": "9b5ab981064663374ffed1013888d27a3fc9afa781eaf39913dc862b0db038f3"
+    },
+    {
+      "path": "episodes/held-traffic-transition/trace/response-01.sse.gz",
+      "decoded_bytes": 3220,
+      "decoded_sha256": "c7b6c43c437c7467c26799d2d77a4b6564a2a647ac27f11f7bd08efb2b6f64aa"
+    },
+    {
+      "path": "episodes/held-traffic-transition/trace/response-02.sse.gz",
+      "decoded_bytes": 36141,
+      "decoded_sha256": "ee5cef8f08de5afd515e0a94ebf0930253ae6bfff70d35a0c38303e0771a4679"
+    },
+    {
+      "path": "episodes/held-traffic-transition/trace/response-03.sse.gz",
+      "decoded_bytes": 32936,
+      "decoded_sha256": "06074af46360638b2363bf7bd50e0d2710cfdf079e1bc1a83469a36d20f109c8"
+    },
+    {
+      "path": "episodes/held-traffic-transition/trace/response-04.sse.gz",
+      "decoded_bytes": 37975,
+      "decoded_sha256": "454991dbd1998a0ebdd1b9ee2247143eeee8941e16682982585d4245133fa1e6"
+    },
+    {
+      "path": "episodes/held-register-name/trace/response-01.sse.gz",
+      "decoded_bytes": 3221,
+      "decoded_sha256": "49a469753e66238926e23dc60d52e32fec9e5866925a46d187478ec51c4ef422"
+    },
+    {
+      "path": "episodes/held-register-name/trace/response-02.sse.gz",
+      "decoded_bytes": 26971,
+      "decoded_sha256": "dc6b793f5350c357cccc1286068fa3898a9218bc40f96a5433c5b1ee5469fe36"
+    },
+    {
+      "path": "episodes/held-register-name/trace/response-03.sse.gz",
+      "decoded_bytes": 44285,
+      "decoded_sha256": "3c465c51737040a0cc1d160534bcf268e18107ed2ca88f6b0792d371244f3403"
+    },
+    {
+      "path": "episodes/held-register-name/trace/response-04.sse.gz",
+      "decoded_bytes": 4936,
+      "decoded_sha256": "b6889c8162db2ee41800933c04086a830d7095913bcb3e8f829635e3c9819ebb"
+    },
+    {
+      "path": "episodes/held-register-name/trace/response-05.sse.gz",
+      "decoded_bytes": 29089,
+      "decoded_sha256": "e85183d2a7c6a7ecc560256c97696b262154b8c0264bfc34c04020c1683a3da7"
+    },
+    {
+      "path": "episodes/held-inverse-permutation/trace/response-01.sse.gz",
+      "decoded_bytes": 3210,
+      "decoded_sha256": "bd05f34413a0f2b889c69a8a06ed9d07f1d511855f2daa3a86b67f272b398eaf"
+    },
+    {
+      "path": "episodes/held-inverse-permutation/trace/response-02.sse.gz",
+      "decoded_bytes": 57563,
+      "decoded_sha256": "34ab6a32d46acce86a73bf3f219926ef9ee616c6f6aed7b14146f8d33e75bc64"
+    },
+    {
+      "path": "episodes/held-inverse-permutation/trace/response-03.sse.gz",
+      "decoded_bytes": 45838,
+      "decoded_sha256": "7665a4c3762603b8487cf45a4c8862c1ecf314f29bceadb3a2d1e26983e33589"
+    }
+  ],
+  "scope": "All 16 actual episodes, all 16 protected operator inspections and stage/preregistration metadata. No weights, credentials, config bodies or private reference/checker implementations."
+}

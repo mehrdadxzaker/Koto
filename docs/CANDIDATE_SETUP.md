@@ -33,6 +33,19 @@ pilot. Those results remain unchanged. They make this model a reproducible
 candidate with negative evidence, not a promising or qualified coding model.
 A different model or wider envelope requires a new candidate and campaign.
 
+The latest [bounded development treatment](campaigns/local-repair-20261016-v6/README.md)
+preserved these client/host/model/engine limits and v5's exact Hormuz runtime,
+while adding explicit shell-patch usage guidance. It completed one local episode
+but made no edit and failed independent checks. Its fresh held-out inventory
+remains unrun, and the candidate remains experimental and unqualified.
+
+The next owner-authorized [model candidate](campaigns/local-repair-20261017-v7/README.md)
+is Qwen2.5-Coder-7B-Instruct Q4_K_M. Its one development episode retained the
+v6 client, runtime, tool guidance and limits, but returned a proposed tool call
+as assistant text, made no edit and failed independent checks. All twelve fresh
+held-out cases remain unrun. This is another experimental, unqualified candidate;
+it does not replace the default setup or establish a supported model envelope.
+
 ## Product boundary
 
 CLI and skills-only plugin callers continue to use the same connected-client

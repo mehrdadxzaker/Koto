@@ -1,0 +1,27 @@
+{
+  "campaign_id": "local-repair-20261018-v10",
+  "as_of": "2026-10-18T16:14:34.128535+00:00",
+  "frozen_manifest_sha256": "3b2f0060f2fd4300cc6db1c68036da6131594d279e4bda37154be9aea983dc59",
+  "frozen_inputs_verified": 245,
+  "all_frozen_inputs_unchanged": true,
+  "elapsed_seconds": 9.856,
+  "actual_model_episodes": 1,
+  "qualification_started": false,
+  "pass_inspections_written": 0,
+  "owned_ports": [
+    57896,
+    57897
+  ],
+  "owned_ports_closed": [
+    true,
+    true
+  ],
+  "isolated_settings_restored": true,
+  "live_codex_settings_unchanged": true,
+  "live_codex_config_fingerprint": {
+    "bytes": 11790,
+    "sha256": "428f5d89b103c14d4ad0f3e626dd96f3d6c8104c9fa94371b9db95277a617388"
+  },
+  "automatic_coding_enabled": false,
+  "automatic_admission_effect": "none"
+}

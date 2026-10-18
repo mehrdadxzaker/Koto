@@ -194,7 +194,8 @@ def _text_envelope(value, protocol, endpoint):
 
 
 class RouteAdmission:
-    def __init__(self, config, destinations):
+    def __init__(self, config, destinations, *, history=None):
+        self.history = history
         self.config, self.destinations = config, destinations
         self.settings = config.route_admission
         self.qualifications = MappingProxyType(dict(self.settings.local_routes))
@@ -287,6 +288,8 @@ class RouteAdmission:
         handler._route_admission_selection_candidates = None
         handler._route_admission_headers = {}
         handler._benchmark_forwarded = None
+        handler._personal_selection = {}
+        handler._evaluation_source = None
         probes = handler.headers.get_all("X-Hormuz-Benchmark", [])
         if len(probes) > 1 or probes and probes[0] != "1":
             raise RouteAdmissionError("invalid_benchmark_mode")
@@ -296,6 +299,15 @@ class RouteAdmission:
         if len(requested) > 1 or requested and requested[0] != "local_only":
             raise RouteAdmissionError("invalid_routing_mode")
         mode = "local_only" if requested else self.settings.mode
+        evaluation_ids = handler.headers.get_all("X-Koto-History-Evaluation", [])
+        if evaluation_ids:
+            if len(evaluation_ids) != 1 or mode != "local_only" or not probes:
+                raise RouteAdmissionError("invalid_history_evaluation")
+            from .personal_selection import evaluation_source
+            try:
+                handler._evaluation_source = evaluation_source(handler.server.local_history, identity.actor_id, evaluation_ids[0], value)
+            except (OSError, ValueError):
+                raise RouteAdmissionError("invalid_history_evaluation") from None
         task_selection = handler.headers.get_all('X-Hormuz-Task-Selection', [])
         if (len(task_selection) > 1 or task_selection and
                 (task_selection[0] not in {'model','router'} or mode != 'local_only')):
@@ -405,7 +417,41 @@ class RouteAdmission:
             selected, candidates, reason = decision, {decision.resolved_alias: decision}, "permitted_baseline"
             selection_candidates = candidates
         scorecard_headers = {}
-        if self.settings.scorecard:
+        try:
+            learning, learning_records = handler.server.local_history.learning_snapshot(identity.actor_id)
+        except (OSError, ValueError):
+            learning, learning_records = {"enabled": True, "mode": "auto", "validation": None}, []
+        if (mode == "auto" and not continuation and not probes
+                and self.destinations.resolve(decision.route).locality == "cloud"):
+            selected, reason = decision, "permitted_baseline"
+            candidates[decision.resolved_alias] = decision
+            selection_candidates = {decision.resolved_alias: decision}
+        if (mode == "local_only" and not continuation and not probes and not learning["enabled"]
+                and not self.settings.scorecard and self.destinations.resolve(decision.route).locality == "cloud"):
+            raise RouteAdmissionError("personal_evidence_unavailable", 503)
+        if learning["enabled"] and not continuation and not probes and handler._route_admission_task_selection != "model":
+            if self.destinations.resolve(decision.route).locality == "cloud":
+                if mode == "auto":
+                    reason = "personal_baseline"
+                from .personal_selection import recommend
+                advice = recommend(self.config, learning, learning_records, value, set(candidates), decision.resolved_alias)
+                if mode == "local_only" and (learning["mode"] != "auto" or not advice["validated"]
+                        or advice["status"] != "classified" or advice["selected_model"] not in candidates):
+                    raise RouteAdmissionError("personal_evidence_unavailable", 503)
+                if learning["mode"] == "auto":
+                    if advice["validated"] and advice["status"] == "classified":
+                        selected = candidates[advice["selected_model"]]
+                        selection_candidates = {selected.resolved_alias: selected}
+                        reason = "personal_classifier"
+                        advice["routing_effect"] = "selected"
+                    elif not advice["validated"]:
+                        advice["status"] = "validation_required"
+                advice["executed_model"] = selected.resolved_alias
+                handler._personal_selection = advice
+                scorecard_headers = {"X-Koto-Selection-Mode": advice["mode"],
+                    "X-Koto-Selection-Model": advice["selected_model"], "X-Koto-Selection-Status": advice["status"],
+                    "X-Koto-Selection-Similarity": str(advice["similarity"]), "X-Koto-Executed-Model": selected.resolved_alias}
+        elif self.settings.scorecard:
             if handler._route_admission_task_selection == 'model':
                 scorecard_headers['X-Hormuz-Scorecard-Status'] = 'explicit_model'
             elif continuation or probes:
@@ -443,6 +489,24 @@ class RouteAdmission:
         mode = getattr(handler, "_route_admission_mode", "configured")
         if mode == "configured":
             return
+        advice = getattr(handler, "_personal_selection", {})
+        if advice.get("routing_effect") == "selected" and self.destinations.resolve(decision.route).locality == "local":
+            from .personal_selection import validation_current
+            from .model_benchmark import benchmark_profile_digest
+            try:
+                learning, records = handler.server.local_history.learning_snapshot(identity.actor_id)
+                valid = (learning["enabled"] and learning["mode"] == "auto"
+                         and validation_current(self.config, learning, records, advice["baseline"], benchmark_profile_digest(value)))
+            except (OSError, ValueError):
+                valid = False
+            if not valid:
+                raise RouteAdmissionError("personal_evidence_changed", 503)
+        if getattr(handler, "_evaluation_source", None):
+            from .personal_selection import evaluation_source
+            try:
+                evaluation_source(handler.server.local_history, identity.actor_id, handler._evaluation_source["id"], value)
+            except (OSError, ValueError):
+                raise RouteAdmissionError("history_evaluation_changed") from None
         destination = self.destinations.resolve(decision.route)
         admitted = handler._route_admission_candidates
         if decision.resolved_alias not in admitted or mode == "local_only" and destination.locality != "local":
@@ -470,6 +534,8 @@ class RouteAdmission:
         if getattr(handler, "_coding_probe", False):
             return "hormuz.coding-probe-relay;v=1"
         if getattr(handler, "_route_admission_headers", {}):
+            if "X-Koto-Selection-Mode" in handler._route_admission_headers:
+                return "hormuz.relay-metadata;v=5"
             return "hormuz.relay-metadata;v=4" if self.settings.scorecard or handler.headers.get("X-Hormuz-Benchmark") == "1" else "hormuz.relay-metadata;v=3"
         return self.destinations.contract_header(route)
 
@@ -477,6 +543,8 @@ class RouteAdmission:
         headers = dict(getattr(handler, "_route_admission_headers", {}))
         if not headers:
             return self.destinations.response_headers(route)
+        if "X-Koto-Selection-Mode" in headers:
+            headers["X-Koto-Executed-Model"] = route.alias
         forwarded = getattr(handler, "_benchmark_forwarded", None)
         if handler.headers.get("X-Hormuz-Benchmark") == "1" and forwarded is not None:
             headers.update({"X-Hormuz-Benchmark-Request-Bytes": str(forwarded[0]),
@@ -512,8 +580,17 @@ class RouteAdmission:
                 "automatic_task_types": list(qualification.automatic_task_types(coding))})
         with self._capacity_lock:
             capacity = {"limit": 1, "active": self._active_local}
-        return {"schema_id": "hormuz.route-admission", "schema_version": 2, "mode": self.settings.mode,
-                "task_classifier": "bounded_local_heuristic", "local_capacity": capacity, "routes": routes}
+        result = {"schema_id": "hormuz.route-admission", "schema_version": 2, "mode": self.settings.mode,
+                  "task_classifier": "bounded_local_heuristic", "local_capacity": capacity, "routes": routes}
+        if self.history is not None:
+            from .personal_selection import status
+            try:
+                personal = status(self.history, identity.actor_id, self.config)
+            except (OSError, ValueError):
+                personal = None
+            if personal is not None and personal["enabled"]:
+                result.update(schema_version=3, personal_selection=personal)
+        return result
 
     def benchmark_status(self, identity, policy_engine):
         from .model_benchmark import benchmark_route_fingerprint

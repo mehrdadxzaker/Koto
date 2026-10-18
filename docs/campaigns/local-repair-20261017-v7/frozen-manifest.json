@@ -1,0 +1,1037 @@
+{
+  "document_version": 5,
+  "campaign_id": "local-repair-20261017-v7",
+  "qualification_issue": 566,
+  "source_commit": "4e63d49389922df4079fe22c49d57f191756b910",
+  "experiment_source_commit": "7dc6a609c44c5e6c1ccde5af10db6a4069796867",
+  "validation_main_commit": "22e1916d91f0d15b11e994b848304d26b7ac03f3",
+  "coding_evidence_schema_version": 2,
+  "distribution": "exact source package reconstructed and matched to all 136 v5 runtime hashes",
+  "python_version": "3.12.12",
+  "python_executable": "/Users/mehrdadz/Downloads/memoWiki/hormuz/.venv/bin/python",
+  "plan": {
+    "criteria_version": "local-repair.v1",
+    "subject": {
+      "client_version": "0.160.0",
+      "system": "Darwin",
+      "machine": "arm64",
+      "runtime_profile": "managed-llama.v1",
+      "runtime_sha256": "051bb0b55b3e5e72081aa819131ba30c74d910acc915b28bab298757472e39d9",
+      "model_revision": "sha256:509287f78cb4d4cf6b3843734733b914b2c158e43e22a7f4bf5e963800894d3c",
+      "upstream_model": "Qwen2.5-Coder-7B-Instruct-Q4_K_M",
+      "protocol": "openai",
+      "capabilities": [
+        "responses",
+        "text",
+        "streaming",
+        "tools",
+        "codex_http",
+        "codex_http_0160"
+      ],
+      "max_request_bytes": 65536,
+      "max_output_tokens": 512,
+      "upstream_timeout_seconds": 90,
+      "request_profile_sha256": "c8d1ed4d2b6cab785b09f85de67b7ba9888ef55130e70d2b624a4550ab396096"
+    },
+    "cases": [
+      {
+        "case_id": "dev-clamp",
+        "partition": "development",
+        "family": "arithmetic",
+        "task_sha256": "33fd16c7939f008528fdcd40d4911c9d323eec130318414f0683d8bd7a2bc5aa",
+        "checks_sha256": "da25b64603054b72230db061e79855ed9d3f32b6f31076fa5755ac4eec12b942"
+      },
+      {
+        "case_id": "dev-strip-prefix",
+        "partition": "development",
+        "family": "text",
+        "task_sha256": "ac666d5237460f22274f88ec968dec3498caa5e45251b0fc62379a429f5ca7d1",
+        "checks_sha256": "fcc045ad3370cc3e2e8306bb1f1ec3105eda3b1566d72877c25269822dd8ff8d"
+      },
+      {
+        "case_id": "dev-rotate-left",
+        "partition": "development",
+        "family": "collections",
+        "task_sha256": "b90c5095ab8c1f6e0c1da0e665b881cd3014f318acaca864caa38482eaea3002",
+        "checks_sha256": "3f83dd8fc94581f1d72a6952b1e0f0c4988e90c0ec9001383c325de44954d3b1"
+      },
+      {
+        "case_id": "dev-positive-counter",
+        "partition": "development",
+        "family": "validation_state",
+        "task_sha256": "40cf635d46f648cb990a97596d31fb79be3641b52a957c701a1b4a06b5148d5f",
+        "checks_sha256": "65e4123e7ba3a0b5e8f953213a1078d170b9fe997e27372efe413719edabb6d3"
+      },
+      {
+        "case_id": "held-ceil-multiple",
+        "partition": "held_out",
+        "family": "arithmetic",
+        "task_sha256": "1d9ed128133b1cc7e41a5de783fded8cd2b0526d7ef8ac2dd6cd9823f6d2f6c2",
+        "checks_sha256": "130269b1f980c8f32d4d3d61fc5eb7ce5ae59edfbcd51dd770e4e9fdecf28a1c"
+      },
+      {
+        "case_id": "held-clock-shift",
+        "partition": "held_out",
+        "family": "arithmetic",
+        "task_sha256": "6b9f0c2a7bf308711db6f4526d4d7012a463149a5875069ce6a81d98f1e80402",
+        "checks_sha256": "f50c94a19f171240f5c00690cce1fcc063a74e63da39b28c353113256ce48997"
+      },
+      {
+        "case_id": "held-century-number",
+        "partition": "held_out",
+        "family": "arithmetic",
+        "task_sha256": "c1c781c60a12ee59db496b50598554c04599b6d2f410c2e0b1ee95e7fcd2024a",
+        "checks_sha256": "1bd1f2ab02d5b5a62daebec52ec8b41bde6a7dd660c4a1b385e81a9aea80df64"
+      },
+      {
+        "case_id": "held-nonblank-lines",
+        "partition": "held_out",
+        "family": "text",
+        "task_sha256": "aa205797ea815f0f2b056e260828ed286a7be935b4c16dd1acd25522daef658f",
+        "checks_sha256": "b33399e8ad0d86058ff4f45978a1f98f0f8bfff3b43c0a3cf642f283ab0b05bf"
+      },
+      {
+        "case_id": "held-final-newline",
+        "partition": "held_out",
+        "family": "text",
+        "task_sha256": "17589962c92a79f2b259a43f7c871f21d0c4be939973416eda6f5cbea8ac7f30",
+        "checks_sha256": "9459bfc4aa437fe146fa47a885d4375a16ab30b36918090ba70b22eeea7cbe28"
+      },
+      {
+        "case_id": "held-replace-tabs",
+        "partition": "held_out",
+        "family": "text",
+        "task_sha256": "b8c94503ea6fe651531643aa7dc5d7576224493b92048ed5ab38a8a55cec6409",
+        "checks_sha256": "9f4e2c96016cdb98a0fe33e16effdd85498299936f3c9042951be7a69810aebb"
+      },
+      {
+        "case_id": "held-adjacent-pairs",
+        "partition": "held_out",
+        "family": "collections",
+        "task_sha256": "3a4e3a1642642fa7fd99a8ebf5a39a18da279d28f5676ea81af06778c8f0483b",
+        "checks_sha256": "83c5f315c25a1303dce09374b51978f6bfa17880873332446f0177f9f7daaba8"
+      },
+      {
+        "case_id": "held-without-none",
+        "partition": "held_out",
+        "family": "collections",
+        "task_sha256": "e4513f7d2c379f93af7a74539c041cf3ab182d4c2d32883dc6bf7d4e99e9a30d",
+        "checks_sha256": "2d744d3f39871fc4e08f8a255f3da2e78e6f963ec0dd8018511d243b428fde13"
+      },
+      {
+        "case_id": "held-group-pairs",
+        "partition": "held_out",
+        "family": "collections",
+        "task_sha256": "cc830f6723e6d2a4f48f84622383c818696aa2e552bf559897378e4e1d4d95ab",
+        "checks_sha256": "12a483448b4accc13615d77c979f47d5ee24df14c67773441c077805c53cb962"
+      },
+      {
+        "case_id": "held-parse-boolean",
+        "partition": "held_out",
+        "family": "validation_state",
+        "task_sha256": "106d4957eb9d48a0c15885f12b186a8280491f2e069f1fbe5a370bdef46bfae0",
+        "checks_sha256": "162f6c62ce0c11051d6287463bcbb36e392adde5da0f91c51cb2634c1c8005a4"
+      },
+      {
+        "case_id": "held-ascii-identifier",
+        "partition": "held_out",
+        "family": "validation_state",
+        "task_sha256": "6cb351b1f0bcd6ccd0bcc6d5c0e3a9a3249fe5d85f9e5089787f66bca1e2064b",
+        "checks_sha256": "abeb80b77f21a6cf3d11c0d0d75e744abf88acf47024a7fe448c4e71135a9c11"
+      },
+      {
+        "case_id": "held-consume-stock",
+        "partition": "held_out",
+        "family": "validation_state",
+        "task_sha256": "8954c80e1e6d69ef8a57dc2f4d1d657cc1f205e15b96e72bfa4de7a5ba853f99",
+        "checks_sha256": "7e0070036cb9c7a68e9a9c98a3a499fc87639098b2355f44291b2e5732186cd3"
+      }
+    ]
+  },
+  "plan_sha256": "647d0c2865565735e3ba4271c9c940ad243450e441ee88b7c6e3eefccf9470ac",
+  "runner_sha256": "7b9fb8f147bdd24ef4a5ddecf70490e5305f9613e16ab14625a21374b89311d9",
+  "assets": {
+    "client": {
+      "path": "/opt/homebrew/lib/node_modules/@openai/codex/node_modules/@openai/codex-darwin-arm64/vendor/aarch64-apple-darwin/bin/codex",
+      "bytes": 241555024,
+      "sha256": "112fae7a5a1223e673c8a1791d32338f37df8b527ff1159bb8adac6c4dbf1b4b"
+    },
+    "runtime_archive": {
+      "path": "/private/tmp/hormuz-537-verified-assets-20261016/5cf8e5ae2209d7e6d4a037640e9ae7395494e0f2467c60c7a8e6cee0116c5891/runtime.tar.gz",
+      "bytes": 12157609,
+      "sha256": "051bb0b55b3e5e72081aa819131ba30c74d910acc915b28bab298757472e39d9"
+    },
+    "runtime_executable": {
+      "path": "/private/tmp/hormuz-537-verified-assets-20261016/5cf8e5ae2209d7e6d4a037640e9ae7395494e0f2467c60c7a8e6cee0116c5891/runtime/llama-b11617/llama-server",
+      "bytes": 49984,
+      "sha256": "1bf5602a2be50097c44282a6ecc63234d94ee8f96d39fd45fed6eff4e74b6b41"
+    },
+    "model": {
+      "path": "/private/tmp/koto-566-preparation-20261017/assets/model.gguf",
+      "bytes": 4683073536,
+      "sha256": "509287f78cb4d4cf6b3843734733b914b2c158e43e22a7f4bf5e963800894d3c"
+    },
+    "host": {
+      "system": "Darwin",
+      "machine": "arm64",
+      "os_version": "26.2",
+      "os_build": "25C56",
+      "hardware": "Mac17,2",
+      "memory": 34359738368
+    }
+  },
+  "frozen_at_utc": "2026-10-18T00:52:17Z",
+  "budget": {
+    "authorized_case": "dev-clamp",
+    "native_episodes": 1,
+    "max_requests": 8,
+    "max_elapsed_seconds": 90,
+    "transport_retries": 0,
+    "quality_retries": 0,
+    "held_out_episodes_authorized": 0
+  },
+  "native_controls": {
+    "sandbox": "workspace-write",
+    "approval_policy": "never",
+    "sandbox_workspace_write.network_access": false,
+    "sandbox_workspace_write.exclude_slash_tmp": true,
+    "sandbox_workspace_write.exclude_tmpdir_env_var": true,
+    "sandbox_workspace_write.writable_roots": [
+      "/private/tmp/koto-566-native-v7-20261017/tmp"
+    ],
+    "agents.enabled": false,
+    "features.multi_agent_v2": false,
+    "model_reasoning_effort": "none",
+    "model_reasoning_summary": "none",
+    "analytics.enabled": false,
+    "ephemeral": true,
+    "json_events": true,
+    "developer_instructions_sha256": "3056f0340f150807f42de263e23cf064d0a59b332999ee6f69b86a23f0675ee4"
+  },
+  "history": "All prior campaigns, including v5 and v6 failures, remain unchanged. Only the next model is intentionally varied; twelve fresh held-out tasks remain unrun and untuned.",
+  "freeze_rule": "After inference, any change requires a new campaign and fresh held-out inventory. Preserve every failure and invalid treatment.",
+  "automatic_admission_effect": "none",
+  "coding_receipt_emitted": false,
+  "artifacts": [
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/pins.json",
+      "sha256": "d67a542a67facd370e20b5d5343550e06f6c1ff04ae8d375fd581eaebb40558a",
+      "bytes": 1205
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/setup-profile.json",
+      "sha256": "396654beec98268560802e4b98a929f675773c3f0946e67e98dec8f5600494d8",
+      "bytes": 750
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/corpus.json",
+      "sha256": "650295da403492ee9be108a81567c1cb561ea8a7cf3305289a48b22b309cf39d",
+      "bytes": 16684
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/developer-instructions.txt",
+      "sha256": "3056f0340f150807f42de263e23cf064d0a59b332999ee6f69b86a23f0675ee4",
+      "bytes": 690
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/first-input.json",
+      "sha256": "1f134228261a8a45ecced65c9d81bf85c6feebbbd1278d004068e91ce65585f9",
+      "bytes": 5795
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/request-profile.json",
+      "sha256": "cf5d2fceca3c69255668f5c715b882b4ce2559c92e3250dc0ffd8d7d30745fd5",
+      "bytes": 31486
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/captured-request.json",
+      "sha256": "d7163bdd17f5f3c265561d89871995b4365a81a0414613aa9d94612da27a8d91",
+      "bytes": 35027
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/wire-observation.json",
+      "sha256": "a5b22bc69b8faebd71119b9c8799641e8f0bac3c6489d3d07899ac73230ceda1",
+      "bytes": 147
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/prompt.txt",
+      "sha256": "606ad7a25f223263f1174d01b01b68d91a79f9b752f54cd7896707968c8775d5",
+      "bytes": 294
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/oracle.py",
+      "sha256": "da25b64603054b72230db061e79855ed9d3f32b6f31076fa5755ac4eec12b942",
+      "bytes": 276
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/runtime-equivalence.json",
+      "sha256": "f79d1f8ae9eed5de51247a67853a434e760d95b454b98d242b24ea5231345a02",
+      "bytes": 209
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/host-verification.json",
+      "sha256": "bb5209b46dadb1958bfeddf9fca08ba6abeb80dd5f3b0edad86e1f5b70aa289b",
+      "bytes": 192
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/preflight.json",
+      "sha256": "b9cb45e6d3355763916a5e8d9ca4bf1e09a290a45613f11c331b58d9077ab64b",
+      "bytes": 8199
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/coding-plan.json",
+      "sha256": "c408611d93784c37f6677a7fbe0a9ca49363984ba9805ad850007dd53ba08b11",
+      "bytes": 5487
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/probe-plan.json",
+      "sha256": "b395ada69cc8c7d1a6e482cc23f2e638a535374b7a3931191c84d740c6c023cf",
+      "bytes": 1336
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/candidate.json",
+      "sha256": "5ecaa351d0ef6d2c29ed947e5026a1028c95709f479f7463f4243f79d5b7c646",
+      "bytes": 2465
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/treatment.json",
+      "sha256": "686b5b466d5b1c139bed8a0d27d6339017d64e4d7bacc13b79449cc4cc2717ce",
+      "bytes": 1046
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/development-runner.py",
+      "sha256": "7b9fb8f147bdd24ef4a5ddecf70490e5305f9613e16ab14625a21374b89311d9",
+      "bytes": 23675
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/project/solution.py",
+      "sha256": "d49fc9f1c12d0862e25955b76171a03f613a0b4501c086011038d019a5d2008c",
+      "bytes": 61
+    },
+    {
+      "path": "/private/tmp/hormuz-537-v5-runtime-source.tar",
+      "sha256": "6848e600b20372313f4340c83421b2fa67a9fd30a5e3b490fa6637cda23a5795",
+      "bytes": 2068480
+    },
+    {
+      "path": "/private/tmp/koto-566-preparation-20261017/prepare-corpus.py",
+      "sha256": "1670d6db7f4c3d337a1cbea673d78585b50db5bfbea05c9030bc7356b01da2a4",
+      "bytes": 10948
+    },
+    {
+      "path": "/private/tmp/koto-566-local-candidate-20261017/docs/campaigns/local-repair-20261017-v7/validate-preparation.py",
+      "sha256": "3cccf5ddc55d003cd070129f8a812d4283c93891c61f8e3d57da9856e00d0eac",
+      "bytes": 2893
+    },
+    {
+      "path": "/private/tmp/koto-566-local-candidate-20261017/docs/campaigns/local-repair-20261017-v7/preparation-evidence.json",
+      "sha256": "858fa06fa8957e92c4333bc1e79a19c468776c77af9c66bdebf886faff0ce359",
+      "bytes": 2521
+    },
+    {
+      "path": "/private/tmp/koto-566-local-candidate-20261017/docs/campaigns/local-repair-20261017-v7/freeze-treatment.py",
+      "sha256": "8688feea51da2c2d535f2a48c09bb9e3f355394cc6e67d893c30b72b960ba7b4",
+      "bytes": 9916
+    },
+    {
+      "path": "/private/tmp/koto-566-preparation-20261017/upstream-model-metadata.json",
+      "sha256": "b02adb523605bf84b0c53922957473f4e570c4fb9ca0598bb3fbfaa4d2cd7926",
+      "bytes": 1237
+    },
+    {
+      "path": "/private/tmp/koto-566-preparation-20261017/candidate-artifact.json",
+      "sha256": "cc477b06a467b38fb407fae6c395765a6b06b2be4506efcef7bb507ce2cee382",
+      "bytes": 496
+    },
+    {
+      "path": "/private/tmp/koto-566-preparation-20261017/download-receipt.json",
+      "sha256": "9230c5adce6cef3d081c2a2461faa7fd855197de0aeb47139b90352d329344bf",
+      "bytes": 360
+    },
+    {
+      "path": "/private/tmp/koto-566-preparation-20261017/live-codex-settings-before.json",
+      "sha256": "4b95f6f5d2de839281877dceaceb01518090fcf8be222f177f380538e8b9f66a",
+      "bytes": 167
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/__init__.py",
+      "sha256": "ed5fba8b19974e8f1b2a2a885adc5e13be3cbfaf93066b07ed632c403b9e3295",
+      "bytes": 1084
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/__main__.py",
+      "sha256": "3d2438ae92f4746e9ffaa1f837b1fe803f6281091d1f31f8c95643716f257d9a",
+      "bytes": 80
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/_association_schema.py",
+      "sha256": "e1e00c4559278cc6d5bba40e75c5a78cf7ae30fe1e691b55e173ac236c526033",
+      "bytes": 17412
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/_attribution_schema.py",
+      "sha256": "54ff25bfe9eaf9816bb2d25da5d36dfdabdc8e815ac058e89f736b3449adf894",
+      "bytes": 7128
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/_audit_verifier.py",
+      "sha256": "751f87cdfa76634d6e6eae1de80a33653bcd5d3872da90dd1454be44e201c6c1",
+      "bytes": 5467
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/_budget_schema.py",
+      "sha256": "4b27b5bd56b22bdcadec26ae5f670468d8dd7baab8d5b44c376f9ac834aa762d",
+      "bytes": 28660
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/_config_builder.py",
+      "sha256": "034340baf93d52d4f350800d7c6635a79b82f6214a5b4ff394475043153a7a3d",
+      "bytes": 5598
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/_config_identity.py",
+      "sha256": "6499dcd52d264c5fabb2b06b8c68b1382bcd2cf9a8818ca707426ade0d809005",
+      "bytes": 5161
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/_config_ingress.py",
+      "sha256": "5cf15d64e796777b93ee0fb122a69266566a1d09263cbfe87d5c473dc5a70641",
+      "bytes": 5784
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/_config_input.py",
+      "sha256": "c3b11cc1f7a21656ab5ce3f437c33dbdb101672c7dddfdc7d908e9e3bb6ca9b8",
+      "bytes": 18044
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/_config_persistence.py",
+      "sha256": "e88714d176156817a1aebaea23a754acbdcd5bf9b15c2e2002f0927a6cdec90a",
+      "bytes": 1075
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/_config_policy.py",
+      "sha256": "9b2deb4e5c3ac8d7c536bcbfabeda728a20362797ffbd9be31ae6ebaa10dea30",
+      "bytes": 8607
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/_config_routing.py",
+      "sha256": "c6250cc733503e0c0cc5bf7c8e6f6dd8b6bb3d337e513517c8f2bb861f6aebd4",
+      "bytes": 10804
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/_config_values.py",
+      "sha256": "294cb05fce1531413561a8e5d88260179557b4effb38a873da122257387af42a",
+      "bytes": 4529
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/_config_work.py",
+      "sha256": "84c8a172637c9fcf47f87d86d9ad5c25e4f8e27a821b613011e585a2627a8471",
+      "bytes": 3245
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/_contract_schemas/__init__.py",
+      "sha256": "1d57564c325ad1e1ee605b0d05011e133a647de3252f12934bd8c15a211298ce",
+      "bytes": 69
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/_contract_schemas/audit.py",
+      "sha256": "2814e18cc4f1191aedeed57195eaea236a035ff40e1f9e64b417244e1ca65c5d",
+      "bytes": 22727
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/_contract_schemas/cloud_readiness.py",
+      "sha256": "a5c4aaa1a08481e4b568de3d0d18ca7978a5dc73a4644fbc8c976bc0cb933d80",
+      "bytes": 9004
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/_contract_schemas/coding_probe.py",
+      "sha256": "58a94edded9e94a6f8fb46ef4778295418c1e85fa347a2ae6c71c1815beac89f",
+      "bytes": 4287
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/_contract_schemas/common.py",
+      "sha256": "3f08b7b7d2ec11f51c5bdfcb6ee3771b2919b623146b6bc7170122f0e3590489",
+      "bytes": 5005
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/_contract_schemas/connected_client.py",
+      "sha256": "fc1042bda941f83197cd0772a5322e5cc73230ab7bad39c8bf4358ff652a6ab9",
+      "bytes": 6268
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/_contract_schemas/constants.py",
+      "sha256": "f34734a74f3d411cf04334a0da5be87821b60665386779edde3f4c244e06a4a7",
+      "bytes": 10882
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/_contract_schemas/custody.py",
+      "sha256": "c73f9f6df8022365677e757155df29e407a7ede2c0b240b9ad8e0aaf10b55caa",
+      "bytes": 19222
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/_contract_schemas/custody_execution.py",
+      "sha256": "6dabfa64f494e1371e853779632f30950033784afd58636064fd33aceaa0dc67",
+      "bytes": 5840
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/_contract_schemas/custody_lifecycle.py",
+      "sha256": "0a64dc95242fd28105fd5ca7cf11ce1ba083682ff980fbb6aaf31d20655e18ed",
+      "bytes": 8904
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/_contract_schemas/custody_retention.py",
+      "sha256": "13015076ef1170a6155de9158ba5f0baff3e787caadf988c9aebedd6b65b91f8",
+      "bytes": 6099
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/_contract_schemas/health.py",
+      "sha256": "e7bf63e1cb255516ea0cc6cc8f146c4b9ce23199f75ce061877ba176f36356bb",
+      "bytes": 6567
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/_contract_schemas/local_acquisition.py",
+      "sha256": "65738dc1f7db47ba96572fc5ce9bf1756bf75343e8190eda878aa2a9519a9d88",
+      "bytes": 5062
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/_contract_schemas/local_coding.py",
+      "sha256": "2b54622a0087ceec0df5d7aceae8d5696abd7301a7b21ee234ea6421ea2f730b",
+      "bytes": 7004
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/_contract_schemas/local_setup.py",
+      "sha256": "f73b20a16a3a8d8a2133a594f99e5e330541b7a94027827139257408d5596b1f",
+      "bytes": 4812
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/_contract_schemas/manifest.py",
+      "sha256": "5623e950f2e6e60f5cd40e7faead28b6cf7079b5268dffed8f666365e5db2f8a",
+      "bytes": 7367
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/_contract_schemas/policy.py",
+      "sha256": "6d72572ff3b344a30f121a9eb815290e9aa85e76075b783434b5dae35262dce2",
+      "bytes": 42558
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/_contract_schemas/request_attempt.py",
+      "sha256": "a87b5ff7a66ce8c616ac60e8e65bb0e6bfd94071d6cd2f25bcdd850c1663ef28",
+      "bytes": 4669
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/_contract_schemas/shadow_routing.py",
+      "sha256": "952181e29cee8e78a5882e59fa67a52d0eb79b81a5f0ef03630789d05deb000b",
+      "bytes": 3602
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/_contract_schemas/usage.py",
+      "sha256": "1efe0454b1eaeded93d2298e66fa2cdb3daa525c905811dec52e367aee12fa78",
+      "bytes": 4119
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/_finance_account_binding_schema.py",
+      "sha256": "9d0216a13d5dcee168fd64f6c74cf757fd3df9385ccc97f7f0f7c14c25a99d87",
+      "bytes": 22250
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/_finance_attempt_schema.py",
+      "sha256": "f6147c2e0d1a940b92d59e8c99e5f711ccd82432e536615182afcb7424e9009a",
+      "bytes": 30135
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/_finance_collection_schema.py",
+      "sha256": "1e83fed43e28871ef75953194123b325218a3ba0b993fcac0313546e893fe4e9",
+      "bytes": 25650
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/_finance_schema.py",
+      "sha256": "048c80f304d8a30eba39e59b9c424737f677720bfabedea9414fc41ac882a15e",
+      "bytes": 3705
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/_linear_schema.py",
+      "sha256": "f3bde21d3e1b61795e4a7bc87e0047fea8d8b217c0d682208e0d1d9428f8abf0",
+      "bytes": 16693
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/_linear_snapshot_schema.py",
+      "sha256": "aaf24df6597f1c7fac49c69329bf7c4fc08371d635ed25eb9a75dbb9c69bf654",
+      "bytes": 18130
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/_local_auth_helper.py",
+      "sha256": "4fec0cacd323414c09b00830107e7e66fa5cfe2f05883303645884307646ea60",
+      "bytes": 457
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/_native_catalog_worker.py",
+      "sha256": "a0c83f20e7151cd97c8ebc433a415912b0dae01643800e2e58b5bf37bcca5576",
+      "bytes": 1315
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/_outcome_schema.py",
+      "sha256": "52b7b9556b64c1c3b50b6bb6edf280bbe5ac9e03e1345d511c02ca7bc13ebc8a",
+      "bytes": 12722
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/_persistence.py",
+      "sha256": "b9eb63fe5ae8a14bbc878ffbec54314ec507efbfa77f8da87b9f887b7cae5b77",
+      "bytes": 28733
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/_portfolio_schema.py",
+      "sha256": "274ce93bb0b2298de2d7c563682ffe9ba2be1a6ff6fe7d03dc128b9c09710817",
+      "bytes": 7524
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/_provider_reliability_schema.py",
+      "sha256": "95732f887613945c61e371747e9373a8021be4356329bbc2ebf0e8da8d31ca94",
+      "bytes": 5116
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/_recommendation_schema.py",
+      "sha256": "5695a9e06037f30c486932887269b954d58dd72db827d76fcb323b7c6b30bed3",
+      "bytes": 12305
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/_role_view_schema.py",
+      "sha256": "2dbbe6d1263a1810a18ea5cffe4da9cc7f7d74e7f2d992dbec9b074452ab9107",
+      "bytes": 5559
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/_scorecard_schema.py",
+      "sha256": "dd77bd1bc24d79910aa7ee2e3920fbc1a069b519d08ba6a45e3ea306f1df24a8",
+      "bytes": 6055
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/_sqlite_schema.py",
+      "sha256": "3ee09ffdb0ef5283470065f5eefa9486b330f352328e723d9ea9423b3e31daae",
+      "bytes": 28559
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/asset_download.py",
+      "sha256": "f33772bac0a73eee4f3ab43bdee14213f97afdbbc0ff934ff5ef002cce61a6c4",
+      "bytes": 8747
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/association_evidence.py",
+      "sha256": "0edf9bbeb2e8d4ab50a0d2d599eb1d9e52942e061be86c2041dcb5e3d3f16b60",
+      "bytes": 3418
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/attribution_admission.py",
+      "sha256": "8caa6ef2b60128558e1e7b1e894b402de33d62077478c21a04cfef68a9456912",
+      "bytes": 3430
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/attribution_config.py",
+      "sha256": "3495ee12e033698f47e2d4ce0576e4c2a2868e7945fe9f4d82105a7e1351b937",
+      "bytes": 3454
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/audit_chain.py",
+      "sha256": "860998d2b1374e3ec127c380ef5a4b1dcf4d9874d9206345ed22894274743452",
+      "bytes": 24806
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/auth.py",
+      "sha256": "6060a3b997810104600d7d05ba6336225b6ae2d7065d0cc480e3efe3b40a5817",
+      "bytes": 879
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/budget_runtime.py",
+      "sha256": "894b299b137d96fdf5e55b6ca28e5f416b353ea0fa89f361075adcd53e6e5c3c",
+      "bytes": 32585
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/cli.py",
+      "sha256": "1cabc474e2446ba1329dcb4b7b91eb80cb80e908b7c4b7ed4ea3b465dbb1dfea",
+      "bytes": 4156
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/client_overrides.py",
+      "sha256": "0eaeaaa7fe03bd159826c3bac0bc0fdb76a159467b7a2634c0daa7391e58280e",
+      "bytes": 13265
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/client_versions.py",
+      "sha256": "2670ca5150595e2d61f4b5b65d156b5a6dd7c27967fec3cfe63e91a97fa76aca",
+      "bytes": 403
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/cloud_readiness.py",
+      "sha256": "593a04c693e7d956430f7b95726aa23f01f4c1349144366f416ac2a0fb2e4074",
+      "bytes": 5698
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/codex-0160-LICENSE.txt",
+      "sha256": "d17f227e4df5da1600391338865ce0f3055211760a36688f816941d58232d8dc",
+      "bytes": 10926
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/codex-0160-base-instructions.json",
+      "sha256": "986a22f2f264417a608e6d1320ebfb82f24c649bd8eb56c92a80c9d08e1a3003",
+      "bytes": 21882
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/codex_catalog.py",
+      "sha256": "a2be604043768691267952975c237a466a05a75e3acb3fc16eaa4fff2157d201",
+      "bytes": 2084
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/coding_probe.py",
+      "sha256": "d8ade51f0cc77a621d4b6867753188b51e6538e99c6007f68d4911bbb5bdc879",
+      "bytes": 7528
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/coding_qualification.py",
+      "sha256": "e331aebb4eda6d5afb71cb8c5025f9c1477df7af23ba16a5e3ff4afb1b1189d9",
+      "bytes": 5785
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/commands/__init__.py",
+      "sha256": "f25e7dd1f8f7fa85b6e7872c891e649e44b9420398443dbddf54811c4c7b8dcf",
+      "bytes": 42
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/commands/capabilities.py",
+      "sha256": "f9915dab49faa24eef221dec8af7cc26f6d47d3edd20e5344c7b2fd8b1779a82",
+      "bytes": 4008
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/commands/client.py",
+      "sha256": "5d63e6aeb63e7c08bd3980a4e77aa7c806deb608f34a87c84f2e0073b1668087",
+      "bytes": 15236
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/commands/history.py",
+      "sha256": "e06f462ed89bb8c9126e124d438bc1dca954eb367e9d1de2ab670f6988953058",
+      "bytes": 4503
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/compaction_contract.py",
+      "sha256": "c3fdd329302791570531b61bfddf5b242c12dd20dd1035576bcad24753d7ab3e",
+      "bytes": 327
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/compaction_enforcement.py",
+      "sha256": "7ad88fa8db2f10d98ac491ff2185eab7bce308e36ff83d97d4bb44c4b3bb0070",
+      "bytes": 4957
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/compaction_formats.py",
+      "sha256": "c3cd82fb1744e3abbb9f524dc76d4459d17404127212b1859602732519370b7b",
+      "bytes": 9403
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/config.py",
+      "sha256": "9e72de1d5b45f4b345cafc6133a37c8a0b771517dfd5d27b8606cd0d368fc013",
+      "bytes": 30762
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/connected_client.py",
+      "sha256": "dc1f0da3c852b6e63d79149bcf237685042eb91514c35b6d6aad55fddde1a788",
+      "bytes": 40503
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/connected_client_runtime.py",
+      "sha256": "8a660960269f393a0aa40104f302fad02ed03288a3d146addaa0fd51183a4677",
+      "bytes": 7927
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/context-tool-mappings-v1.json",
+      "sha256": "4f0dd7a479f6e3689acb6d280167045893df00521a151831ca4623d08875a592",
+      "bytes": 216
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/contracts.py",
+      "sha256": "82dea26b692d529a44463d276f68901e69d594f5a34860b0638c0201d2b5b569",
+      "bytes": 34257
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/credentials.py",
+      "sha256": "ab5822b2728a0e8cfedef6902d5bf6d958c74ab1ce2be98278e80b2366fa4d34",
+      "bytes": 484
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/custody.py",
+      "sha256": "6a475901fbce79a810e23069193229fc94403b1cfedd8a5af1c2347619a2ec4c",
+      "bytes": 30798
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/custody_lifecycle.py",
+      "sha256": "f32793c69dffa3b3963e3e61cea9698e90da44adbd3acfa390fe7c435f049714",
+      "bytes": 23648
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/evidence.py",
+      "sha256": "fe0660f635706724b2c452ab913053214897976f9ab5ba6a821ac41b3c76360e",
+      "bytes": 7332
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/execution_destination.py",
+      "sha256": "00703245e7c1896efdedc0e169824ee9ff77868d657c9d10af6c1df1d91052b9",
+      "bytes": 5748
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/finance_account_binding.py",
+      "sha256": "1a97d137a27ff8d00d6384d9a6c6cacd5115ed7af69fa1781205f5d22ea9234f",
+      "bytes": 6736
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/finance_account_capture.py",
+      "sha256": "c58394990511afc6e74c5c95f67ed15626d75683e4e27a125791dad75f4e2362",
+      "bytes": 12666
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/finance_account_evidence.py",
+      "sha256": "5818dd470aaea8a234a75529f741899d07f761319d0552228960f15ee71baaa7",
+      "bytes": 12993
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/finance_attempts.py",
+      "sha256": "959bff3e76401a239c8146a31d0bb9cdec008ec6d7517e5b5d8346a577f254a5",
+      "bytes": 45535
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/finance_collection.py",
+      "sha256": "498f88453a69aefc8a95c0809b36500f03e9c619c70573d69bb4065e0f412442",
+      "bytes": 72497
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/finance_values.py",
+      "sha256": "81691b955d15a6f8e7a6eff584fc3bda8aa68a74cdfbee883a52e44b2457676c",
+      "bytes": 9408
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/linear_evidence.py",
+      "sha256": "5127f0297007bf3887b1cbe34eaef378bb0c19425626f803ba5c86e7d81c156c",
+      "bytes": 18745
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/local-acquisition-codex-0147-llama-b11617-qwen3-4b-v1.json",
+      "sha256": "0ff7d62f97da3ea1d45d8677e7b3b394e686d00bd507dc23675d84ba05d5a576",
+      "bytes": 1984
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/local-setup-codex-0147-llama-b11617-qwen3-4b-v1.json",
+      "sha256": "640619263b8c4ab70e960029dc3bda8ffbff1019ca6aa60e565ea1591b2dae2a",
+      "bytes": 682
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/local-setup-codex-0147-llama-b11617-qwen3-4b-v2.json",
+      "sha256": "fa43e3b738d96f0b5f3f12df9e8096ef426786196b0f154a34e7c98b7764883e",
+      "bytes": 745
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/local-setup-codex-0160-llama-b11617-qwen3-4b-v1.json",
+      "sha256": "0637889e2fc383a807aae7f34b8c052e93fc9b4a4314d13c37e4f4fac20fc3fe",
+      "bytes": 707
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/local_acquisition.py",
+      "sha256": "03a830fd81dab09ae398f6334e166c6620c9745fb1c80fc463f37f335727c5b8",
+      "bytes": 13190
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/local_credentials.py",
+      "sha256": "001f8c312d784245949589683fe48b87f1feac490afb4ca245afa46ae692d75d",
+      "bytes": 1588
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/local_history.py",
+      "sha256": "d4612bd9560bd953cf394321d209410cca49969129972c4a320a89314108746f",
+      "bytes": 20657
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/local_history_capture.py",
+      "sha256": "ad5c64abd9cd5f856e5cf8272902d135e45e2ba548e0fe1819321a2270699fd2",
+      "bytes": 13006
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/local_history_files.py",
+      "sha256": "56cf198b493bef234a365d7a2479b8220f376e0eb2aea9281bbfb3ac9132c6bc",
+      "bytes": 5786
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/local_setup.py",
+      "sha256": "f97276f3f5dad3f838381b62bccb4cfe9c33c4be531f440e53cf55983863cc4c",
+      "bytes": 14951
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/local_transport.py",
+      "sha256": "6bfe5eb141783abc9873c23c02fe874145469699426395265e160cf347ec975d",
+      "bytes": 3899
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/managed_llama.py",
+      "sha256": "cca72bcf9ce685133ede27b5a929342a480f7523fc3e636d37cb9b18b63dbfa0",
+      "bytes": 21099
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/model_qualification.py",
+      "sha256": "0a163707eaa2c218ebad73749d9bd826805fa1391984e9de99c8e68afa868c45",
+      "bytes": 21467
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/native_catalog_transport.py",
+      "sha256": "38d1cc758ace183dd862851706014844bb10696ed49dd5b4a9c038085d71cb9a",
+      "bytes": 2018
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/native_codex_catalog.py",
+      "sha256": "8c37e5db3bcffd17aa925748f39e70669144c2af0b9b6cc49b3a160aebab5482",
+      "bytes": 6474
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/outcome_connector_config.py",
+      "sha256": "c857421c3dbe5ae346bdf16ee083ddbd36385625ad7edbb187b45f3c733ef70e",
+      "bytes": 20114
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/outcome_wire.py",
+      "sha256": "c1ec6aa21a3922a8ca42cc3e8962444c8878dd50689965fd2717a5e593f29b67",
+      "bytes": 16738
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/plugin_diagnostics.py",
+      "sha256": "ffe1b8b9978f152a95a1d411bde2b449cbe1881efc457a6463754ce27fa34aac",
+      "bytes": 3874
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/plugin_policy.py",
+      "sha256": "a4ccde536ff34068f120a7596786c7ca9aed239030a48ec3196c1b37972a1a26",
+      "bytes": 2579
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/policy.py",
+      "sha256": "6340746513af4b9d04a058268d4425977c3ff217912526685abc8897738f8710",
+      "bytes": 15439
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/policy_document.py",
+      "sha256": "f783d27f70573702be0b28eb82e9f271bcd35a4dfe3ee0eac72f7c9d338a8d4f",
+      "bytes": 24426
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/policy_runtime.py",
+      "sha256": "616be2244027e243a470d008b1ed6790ab52c3f5b14135015ef98d299ee7ef00",
+      "bytes": 570
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/portfolio-association-wire-v1.json",
+      "sha256": "1a4901a3f9a269b9dd8e67a4fbc3befd6483d3ca83c1ac79e626015f6b6787c8",
+      "bytes": 17920
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/portfolio-attribution-wire-v1.json",
+      "sha256": "999c62ac8d3dde96b4fd961632cba0e2b196e2a9bce62d9693757c256ed8e3f4",
+      "bytes": 10105
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/portfolio-intelligence-wire-v1.json",
+      "sha256": "30fd1d181cc311a5222364ca770641b192a8e63e8b13b097b1fa9fa0a8be74e2",
+      "bytes": 113777
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/portfolio-outcome-wire-v1.json",
+      "sha256": "0716c5483b6be72736d357f4ff318c89eeac10fa3f3ae86d3f3bdb9eb99f53a2",
+      "bytes": 12004
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/portfolio-registry-wire-v1.json",
+      "sha256": "20a5253990169e80961671a8d9129bd88afcac065ec071a03766f259ef4ea092",
+      "bytes": 25965
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/portfolio-role-views-wire-v1.json",
+      "sha256": "59c1c9e5931923a78732144aa74a6b56cd06523ae66448b647fd67f30d289979",
+      "bytes": 12116
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/portfolio_config.py",
+      "sha256": "568476fcb0912a3a56847d8fdf2afdfb3b9d1203eccfe6f925a202dde7630d03",
+      "bytes": 6058
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/portfolio_wire.py",
+      "sha256": "c2099688a1f4743aaba2af9ba9b86a6d2924a930c78029c21e39817eef8b2933",
+      "bytes": 13357
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/provider_reliability.py",
+      "sha256": "50d406b9e34210174b40804ebe2c33a7254170b1f1240d485e2d34baf1dc08d2",
+      "bytes": 4915
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/redaction.py",
+      "sha256": "ae97675af171f196fdac2a30c460236088426f879a45ea7ebd7b0ac4796c71fe",
+      "bytes": 4517
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/route_admission.py",
+      "sha256": "b87166d2eb5a2a4b34ec38a065118e9afee9cc6c29cb47cc69dd3bba317b82bb",
+      "bytes": 26852
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/server.py",
+      "sha256": "fa30220508b4c0634803dd23e73fe451050c5cd90d5725c1549bf456f0a5d59f",
+      "bytes": 93734
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/shadow_routing.py",
+      "sha256": "437a8d1a5dcccafada05acd0e21ae2876752017cd6aa62ebbc0d1ef1d54900d1",
+      "bytes": 10111
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/store.py",
+      "sha256": "47c2b8b62e67d43eaed07d32b33c03b16e216eaa7678a5c92e40131267d2df78",
+      "bytes": 102701
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/store_router.py",
+      "sha256": "81ea2ba806410593ae7c513a2148cabf4a2d7aad806fef3b32bfd727774e52b5",
+      "bytes": 10063
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/usage.py",
+      "sha256": "6e3afd38de63ff8aaa63d83d93f8864437a3a703f305b52b09886a9be236a437",
+      "bytes": 12571
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/work-budget-reports-wire-v2.json",
+      "sha256": "c84d182f93894fec1a1eca0d057311cb52fa2c288e3470e119e65f9565f08168",
+      "bytes": 31455
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/work_accounting.py",
+      "sha256": "0d36b1312301da6aaeb41aafa5fd34a1b65bab9e0ea5ff066316ec2f25bd1379",
+      "bytes": 1331
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/work_gateway.py",
+      "sha256": "291f58ffc925ca79ef5886337ba66cf0433ae6186cf6b45cba3916f30f3d7ca2",
+      "bytes": 32627
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/work_http.py",
+      "sha256": "867c5afdc75c6a6196e6835663ba17a662ca323dfaf8dccb93e7ad62e1ac9924",
+      "bytes": 7811
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/work_learning.py",
+      "sha256": "384d665874ca18f7788d90747ff4c50f067c7c1d6012129cb64bf09a5e3949e3",
+      "bytes": 4978
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/work_recovery.py",
+      "sha256": "79465baeecd79c44a7d8efafbd0492f3ac09bd277041bfe9c08c935028708368",
+      "bytes": 1009
+    },
+    {
+      "path": "/private/tmp/koto-566-native-v7-20261017/installed/hormuz/work_runtime.py",
+      "sha256": "177ffaeec983ad885ea15e0e64800304c6c67f1cef5faff154cc022833e4d5fd",
+      "bytes": 111407
+    }
+  ]
+}

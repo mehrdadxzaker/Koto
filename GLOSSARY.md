@@ -4,6 +4,13 @@
   and the agent loop. Koto connects to it.
 - **Router:** Customer-local process that admits and forwards intercepted model
   requests, owns credentials and preserves outcomes and continuation affinity.
+- **Personal scorecard:** Local measurements of the user's retained tasks by
+  model, including checked quality, latency, failures and known or unknown costs.
+- **Model selector:** Local multiclass classifier learned from checked personal
+  examples; its classes are the current commercial model and qualified local
+  alternatives. Observation and automatic mode use the same classifier.
+- **Task quality:** An independent check or explicit user assessment of task
+  success. Transport completion alone leaves quality unknown.
 - **Execution destination:** Immutable endpoint, protocol, authentication,
   locality and model-qualification facts bound to one generation.
 - **Qualified local route:** Destination/model with evidence for its permitted
@@ -19,12 +26,17 @@
 - **Automatic routing:** Selection among policy-eligible qualified destinations
   at a safe fresh request point. Unknown evidence uses an approved baseline or
   blocks; opaque continuation is not migrated.
-- **Shadow recommendation:** Recorded advice about a local model's task fit,
-  compared with actual execution and coding outcomes without selecting a route.
+- **Observation mode:** The model selector records its choice and evidence while
+  execution keeps the client's permitted baseline. Historical binary shadow
+  recommendations remain readable as earlier evidence.
 - **Connected-client lifetime:** Shared owner of setup, status, process control,
   recovery, disconnect and conditional configuration restoration.
 - **Plugin:** Skills-only entry point calling the same connection implementation
   as the CLI. Plugin installation does not activate routing.
+- **Acquisition:** Consented retrieval and verification of local runtime and model
+  assets, separate from connection activation and coding qualification.
+- **Acquisition generation:** Owned local asset set associated with one reviewed
+  acquisition declaration, distinct from a connection's execution lifetime.
 - **Operational cleanup:** Separate retirement of external resources and bills
   tracked in #494–501; source deletion does not complete it.
 - **Local history:** A user's optional retained record of intercepted requests,

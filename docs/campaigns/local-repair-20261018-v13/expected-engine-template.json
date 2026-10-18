@@ -1,0 +1,9 @@
+{
+  "document_version": 1,
+  "runtime_commit": "14310190c",
+  "gguf_and_applied_template_sha256": "87710339d25b4e789c1d723f93c91ee861a86d305bb3d20a845536f251d6ea8a",
+  "applied_template_sha256": "87710339d25b4e789c1d723f93c91ee861a86d305bb3d20a845536f251d6ea8a",
+  "basis": "Exact retained v9 same-artifact/runtime public engine template; current real preflight must match before inference.",
+  "template_change": false,
+  "model_completion_requests": 0
+}
