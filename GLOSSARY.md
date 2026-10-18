@@ -33,6 +33,10 @@
   recovery, disconnect and conditional configuration restoration.
 - **Plugin:** Skills-only entry point calling the same connection implementation
   as the CLI. Plugin installation does not activate routing.
+- **Acquisition:** Consented retrieval and verification of local runtime and model
+  assets, separate from connection activation and coding qualification.
+- **Acquisition generation:** Owned local asset set associated with one reviewed
+  acquisition declaration, distinct from a connection's execution lifetime.
 - **Operational cleanup:** Separate retirement of external resources and bills
   tracked in #494–501; source deletion does not complete it.
 - **Local history:** A user's optional retained record of intercepted requests,
