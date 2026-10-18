@@ -1,0 +1,139 @@
+{
+  "criteria_version": "local-repair.v1",
+  "subject": {
+    "client_version": "0.160.0",
+    "system": "Darwin",
+    "machine": "arm64",
+    "runtime_profile": "managed-llama.v1",
+    "runtime_sha256": "051bb0b55b3e5e72081aa819131ba30c74d910acc915b28bab298757472e39d9",
+    "model_revision": "sha256:fadc3e5f8d42bf7e894a785b05082e47daee4df26680389817e2093056f088ad",
+    "upstream_model": "Qwen3-Coder-30B-A3B-Instruct-Q4_K_M",
+    "protocol": "openai",
+    "capabilities": [
+      "responses",
+      "text",
+      "streaming",
+      "tools",
+      "codex_http",
+      "codex_http_0160"
+    ],
+    "max_request_bytes": 65536,
+    "max_output_tokens": 512,
+    "upstream_timeout_seconds": 90,
+    "request_profile_sha256": "814720a51a697737ee8a460b5c3fcf3c4719a264a2dd59171217f3c1f1a307d7"
+  },
+  "cases": [
+    {
+      "case_id": "dev-clamp",
+      "partition": "development",
+      "family": "arithmetic",
+      "task_sha256": "33fd16c7939f008528fdcd40d4911c9d323eec130318414f0683d8bd7a2bc5aa",
+      "checks_sha256": "da25b64603054b72230db061e79855ed9d3f32b6f31076fa5755ac4eec12b942"
+    },
+    {
+      "case_id": "dev-strip-prefix",
+      "partition": "development",
+      "family": "text",
+      "task_sha256": "ac666d5237460f22274f88ec968dec3498caa5e45251b0fc62379a429f5ca7d1",
+      "checks_sha256": "fcc045ad3370cc3e2e8306bb1f1ec3105eda3b1566d72877c25269822dd8ff8d"
+    },
+    {
+      "case_id": "dev-rotate-left",
+      "partition": "development",
+      "family": "collections",
+      "task_sha256": "b90c5095ab8c1f6e0c1da0e665b881cd3014f318acaca864caa38482eaea3002",
+      "checks_sha256": "3f83dd8fc94581f1d72a6952b1e0f0c4988e90c0ec9001383c325de44954d3b1"
+    },
+    {
+      "case_id": "dev-positive-counter",
+      "partition": "development",
+      "family": "validation_state",
+      "task_sha256": "40cf635d46f648cb990a97596d31fb79be3641b52a957c701a1b4a06b5148d5f",
+      "checks_sha256": "65e4123e7ba3a0b5e8f953213a1078d170b9fe997e27372efe413719edabb6d3"
+    },
+    {
+      "case_id": "held-half-open",
+      "partition": "held_out",
+      "family": "arithmetic",
+      "task_sha256": "38a7e33f56bc8fd3b2a5d532af42310c916c120ce8bef3ba43e25b010200ad8b",
+      "checks_sha256": "02f46aa97a32ccc270f6cbe24e9b08268f31d146b7558e3df7bd09156bbcb299"
+    },
+    {
+      "case_id": "held-discount-cents",
+      "partition": "held_out",
+      "family": "arithmetic",
+      "task_sha256": "2c263a1795424344e98c17c7619a95ca1dc8ff881ba835d8fc81a7855be1243f",
+      "checks_sha256": "a209db2737f635456634b689a1478743caa35891553fbfb24468dff97b5551a4"
+    },
+    {
+      "case_id": "held-next-even",
+      "partition": "held_out",
+      "family": "arithmetic",
+      "task_sha256": "32b36313cb87082e8d3730e6ed53ce411cf58e29f2b7f080ead0f088020034c4",
+      "checks_sha256": "571ad89dc3dc775c8d290875bb555eb646eca79c7e71ac928a54d742348139cd"
+    },
+    {
+      "case_id": "held-one-suffix",
+      "partition": "held_out",
+      "family": "text",
+      "task_sha256": "ecaca9ddc6bdece7665acd33f3b3beac75bc81dc556031be44bda387058e4c8f",
+      "checks_sha256": "c09587c1125e0658970f07f133ec51ad29dca0f0ed616c2c7d084fd48530a63b"
+    },
+    {
+      "case_id": "held-horizontal-runs",
+      "partition": "held_out",
+      "family": "text",
+      "task_sha256": "009f50ebdc4f86b3eccd9241e3ac5276a0fc8cd5c482aec3735124056fcbb6e8",
+      "checks_sha256": "f5c5127d317bb0c257d9cd8940d382ab4b36dac514339e4472c8ada2026ef02b"
+    },
+    {
+      "case_id": "held-clean-csv",
+      "partition": "held_out",
+      "family": "text",
+      "task_sha256": "cf12f2df4cfb7c8debb0834ee308395075d096c2b444495750e5adce9fddc932",
+      "checks_sha256": "d0622ccedd573c6ffce7ede26ae37efc37dc4be4ee413781ae2af1aa1ae0fcb5"
+    },
+    {
+      "case_id": "held-last-occurrences",
+      "partition": "held_out",
+      "family": "collections",
+      "task_sha256": "d4bc8f765d7809bd11a704b24f8bdf0c635c3e144f02267425186b8092a4a50b",
+      "checks_sha256": "f2a9070df7757c2e57ea2e5b1b99b39732bb70643e94491200afdf57552de59a"
+    },
+    {
+      "case_id": "held-padded-pairs",
+      "partition": "held_out",
+      "family": "collections",
+      "task_sha256": "ada28ebc19a4b7b717d8f2114e71f217dd2a6bb24a9b43052a57f38d8b8e3562",
+      "checks_sha256": "675b0cc638f4ed6dc2251d5b7efc42083d1ff93ecf3f0afddae07840325a41a2"
+    },
+    {
+      "case_id": "held-window-sums",
+      "partition": "held_out",
+      "family": "collections",
+      "task_sha256": "d48e84af920aafb894aafb626a8260c625b74a0490f4b9c50c245469d75cb323",
+      "checks_sha256": "de89db10c01d75a1610ffe5c118963ed079349a99580ab1f402015ea5f49544e"
+    },
+    {
+      "case_id": "held-integer-pair",
+      "partition": "held_out",
+      "family": "validation_state",
+      "task_sha256": "6e4de41b56b6530a56291acbed26b1587ac7fea1d83c8328c8a5b2faa013a572",
+      "checks_sha256": "c79b200e5324afd0ed1373659397db7709072d8c0a606cafacdd5d7882a5f629"
+    },
+    {
+      "case_id": "held-bounded-push",
+      "partition": "held_out",
+      "family": "validation_state",
+      "task_sha256": "90ae290b929d1aed9448e67cbfe66f6e61793e832d7465f00e54c1da87320b03",
+      "checks_sha256": "8b8d3fb340c27bfd02424bac013e259307b137e40130eaa2461795e5ba666d5c"
+    },
+    {
+      "case_id": "held-toggle-copy",
+      "partition": "held_out",
+      "family": "validation_state",
+      "task_sha256": "52045a25db83743630e3291414cacb2b80dec87858aa549c68e8bd2dc45651cc",
+      "checks_sha256": "ca52f65fc8dfbf3c864f02c2ddfc6794df17c4ddcfd336375d64e8bd5e1e84a0"
+    }
+  ]
+}
