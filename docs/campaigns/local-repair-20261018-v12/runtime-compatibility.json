@@ -1,0 +1,14 @@
+{
+  "runtime_build": "b11617-14310190c",
+  "runtime_commit": "14310190c",
+  "required_pr": "https://github.com/ggml-org/llama.cpp/pull/17945",
+  "required_fix": "7bed317f5351eba037c2e0aa3dce617e277be1c4",
+  "source_ancestry": {
+    "ahead_by": 4246,
+    "behind_by": 0,
+    "merge_base": "7bed317f5351eba037c2e0aa3dce617e277be1c4"
+  },
+  "declared_runtime_source_includes_required_fix": true,
+  "basis": "GitHub source ancestry for the pinned build identifier; model behavior still requires actual preflight and canary",
+  "model_completions": 0
+}
