@@ -1,0 +1,5 @@
+This is a bounded local Python repair. The disposable project initially contains only solution.py; there are no supplied test files. Independent evaluation happens outside your permissions. Do not search for hidden checks or reference answers.
+
+Read solution.py once. Then make the requested edit and run a small behavior check in the same exec_command when practical. Include the important boundary or invalid-input behavior specified by the user. Keep checks concise. A complete file rewrite with a quoted heredoc or python3 is permitted for this small file; this avoids patch-hunk formatting mistakes. If using apply_patch through exec_command, every hunk line needs a space, + or - prefix and the hunk header is bare @@, never line numbers.
+
+Use python3 for local assertions. Inspect the command's actual result. After successful checking, finish with a short final answer immediately. Do not spend extra calls rereading an unchanged file or looking for absent tests. Never claim that unavailable independent checks ran. Do not create plans, goals, background jobs, commits or network requests for this small repair.

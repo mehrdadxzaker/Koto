@@ -1,0 +1,139 @@
+{
+  "criteria_version": "local-repair.v1",
+  "subject": {
+    "client_version": "0.160.0",
+    "system": "Darwin",
+    "machine": "arm64",
+    "runtime_profile": "managed-llama.v1",
+    "runtime_sha256": "051bb0b55b3e5e72081aa819131ba30c74d910acc915b28bab298757472e39d9",
+    "model_revision": "sha256:fadc3e5f8d42bf7e894a785b05082e47daee4df26680389817e2093056f088ad",
+    "upstream_model": "Qwen3-Coder-30B-A3B-Instruct-Q4_K_M",
+    "protocol": "openai",
+    "capabilities": [
+      "responses",
+      "text",
+      "streaming",
+      "tools",
+      "codex_http",
+      "codex_http_0160"
+    ],
+    "max_request_bytes": 65536,
+    "max_output_tokens": 512,
+    "upstream_timeout_seconds": 90,
+    "request_profile_sha256": "722fd046c017e1d4a1ab10d258b5d292b2598d98168fd1928d035cab70c2e626"
+  },
+  "cases": [
+    {
+      "case_id": "dev-clamp",
+      "partition": "development",
+      "family": "arithmetic",
+      "task_sha256": "33fd16c7939f008528fdcd40d4911c9d323eec130318414f0683d8bd7a2bc5aa",
+      "checks_sha256": "da25b64603054b72230db061e79855ed9d3f32b6f31076fa5755ac4eec12b942"
+    },
+    {
+      "case_id": "dev-strip-prefix",
+      "partition": "development",
+      "family": "text",
+      "task_sha256": "ac666d5237460f22274f88ec968dec3498caa5e45251b0fc62379a429f5ca7d1",
+      "checks_sha256": "fcc045ad3370cc3e2e8306bb1f1ec3105eda3b1566d72877c25269822dd8ff8d"
+    },
+    {
+      "case_id": "dev-rotate-left",
+      "partition": "development",
+      "family": "collections",
+      "task_sha256": "b90c5095ab8c1f6e0c1da0e665b881cd3014f318acaca864caa38482eaea3002",
+      "checks_sha256": "3f83dd8fc94581f1d72a6952b1e0f0c4988e90c0ec9001383c325de44954d3b1"
+    },
+    {
+      "case_id": "dev-positive-counter",
+      "partition": "development",
+      "family": "validation_state",
+      "task_sha256": "40cf635d46f648cb990a97596d31fb79be3641b52a957c701a1b4a06b5148d5f",
+      "checks_sha256": "65e4123e7ba3a0b5e8f953213a1078d170b9fe997e27372efe413719edabb6d3"
+    },
+    {
+      "case_id": "held-factorial",
+      "partition": "held_out",
+      "family": "arithmetic",
+      "task_sha256": "97e48000ca03ad5005efdbcef93d4074103a71c43cb4895d0deed7a113cbdbf7",
+      "checks_sha256": "73a44be9c746edca2ee119f33e9fb269620f40575cd69270126e0585e6ebfcdd"
+    },
+    {
+      "case_id": "held-integer-square-root",
+      "partition": "held_out",
+      "family": "arithmetic",
+      "task_sha256": "0228a557b05738a42310b0a417391d066f9506731854546d8157002b66e76f39",
+      "checks_sha256": "15977a4cabb8b906ab9397810ef67ac7f05ff76bff8ca4934458fbd349037e22"
+    },
+    {
+      "case_id": "held-binomial",
+      "partition": "held_out",
+      "family": "arithmetic",
+      "task_sha256": "32ea5c71caf7f5f864c1b0042cdab1beb4173c75a60f66aee4fbf51ef7e905cf",
+      "checks_sha256": "345d20ddb4a2529df4ec79ca3b4f877362995ef34534e2bc77ba27fe38ca98c1"
+    },
+    {
+      "case_id": "held-reverse-word-order",
+      "partition": "held_out",
+      "family": "text",
+      "task_sha256": "7ece563627bb05d3111174601e46fe1fb441d0c3d7516ab6568f9043e3ca76da",
+      "checks_sha256": "79c2f1e283f7eaca95ffd7ddbf7822bcd81cf763f3cefa7ef2ee1e6b1eaa146d"
+    },
+    {
+      "case_id": "held-balanced-brackets",
+      "partition": "held_out",
+      "family": "text",
+      "task_sha256": "f61922efc61c0af4316e8f368ee93cd705486f674914f8fbd63f6d96d06652a9",
+      "checks_sha256": "53d6e6f69c5dc07d72530ba93df99ae3cd84c04a8d1cd52ca25c422de540c634"
+    },
+    {
+      "case_id": "held-longest-word",
+      "partition": "held_out",
+      "family": "text",
+      "task_sha256": "4e7dbd8b86dc08311b49b56a21d2b8511ff9cbfe08f054ce97748aee180fefb1",
+      "checks_sha256": "fe1a939589aae9fdaf33528f03a05c7c24da3e6162402e854954f9ef338a2512"
+    },
+    {
+      "case_id": "held-cartesian-pairs",
+      "partition": "held_out",
+      "family": "collections",
+      "task_sha256": "3a21f0e7f3f6a4aa96a8dc0475199f9a6fbcbaafb3d52ab027194c326588509c",
+      "checks_sha256": "80e7a1df9dc3065955f73d3cb55989642ba1bf0bf1a0e7e528c5e6dbda5bf9f2"
+    },
+    {
+      "case_id": "held-merge-sorted",
+      "partition": "held_out",
+      "family": "collections",
+      "task_sha256": "94fbac891fa5214dc7f4b3ace3d3e4c3304c769a6ceaa2db5903aab2492e63a2",
+      "checks_sha256": "13a6773fa24bd387cd05789937446005997c67a31804e0a29a8b5c7971767293"
+    },
+    {
+      "case_id": "held-main-diagonal",
+      "partition": "held_out",
+      "family": "collections",
+      "task_sha256": "dccd00554c87e41f8526714662940f5798c02842e3786fbdcffbbf86aef7fbdb",
+      "checks_sha256": "a55f145bc8f89bb9c7744adec9fc28c683ff83054f26edb9a03093fc48e11cf6"
+    },
+    {
+      "case_id": "held-rename-key",
+      "partition": "held_out",
+      "family": "validation_state",
+      "task_sha256": "f41784ceb0d26b8ed83cb80629aa70be6f3399f991861d09f49052031b524940",
+      "checks_sha256": "6d269ba71b1672b7581d156674fde5a318afbe7c99caf2efc2ae08d8e7919434"
+    },
+    {
+      "case_id": "held-gregorian-date",
+      "partition": "held_out",
+      "family": "validation_state",
+      "task_sha256": "0e81784cd507dbeeed1e3dbd0d22e18acdbccb0df49354aa8b8c0dbe55a62e47",
+      "checks_sha256": "a23a85c0b39deae1470a3bd6cc086fbde0a5710e4ba2360b7c65ecebd601613e"
+    },
+    {
+      "case_id": "held-ipv4-components",
+      "partition": "held_out",
+      "family": "validation_state",
+      "task_sha256": "ea9d8269f3f00af125eff16867415aeaa26ef473a5727ad9ed3ccb2a047102d9",
+      "checks_sha256": "ddc6dec4f5537d5846922f2b5c41f13ee9b5b72d31da3ba4555171dcdfdca07d"
+    }
+  ]
+}
