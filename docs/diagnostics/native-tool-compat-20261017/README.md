@@ -81,7 +81,7 @@ Primary references: [pinned llama.cpp function calling](https://raw.githubuserco
 [Responses tool normalization](https://raw.githubusercontent.com/ggml-org/llama.cpp/b11617/tools/server/server-chat.cpp),
 [Qwen2.5 tool format](https://qwen.readthedocs.io/en/v2.5/framework/function_call.html),
 and [Codex permission profiles](https://learn.chatgpt.com/docs/permissions).
-# Latest outcome: v9 failed its completion gate
+## V9 follow-up: request cap reached
 
 The [v9 outcome](../../campaigns/local-repair-20261017-v9/OUTCOME.md) retains
 one zero-inference admission rejection and the corrected, separately sealed
@@ -95,12 +95,35 @@ not run, and automatic coding remains disabled.
 stale-date expectation while keeping changed permissions and tools denied. The
 owner's October 18 approval was valid. This does not relax router matching.
 
-The [selected next candidate](next-candidate.json) is a pinned community GGUF
+The [next-candidate record](next-candidate.json) selected a pinned community GGUF
 of [Mistral's Devstral Small 2 24B](https://huggingface.co/mistralai/Devstral-Small-2-24B-Instruct-2512).
 Mistral describes it as a coding-agent model supporting local Mac 32 GB use.
 This motivates a different model family; it proves neither native Codex fit nor
-bounded success. Artifact identity and a proposed 8-request/90-second/512-token
-canary are recorded, with no download, new model attempt or activation. A new
-setup, native tool/template preflight, frozen profile and fresh held-out set
-remain necessary before another candidate trial.
+bounded success. That proposal preceded the separately authorized v10 campaign
+below; the original candidate record remains unchanged.
+
+## Latest outcome: Devstral v10 reached the elapsed cap
+
+The [v10 frozen plan](../../campaigns/local-repair-20261018-v10/PLAN.md) retains
+the stock Devstral template's real native role-alternation rejection, reproduced
+with zero completions. A metadata-only correction coalesces adjacent instruction
+and user content while preserving all 363 tensor records and every tensor-data
+byte. Actual native token/render preflight and supplied continuation controls
+pass, including retained late-system rejection.
+
+The [single actual canary](../../campaigns/local-repair-20261018-v10/OUTCOME.md)
+executed tools, made the correct edit and passed the independent checker, but
+the 90-second probe expired during request seven. Six completed structured calls
+reached native continuation with unchanged names and arguments. Codex exited 1
+with `turn.failed`; the partial final self-check call did not execute.
+Engine timing reports 38.9 seconds for the initial 6,847-token prompt and about
+7.7–7.8 generated tokens per second. One malformed patch needed correction.
+
+The eight-request cap was not exhausted. The remaining three development and
+twelve fresh held-out cases stay unrun, with zero retries or accepted canary
+passes. All 245 frozen inputs and live Codex settings remained unchanged;
+owned listeners and processes were cleaned up. Local-only enforcement, unknown
+coding readiness and disabled automatic coding remain preserved. Executable
+tool compatibility is demonstrated for this corrected combination; bounded
+repair completion and full qualification remain unmet.
 
