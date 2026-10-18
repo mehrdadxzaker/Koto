@@ -1,8 +1,11 @@
 """Explicit qualification probes through the approved connected-client workflow."""
 import hashlib
 import json
+import os
 import platform
 import socket
+import subprocess
+import sys
 import time
 import unittest
 from pathlib import Path
@@ -222,30 +225,29 @@ class CodingProbeWorkflowTests(unittest.TestCase):
             finally:
                 self.command("disconnect")
 
-    def test_probe_suppresses_extra_shadow_inference_without_changing_ordinary_advice(self):
+    def test_probe_and_personal_observation_never_add_classifier_inference(self):
         with lifetime.provider("CLOUD_MUST_STAY_UNUSED") as (cloud, cloud_requests), \
              lifetime.provider("CLOUD") as (classifier, classifier_requests):
             value, engine, _, request_file, _, plan_file = self.prepare(cloud)
             value["route_admission"]["local_routes"]["local-code"]["task_types"].append("summarization")
-            value["upstreams"]["local-classifier"] = {"protocol": "openai", "base_url": classifier,
-                                                       "locality": "local", "authentication": "none"}
-            value["model_routes"]["local-router"] = {"protocol": "openai", "destination": "local-classifier",
-                "upstream_model": "fixture-router", "model_revision": "fixture-router-v1", "capabilities": ["responses", "text"]}
-            value["policies"]["organization"]["allowed_models"].append("local-router")
-            value["shadow_router"] = {"schema_version": 1, "mode": "shadow", "model": "local-router", "local_model": "local-code"}
+            self.environment["KOTO_HISTORY_HOME"] = str(self.root / "history")
             self.path.write_text(json.dumps(value))
             try:
                 self.command("connect")
+                for operation in (("enable",), ("learning", "enable")):
+                    command = subprocess.run([sys.executable, "-m", "hormuz", "--config", str(self.path),
+                        "history", *operation], env={**os.environ, **self.environment}, capture_output=True, text=True, timeout=10)
+                    self.assertEqual(command.returncode, 0, command.stdout + command.stderr)
                 ordinary = self.client()
                 self.assertEqual(ordinary["status"], 200)
-                self.assertEqual(len(classifier_requests), 1)
+                self.assertEqual(classifier_requests, [])
                 self.assertEqual(self.client("code-change")["status"], 503)
                 probe = json.loads(self.command("qualify", "--plan", str(plan_file)).stdout)
                 result = self.client("request-file", str(request_file), "bound-conversation",
                                      "qualification-probe", probe["probe_id"])
                 self.assertEqual(result["status"], 200, result)
                 self.assertEqual(result["headers"]["x-hormuz-contract"], "hormuz.coding-probe-relay;v=1")
-                self.assertEqual(len(classifier_requests), 1)
+                self.assertEqual(classifier_requests, [])
                 self.assertEqual((engine / "inference-count").read_text().splitlines(), ["1", "1"])
                 route = json.loads(self.command("status", "--routing").stdout)["routes"][0]
                 self.assertEqual((route["coding_readiness"], route["automatic_task_types"]), ("unknown", ["summarization"]))

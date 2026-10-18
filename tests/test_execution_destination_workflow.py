@@ -85,7 +85,7 @@ finally:
 
 
 @contextmanager
-def provider(answer, *, status=200, health_status=200, hold_first=None, event_stream=False, cancel_stream=None, slow_stream=False, backpressure_first=None, observe_close=None, response_fields=None, text_deltas=(), trailing_events=(), response_body=None, compact_json=False):
+def provider(answer, *, status=200, health_status=200, hold_first=None, event_stream=False, cancel_stream=None, slow_stream=False, backpressure_first=None, observe_close=None, response_fields=None, text_deltas=(), trailing_events=(), response_body=None, compact_json=False, get_responses=None):
     received = []
 
     class Handler(BaseHTTPRequestHandler):
@@ -94,8 +94,8 @@ def provider(answer, *, status=200, health_status=200, hold_first=None, event_st
             pass
 
         def do_GET(self):
-            data = json.dumps({"status": "ok" if health_status == 200 else "loading model"}).encode()
-            self.send_response(health_status if self.path == "/health" else 404)
+            data = json.dumps((get_responses or {}).get(self.path, {"status": "ok" if health_status == 200 else "loading model"})).encode()
+            self.send_response(200 if self.path in (get_responses or {}) else health_status if self.path == "/health" else 404)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(data)))
             self.end_headers()
@@ -110,7 +110,7 @@ def provider(answer, *, status=200, health_status=200, hold_first=None, event_st
                 hold_first[1].wait(timeout=5)
             result = {"id": "fixture-response", "object": "response", "status": "completed",
                       "model": body["model"], "output": [{"type": "message", "role": "assistant",
-                      "content": [{"type": "output_text", "text": answer}]}],
+                      "content": [{"type": "output_text", "text": answer(body) if callable(answer) else answer}]}],
                       "usage": {"input_tokens": 4, "output_tokens": 2, "total_tokens": 6}}
             if response_fields is not None:
                 result.update(response_fields)
@@ -385,7 +385,7 @@ class ExecutionDestinationWorkflowTests(unittest.TestCase):
              provider("CLOUD_DESTINATION") as (cloud, cloud_requests):
             value = self.admission_configuration(local, cloud)
             with self.connected_client(value) as submit:
-                result = submit(request={"model": "cloud-code", "input": "Summarize this short fixture."})
+                result = submit(request={"model": "local-code", "input": "Summarize this short fixture."})
                 self.assertEqual((result["status"], result["body"]["output"][0]["content"][0]["text"],
                                   result["headers"].get("x-hormuz-destination"),
                                   result["headers"].get("x-hormuz-routing-mode")),
@@ -490,7 +490,7 @@ class ExecutionDestinationWorkflowTests(unittest.TestCase):
             self.assertEqual([item["body"]["model"] for item in second_requests], ["fixture-second-model"] * 4)
             self.assertEqual((local_requests, cloud_requests), ([], []))
 
-    def test_auto_routes_qualified_fresh_work_and_keeps_unknown_work_on_baseline(self):
+    def test_auto_keeps_fresh_work_on_baseline_without_learning_and_respects_explicit_local_choice(self):
         with provider("LOCAL_DESTINATION") as (local, local_requests), \
              provider("CLOUD_DESTINATION") as (cloud, cloud_requests):
             value = self.admission_configuration(local, cloud, mode="auto")
@@ -499,13 +499,14 @@ class ExecutionDestinationWorkflowTests(unittest.TestCase):
                 easy = submit(request={"model": "cloud-code", "input": "Summarize this fixture."})
                 unknown = submit(request={"model": "cloud-code", "input": "Consider this fixture."})
                 large = submit(request={"model": "cloud-code", "input": "Summarize " + "x" * 5000})
-                self.assertEqual((easy["status"], easy["headers"].get("x-hormuz-routing-qualification")),
+                self.assertEqual((easy["status"], easy["headers"].get("x-hormuz-routing-qualification")), (200, None))
+                self.assertEqual([item["body"]["output"][0]["content"][0]["text"] for item in (easy, unknown, large)],
+                                 ["CLOUD_DESTINATION"] * 3)
+                explicit = submit(request={"model": "local-code", "input": "Summarize this fixture."})
+                self.assertEqual((explicit["status"], explicit["headers"].get("x-hormuz-routing-qualification")),
                                  (200, "fixture-q1"))
-                self.assertEqual(easy["body"]["output"][0]["content"][0]["text"], "LOCAL_DESTINATION")
-                self.assertEqual(easy["headers"].get("x-hormuz-policy-decision"), "fallback")
-                self.assertEqual([item["body"]["output"][0]["content"][0]["text"] for item in (unknown, large)],
-                                 ["CLOUD_DESTINATION", "CLOUD_DESTINATION"])
-                self.assertEqual((len(local_requests), len(cloud_requests)), (1, 2))
+                self.assertEqual(explicit["body"]["output"][0]["content"][0]["text"], "LOCAL_DESTINATION")
+                self.assertEqual((len(local_requests), len(cloud_requests)), (1, 3))
 
     def test_request_can_tighten_auto_to_local_only_but_cannot_loosen_it(self):
         with provider("LOCAL_DESTINATION") as (local, local_requests), \
@@ -606,7 +607,7 @@ class ExecutionDestinationWorkflowTests(unittest.TestCase):
             value["identities"][0]["allowed_clients"].append("claude-code")
             value["policies"]["organization"].pop("max_output_tokens")
             with self.connected_client(value) as submit:
-                result = submit(control=True, path="/messages/count_tokens", request={"model": "cloud-counter",
+                result = submit(control=True, path="/messages/count_tokens", request={"model": "local-counter",
                     "messages": [{"role": "user", "content": "Summarize this fixture."}]})
                 self.assertEqual((result["status"], result["headers"].get("x-hormuz-destination")), (200, "local-counter"))
                 self.assertEqual((len(local_requests), cloud_requests), (1, []))
@@ -684,7 +685,7 @@ class ExecutionDestinationWorkflowTests(unittest.TestCase):
             value["route_admission"]["local_routes"]["local-code"]["max_request_bytes"] = 110
             value["ai_work"] = {"enabled": True, "database": str(self.root / "work.sqlite3")}
             with self.connected_client(value) as submit:
-                result = submit(request={"model": "cloud-code", "input": "Summarize fixture."})
+                result = submit(request={"model": "local-code", "input": "Summarize fixture."})
                 self.assertEqual((result["status"], result["body"].get("error", {}).get("code")),
                                  (503, "hormuz_route_local_route_unavailable"))
                 self.assertEqual((local_requests, cloud_requests), ([], []))
@@ -717,7 +718,7 @@ class ExecutionDestinationWorkflowTests(unittest.TestCase):
             value["ai_work"] = {"enabled": True, "tool_capable_aliases": ["local-code"],
                                 "database": str(self.root / "work.sqlite3")}
             with self.connected_client(value) as submit:
-                first = submit(request={"model": "cloud-code", "input": "Summarize this fixture.", "stream": True,
+                first = submit(request={"model": "local-code", "input": "Summarize this fixture.", "stream": True,
                     "tools": [{"type": "function", "name": "fixture_tool", "parameters": {"type": "object"}}]})
                 self.assertEqual(first["status"], 200, first)
                 self.assertIn('"call_id": "fixture-call"', first["body"])
@@ -990,7 +991,7 @@ class ExecutionDestinationWorkflowTests(unittest.TestCase):
             value = self.admission_configuration(local, cloud, mode="auto")
             value["model_routes"]["local-code"]["capabilities"].append("tools")
             with self.connected_client(value) as submit:
-                result = submit(request={"model": "cloud-code", "input": "Summarize this fixture.",
+                result = submit(request={"model": "local-code", "input": "Summarize this fixture.",
                     "tools": [{"type": "function", "name": "fixture_tool", "parameters": {
                         "type": "object", "properties": {"type": {"type": ["string", "null"]}}}}]})
                 self.assertEqual(result["status"], 200, result)
@@ -1270,7 +1271,7 @@ class ExecutionDestinationWorkflowTests(unittest.TestCase):
                 entries = json.loads(manifest.stdout)["schemas"]
                 versions = {entry["schema_version"] for entry in entries
                             if entry["schema_id"] == "hormuz.relay-metadata"}
-                self.assertEqual(versions, {1, 2, 3, 4})
+                self.assertEqual(versions, {1, 2, 3, 4, 5})
                 frozen = json.loads((Path(__file__).parent / "fixtures/execution_destination/relay-v3.json").read_text())
                 self.assertEqual(next(entry for entry in entries if entry["schema_id"] == "hormuz.relay-metadata" and entry["schema_version"] == 3), frozen)
                 self.assertIn("hormuz_route_local_route_unavailable", json.loads(manifest.stdout)["error_codes"])

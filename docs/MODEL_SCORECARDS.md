@@ -1,4 +1,7 @@
-# Personal model scorecards
+# Advanced manual model benchmarks
+
+For the main history-driven workflow, use [personal model selection](PERSONAL_MODEL_SELECTION.md).
+Manual suites below remain an advanced validation interface, not a setup prerequisite.
 
 Build a local benchmark from tasks that represent your work, score the replies
 against independent references, and optionally use the results to choose among

@@ -68,7 +68,7 @@ def add_client_commands(
             lifecycle.add_argument("--model-file", required=True, help="Existing verified GGUF model")
             lifecycle.add_argument("--qualification", help="Reviewed local setup profile (default bundled pinned experiment)")
             lifecycle.add_argument("--credential-env", help="Use an existing token environment variable instead of managed local authentication")
-            lifecycle.add_argument("--shadow-router", action="store_true", help="Record bounded local model routing advice without changing routes")
+            lifecycle.add_argument("--shadow-router", action="store_true", help="Retired: use history learning enable for the personal classifier")
 
     qualify = client_subparsers.add_parser("qualify", help="Authorize, inspect or revoke one bounded experimental local coding probe")
     qualify.add_argument("client", choices=["codex"])
