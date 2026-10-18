@@ -50,8 +50,9 @@ the largest complete generation used **94 tokens**, below the fixed 512 cap.
 Public gateway receipts report 89,151.297 ms of summed provider intervals and
 221.326 ms of gateway overhead across seven attempts. These are engine and
 gateway measurements, not attribution to individual hardware components.
-There were no cache hits, retries, failovers, trace errors or destination
-changes. The unfinished stream has no final usage record, so its final token
+There were no gateway answer-cache hits, retries, failovers, trace errors or
+destination changes. Engine prompt-cache reuse is recorded separately. The
+unfinished stream has no final usage record, so its final token
 count is unknown.
 
 The stock template rejection was an integration mismatch reproduced without
