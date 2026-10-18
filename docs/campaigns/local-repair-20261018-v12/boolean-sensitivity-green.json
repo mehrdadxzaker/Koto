@@ -1,0 +1,15 @@
+{
+  "model_completions": 0,
+  "synthetic_control": "Bool-accepting permutation implementation must fail independent checks.",
+  "checks_sha256_after": "39539d3dbccf2167b7c0edcc8643049524ebe962501e29223c1797006a81357c",
+  "corrected_checker_result": {
+    "process_exit_code": 1,
+    "assertions_completed": false,
+    "output_bytes": 0,
+    "within_budget": true,
+    "exit_code": 1
+  },
+  "bad_implementation_was_rejected": true,
+  "passed": true,
+  "synthetic_bad_implementation_sha256": "3dc9ae2d86828865530b7a7c27e267b70eb1f620e32e8a968d8b325721f44871"
+}

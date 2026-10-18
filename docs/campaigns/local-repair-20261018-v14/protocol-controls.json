@@ -1,0 +1,388 @@
+{
+  "model_completion_requests": 0,
+  "model_quality_evidence": false,
+  "metadata_requests": [
+    {
+      "path": "/apply-template",
+      "status": 200,
+      "response_sha256": "e470a9e3881e703f3b39127d9bc19484ff350d804396e052d26dc6e33ae22202"
+    },
+    {
+      "path": "/v1/responses/input_tokens",
+      "status": 200,
+      "response_sha256": "dce19ec2eb1967266cfc07db3c6219876f1d9ffc644f7a6003e9d928fac0422c"
+    },
+    {
+      "path": "/apply-template",
+      "status": 200,
+      "response_sha256": "0cec693f32ac361c82865bd90bab7d70f935d010ef8a14715e7a128b6a26f6a9"
+    },
+    {
+      "path": "/apply-template",
+      "status": 200,
+      "response_sha256": "74c15ad0c42f82f52e792070d4ec7f4c4eb42fb0efab384282665c672ad65470"
+    }
+  ],
+  "setup": {
+    "configuration": {
+      "authentication": "managed_local",
+      "listen_port": 60997,
+      "mode": "local_only",
+      "model": "Qwen3-Coder-30B-A3B-Instruct-Q4_K_M",
+      "operation": "reuse",
+      "qualification_id": "codex0160-m5-32g-qwen3coder30b-v14-probe",
+      "runtime_port": 60998
+    },
+    "connection": {
+      "client_version": "0.160.0",
+      "configuration": "installed",
+      "generation": "e66d7fd50803f748a0659cfac43f923e",
+      "local_runtime": {
+        "ownership": "owned",
+        "state": "ready"
+      },
+      "owned_settings": [
+        "model",
+        "model_provider",
+        "web_search"
+      ],
+      "phase": "connected",
+      "retained_settings": [],
+      "router": "ready",
+      "schema_id": "hormuz.connected-client-status",
+      "schema_version": 2,
+      "scope": "codex_user_defaults"
+    },
+    "schema_id": "hormuz.local-setup",
+    "schema_version": 2
+  },
+  "exact_typed_first_turn": {
+    "text_blocks": 6,
+    "all_preserved_in_order": true,
+    "tool_names_present": [
+      "exec_command",
+      "write_stdin",
+      "request_user_input",
+      "view_image",
+      "get_goal",
+      "create_goal",
+      "update_goal"
+    ],
+    "prompt_sha256": "d16583c5436a7e59bb4fd177973ffd7bd5bc76986d3ff6b3666343a2d191330a"
+  },
+  "native_continuation_tokens": {
+    "input_tokens": 3641,
+    "object": "response.input_tokens"
+  },
+  "tool_continuation_rendered": true,
+  "late_system_role_observation": {
+    "http_status": 200,
+    "accepted": true,
+    "scope": "Qwen role semantics observation only; never changes native permissions or qualifies tools."
+  },
+  "work_state": {
+    "schema_id": "hormuz.ai-work-state",
+    "schema_version": 3,
+    "organization_id": "organization",
+    "actor_id": "local-user",
+    "as_of": "2026-10-18T18:24:19.063523+00:00",
+    "works": [],
+    "plans": [],
+    "totals": {
+      "attempts": 0,
+      "committed_microusd": 0,
+      "estimated_cost_microusd": 0,
+      "provider_confirmed_cost_microusd": 0,
+      "provider_confirmed_attempts": 0,
+      "unconfirmed_attempts": 0,
+      "pending_microusd": 0,
+      "uncertain_microusd": 0,
+      "cache_hits": 0,
+      "denied": 0,
+      "failed_attempts": 0,
+      "unknown_attempts": 0,
+      "retry_attempts": 0,
+      "failover_attempts": 0,
+      "reservation_exceeded": 0,
+      "repeated_requests": 0,
+      "provider_latency_ms": null,
+      "timed_attempts": 0,
+      "gateway_wall_ms": null,
+      "gateway_overhead_ms": null,
+      "timed_gateway_attempts": 0,
+      "consumed_microusd": 0,
+      "cost_basis": "gateway_reported_or_configured_estimate",
+      "invoice_finality": false,
+      "latency_basis": "sum_external_or_legacy_observed_attempt_latency",
+      "gateway_timing_basis": "entry_through_work_settlement_wall_time",
+      "summed_provider_ms": null,
+      "timing_coverage": {
+        "observed": 0,
+        "attempts": 0,
+        "basis": "gateway_observed_wall_and_provider_intervals"
+      },
+      "gateway_overhead_cost_microusd": null,
+      "cost_coverage": "covered_provider_attempts_excludes_unallocated_platform_and_compute_charges",
+      "works": 0,
+      "completed": 0
+    },
+    "scope": "actor",
+    "display": {
+      "job_limit": 100,
+      "shown_jobs": 0,
+      "total_jobs": 0,
+      "jobs_truncated": false,
+      "attempt_limit_per_job": 5,
+      "observation_limit_per_job": 5,
+      "plan_limit": 100,
+      "shown_plans": 0,
+      "total_plans": 0,
+      "plans_truncated": false
+    },
+    "coverage": "gateway_captured_work_requests_only",
+    "provider_account_costs": {
+      "status": "unavailable",
+      "reason": "external_account_collection_retired",
+      "accounts": []
+    },
+    "routing": {
+      "minimum_samples": 5,
+      "exploration_enabled": false,
+      "exploration_aliases": [],
+      "exploration_rate_percent": 5,
+      "exploration_max_cost_microusd": 0,
+      "evidence_basis": "local_observational_work_episodes",
+      "exploration_allocation_count": 0,
+      "exploration_reserved_microusd": 0,
+      "exploration_remaining_microusd": 0,
+      "exploration_allowance_basis": "monthly_quoted_reservations_including_unused_or_unknown_allocations"
+    },
+    "cache": {
+      "enabled": false,
+      "retention": "bounded_process_memory",
+      "exact_only": true
+    },
+    "connection": {
+      "endpoint": "http://127.0.0.1:60997",
+      "routes": [
+        {
+          "model": "Qwen3-Coder-30B-A3B-Instruct-Q4_K_M",
+          "destination": "local-llama",
+          "protocol": "openai",
+          "locality": "local",
+          "authentication": "none",
+          "generation": "d3754d365362f77051cf8f6260b556e86362ea08023e563be7b395c867c6c6e9",
+          "upstream_model": "Qwen3-Coder-30B-A3B-Instruct-Q4_K_M",
+          "model_revision": "sha256:fadc3e5f8d42bf7e894a785b05082e47daee4df26680389817e2093056f088ad",
+          "capabilities": [
+            "responses",
+            "text",
+            "streaming",
+            "tools",
+            "codex_http",
+            "codex_http_0160"
+          ],
+          "credential_configured": false,
+          "eligible": true
+        }
+      ],
+      "shadow_router_enabled": false,
+      "credential_location": "router",
+      "coverage": "only_authenticated_intercepted_model_requests"
+    },
+    "onboarding": {
+      "choices": [
+        {
+          "model": "Qwen3-Coder-30B-A3B-Instruct-Q4_K_M",
+          "destination": "local-llama",
+          "protocol": "openai",
+          "locality": "local",
+          "authentication": "none",
+          "generation": "d3754d365362f77051cf8f6260b556e86362ea08023e563be7b395c867c6c6e9",
+          "upstream_model": "Qwen3-Coder-30B-A3B-Instruct-Q4_K_M",
+          "model_revision": "sha256:fadc3e5f8d42bf7e894a785b05082e47daee4df26680389817e2093056f088ad",
+          "capabilities": [
+            "responses",
+            "text",
+            "streaming",
+            "tools",
+            "codex_http",
+            "codex_http_0160"
+          ],
+          "credential_configured": false,
+          "eligible": true,
+          "client": "codex"
+        }
+      ]
+    }
+  },
+  "routing_status": {
+    "local_capacity": {
+      "active": 0,
+      "limit": 1
+    },
+    "mode": "local_only",
+    "routes": [
+      {
+        "automatic_task_types": [],
+        "capabilities": [
+          "responses",
+          "text",
+          "streaming",
+          "tools",
+          "codex_http",
+          "codex_http_0160"
+        ],
+        "coding_evidence": null,
+        "coding_readiness": "unknown",
+        "destination": "local-llama",
+        "evidence_basis": "operator_declared",
+        "generation": "d3754d365362f77051cf8f6260b556e86362ea08023e563be7b395c867c6c6e9",
+        "max_output_tokens": 512,
+        "max_request_bytes": 65536,
+        "model": "Qwen3-Coder-30B-A3B-Instruct-Q4_K_M",
+        "model_revision": "sha256:fadc3e5f8d42bf7e894a785b05082e47daee4df26680389817e2093056f088ad",
+        "qualification_id": "codex0160-m5-32g-qwen3coder30b-v14-probe",
+        "readiness": "unchecked",
+        "task_types": [
+          "code_change"
+        ]
+      }
+    ],
+    "schema_id": "hormuz.route-admission",
+    "schema_version": 2,
+    "task_classifier": "bounded_local_heuristic"
+  },
+  "disconnect": {
+    "client_version": "0.160.0",
+    "configuration": "not_owned",
+    "generation": "e66d7fd50803f748a0659cfac43f923e",
+    "local_runtime": {
+      "ownership": "owned",
+      "state": "stopped"
+    },
+    "owned_settings": [
+      "model",
+      "model_provider",
+      "web_search"
+    ],
+    "phase": "disconnected",
+    "retained_settings": [],
+    "router": "stopped",
+    "schema_id": "hormuz.connected-client-status",
+    "schema_version": 2,
+    "scope": "codex_user_defaults"
+  },
+  "settings_restored": true,
+  "owned_listeners_closed": true,
+  "receipts": [
+    {
+      "operation": [
+        "client",
+        "setup"
+      ],
+      "receipt": {
+        "configuration": {
+          "authentication": "managed_local",
+          "listen_port": 60997,
+          "mode": "local_only",
+          "model": "Qwen3-Coder-30B-A3B-Instruct-Q4_K_M",
+          "operation": "reuse",
+          "qualification_id": "codex0160-m5-32g-qwen3coder30b-v14-probe",
+          "runtime_port": 60998
+        },
+        "connection": {
+          "client_version": "0.160.0",
+          "configuration": "installed",
+          "generation": "e66d7fd50803f748a0659cfac43f923e",
+          "local_runtime": {
+            "ownership": "owned",
+            "state": "ready"
+          },
+          "owned_settings": [
+            "model",
+            "model_provider",
+            "web_search"
+          ],
+          "phase": "connected",
+          "retained_settings": [],
+          "router": "ready",
+          "schema_id": "hormuz.connected-client-status",
+          "schema_version": 2,
+          "scope": "codex_user_defaults"
+        },
+        "schema_id": "hormuz.local-setup",
+        "schema_version": 2
+      }
+    },
+    {
+      "operation": [
+        "client",
+        "status"
+      ],
+      "receipt": {
+        "local_capacity": {
+          "active": 0,
+          "limit": 1
+        },
+        "mode": "local_only",
+        "routes": [
+          {
+            "automatic_task_types": [],
+            "capabilities": [
+              "responses",
+              "text",
+              "streaming",
+              "tools",
+              "codex_http",
+              "codex_http_0160"
+            ],
+            "coding_evidence": null,
+            "coding_readiness": "unknown",
+            "destination": "local-llama",
+            "evidence_basis": "operator_declared",
+            "generation": "d3754d365362f77051cf8f6260b556e86362ea08023e563be7b395c867c6c6e9",
+            "max_output_tokens": 512,
+            "max_request_bytes": 65536,
+            "model": "Qwen3-Coder-30B-A3B-Instruct-Q4_K_M",
+            "model_revision": "sha256:fadc3e5f8d42bf7e894a785b05082e47daee4df26680389817e2093056f088ad",
+            "qualification_id": "codex0160-m5-32g-qwen3coder30b-v14-probe",
+            "readiness": "unchecked",
+            "task_types": [
+              "code_change"
+            ]
+          }
+        ],
+        "schema_id": "hormuz.route-admission",
+        "schema_version": 2,
+        "task_classifier": "bounded_local_heuristic"
+      }
+    },
+    {
+      "operation": [
+        "client",
+        "disconnect"
+      ],
+      "receipt": {
+        "client_version": "0.160.0",
+        "configuration": "not_owned",
+        "generation": "e66d7fd50803f748a0659cfac43f923e",
+        "local_runtime": {
+          "ownership": "owned",
+          "state": "stopped"
+        },
+        "owned_settings": [
+          "model",
+          "model_provider",
+          "web_search"
+        ],
+        "phase": "disconnected",
+        "retained_settings": [],
+        "router": "stopped",
+        "schema_id": "hormuz.connected-client-status",
+        "schema_version": 2,
+        "scope": "codex_user_defaults"
+      }
+    }
+  ]
+}

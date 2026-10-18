@@ -1,0 +1,46 @@
+{
+  "development_tasks": 4,
+  "fresh_held_out_tasks": 12,
+  "all_held_out_task_hashes_new": true,
+  "prior_corpora": [
+    {
+      "path": "docs/campaigns/local-repair-20261016-v4/corpus.json",
+      "sha256": "39cb0a08e8f2f3f6e6a2a156ac01ba29d3b1eff6fa9d33c88985ad13a684bc68"
+    },
+    {
+      "path": "docs/campaigns/local-repair-20261016-v5/corpus.json",
+      "sha256": "5bf256b139beab8268b8727a6dde28f398ea0b974c575ec400db76aa877dd4d4"
+    },
+    {
+      "path": "docs/campaigns/local-repair-20261016-v6/corpus.json",
+      "sha256": "75d4f56bf9edcb7629c347fc734e00cb4af9c0932f83801886c4716a13434d0b"
+    },
+    {
+      "path": "docs/campaigns/local-repair-20261017-v7/corpus.json",
+      "sha256": "650295da403492ee9be108a81567c1cb561ea8a7cf3305289a48b22b309cf39d"
+    },
+    {
+      "path": "docs/campaigns/local-repair-20261017-v8/corpus.json",
+      "sha256": "c125cdd013f7502571761f75bdaf3109c7022ccd1adc374ca33b1b1daaac5070"
+    },
+    {
+      "path": "docs/campaigns/local-repair-20261017-v9/corpus.json",
+      "sha256": "118188d2eccd8eed73f20c1e51161f048defa6f5ea16fa84b6fac83ab29ecd4b"
+    },
+    {
+      "path": "docs/campaigns/local-repair-20261018-v10/corpus.json",
+      "sha256": "b4040a9bfd8f0b2254a11e759cb1c7227f8e479152aafb4177f657b527791817"
+    },
+    {
+      "path": "docs/campaigns/local-repair-20261018-v11/corpus.json",
+      "sha256": "8e49fae207d21fccd6cb3ccffa961036cf7f0c561563397f50fe14fbf340d008"
+    },
+    {
+      "path": "docs/campaigns/local-repair-20261018-v12/corpus.json",
+      "sha256": "e2c04d788ed3644accc95e115c3119f65a21fcb33815752ded104d8cf97307c0"
+    }
+  ],
+  "prior_held_out_goal_records": 108,
+  "semantic_review_basis": "Full prior held-out goal inventory, including unrun preparations, reviewed before inference; independent Spec review must approve distinct behavior, not only hash freshness.",
+  "model_completions_before_inventory": 0
+}

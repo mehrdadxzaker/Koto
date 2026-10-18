@@ -1,0 +1,11 @@
+{
+  "native_model_completions": 0,
+  "native_instruction_exact_except_one_terminal_lf": true,
+  "instruction_file_bytes": 821,
+  "native_instruction_bytes": 820,
+  "actual_native_instruction_sha256": "656d4e644fcefa8ed41f455cc6e19dd9351b52c9d5a7daa1eb7ff29c7a875782",
+  "file_sha256": "f3e26a3152ae9e7084f440a61632c18b50273b1d7682b06db76cfc5da16898c1",
+  "all_tool_definitions_unchanged": true,
+  "developer_instructions_exact": true,
+  "earlier_exact_byte_assertion": "V11 preparation compared the terminal newline too strictly; that observation is retained in ../local-repair-20261018-v11/instruction-loading-control.json. V12 confirms the same exact one-LF normalization."
+}

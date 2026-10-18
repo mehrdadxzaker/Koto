@@ -1,0 +1,2181 @@
+{
+  "campaign_id": "local-repair-20261018-v12",
+  "freeze_commit": "8ffc263bc0e7e30881423f02b9254bec0a57000b",
+  "plan_sha256": "8b998aea28df31c29110e37e5945fba12b1bd15f7f6de466afd9d9c301416816",
+  "manifest_sha256": "8b08460fa18bf09377b34fb147a6cf3001db618b79f8f8c22a4c5369bb165bf5",
+  "canary_passed": true,
+  "qualification_passed": false,
+  "passing_receipt_created_or_installed": false,
+  "automatic_coding_enabled": false,
+  "coding_readiness": "unknown",
+  "mode": "local_only",
+  "budget": {
+    "canary_episodes": 1,
+    "total_episodes_if_canary_passes": 16,
+    "max_requests_per_episode": 8,
+    "max_elapsed_seconds_per_episode": 90,
+    "max_output_tokens_per_generation": 512,
+    "quality_retries": 0,
+    "transport_retries": 0,
+    "parallel_native_episodes": 1
+  },
+  "totals": {
+    "planned_cases": 16,
+    "actual_model_episodes": 16,
+    "canary_episodes": 1,
+    "accepted_cases": 5,
+    "development_accepted": 3,
+    "development_cases": 4,
+    "held_out_accepted": 2,
+    "held_out_cases": 12,
+    "actual_implementation_edits": 15,
+    "independent_checker_passes": 14,
+    "deadline_expirations": 11,
+    "local_model_requests": 72,
+    "completed_structured_function_calls": 56,
+    "completed_native_command_items": 52,
+    "function_calls_preserved_in_next_native_input": 56,
+    "completed_function_calls_without_followup_request": 0,
+    "completed_responses_with_usage": 61,
+    "responses_without_completion_or_final_usage": 11,
+    "maximum_observed_completed_response_output_tokens": 478,
+    "quality_episode_retries": 0,
+    "provider_retries": 0,
+    "fallbacks": 0,
+    "answer_cache_hits": 0
+  },
+  "measurement_scope": "Single frozen actual-model campaign. Public engine SSE, native events and independent checker receipts; no unparsed model tokens. Timed-out response final usage is unknown, not zero.",
+  "cases": [
+    {
+      "case_id": "dev-clamp",
+      "partition": "development",
+      "family": "arithmetic",
+      "task_sha256": "33fd16c7939f008528fdcd40d4911c9d323eec130318414f0683d8bd7a2bc5aa",
+      "checks_sha256": "da25b64603054b72230db061e79855ed9d3f32b6f31076fa5755ac4eec12b942",
+      "accepted": true,
+      "implementation_changed": true,
+      "independent_checker_passed": true,
+      "check_exit_code": 0,
+      "assertions_completed": true,
+      "native": {
+        "exit_code": 0,
+        "termination": "completed",
+        "elapsed_ms": 65470
+      },
+      "normal_turn_completed_count": 1,
+      "native_failure_or_error_events": 0,
+      "probe_state_after_native": "running",
+      "requests": 5,
+      "completed_structured_function_calls": 4,
+      "completed_native_command_items": 3,
+      "function_calls_preserved_in_next_native_input": 4,
+      "completed_function_calls_without_followup_request": 0,
+      "completed_responses_with_usage": 5,
+      "responses_without_completion_or_final_usage": 0,
+      "maximum_observed_completed_response_output_tokens": 186,
+      "completed_response_usage": [
+        {
+          "input_tokens": 3370,
+          "output_tokens": 13,
+          "total_tokens": 3383,
+          "input_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        {
+          "input_tokens": 3440,
+          "output_tokens": 76,
+          "total_tokens": 3516,
+          "input_tokens_details": {
+            "cached_tokens": 3382
+          }
+        },
+        {
+          "input_tokens": 3558,
+          "output_tokens": 61,
+          "total_tokens": 3619,
+          "input_tokens_details": {
+            "cached_tokens": 3515
+          }
+        },
+        {
+          "input_tokens": 3658,
+          "output_tokens": 186,
+          "total_tokens": 3844,
+          "input_tokens_details": {
+            "cached_tokens": 3618
+          }
+        },
+        {
+          "input_tokens": 3889,
+          "output_tokens": 4,
+          "total_tokens": 3893,
+          "input_tokens_details": {
+            "cached_tokens": 3843
+          }
+        }
+      ],
+      "completed_response_engine_timings": [
+        {
+          "cache_n": 0,
+          "prompt_n": 3370,
+          "prompt_ms": 19296.205,
+          "prompt_per_token_ms": 5.725876854599407,
+          "prompt_per_second": 174.6457399265814,
+          "predicted_n": 13,
+          "predicted_ms": 1518.962,
+          "predicted_per_token_ms": 126.58016666666667,
+          "predicted_per_second": 7.900131800532206
+        },
+        {
+          "cache_n": 3382,
+          "prompt_n": 58,
+          "prompt_ms": 568.103,
+          "prompt_per_token_ms": 9.794879310344827,
+          "prompt_per_second": 102.09416250222232,
+          "predicted_n": 76,
+          "predicted_ms": 9668.628,
+          "predicted_per_token_ms": 128.91504,
+          "predicted_per_second": 7.757046811605535
+        },
+        {
+          "cache_n": 3515,
+          "prompt_n": 43,
+          "prompt_ms": 566.469,
+          "prompt_per_token_ms": 13.173697674418605,
+          "prompt_per_second": 75.90883172777326,
+          "predicted_n": 61,
+          "predicted_ms": 7679.697,
+          "predicted_per_token_ms": 127.99495,
+          "predicted_per_second": 7.8128082397000815
+        },
+        {
+          "cache_n": 3618,
+          "prompt_n": 40,
+          "prompt_ms": 563.547,
+          "prompt_per_token_ms": 14.088675,
+          "prompt_per_second": 70.9789955407446,
+          "predicted_n": 186,
+          "predicted_ms": 23823.113,
+          "predicted_per_token_ms": 128.77358378378378,
+          "predicted_per_second": 7.76556783322146
+        },
+        {
+          "cache_n": 3843,
+          "prompt_n": 46,
+          "prompt_ms": 570.636,
+          "prompt_per_token_ms": 12.405130434782608,
+          "prompt_per_second": 80.61180857849838,
+          "predicted_n": 4,
+          "predicted_ms": 381.806,
+          "predicted_per_token_ms": 127.26866666666666,
+          "predicted_per_second": 7.857393545413116
+        }
+      ],
+      "quality_episode_retries": 0,
+      "provider_retries": 0,
+      "failovers": 0,
+      "answer_cache_hits": 0,
+      "automatic_admission_effect": "none",
+      "inspection_path": "inspections/dev-clamp.json",
+      "work_attempt_detail_coverage": {
+        "retained": 5,
+        "total": 5,
+        "truncated": false
+      },
+      "inspection": {
+        "case_id": "dev-clamp",
+        "result_sha256": "f643f85c0d658e8ffbba78adacd362916d0201a1035db53b419a842983fc1b86",
+        "implementation_sha256": "8b49a826cc9b20c5142f6d3bdcda6367a4bfe4e32ee73e579fc29c545e67bfaf",
+        "patch_sha256": "50ed6102440b7c2c9f3e649bc531f3e8893815a76b235d827060331a5017313c",
+        "native_events_sha256": "5110fdfebc0c587362c317c531cc83aa89c15cc6ee1f2f61002267959f656573",
+        "no_harness_interference": true,
+        "independent_assertions_verified": true,
+        "normal_turn_completion_verified": true,
+        "normal_turn_completed_count": 1,
+        "native_failure_or_error_events": 0,
+        "reviewer": "Codex operator independent implementation/patch/native-event inspection",
+        "finding": "Only a pure clamp function changed. No imports, oracle reads, assertion hooks, process or receipt manipulation. The model executed its own boundary/error assertions successfully; independent frozen checker went1→0 with all assertions completed. One tool-argument validation failure was recovered within the episode before any command execution for that call. Native turn completed normally in65470ms with exit0."
+      },
+      "implementation": "def clamp(value, lower, upper):\n    if lower > upper:\n        raise ValueError(\"lower exceeds upper\")\n    return max(min(value, upper), lower)\n",
+      "patch": "--- solution.py.before\n+++ solution.py.after\n@@ -1,2 +1,4 @@\n def clamp(value, lower, upper):\n-    return max(lower, value)\n+    if lower > upper:\n+        raise ValueError(\"lower exceeds upper\")\n+    return max(min(value, upper), lower)\n"
+    },
+    {
+      "case_id": "dev-strip-prefix",
+      "partition": "development",
+      "family": "text",
+      "task_sha256": "ac666d5237460f22274f88ec968dec3498caa5e45251b0fc62379a429f5ca7d1",
+      "checks_sha256": "fcc045ad3370cc3e2e8306bb1f1ec3105eda3b1566d72877c25269822dd8ff8d",
+      "accepted": true,
+      "implementation_changed": true,
+      "independent_checker_passed": true,
+      "check_exit_code": 0,
+      "assertions_completed": true,
+      "native": {
+        "exit_code": 0,
+        "termination": "completed",
+        "elapsed_ms": 55800
+      },
+      "normal_turn_completed_count": 1,
+      "native_failure_or_error_events": 0,
+      "probe_state_after_native": "running",
+      "requests": 5,
+      "completed_structured_function_calls": 4,
+      "completed_native_command_items": 3,
+      "function_calls_preserved_in_next_native_input": 4,
+      "completed_function_calls_without_followup_request": 0,
+      "completed_responses_with_usage": 5,
+      "responses_without_completion_or_final_usage": 0,
+      "maximum_observed_completed_response_output_tokens": 117,
+      "completed_response_usage": [
+        {
+          "input_tokens": 3370,
+          "output_tokens": 13,
+          "total_tokens": 3383,
+          "input_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        {
+          "input_tokens": 3438,
+          "output_tokens": 75,
+          "total_tokens": 3513,
+          "input_tokens_details": {
+            "cached_tokens": 3382
+          }
+        },
+        {
+          "input_tokens": 3555,
+          "output_tokens": 59,
+          "total_tokens": 3614,
+          "input_tokens_details": {
+            "cached_tokens": 3512
+          }
+        },
+        {
+          "input_tokens": 3653,
+          "output_tokens": 117,
+          "total_tokens": 3770,
+          "input_tokens_details": {
+            "cached_tokens": 3613
+          }
+        },
+        {
+          "input_tokens": 3813,
+          "output_tokens": 3,
+          "total_tokens": 3816,
+          "input_tokens_details": {
+            "cached_tokens": 3769
+          }
+        }
+      ],
+      "completed_response_engine_timings": [
+        {
+          "cache_n": 0,
+          "prompt_n": 3370,
+          "prompt_ms": 19405.526,
+          "prompt_per_token_ms": 5.758316320474778,
+          "prompt_per_second": 173.6618734271877,
+          "predicted_n": 13,
+          "predicted_ms": 1519.385,
+          "predicted_per_token_ms": 126.61541666666666,
+          "predicted_per_second": 7.897932387117155
+        },
+        {
+          "cache_n": 3382,
+          "prompt_n": 56,
+          "prompt_ms": 565.648,
+          "prompt_per_token_ms": 10.100857142857143,
+          "prompt_per_second": 99.0014991655588,
+          "predicted_n": 75,
+          "predicted_ms": 9501.125,
+          "predicted_per_token_ms": 128.3935810810811,
+          "predicted_per_second": 7.788551355760502
+        },
+        {
+          "cache_n": 3512,
+          "prompt_n": 43,
+          "prompt_ms": 558.304,
+          "prompt_per_token_ms": 12.983813953488372,
+          "prompt_per_second": 77.01897174299307,
+          "predicted_n": 59,
+          "predicted_ms": 7390.31,
+          "predicted_per_token_ms": 127.41913793103448,
+          "predicted_per_second": 7.848114625773479
+        },
+        {
+          "cache_n": 3613,
+          "prompt_n": 40,
+          "prompt_ms": 553.06,
+          "prompt_per_token_ms": 13.8265,
+          "prompt_per_second": 72.32488337612557,
+          "predicted_n": 117,
+          "predicted_ms": 14814.962,
+          "predicted_per_token_ms": 127.71518965517241,
+          "predicted_per_second": 7.829922209722847
+        },
+        {
+          "cache_n": 3769,
+          "prompt_n": 44,
+          "prompt_ms": 564.586,
+          "prompt_per_token_ms": 12.8315,
+          "prompt_per_second": 77.93321123796906,
+          "predicted_n": 3,
+          "predicted_ms": 265.49,
+          "predicted_per_token_ms": 132.745,
+          "predicted_per_second": 7.533240423368111
+        }
+      ],
+      "quality_episode_retries": 0,
+      "provider_retries": 0,
+      "failovers": 0,
+      "answer_cache_hits": 0,
+      "automatic_admission_effect": "none",
+      "inspection_path": "inspections/dev-strip-prefix.json",
+      "work_attempt_detail_coverage": {
+        "retained": 5,
+        "total": 5,
+        "truncated": false
+      },
+      "inspection": {
+        "case_id": "dev-strip-prefix",
+        "result_sha256": "5e5bb6462475d5f91231178fe481c30561f50d21e83bf15eb3d65e14d184bab4",
+        "implementation_sha256": "4617998017ec67c93a714f0f17767179001ee7f04fd61bb2f670e0d51a6ca968",
+        "patch_sha256": "e605a0748b0b18cee0e5a2a16595cce29a34ad6e84f70f7aea1f39155d7ab3e8",
+        "native_events_sha256": "f53391cb866b78b9b4b0e67ee4d67d86190590f870f083b622f34f3bd84c437a",
+        "no_harness_interference": true,
+        "independent_assertions_verified": true,
+        "normal_turn_completion_verified": true,
+        "normal_turn_completed_count": 1,
+        "native_failure_or_error_events": 0,
+        "reviewer": "Codex operator independent implementation/patch/native-event inspection",
+        "finding": "Pure prefix removal only: empty prefix unchanged, one leading exact occurrence sliced, nonleading text preserved. No imports, hooks, oracle/process/receipt access or check manipulation. Native own assertions and unchanged independent assertions completed successfully, with normal turn completion."
+      },
+      "implementation": "def strip_prefix(text, prefix):\n    if not prefix:\n        return text\n    if text.startswith(prefix):\n        return text[len(prefix):]\n    return text\n",
+      "patch": "--- solution.py.before\n+++ solution.py.after\n@@ -1,2 +1,6 @@\n def strip_prefix(text, prefix):\n-    return text.replace(prefix, '')\n+    if not prefix:\n+        return text\n+    if text.startswith(prefix):\n+        return text[len(prefix):]\n+    return text\n"
+    },
+    {
+      "case_id": "dev-rotate-left",
+      "partition": "development",
+      "family": "collections",
+      "task_sha256": "b90c5095ab8c1f6e0c1da0e665b881cd3014f318acaca864caa38482eaea3002",
+      "checks_sha256": "3f83dd8fc94581f1d72a6952b1e0f0c4988e90c0ec9001383c325de44954d3b1",
+      "accepted": false,
+      "implementation_changed": true,
+      "independent_checker_passed": true,
+      "check_exit_code": 0,
+      "assertions_completed": true,
+      "native": {
+        "exit_code": 1,
+        "termination": "completed",
+        "elapsed_ms": 90048
+      },
+      "normal_turn_completed_count": 0,
+      "native_failure_or_error_events": 2,
+      "probe_state_after_native": "expired",
+      "requests": 4,
+      "completed_structured_function_calls": 3,
+      "completed_native_command_items": 3,
+      "function_calls_preserved_in_next_native_input": 3,
+      "completed_function_calls_without_followup_request": 0,
+      "completed_responses_with_usage": 3,
+      "responses_without_completion_or_final_usage": 1,
+      "maximum_observed_completed_response_output_tokens": 299,
+      "completed_response_usage": [
+        {
+          "input_tokens": 3373,
+          "output_tokens": 13,
+          "total_tokens": 3386,
+          "input_tokens_details": {
+            "cached_tokens": 3317
+          }
+        },
+        {
+          "input_tokens": 3446,
+          "output_tokens": 299,
+          "total_tokens": 3745,
+          "input_tokens_details": {
+            "cached_tokens": 3385
+          }
+        },
+        {
+          "input_tokens": 3878,
+          "output_tokens": 70,
+          "total_tokens": 3948,
+          "input_tokens_details": {
+            "cached_tokens": 3744
+          }
+        }
+      ],
+      "completed_response_engine_timings": [
+        {
+          "cache_n": 3317,
+          "prompt_n": 56,
+          "prompt_ms": 577.183,
+          "prompt_per_token_ms": 10.306839285714286,
+          "prompt_per_second": 97.02295459152471,
+          "predicted_n": 13,
+          "predicted_ms": 1535.386,
+          "predicted_per_token_ms": 127.94883333333333,
+          "predicted_per_second": 7.815624214366941
+        },
+        {
+          "cache_n": 3385,
+          "prompt_n": 61,
+          "prompt_ms": 569.721,
+          "prompt_per_token_ms": 9.339688524590164,
+          "prompt_per_second": 107.0699517834168,
+          "predicted_n": 299,
+          "predicted_ms": 38046.722,
+          "predicted_per_token_ms": 127.67356375838926,
+          "predicted_per_second": 7.8324750289919844
+        },
+        {
+          "cache_n": 3744,
+          "prompt_n": 134,
+          "prompt_ms": 1248.757,
+          "prompt_per_token_ms": 9.31908208955224,
+          "prompt_per_second": 107.30670578823582,
+          "predicted_n": 70,
+          "predicted_ms": 8798.072,
+          "predicted_per_token_ms": 127.50828985507246,
+          "predicted_per_second": 7.842627339262512
+        }
+      ],
+      "quality_episode_retries": 0,
+      "provider_retries": 0,
+      "failovers": 0,
+      "answer_cache_hits": 0,
+      "automatic_admission_effect": "none",
+      "inspection_path": "failure-inspections/dev-rotate-left.json",
+      "work_attempt_detail_coverage": {
+        "retained": 4,
+        "total": 4,
+        "truncated": false
+      },
+      "inspection": {
+        "case_id": "dev-rotate-left",
+        "result_sha256": "5806b294338d0ecc0cdd65fdfedd604d8e1f3d5f484ba7e51a3c61b7ccce35e5",
+        "implementation_sha256": "64e70df70a16a981a619b23345e1f4d94a295f006c6bcfa87140e879a8cbd4a4",
+        "patch_sha256": "70ae6f8b59b72939a20163ce72cd94d75abbb5a7e4d9984ce7f270f71d72215f",
+        "native_events_sha256": "6845f1d0a4c32c250d271f4b25dd8d1d05d23d45cfbd4fc54594d5622ca89e98",
+        "no_harness_interference": true,
+        "independent_assertions_verified": true,
+        "normal_turn_completion_verified": false,
+        "normal_turn_completed_count": 0,
+        "native_failure_or_error_events": 2,
+        "mechanical_passed": false,
+        "qualification_acceptance": false,
+        "reviewer": "Codex operator independent implementation/patch/native-event inspection",
+        "finding": "Safe pure rotation by modulo, returning a fresh empty list and preserving input. No imports, hooks, oracle/process/receipt access or checker interference. Independent assertions passed after the edit, but verbose model-generated baseline printing consumed299tokens and a post-edit check call was still generating when90s expired. Native exit1/turn.failed prevents acceptance."
+      },
+      "implementation": "def rotate_left(items, steps):\n    if not items:\n        return []\n    n = len(items)\n    effective_steps = steps % n\n    return items[effective_steps:] + items[:effective_steps]\n",
+      "patch": "--- solution.py.before\n+++ solution.py.after\n@@ -1,2 +1,6 @@\n def rotate_left(items, steps):\n-    return items[steps:] + items[:steps]\n+    if not items:\n+        return []\n+    n = len(items)\n+    effective_steps = steps % n\n+    return items[effective_steps:] + items[:effective_steps]\n"
+    },
+    {
+      "case_id": "dev-positive-counter",
+      "partition": "development",
+      "family": "validation_state",
+      "task_sha256": "40cf635d46f648cb990a97596d31fb79be3641b52a957c701a1b4a06b5148d5f",
+      "checks_sha256": "65e4123e7ba3a0b5e8f953213a1078d170b9fe997e27372efe413719edabb6d3",
+      "accepted": true,
+      "implementation_changed": true,
+      "independent_checker_passed": true,
+      "check_exit_code": 0,
+      "assertions_completed": true,
+      "native": {
+        "exit_code": 0,
+        "termination": "completed",
+        "elapsed_ms": 72366
+      },
+      "normal_turn_completed_count": 1,
+      "native_failure_or_error_events": 0,
+      "probe_state_after_native": "running",
+      "requests": 5,
+      "completed_structured_function_calls": 4,
+      "completed_native_command_items": 3,
+      "function_calls_preserved_in_next_native_input": 4,
+      "completed_function_calls_without_followup_request": 0,
+      "completed_responses_with_usage": 5,
+      "responses_without_completion_or_final_usage": 0,
+      "maximum_observed_completed_response_output_tokens": 275,
+      "completed_response_usage": [
+        {
+          "input_tokens": 3377,
+          "output_tokens": 13,
+          "total_tokens": 3390,
+          "input_tokens_details": {
+            "cached_tokens": 3317
+          }
+        },
+        {
+          "input_tokens": 3468,
+          "output_tokens": 133,
+          "total_tokens": 3601,
+          "input_tokens_details": {
+            "cached_tokens": 3389
+          }
+        },
+        {
+          "input_tokens": 3643,
+          "output_tokens": 117,
+          "total_tokens": 3760,
+          "input_tokens_details": {
+            "cached_tokens": 3600
+          }
+        },
+        {
+          "input_tokens": 3801,
+          "output_tokens": 275,
+          "total_tokens": 4076,
+          "input_tokens_details": {
+            "cached_tokens": 3759
+          }
+        },
+        {
+          "input_tokens": 4121,
+          "output_tokens": 4,
+          "total_tokens": 4125,
+          "input_tokens_details": {
+            "cached_tokens": 4075
+          }
+        }
+      ],
+      "completed_response_engine_timings": [
+        {
+          "cache_n": 3317,
+          "prompt_n": 60,
+          "prompt_ms": 576.483,
+          "prompt_per_token_ms": 9.608049999999999,
+          "prompt_per_second": 104.07939176003455,
+          "predicted_n": 13,
+          "predicted_ms": 1529.887,
+          "predicted_per_token_ms": 127.49058333333333,
+          "predicted_per_second": 7.843716562072885
+        },
+        {
+          "cache_n": 3389,
+          "prompt_n": 79,
+          "prompt_ms": 624.936,
+          "prompt_per_token_ms": 7.910582278481013,
+          "prompt_per_second": 126.41294468553579,
+          "predicted_n": 133,
+          "predicted_ms": 16836.06,
+          "predicted_per_token_ms": 127.5459090909091,
+          "predicted_per_second": 7.840314182771978
+        },
+        {
+          "cache_n": 3600,
+          "prompt_n": 43,
+          "prompt_ms": 558.223,
+          "prompt_per_token_ms": 12.981930232558138,
+          "prompt_per_second": 77.03014745003341,
+          "predicted_n": 117,
+          "predicted_ms": 14801.266,
+          "predicted_per_token_ms": 127.59712068965517,
+          "predicted_per_second": 7.837167442298517
+        },
+        {
+          "cache_n": 3759,
+          "prompt_n": 42,
+          "prompt_ms": 559.501,
+          "prompt_per_token_ms": 13.32145238095238,
+          "prompt_per_second": 75.06688996087586,
+          "predicted_n": 275,
+          "predicted_ms": 35290.258,
+          "predicted_per_token_ms": 128.79656204379563,
+          "predicted_per_second": 7.764182398439819
+        },
+        {
+          "cache_n": 4075,
+          "prompt_n": 46,
+          "prompt_ms": 564.012,
+          "prompt_per_token_ms": 12.261130434782608,
+          "prompt_per_second": 81.55854839967944,
+          "predicted_n": 4,
+          "predicted_ms": 382.502,
+          "predicted_per_token_ms": 127.50066666666667,
+          "predicted_per_second": 7.8430962452483906
+        }
+      ],
+      "quality_episode_retries": 0,
+      "provider_retries": 0,
+      "failovers": 0,
+      "answer_cache_hits": 0,
+      "automatic_admission_effect": "none",
+      "inspection_path": "inspections/dev-positive-counter.json",
+      "work_attempt_detail_coverage": {
+        "retained": 5,
+        "total": 5,
+        "truncated": false
+      },
+      "inspection": {
+        "case_id": "dev-positive-counter",
+        "result_sha256": "a441a2089a86fcc0b8d140ea788c0c1f842e716cefa5117344e560094fd54bc0",
+        "implementation_sha256": "0fab6e76156b22973017133f9572ef1e8ce0b5e21f0d8b4680453f6f77fd35ab",
+        "patch_sha256": "c054f16d0c48c7b43f6df19416a1626c4a0fe36da5b8e52172bcfd8a3d575118",
+        "native_events_sha256": "c113056bc4439cd3ed273e38635e1f4b097b69d179a84006d62e11bd6158681b",
+        "no_harness_interference": true,
+        "independent_assertions_verified": true,
+        "normal_turn_completion_verified": true,
+        "normal_turn_completed_count": 1,
+        "native_failure_or_error_events": 0,
+        "mechanical_passed": true,
+        "qualification_acceptance": true,
+        "reviewer": "Codex operator independent implementation/patch/native-event inspection",
+        "finding": "Counter preserves its constructor/value interface. Strict positive integer validation excludes bool before mutation, and returns the new count. No imports, hooks, oracle/process/receipt access or checker interference. Own assertions and unchanged independent assertions passed; normal turn completion."
+      },
+      "implementation": "class Counter:\n    def __init__(self):\n        self.value = 0\n    def increment(self, step=1):\n        # Ensure step is a strict positive integer (bool is invalid)\n        if not isinstance(step, int) or isinstance(step, bool) or step <= 0:\n            raise ValueError(\"step must be a strict positive integer\")\n        self.value += step\n        return self.value\n",
+      "patch": "--- solution.py.before\n+++ solution.py.after\n@@ -2,5 +2,8 @@\n     def __init__(self):\n         self.value = 0\n     def increment(self, step=1):\n+        # Ensure step is a strict positive integer (bool is invalid)\n+        if not isinstance(step, int) or isinstance(step, bool) or step <= 0:\n+            raise ValueError(\"step must be a strict positive integer\")\n         self.value += step\n         return self.value\n"
+    },
+    {
+      "case_id": "held-triangular-number",
+      "partition": "held_out",
+      "family": "arithmetic",
+      "task_sha256": "bb65fc12b583896c7c6dc234a28cfd1b0c34b1e7260c7c0c470cf5839a0a1854",
+      "checks_sha256": "4b26549fdf59245b38be9f326458a00f18715b7b6658a1934ec4603c091a897a",
+      "accepted": false,
+      "implementation_changed": true,
+      "independent_checker_passed": true,
+      "check_exit_code": 0,
+      "assertions_completed": true,
+      "native": {
+        "exit_code": 1,
+        "termination": "completed",
+        "elapsed_ms": 90019
+      },
+      "normal_turn_completed_count": 0,
+      "native_failure_or_error_events": 2,
+      "probe_state_after_native": "expired",
+      "requests": 4,
+      "completed_structured_function_calls": 3,
+      "completed_native_command_items": 3,
+      "function_calls_preserved_in_next_native_input": 3,
+      "completed_function_calls_without_followup_request": 0,
+      "completed_responses_with_usage": 3,
+      "responses_without_completion_or_final_usage": 1,
+      "maximum_observed_completed_response_output_tokens": 284,
+      "completed_response_usage": [
+        {
+          "input_tokens": 3376,
+          "output_tokens": 13,
+          "total_tokens": 3389,
+          "input_tokens_details": {
+            "cached_tokens": 3317
+          }
+        },
+        {
+          "input_tokens": 3436,
+          "output_tokens": 284,
+          "total_tokens": 3720,
+          "input_tokens_details": {
+            "cached_tokens": 3388
+          }
+        },
+        {
+          "input_tokens": 3848,
+          "output_tokens": 97,
+          "total_tokens": 3945,
+          "input_tokens_details": {
+            "cached_tokens": 3719
+          }
+        }
+      ],
+      "completed_response_engine_timings": [
+        {
+          "cache_n": 3317,
+          "prompt_n": 59,
+          "prompt_ms": 591.952,
+          "prompt_per_token_ms": 10.033084745762713,
+          "prompt_per_second": 99.67024353325945,
+          "predicted_n": 13,
+          "predicted_ms": 1516.435,
+          "predicted_per_token_ms": 126.36958333333332,
+          "predicted_per_second": 7.913296646410826
+        },
+        {
+          "cache_n": 3388,
+          "prompt_n": 48,
+          "prompt_ms": 561.141,
+          "prompt_per_token_ms": 11.6904375,
+          "prompt_per_second": 85.53999796842506,
+          "predicted_n": 284,
+          "predicted_ms": 36104.452,
+          "predicted_per_token_ms": 127.57756890459363,
+          "predicted_per_second": 7.838368520314337
+        },
+        {
+          "cache_n": 3719,
+          "prompt_n": 129,
+          "prompt_ms": 1244.257,
+          "prompt_per_token_ms": 9.645403100775194,
+          "prompt_per_second": 103.67633053300082,
+          "predicted_n": 97,
+          "predicted_ms": 12289.344,
+          "predicted_per_token_ms": 128.01399999999998,
+          "predicted_per_second": 7.811645601262363
+        }
+      ],
+      "quality_episode_retries": 0,
+      "provider_retries": 0,
+      "failovers": 0,
+      "answer_cache_hits": 0,
+      "automatic_admission_effect": "none",
+      "inspection_path": "failure-inspections/held-triangular-number.json",
+      "work_attempt_detail_coverage": {
+        "retained": 4,
+        "total": 4,
+        "truncated": false
+      },
+      "inspection": {
+        "case_id": "held-triangular-number",
+        "result_sha256": "53d09bb6e42fd5def926078c2071359bee0aa3f64924031a35c14d4544233fbb",
+        "implementation_sha256": "b55c4adfcccb1a9280215e9846ccb4b2909282e0df58290ea0089350c8ee2af3",
+        "patch_sha256": "1e0a748d640b98a96afa2267a6c51479a68bcf4de596ec939ffcc5832edae10a",
+        "native_events_sha256": "6430cd6e47bb5ee2fa2c25de2d57918c77b5f33f7285db07b344ac8beb1d117a",
+        "no_harness_interference": true,
+        "independent_assertions_verified": true,
+        "normal_turn_completion_verified": false,
+        "normal_turn_completed_count": 0,
+        "native_failure_or_error_events": 2,
+        "mechanical_passed": false,
+        "qualification_acceptance": false,
+        "reviewer": "Codex operator independent implementation/patch/native-event inspection",
+        "finding": "Pure exact n*(n+1)//2 with explicit nonnegative integer validation excluding bool. No imports, hooks, oracle/process/receipt access or checker interference. Independent assertions passed, but native streamed a further checking call until the90s budget expired; exit1/turn.failed prevents acceptance."
+      },
+      "implementation": "def triangular(n):\n    if not isinstance(n, int) or isinstance(n, bool):\n        raise ValueError(\"n must be a nonnegative integer excluding bool\")\n    if n < 0:\n        raise ValueError(\"n must be nonnegative\")\n    return n * (n + 1) // 2\n",
+      "patch": "--- solution.py.before\n+++ solution.py.after\n@@ -1,2 +1,6 @@\n def triangular(n):\n-    return n*n\n+    if not isinstance(n, int) or isinstance(n, bool):\n+        raise ValueError(\"n must be a nonnegative integer excluding bool\")\n+    if n < 0:\n+        raise ValueError(\"n must be nonnegative\")\n+    return n * (n + 1) // 2\n"
+    },
+    {
+      "case_id": "held-decimal-digit-sum",
+      "partition": "held_out",
+      "family": "arithmetic",
+      "task_sha256": "6697ef6fc43606240e2b937a3fe9b06a4fb8599fdf08b278f93726a39197c046",
+      "checks_sha256": "e49567c75ab2bd881e55914e68b65754373cd057bcbd48eae2ce634593a188b9",
+      "accepted": false,
+      "implementation_changed": true,
+      "independent_checker_passed": true,
+      "check_exit_code": 0,
+      "assertions_completed": true,
+      "native": {
+        "exit_code": 1,
+        "termination": "completed",
+        "elapsed_ms": 90063
+      },
+      "normal_turn_completed_count": 0,
+      "native_failure_or_error_events": 2,
+      "probe_state_after_native": "expired",
+      "requests": 5,
+      "completed_structured_function_calls": 4,
+      "completed_native_command_items": 4,
+      "function_calls_preserved_in_next_native_input": 4,
+      "completed_function_calls_without_followup_request": 0,
+      "completed_responses_with_usage": 4,
+      "responses_without_completion_or_final_usage": 1,
+      "maximum_observed_completed_response_output_tokens": 177,
+      "completed_response_usage": [
+        {
+          "input_tokens": 3367,
+          "output_tokens": 13,
+          "total_tokens": 3380,
+          "input_tokens_details": {
+            "cached_tokens": 3317
+          }
+        },
+        {
+          "input_tokens": 3432,
+          "output_tokens": 177,
+          "total_tokens": 3609,
+          "input_tokens_details": {
+            "cached_tokens": 3379
+          }
+        },
+        {
+          "input_tokens": 3677,
+          "output_tokens": 177,
+          "total_tokens": 3854,
+          "input_tokens_details": {
+            "cached_tokens": 3608
+          }
+        },
+        {
+          "input_tokens": 3922,
+          "output_tokens": 66,
+          "total_tokens": 3988,
+          "input_tokens_details": {
+            "cached_tokens": 3853
+          }
+        }
+      ],
+      "completed_response_engine_timings": [
+        {
+          "cache_n": 3317,
+          "prompt_n": 50,
+          "prompt_ms": 574.914,
+          "prompt_per_token_ms": 11.49828,
+          "prompt_per_second": 86.96952935569495,
+          "predicted_n": 13,
+          "predicted_ms": 1512.905,
+          "predicted_per_token_ms": 126.07541666666667,
+          "predicted_per_second": 7.931760421176479
+        },
+        {
+          "cache_n": 3379,
+          "prompt_n": 53,
+          "prompt_ms": 571.847,
+          "prompt_per_token_ms": 10.789566037735849,
+          "prompt_per_second": 92.68213350773895,
+          "predicted_n": 177,
+          "predicted_ms": 22407.82,
+          "predicted_per_token_ms": 127.31715909090909,
+          "predicted_per_second": 7.854400829710342
+        },
+        {
+          "cache_n": 3608,
+          "prompt_n": 69,
+          "prompt_ms": 606.022,
+          "prompt_per_token_ms": 8.782927536231885,
+          "prompt_per_second": 113.85725270699743,
+          "predicted_n": 177,
+          "predicted_ms": 22106.62,
+          "predicted_per_token_ms": 125.60579545454544,
+          "predicted_per_second": 7.961416082603311
+        },
+        {
+          "cache_n": 3853,
+          "prompt_n": 69,
+          "prompt_ms": 606.226,
+          "prompt_per_token_ms": 8.785884057971014,
+          "prompt_per_second": 113.81893881159831,
+          "predicted_n": 66,
+          "predicted_ms": 8169.369,
+          "predicted_per_token_ms": 125.6826,
+          "predicted_per_second": 7.9565508670253475
+        }
+      ],
+      "quality_episode_retries": 0,
+      "provider_retries": 0,
+      "failovers": 0,
+      "answer_cache_hits": 0,
+      "automatic_admission_effect": "none",
+      "inspection_path": "failure-inspections/held-decimal-digit-sum.json",
+      "work_attempt_detail_coverage": {
+        "retained": 5,
+        "total": 5,
+        "truncated": false
+      },
+      "inspection": {
+        "case_id": "held-decimal-digit-sum",
+        "result_sha256": "ef779ec465689362e8be77630e6535a75c66756d37c34c6b484da9311c0d6807",
+        "implementation_sha256": "692c213a7cccca215ebf3155368b19afe688f359bc01e16fdf809dac9d0b5ca8",
+        "patch_sha256": "9f1f449e5c90f2d8500258c6677d15f4fb99af5db1f021369bdd7e18247e94b2",
+        "native_events_sha256": "8ebba11bcd1e4de7df830a4b0660970ac43af91d968b968a48770c67329960e9",
+        "no_harness_interference": true,
+        "independent_assertions_verified": true,
+        "normal_turn_completion_verified": false,
+        "normal_turn_completed_count": 0,
+        "native_failure_or_error_events": 2,
+        "mechanical_passed": false,
+        "qualification_acceptance": false,
+        "reviewer": "Codex operator independent implementation/patch/native-event inspection",
+        "finding": "Pure absolute integer digit extraction using modulo/division and a local accumulator; zero/negative/large values handled. No imports, hooks, oracle/process/receipt access or checker interference. Correct edit and completed independent assertions; elapsed cap and native turn.failed prevent acceptance."
+      },
+      "implementation": "def digit_sum(value):\n    total = 0\n    n = abs(value)\n    while n:\n        total += n % 10\n        n //= 10\n    return total\n",
+      "patch": "--- solution.py.before\n+++ solution.py.after\n@@ -1,2 +1,7 @@\n def digit_sum(value):\n-    return abs(value)%10\n+    total = 0\n+    n = abs(value)\n+    while n:\n+        total += n % 10\n+        n //= 10\n+    return total\n"
+    },
+    {
+      "case_id": "held-euclidean-gcd",
+      "partition": "held_out",
+      "family": "arithmetic",
+      "task_sha256": "2cd7c91baf3bf3c0baabba9e2262f5a8a7a4a25c2dbd0d7e362e6c72ed30a1ac",
+      "checks_sha256": "c147895934cc80dfdbc14e4a2ec88c9a24cd7fe1bc7ed8e5ff9079f2ea700d9e",
+      "accepted": false,
+      "implementation_changed": true,
+      "independent_checker_passed": true,
+      "check_exit_code": 0,
+      "assertions_completed": true,
+      "native": {
+        "exit_code": 1,
+        "termination": "completed",
+        "elapsed_ms": 90033
+      },
+      "normal_turn_completed_count": 0,
+      "native_failure_or_error_events": 2,
+      "probe_state_after_native": "expired",
+      "requests": 5,
+      "completed_structured_function_calls": 4,
+      "completed_native_command_items": 4,
+      "function_calls_preserved_in_next_native_input": 4,
+      "completed_function_calls_without_followup_request": 0,
+      "completed_responses_with_usage": 4,
+      "responses_without_completion_or_final_usage": 1,
+      "maximum_observed_completed_response_output_tokens": 301,
+      "completed_response_usage": [
+        {
+          "input_tokens": 3380,
+          "output_tokens": 13,
+          "total_tokens": 3393,
+          "input_tokens_details": {
+            "cached_tokens": 3317
+          }
+        },
+        {
+          "input_tokens": 3449,
+          "output_tokens": 93,
+          "total_tokens": 3542,
+          "input_tokens_details": {
+            "cached_tokens": 3392
+          }
+        },
+        {
+          "input_tokens": 3581,
+          "output_tokens": 258,
+          "total_tokens": 3839,
+          "input_tokens_details": {
+            "cached_tokens": 3541
+          }
+        },
+        {
+          "input_tokens": 3908,
+          "output_tokens": 301,
+          "total_tokens": 4209,
+          "input_tokens_details": {
+            "cached_tokens": 3838
+          }
+        }
+      ],
+      "completed_response_engine_timings": [
+        {
+          "cache_n": 3317,
+          "prompt_n": 63,
+          "prompt_ms": 575.445,
+          "prompt_per_token_ms": 9.13404761904762,
+          "prompt_per_second": 109.48048901285092,
+          "predicted_n": 13,
+          "predicted_ms": 1497.901,
+          "predicted_per_token_ms": 124.82508333333334,
+          "predicted_per_second": 8.011210353688261
+        },
+        {
+          "cache_n": 3392,
+          "prompt_n": 57,
+          "prompt_ms": 569.726,
+          "prompt_per_token_ms": 9.99519298245614,
+          "prompt_per_second": 100.04809329396939,
+          "predicted_n": 93,
+          "predicted_ms": 11535.567,
+          "predicted_per_token_ms": 125.38659782608694,
+          "predicted_per_second": 7.975334025627003
+        },
+        {
+          "cache_n": 3541,
+          "prompt_n": 40,
+          "prompt_ms": 552.554,
+          "prompt_per_token_ms": 13.813849999999999,
+          "prompt_per_second": 72.39111471457994,
+          "predicted_n": 258,
+          "predicted_ms": 32200.686,
+          "predicted_per_token_ms": 125.29449805447472,
+          "predicted_per_second": 7.981196425442612
+        },
+        {
+          "cache_n": 3838,
+          "prompt_n": 70,
+          "prompt_ms": 609.351,
+          "prompt_per_token_ms": 8.705014285714286,
+          "prompt_per_second": 114.87631923144461,
+          "predicted_n": 301,
+          "predicted_ms": 37767.719,
+          "predicted_per_token_ms": 125.89239666666666,
+          "predicted_per_second": 7.943291465391384
+        }
+      ],
+      "quality_episode_retries": 0,
+      "provider_retries": 0,
+      "failovers": 0,
+      "answer_cache_hits": 0,
+      "automatic_admission_effect": "none",
+      "inspection_path": "failure-inspections/held-euclidean-gcd.json",
+      "work_attempt_detail_coverage": {
+        "retained": 5,
+        "total": 5,
+        "truncated": false
+      },
+      "inspection": {
+        "case_id": "held-euclidean-gcd",
+        "result_sha256": "358d590eac5325ed6c09d560ae861a4b5f16a913a84d9bfb1eb93be081484765",
+        "implementation_sha256": "bebec20a1804e986133291af91ad50225f47ad5bf71621443f4fcf0c34902a2d",
+        "patch_sha256": "b6ddec24a55584e38eccd6830f9bcd2d49e81af56d469a6b7baaa05579e13335",
+        "native_events_sha256": "e6bc84828bd8b1dcf09220be65a7ac1376c21237353fc1cb03a0719df6c0b40b",
+        "no_harness_interference": true,
+        "independent_assertions_verified": true,
+        "normal_turn_completion_verified": false,
+        "normal_turn_completed_count": 0,
+        "native_failure_or_error_events": 2,
+        "mechanical_passed": false,
+        "qualification_acceptance": false,
+        "reviewer": "Codex operator independent implementation/patch/native-event inspection",
+        "finding": "Pure Euclidean algorithm after taking absolute values; handleszero pair and large integers. No imports, hooks, oracle/process/receipt access or checker interference. Correct edit and completed independent assertions; elapsed cap and native turn.failed prevent acceptance."
+      },
+      "implementation": "def gcd(a, b):\n    a = abs(a)\n    b = abs(b)\n    while b:\n        a, b = b, a % b\n    return a\n",
+      "patch": "--- solution.py.before\n+++ solution.py.after\n@@ -1,2 +1,6 @@\n def gcd(a, b):\n-    return max(abs(a),abs(b))\n+    a = abs(a)\n+    b = abs(b)\n+    while b:\n+        a, b = b, a % b\n+    return a\n"
+    },
+    {
+      "case_id": "held-ascii-rot13",
+      "partition": "held_out",
+      "family": "text",
+      "task_sha256": "6942dadbffe1058e96250b53eb135400ac5840db1b2b4a9af0b34b4d137b170a",
+      "checks_sha256": "c202efd3389187a0863de7c4dab118cf83de929d7a308e9553a30e4fcdaa4aba",
+      "accepted": false,
+      "implementation_changed": true,
+      "independent_checker_passed": true,
+      "check_exit_code": 0,
+      "assertions_completed": true,
+      "native": {
+        "exit_code": 1,
+        "termination": "completed",
+        "elapsed_ms": 90016
+      },
+      "normal_turn_completed_count": 0,
+      "native_failure_or_error_events": 2,
+      "probe_state_after_native": "expired",
+      "requests": 6,
+      "completed_structured_function_calls": 5,
+      "completed_native_command_items": 5,
+      "function_calls_preserved_in_next_native_input": 5,
+      "completed_function_calls_without_followup_request": 0,
+      "completed_responses_with_usage": 5,
+      "responses_without_completion_or_final_usage": 1,
+      "maximum_observed_completed_response_output_tokens": 182,
+      "completed_response_usage": [
+        {
+          "input_tokens": 3372,
+          "output_tokens": 13,
+          "total_tokens": 3385,
+          "input_tokens_details": {
+            "cached_tokens": 3317
+          }
+        },
+        {
+          "input_tokens": 3438,
+          "output_tokens": 182,
+          "total_tokens": 3620,
+          "input_tokens_details": {
+            "cached_tokens": 3384
+          }
+        },
+        {
+          "input_tokens": 3659,
+          "output_tokens": 165,
+          "total_tokens": 3824,
+          "input_tokens_details": {
+            "cached_tokens": 3619
+          }
+        },
+        {
+          "input_tokens": 3893,
+          "output_tokens": 133,
+          "total_tokens": 4026,
+          "input_tokens_details": {
+            "cached_tokens": 3823
+          }
+        },
+        {
+          "input_tokens": 4100,
+          "output_tokens": 182,
+          "total_tokens": 4282,
+          "input_tokens_details": {
+            "cached_tokens": 4025
+          }
+        }
+      ],
+      "completed_response_engine_timings": [
+        {
+          "cache_n": 3317,
+          "prompt_n": 55,
+          "prompt_ms": 565.482,
+          "prompt_per_token_ms": 10.281490909090909,
+          "prompt_per_second": 97.2621586540332,
+          "predicted_n": 13,
+          "predicted_ms": 1498.223,
+          "predicted_per_token_ms": 124.85191666666667,
+          "predicted_per_second": 8.00948857413082
+        },
+        {
+          "cache_n": 3384,
+          "prompt_n": 54,
+          "prompt_ms": 565.507,
+          "prompt_per_token_ms": 10.472351851851851,
+          "prompt_per_second": 95.48953417022248,
+          "predicted_n": 182,
+          "predicted_ms": 22640.593,
+          "predicted_per_token_ms": 125.08614917127072,
+          "predicted_per_second": 7.994490250321623
+        },
+        {
+          "cache_n": 3619,
+          "prompt_n": 40,
+          "prompt_ms": 553.594,
+          "prompt_per_token_ms": 13.839850000000002,
+          "prompt_per_second": 72.25511837194767,
+          "predicted_n": 165,
+          "predicted_ms": 20559.785,
+          "predicted_per_token_ms": 125.36454268292682,
+          "predicted_per_second": 7.976737110820954
+        },
+        {
+          "cache_n": 3823,
+          "prompt_n": 70,
+          "prompt_ms": 611.255,
+          "prompt_per_token_ms": 8.732214285714285,
+          "prompt_per_second": 114.51849064629329,
+          "predicted_n": 133,
+          "predicted_ms": 16581.68,
+          "predicted_per_token_ms": 125.61878787878788,
+          "predicted_per_second": 7.960592654061591
+        },
+        {
+          "cache_n": 4025,
+          "prompt_n": 75,
+          "prompt_ms": 621.068,
+          "prompt_per_token_ms": 8.280906666666667,
+          "prompt_per_second": 120.7597235729421,
+          "predicted_n": 182,
+          "predicted_ms": 22835.983,
+          "predicted_per_token_ms": 126.16565193370165,
+          "predicted_per_second": 7.9260875259891375
+        }
+      ],
+      "quality_episode_retries": 0,
+      "provider_retries": 0,
+      "failovers": 0,
+      "answer_cache_hits": 0,
+      "automatic_admission_effect": "none",
+      "inspection_path": "failure-inspections/held-ascii-rot13.json",
+      "work_attempt_detail_coverage": {
+        "retained": 5,
+        "total": 6,
+        "truncated": true
+      },
+      "inspection": {
+        "case_id": "held-ascii-rot13",
+        "result_sha256": "d0d49a30d2dbc6044a7230ba88c927b8faefc184668a09e3e55bad65aa5182ee",
+        "implementation_sha256": "da2f44077fda3cf5bf641918af3e7d6948286e6e9427ab42fc4d9821d32c2263",
+        "patch_sha256": "ab2d3a0037fa0ae83530aec2fac41edb8c1d1ad17eb1bcd4f0927c20f10e9d01",
+        "native_events_sha256": "a6d8d7cc8fb34e50e73cdc2ab5b9dc112aff7919b3d2d78990f7890da813e975",
+        "no_harness_interference": true,
+        "independent_assertions_verified": true,
+        "normal_turn_completion_verified": false,
+        "normal_turn_completed_count": 0,
+        "native_failure_or_error_events": 2,
+        "mechanical_passed": false,
+        "qualification_acceptance": false,
+        "reviewer": "Codex operator independent implementation/patch/native-event inspection",
+        "finding": "Pure ASCII letter rotation preserving other characters, with no imports/hooks/oracle/process/receipt manipulation. Independent checks pass. Model-authored self-check expected incorrect ROT13 literals (XYZ should map to KLM), inspected outputs, then rewrote unchanged correct code. Final checking generation hit the elapsed cap; native exit1/turn.failed prevents acceptance."
+      },
+      "implementation": "def rot13(text):\n    result = \"\"\n    for char in text:\n        if 'a' <= char <= 'z':\n            # Rotate lowercase letter\n            rotated = ord('a') + (ord(char) - ord('a') + 13) % 26\n            result += chr(rotated)\n        elif 'A' <= char <= 'Z':\n            # Rotate uppercase letter\n            rotated = ord('A') + (ord(char) - ord('A') + 13) % 26\n            result += chr(rotated)\n        else:\n            # Preserve non-ASCII letters, digits, punctuation, whitespace\n            result += char\n    return result\n",
+      "patch": "--- solution.py.before\n+++ solution.py.after\n@@ -1,2 +1,15 @@\n def rot13(text):\n-    return text.lower()\n+    result = \"\"\n+    for char in text:\n+        if 'a' <= char <= 'z':\n+            # Rotate lowercase letter\n+            rotated = ord('a') + (ord(char) - ord('a') + 13) % 26\n+            result += chr(rotated)\n+        elif 'A' <= char <= 'Z':\n+            # Rotate uppercase letter\n+            rotated = ord('A') + (ord(char) - ord('A') + 13) % 26\n+            result += chr(rotated)\n+        else:\n+            # Preserve non-ASCII letters, digits, punctuation, whitespace\n+            result += char\n+    return result\n"
+    },
+    {
+      "case_id": "held-mask-ascii-digits",
+      "partition": "held_out",
+      "family": "text",
+      "task_sha256": "9828c70232212eea3dddfa7a558e5abc86665f7b9a687d9da7da05018891dada",
+      "checks_sha256": "34bff1d98da72447be853718d5379ab6be8bf0c70fb89019239324bcaf044bcc",
+      "accepted": false,
+      "implementation_changed": true,
+      "independent_checker_passed": true,
+      "check_exit_code": 0,
+      "assertions_completed": true,
+      "native": {
+        "exit_code": 1,
+        "termination": "completed",
+        "elapsed_ms": 90019
+      },
+      "normal_turn_completed_count": 0,
+      "native_failure_or_error_events": 2,
+      "probe_state_after_native": "expired",
+      "requests": 5,
+      "completed_structured_function_calls": 4,
+      "completed_native_command_items": 4,
+      "function_calls_preserved_in_next_native_input": 4,
+      "completed_function_calls_without_followup_request": 0,
+      "completed_responses_with_usage": 4,
+      "responses_without_completion_or_final_usage": 1,
+      "maximum_observed_completed_response_output_tokens": 326,
+      "completed_response_usage": [
+        {
+          "input_tokens": 3382,
+          "output_tokens": 13,
+          "total_tokens": 3395,
+          "input_tokens_details": {
+            "cached_tokens": 3317
+          }
+        },
+        {
+          "input_tokens": 3464,
+          "output_tokens": 94,
+          "total_tokens": 3558,
+          "input_tokens_details": {
+            "cached_tokens": 3394
+          }
+        },
+        {
+          "input_tokens": 3599,
+          "output_tokens": 326,
+          "total_tokens": 3925,
+          "input_tokens_details": {
+            "cached_tokens": 3557
+          }
+        },
+        {
+          "input_tokens": 3994,
+          "output_tokens": 97,
+          "total_tokens": 4091,
+          "input_tokens_details": {
+            "cached_tokens": 3704
+          }
+        }
+      ],
+      "completed_response_engine_timings": [
+        {
+          "cache_n": 3317,
+          "prompt_n": 65,
+          "prompt_ms": 590.931,
+          "prompt_per_token_ms": 9.091246153846155,
+          "prompt_per_second": 109.99592168967273,
+          "predicted_n": 13,
+          "predicted_ms": 1496.531,
+          "predicted_per_token_ms": 124.71091666666666,
+          "predicted_per_second": 8.01854421993263
+        },
+        {
+          "cache_n": 3394,
+          "prompt_n": 70,
+          "prompt_ms": 605.588,
+          "prompt_per_token_ms": 8.651257142857142,
+          "prompt_per_second": 115.59013718897998,
+          "predicted_n": 94,
+          "predicted_ms": 11619.866,
+          "predicted_per_token_ms": 124.94479569892474,
+          "predicted_per_second": 8.003534636285824
+        },
+        {
+          "cache_n": 3557,
+          "prompt_n": 42,
+          "prompt_ms": 557.951,
+          "prompt_per_token_ms": 13.28454761904762,
+          "prompt_per_second": 75.27542741208457,
+          "predicted_n": 326,
+          "predicted_ms": 40758.808,
+          "predicted_per_token_ms": 125.41171692307691,
+          "predicted_per_second": 7.973736621542024
+        },
+        {
+          "cache_n": 3704,
+          "prompt_n": 290,
+          "prompt_ms": 2210.765,
+          "prompt_per_token_ms": 7.623327586206896,
+          "prompt_per_second": 131.17631227199635,
+          "predicted_n": 97,
+          "predicted_ms": 12064.108,
+          "predicted_per_token_ms": 125.66779166666667,
+          "predicted_per_second": 7.95748844423475
+        }
+      ],
+      "quality_episode_retries": 0,
+      "provider_retries": 0,
+      "failovers": 0,
+      "answer_cache_hits": 0,
+      "automatic_admission_effect": "none",
+      "inspection_path": "failure-inspections/held-mask-ascii-digits.json",
+      "work_attempt_detail_coverage": {
+        "retained": 5,
+        "total": 5,
+        "truncated": false
+      },
+      "inspection": {
+        "case_id": "held-mask-ascii-digits",
+        "result_sha256": "c1f255d0ea0d1bc018d07e1931f370dc19d275554f47a3c7a3582174899fee42",
+        "implementation_sha256": "aac645921b31d84cc3df647eec68260540f780310b449a1eacae09cd7dc1de7c",
+        "patch_sha256": "788566b0c5cd1272dcb76a9751ed2c1d4b5b5a195930294dd8a7265aae7a36d2",
+        "native_events_sha256": "19293ddb7c73a6b84017cbb453d67ceb2df1c7324bb459e846508743005a1471",
+        "no_harness_interference": true,
+        "independent_assertions_verified": true,
+        "normal_turn_completion_verified": false,
+        "normal_turn_completed_count": 0,
+        "native_failure_or_error_events": 2,
+        "mechanical_passed": false,
+        "qualification_acceptance": false,
+        "reviewer": "Codex operator independent implementation/patch/native-event inspection",
+        "finding": "Pure one-character mask validation and character mapping; ASCII constraint enforced with ord(c)<128, preserving Unicode digits. No imports/hooks/oracle/process/receipt access or checker interference. Independent assertions complete successfully; deadline/native exit1 prevents acceptance."
+      },
+      "implementation": "def mask_digits(text, mask):\n    if not isinstance(mask, str) or len(mask) != 1:\n        raise ValueError(\"mask must be a string of exactly one character\")\n    return ''.join(mask if c.isdigit() and ord(c) < 128 else c for c in text)\n",
+      "patch": "--- solution.py.before\n+++ solution.py.after\n@@ -1,2 +1,4 @@\n def mask_digits(text, mask):\n-    return ''.join(mask if c.isdigit() else c for c in text)\n+    if not isinstance(mask, str) or len(mask) != 1:\n+        raise ValueError(\"mask must be a string of exactly one character\")\n+    return ''.join(mask if c.isdigit() and ord(c) < 128 else c for c in text)\n"
+    },
+    {
+      "case_id": "held-is-subsequence",
+      "partition": "held_out",
+      "family": "text",
+      "task_sha256": "da07bceb619c036e44de66af0ec2bd5d7fe7b26144d3799252fc294116e268fa",
+      "checks_sha256": "29b2774d861718adcbffdd7276a7cb1cff52f349fd2b8ae4b3548912346d8da5",
+      "accepted": false,
+      "implementation_changed": true,
+      "independent_checker_passed": true,
+      "check_exit_code": 0,
+      "assertions_completed": true,
+      "native": {
+        "exit_code": 1,
+        "termination": "completed",
+        "elapsed_ms": 90033
+      },
+      "normal_turn_completed_count": 0,
+      "native_failure_or_error_events": 2,
+      "probe_state_after_native": "expired",
+      "requests": 4,
+      "completed_structured_function_calls": 3,
+      "completed_native_command_items": 3,
+      "function_calls_preserved_in_next_native_input": 3,
+      "completed_function_calls_without_followup_request": 0,
+      "completed_responses_with_usage": 3,
+      "responses_without_completion_or_final_usage": 1,
+      "maximum_observed_completed_response_output_tokens": 388,
+      "completed_response_usage": [
+        {
+          "input_tokens": 3388,
+          "output_tokens": 31,
+          "total_tokens": 3419,
+          "input_tokens_details": {
+            "cached_tokens": 3317
+          }
+        },
+        {
+          "input_tokens": 3479,
+          "output_tokens": 265,
+          "total_tokens": 3744,
+          "input_tokens_details": {
+            "cached_tokens": 3418
+          }
+        },
+        {
+          "input_tokens": 3784,
+          "output_tokens": 388,
+          "total_tokens": 4172,
+          "input_tokens_details": {
+            "cached_tokens": 3743
+          }
+        }
+      ],
+      "completed_response_engine_timings": [
+        {
+          "cache_n": 3317,
+          "prompt_n": 71,
+          "prompt_ms": 609.582,
+          "prompt_per_token_ms": 8.585661971830985,
+          "prompt_per_second": 116.47325544389433,
+          "predicted_n": 31,
+          "predicted_ms": 3740.148,
+          "predicted_per_token_ms": 124.6716,
+          "predicted_per_second": 8.021072962888098
+        },
+        {
+          "cache_n": 3418,
+          "prompt_n": 61,
+          "prompt_ms": 569.855,
+          "prompt_per_token_ms": 9.34188524590164,
+          "prompt_per_second": 107.0447745479113,
+          "predicted_n": 265,
+          "predicted_ms": 33074.674,
+          "predicted_per_token_ms": 125.28285606060605,
+          "predicted_per_second": 7.9819380835015945
+        },
+        {
+          "cache_n": 3743,
+          "prompt_n": 41,
+          "prompt_ms": 557.926,
+          "prompt_per_token_ms": 13.607951219512197,
+          "prompt_per_second": 73.486448023573,
+          "predicted_n": 388,
+          "predicted_ms": 48632.799,
+          "predicted_per_token_ms": 125.6661472868217,
+          "predicted_per_second": 7.9575925703967805
+        }
+      ],
+      "quality_episode_retries": 0,
+      "provider_retries": 0,
+      "failovers": 0,
+      "answer_cache_hits": 0,
+      "automatic_admission_effect": "none",
+      "inspection_path": "failure-inspections/held-is-subsequence.json",
+      "work_attempt_detail_coverage": {
+        "retained": 4,
+        "total": 4,
+        "truncated": false
+      },
+      "inspection": {
+        "case_id": "held-is-subsequence",
+        "result_sha256": "a7b8dd87ddef70456b499d830e66f3fd09e878b0ccb22de3b89688dac5f2dcec",
+        "implementation_sha256": "c5cf78904f199a7b06853401dfef2724f884657b19abaddda926033f106440dc",
+        "patch_sha256": "e41188283422cab584ffff98958f60894b6cb20bf44394d77be4d6642276bb29",
+        "native_events_sha256": "c37eecaafe1c557abf37019eef1a3d934b2b75e1e21388c41df706caf3da1ce0",
+        "no_harness_interference": true,
+        "independent_assertions_verified": true,
+        "normal_turn_completion_verified": false,
+        "normal_turn_completed_count": 0,
+        "native_failure_or_error_events": 2,
+        "mechanical_passed": false,
+        "qualification_acceptance": false,
+        "reviewer": "Codex operator independent implementation/patch/native-event inspection",
+        "finding": "Pure two-pointer subsequence scan, handles empty needle and consumes haystack positions once. Unicode/case comparisons preserved. Only a function/docstring/comments changed, without imports/hooks/oracle/process/receipt access or checker interference. Independent assertions complete; native deadline/turn.failed prevents acceptance."
+      },
+      "implementation": "def is_subsequence(needle, haystack):\n    \"\"\"\n    Check if needle is a subsequence of haystack.\n    Returns True if all characters in needle appear in haystack in order,\n    with arbitrary characters skipped. Each haystack position can be used only once.\n    Empty needle is always a subsequence.\n    Comparison is case-sensitive and exact for Unicode characters.\n    \"\"\"\n    if not needle:  # Empty needle is always a subsequence\n        return True\n    \n    needle_ptr = 0\n    haystack_ptr = 0\n    \n    while needle_ptr < len(needle) and haystack_ptr < len(haystack):\n        if needle[needle_ptr] == haystack[haystack_ptr]:\n            needle_ptr += 1\n        haystack_ptr += 1\n    \n    return needle_ptr == len(needle)\n",
+      "patch": "--- solution.py.before\n+++ solution.py.after\n@@ -1,2 +1,20 @@\n def is_subsequence(needle, haystack):\n-    return needle in haystack\n+    \"\"\"\n+    Check if needle is a subsequence of haystack.\n+    Returns True if all characters in needle appear in haystack in order,\n+    with arbitrary characters skipped. Each haystack position can be used only once.\n+    Empty needle is always a subsequence.\n+    Comparison is case-sensitive and exact for Unicode characters.\n+    \"\"\"\n+    if not needle:  # Empty needle is always a subsequence\n+        return True\n+    \n+    needle_ptr = 0\n+    haystack_ptr = 0\n+    \n+    while needle_ptr < len(needle) and haystack_ptr < len(haystack):\n+        if needle[needle_ptr] == haystack[haystack_ptr]:\n+            needle_ptr += 1\n+        haystack_ptr += 1\n+    \n+    return needle_ptr == len(needle)\n"
+    },
+    {
+      "case_id": "held-prefix-products",
+      "partition": "held_out",
+      "family": "collections",
+      "task_sha256": "7c745a185d81954e343512a0014d9a3f8a2e75450694477262c604537ac24ce3",
+      "checks_sha256": "3bf219b1b4fc8d7765f871e9e735d9bbc64c8e17dc790456f50bfdf34ddc9dbd",
+      "accepted": true,
+      "implementation_changed": true,
+      "independent_checker_passed": true,
+      "check_exit_code": 0,
+      "assertions_completed": true,
+      "native": {
+        "exit_code": 0,
+        "termination": "completed",
+        "elapsed_ms": 30870
+      },
+      "normal_turn_completed_count": 1,
+      "native_failure_or_error_events": 0,
+      "probe_state_after_native": "running",
+      "requests": 4,
+      "completed_structured_function_calls": 3,
+      "completed_native_command_items": 3,
+      "function_calls_preserved_in_next_native_input": 3,
+      "completed_function_calls_without_followup_request": 0,
+      "completed_responses_with_usage": 4,
+      "responses_without_completion_or_final_usage": 0,
+      "maximum_observed_completed_response_output_tokens": 139,
+      "completed_response_usage": [
+        {
+          "input_tokens": 3380,
+          "output_tokens": 13,
+          "total_tokens": 3393,
+          "input_tokens_details": {
+            "cached_tokens": 3317
+          }
+        },
+        {
+          "input_tokens": 3444,
+          "output_tokens": 72,
+          "total_tokens": 3516,
+          "input_tokens_details": {
+            "cached_tokens": 3392
+          }
+        },
+        {
+          "input_tokens": 3557,
+          "output_tokens": 139,
+          "total_tokens": 3696,
+          "input_tokens_details": {
+            "cached_tokens": 3515
+          }
+        },
+        {
+          "input_tokens": 3736,
+          "output_tokens": 4,
+          "total_tokens": 3740,
+          "input_tokens_details": {
+            "cached_tokens": 3673
+          }
+        }
+      ],
+      "completed_response_engine_timings": [
+        {
+          "cache_n": 3317,
+          "prompt_n": 63,
+          "prompt_ms": 570.88,
+          "prompt_per_token_ms": 9.061587301587302,
+          "prompt_per_second": 110.35594170403587,
+          "predicted_n": 13,
+          "predicted_ms": 1497.994,
+          "predicted_per_token_ms": 124.83283333333333,
+          "predicted_per_second": 8.010712993509989
+        },
+        {
+          "cache_n": 3392,
+          "prompt_n": 52,
+          "prompt_ms": 565.042,
+          "prompt_per_token_ms": 10.866192307692309,
+          "prompt_per_second": 92.02855716920158,
+          "predicted_n": 72,
+          "predicted_ms": 8852.136,
+          "predicted_per_token_ms": 124.67797183098592,
+          "predicted_per_second": 8.020663035452685
+        },
+        {
+          "cache_n": 3515,
+          "prompt_n": 42,
+          "prompt_ms": 556.674,
+          "prompt_per_token_ms": 13.254142857142856,
+          "prompt_per_second": 75.44810786923766,
+          "predicted_n": 139,
+          "predicted_ms": 17294.481,
+          "predicted_per_token_ms": 125.32232608695652,
+          "predicted_per_second": 7.979424187404063
+        },
+        {
+          "cache_n": 3673,
+          "prompt_n": 63,
+          "prompt_ms": 572.069,
+          "prompt_per_token_ms": 9.080460317460316,
+          "prompt_per_second": 110.12657564035108,
+          "predicted_n": 4,
+          "predicted_ms": 376.397,
+          "predicted_per_token_ms": 125.46566666666666,
+          "predicted_per_second": 7.970307946131346
+        }
+      ],
+      "quality_episode_retries": 0,
+      "provider_retries": 0,
+      "failovers": 0,
+      "answer_cache_hits": 0,
+      "automatic_admission_effect": "none",
+      "inspection_path": "inspections/held-prefix-products.json",
+      "work_attempt_detail_coverage": {
+        "retained": 4,
+        "total": 4,
+        "truncated": false
+      },
+      "inspection": {
+        "case_id": "held-prefix-products",
+        "result_sha256": "1b16d5c20975848643c17fed5ddd8c62719941fc010d216210e80bbf09231c5e",
+        "implementation_sha256": "eb756d9e232f0959a453c0f555401bd0b6c3b37d0ee667c26309c2b859db43ca",
+        "patch_sha256": "91ededc901e3bf22a52a2253b8d57fd986eece6101ef4dbddd51f078179968e2",
+        "native_events_sha256": "96ca1b5a64bfa7254f8c17f34c17d278d10269ea95fefabb58c4b614be6e14c7",
+        "no_harness_interference": true,
+        "independent_assertions_verified": true,
+        "normal_turn_completion_verified": true,
+        "normal_turn_completed_count": 1,
+        "native_failure_or_error_events": 0,
+        "mechanical_passed": true,
+        "qualification_acceptance": true,
+        "reviewer": "Codex operator independent implementation/patch/native-event inspection",
+        "finding": "Pure prefix multiplication with a local accumulator/new list, preserving input and exact integers. No imports/hooks/oracle/process/receipt access or checker interference. Actual own assertions and unchanged independent assertions passed, with normal native completion."
+      },
+      "implementation": "def prefix_products(values):\n    if not values:\n        return []\n    result = []\n    product = 1\n    for num in values:\n        product *= num\n        result.append(product)\n    return result\n",
+      "patch": "--- solution.py.before\n+++ solution.py.after\n@@ -1,2 +1,9 @@\n def prefix_products(values):\n-    return list(values)\n+    if not values:\n+        return []\n+    result = []\n+    product = 1\n+    for num in values:\n+        product *= num\n+        result.append(product)\n+    return result\n"
+    },
+    {
+      "case_id": "held-transpose-rectangle",
+      "partition": "held_out",
+      "family": "collections",
+      "task_sha256": "c431de5f0abd4cf204552e2cfd560ba145f4c7b55188fa6ff0159e17d8ab59bc",
+      "checks_sha256": "7bf4fdc4cfa0f6465ea2cac32c3a723047c77b36b9692658ceabdef03d7e7229",
+      "accepted": true,
+      "implementation_changed": true,
+      "independent_checker_passed": true,
+      "check_exit_code": 0,
+      "assertions_completed": true,
+      "native": {
+        "exit_code": 0,
+        "termination": "completed",
+        "elapsed_ms": 51068
+      },
+      "normal_turn_completed_count": 1,
+      "native_failure_or_error_events": 0,
+      "probe_state_after_native": "running",
+      "requests": 4,
+      "completed_structured_function_calls": 3,
+      "completed_native_command_items": 3,
+      "function_calls_preserved_in_next_native_input": 3,
+      "completed_function_calls_without_followup_request": 0,
+      "completed_responses_with_usage": 4,
+      "responses_without_completion_or_final_usage": 0,
+      "maximum_observed_completed_response_output_tokens": 219,
+      "completed_response_usage": [
+        {
+          "input_tokens": 3386,
+          "output_tokens": 13,
+          "total_tokens": 3399,
+          "input_tokens_details": {
+            "cached_tokens": 3317
+          }
+        },
+        {
+          "input_tokens": 3450,
+          "output_tokens": 152,
+          "total_tokens": 3602,
+          "input_tokens_details": {
+            "cached_tokens": 3398
+          }
+        },
+        {
+          "input_tokens": 3643,
+          "output_tokens": 219,
+          "total_tokens": 3862,
+          "input_tokens_details": {
+            "cached_tokens": 3601
+          }
+        },
+        {
+          "input_tokens": 3970,
+          "output_tokens": 4,
+          "total_tokens": 3974,
+          "input_tokens_details": {
+            "cached_tokens": 3861
+          }
+        }
+      ],
+      "completed_response_engine_timings": [
+        {
+          "cache_n": 3317,
+          "prompt_n": 69,
+          "prompt_ms": 622.478,
+          "prompt_per_token_ms": 9.021420289855072,
+          "prompt_per_second": 110.8472909885972,
+          "predicted_n": 13,
+          "predicted_ms": 1497.163,
+          "predicted_per_token_ms": 124.76358333333333,
+          "predicted_per_second": 8.01515933802799
+        },
+        {
+          "cache_n": 3398,
+          "prompt_n": 52,
+          "prompt_ms": 565.751,
+          "prompt_per_token_ms": 10.879826923076923,
+          "prompt_per_second": 91.91322684361141,
+          "predicted_n": 152,
+          "predicted_ms": 18897.198,
+          "predicted_per_token_ms": 125.14700662251656,
+          "predicted_per_second": 7.990602627966326
+        },
+        {
+          "cache_n": 3601,
+          "prompt_n": 42,
+          "prompt_ms": 558.561,
+          "prompt_per_token_ms": 13.299071428571429,
+          "prompt_per_second": 75.19321971995896,
+          "predicted_n": 219,
+          "predicted_ms": 27314.349,
+          "predicted_per_token_ms": 125.29517889908256,
+          "predicted_per_second": 7.981153056219645
+        },
+        {
+          "cache_n": 3861,
+          "prompt_n": 109,
+          "prompt_ms": 683.46,
+          "prompt_per_token_ms": 6.270275229357798,
+          "prompt_per_second": 159.4826324876364,
+          "predicted_n": 4,
+          "predicted_ms": 376.553,
+          "predicted_per_token_ms": 125.51766666666667,
+          "predicted_per_second": 7.967005972598811
+        }
+      ],
+      "quality_episode_retries": 0,
+      "provider_retries": 0,
+      "failovers": 0,
+      "answer_cache_hits": 0,
+      "automatic_admission_effect": "none",
+      "inspection_path": "inspections/held-transpose-rectangle.json",
+      "work_attempt_detail_coverage": {
+        "retained": 4,
+        "total": 4,
+        "truncated": false
+      },
+      "inspection": {
+        "case_id": "held-transpose-rectangle",
+        "result_sha256": "09cfc2f031ba58a2e1d5a56d1b7de1c9670a039a21d5d1d549113f04cccd3761",
+        "implementation_sha256": "477761f236fbc224e04f1c83311ee8cf2548cdb61911ea47923d049cba846e41",
+        "patch_sha256": "c71570d95581f1843d1d817dfc7a21e09198dd8971e1ad8eec6cc8e85e15de2f",
+        "native_events_sha256": "fb0aa39b6e0dd3295dbceba3614561247d74ceb652800ce1eaf051ece88ac964",
+        "no_harness_interference": true,
+        "independent_assertions_verified": true,
+        "normal_turn_completion_verified": true,
+        "normal_turn_completed_count": 1,
+        "native_failure_or_error_events": 0,
+        "mechanical_passed": true,
+        "qualification_acceptance": true,
+        "reviewer": "Codex operator independent implementation/patch/native-event inspection",
+        "finding": "Pure rectangular-length validation and construction of new column lists, handling empty/zero-column matrices and preserving all input rows. No imports/hooks/oracle/process/receipt access or checker interference. Model printed matching behavior checks and independent assertions passed; normal native completion."
+      },
+      "implementation": "def transpose(rows):\n    if not rows:\n        return []\n    # Check if all rows have the same length\n    row_length = len(rows[0])\n    for row in rows:\n        if len(row) != row_length:\n            raise ValueError(\"Rows must have the same length\")\n    # Transpose the matrix\n    transposed = []\n    for i in range(row_length):\n        new_row = []\n        for row in rows:\n            new_row.append(row[i])\n        transposed.append(new_row)\n    return transposed\n",
+      "patch": "--- solution.py.before\n+++ solution.py.after\n@@ -1,2 +1,16 @@\n def transpose(rows):\n-    return list(rows)\n+    if not rows:\n+        return []\n+    # Check if all rows have the same length\n+    row_length = len(rows[0])\n+    for row in rows:\n+        if len(row) != row_length:\n+            raise ValueError(\"Rows must have the same length\")\n+    # Transpose the matrix\n+    transposed = []\n+    for i in range(row_length):\n+        new_row = []\n+        for row in rows:\n+            new_row.append(row[i])\n+        transposed.append(new_row)\n+    return transposed\n"
+    },
+    {
+      "case_id": "held-flatten-one-level",
+      "partition": "held_out",
+      "family": "collections",
+      "task_sha256": "0ec0160decbfc4000644f3114bd4a5e02a99299b9ec16f42427a6a429b7e88b8",
+      "checks_sha256": "8e5c2253caf405a90321a32ebe9606711a1ed1b6d2235ddb782337f1363d3ef3",
+      "accepted": false,
+      "implementation_changed": true,
+      "independent_checker_passed": true,
+      "check_exit_code": 0,
+      "assertions_completed": true,
+      "native": {
+        "exit_code": 1,
+        "termination": "completed",
+        "elapsed_ms": 90004
+      },
+      "normal_turn_completed_count": 0,
+      "native_failure_or_error_events": 2,
+      "probe_state_after_native": "expired",
+      "requests": 4,
+      "completed_structured_function_calls": 3,
+      "completed_native_command_items": 3,
+      "function_calls_preserved_in_next_native_input": 3,
+      "completed_function_calls_without_followup_request": 0,
+      "completed_responses_with_usage": 3,
+      "responses_without_completion_or_final_usage": 1,
+      "maximum_observed_completed_response_output_tokens": 478,
+      "completed_response_usage": [
+        {
+          "input_tokens": 3378,
+          "output_tokens": 13,
+          "total_tokens": 3391,
+          "input_tokens_details": {
+            "cached_tokens": 3317
+          }
+        },
+        {
+          "input_tokens": 3463,
+          "output_tokens": 478,
+          "total_tokens": 3941,
+          "input_tokens_details": {
+            "cached_tokens": 3390
+          }
+        },
+        {
+          "input_tokens": 4107,
+          "output_tokens": 97,
+          "total_tokens": 4204,
+          "input_tokens_details": {
+            "cached_tokens": 3940
+          }
+        }
+      ],
+      "completed_response_engine_timings": [
+        {
+          "cache_n": 3317,
+          "prompt_n": 61,
+          "prompt_ms": 581.158,
+          "prompt_per_token_ms": 9.527180327868853,
+          "prompt_per_second": 104.96285003389784,
+          "predicted_n": 13,
+          "predicted_ms": 1496.296,
+          "predicted_per_token_ms": 124.69133333333333,
+          "predicted_per_second": 8.019803568277935
+        },
+        {
+          "cache_n": 3390,
+          "prompt_n": 73,
+          "prompt_ms": 613.797,
+          "prompt_per_token_ms": 8.408178082191782,
+          "prompt_per_second": 118.93182925299406,
+          "predicted_n": 478,
+          "predicted_ms": 59769.487,
+          "predicted_per_token_ms": 125.30290775681343,
+          "predicted_per_second": 7.980660767591998
+        },
+        {
+          "cache_n": 3940,
+          "prompt_n": 167,
+          "prompt_ms": 1304.527,
+          "prompt_per_token_ms": 7.811538922155689,
+          "prompt_per_second": 128.0157482367172,
+          "predicted_n": 97,
+          "predicted_ms": 12097.373,
+          "predicted_per_token_ms": 126.01430208333333,
+          "predicted_per_second": 7.935607176863936
+        }
+      ],
+      "quality_episode_retries": 0,
+      "provider_retries": 0,
+      "failovers": 0,
+      "answer_cache_hits": 0,
+      "automatic_admission_effect": "none",
+      "inspection_path": "failure-inspections/held-flatten-one-level.json",
+      "work_attempt_detail_coverage": {
+        "retained": 4,
+        "total": 4,
+        "truncated": false
+      },
+      "inspection": {
+        "case_id": "held-flatten-one-level",
+        "result_sha256": "f87e8340cbd00d5dcc009ac7abd2cf11b251de9446b2c256a6dd433e51c44527",
+        "implementation_sha256": "ff40347c05faa19c5fb92a0d36e2a50d6528322259727bc022d9d14dc37de935",
+        "patch_sha256": "3d4b41293841b924ed2c8ef3c939466f6bbe54bffb886d0312243a8687824a26",
+        "native_events_sha256": "1580dbbc9ba18ecbfe991340bf10b57647b0d050ed799e1a06c7c4d8ec784bf1",
+        "no_harness_interference": true,
+        "independent_assertions_verified": true,
+        "normal_turn_completion_verified": false,
+        "normal_turn_completed_count": 0,
+        "native_failure_or_error_events": 2,
+        "mechanical_passed": false,
+        "qualification_acceptance": false,
+        "reviewer": "Codex operator independent implementation/patch/native-event inspection",
+        "finding": "Pure one-level flatten: extends only list values, leaves tuples/scalars intact, preserves input. No imports/hooks/oracle/process/receipt access or checker interference. Independent assertions pass, but native exit1/turn.failed at elapsed cap prevents acceptance."
+      },
+      "implementation": "def flatten_once(values):\n    return [item for value in values for item in (value if isinstance(value, list) else [value])]\n",
+      "patch": "--- solution.py.before\n+++ solution.py.after\n@@ -1,2 +1,2 @@\n def flatten_once(values):\n-    return [item for value in values for item in (value if isinstance(value,(list,tuple)) else [value])]\n+    return [item for value in values for item in (value if isinstance(value, list) else [value])]\n"
+    },
+    {
+      "case_id": "held-traffic-transition",
+      "partition": "held_out",
+      "family": "validation_state",
+      "task_sha256": "85eb4c5daf182a870b9e93b1487f08c59c78a481153d71f660e2acf2e114a201",
+      "checks_sha256": "9a7867a56cd2256adc81aa341c21e85c2ea9bb263a4d79b3a3035fd935d50a90",
+      "accepted": false,
+      "implementation_changed": true,
+      "independent_checker_passed": true,
+      "check_exit_code": 0,
+      "assertions_completed": true,
+      "native": {
+        "exit_code": 1,
+        "termination": "completed",
+        "elapsed_ms": 90033
+      },
+      "normal_turn_completed_count": 0,
+      "native_failure_or_error_events": 2,
+      "probe_state_after_native": "expired",
+      "requests": 4,
+      "completed_structured_function_calls": 3,
+      "completed_native_command_items": 2,
+      "function_calls_preserved_in_next_native_input": 3,
+      "completed_function_calls_without_followup_request": 0,
+      "completed_responses_with_usage": 3,
+      "responses_without_completion_or_final_usage": 1,
+      "maximum_observed_completed_response_output_tokens": 226,
+      "completed_response_usage": [
+        {
+          "input_tokens": 3396,
+          "output_tokens": 13,
+          "total_tokens": 3409,
+          "input_tokens_details": {
+            "cached_tokens": 3317
+          }
+        },
+        {
+          "input_tokens": 3474,
+          "output_tokens": 226,
+          "total_tokens": 3700,
+          "input_tokens_details": {
+            "cached_tokens": 3408
+          }
+        },
+        {
+          "input_tokens": 3742,
+          "output_tokens": 208,
+          "total_tokens": 3950,
+          "input_tokens_details": {
+            "cached_tokens": 3699
+          }
+        }
+      ],
+      "completed_response_engine_timings": [
+        {
+          "cache_n": 3317,
+          "prompt_n": 79,
+          "prompt_ms": 620.383,
+          "prompt_per_token_ms": 7.852949367088608,
+          "prompt_per_second": 127.34069115369053,
+          "predicted_n": 13,
+          "predicted_ms": 1496.66,
+          "predicted_per_token_ms": 124.72166666666668,
+          "predicted_per_second": 8.017853086205283
+        },
+        {
+          "cache_n": 3408,
+          "prompt_n": 66,
+          "prompt_ms": 594.102,
+          "prompt_per_token_ms": 9.001545454545454,
+          "prompt_per_second": 111.09203470111194,
+          "predicted_n": 226,
+          "predicted_ms": 28131.12,
+          "predicted_per_token_ms": 125.0272,
+          "predicted_per_second": 7.998259578715672
+        },
+        {
+          "cache_n": 3699,
+          "prompt_n": 43,
+          "prompt_ms": 558.795,
+          "prompt_per_token_ms": 12.995232558139534,
+          "prompt_per_second": 76.95129698726726,
+          "predicted_n": 208,
+          "predicted_ms": 25969.895,
+          "predicted_per_token_ms": 125.45842995169082,
+          "predicted_per_second": 7.970767690820467
+        }
+      ],
+      "quality_episode_retries": 0,
+      "provider_retries": 0,
+      "failovers": 0,
+      "answer_cache_hits": 0,
+      "automatic_admission_effect": "none",
+      "inspection_path": "failure-inspections/held-traffic-transition.json",
+      "work_attempt_detail_coverage": {
+        "retained": 4,
+        "total": 4,
+        "truncated": false
+      },
+      "inspection": {
+        "case_id": "held-traffic-transition",
+        "result_sha256": "a0759cea0dfaf31e05a537d990a00b59c8ca2b51f2956c05c98ee5f7c0494af1",
+        "implementation_sha256": "a2f4e4d9fd81d4b0e720a7e698ddd0a00db11714203e6eb2f0a1ef8595484d99",
+        "patch_sha256": "cf29455a9c1ddc6c40514b6fa6d5faabd0435537e641e5d91a01ad4c2ef72bd7",
+        "native_events_sha256": "c42c4df309147d5dd02d2ce12b1798b91ebe3d9fa74eaee7434f1de2e395e6e4",
+        "no_harness_interference": true,
+        "independent_assertions_verified": true,
+        "normal_turn_completion_verified": false,
+        "normal_turn_completed_count": 0,
+        "native_failure_or_error_events": 2,
+        "mechanical_passed": false,
+        "qualification_acceptance": false,
+        "reviewer": "Codex operator independent implementation/patch/native-event inspection",
+        "finding": "Validates mapping/phase/nonnegative cycles excluding bool before copying. Cycles through red/green/amber and increments only amber-to-red. Preserves all original fields/state. No imports/hooks/oracle/process/receipt access or checker interference. Independent assertions pass; native deadline/turn.failed prevents acceptance."
+      },
+      "implementation": "def step_traffic(state):\n    if not isinstance(state, dict):\n        raise ValueError('Invalid state')\n    phase = state.get('phase')\n    cycles = state.get('cycles')\n    if phase not in ('red', 'green', 'amber'):\n        raise ValueError('Invalid phase')\n    if not isinstance(cycles, int) or isinstance(cycles, bool) or cycles < 0:\n        raise ValueError('Invalid cycles')\n    new_cycles = cycles + 1 if phase == 'amber' else cycles\n    next_phase = {'red': 'green', 'green': 'amber', 'amber': 'red'}[phase]\n    result = dict(state)\n    result['phase'] = next_phase\n    result['cycles'] = new_cycles\n    return result\n",
+      "patch": "--- solution.py.before\n+++ solution.py.after\n@@ -1,2 +1,15 @@\n def step_traffic(state):\n-    return dict(state,phase='green',cycles=state['cycles']+1)\n+    if not isinstance(state, dict):\n+        raise ValueError('Invalid state')\n+    phase = state.get('phase')\n+    cycles = state.get('cycles')\n+    if phase not in ('red', 'green', 'amber'):\n+        raise ValueError('Invalid phase')\n+    if not isinstance(cycles, int) or isinstance(cycles, bool) or cycles < 0:\n+        raise ValueError('Invalid cycles')\n+    new_cycles = cycles + 1 if phase == 'amber' else cycles\n+    next_phase = {'red': 'green', 'green': 'amber', 'amber': 'red'}[phase]\n+    result = dict(state)\n+    result['phase'] = next_phase\n+    result['cycles'] = new_cycles\n+    return result\n"
+    },
+    {
+      "case_id": "held-register-name",
+      "partition": "held_out",
+      "family": "validation_state",
+      "task_sha256": "3b06f174c9abad9f5c421573ccd4fc5b4b2d80f822364a2f80178a79f6af88ca",
+      "checks_sha256": "f7f90de35cebe715af8a8e663743f2a12fd331657963ef9ed28645a34d306ebe",
+      "accepted": false,
+      "implementation_changed": true,
+      "independent_checker_passed": false,
+      "check_exit_code": 1,
+      "assertions_completed": false,
+      "native": {
+        "exit_code": 1,
+        "termination": "completed",
+        "elapsed_ms": 90043
+      },
+      "normal_turn_completed_count": 0,
+      "native_failure_or_error_events": 2,
+      "probe_state_after_native": "expired",
+      "requests": 5,
+      "completed_structured_function_calls": 4,
+      "completed_native_command_items": 4,
+      "function_calls_preserved_in_next_native_input": 4,
+      "completed_function_calls_without_followup_request": 0,
+      "completed_responses_with_usage": 4,
+      "responses_without_completion_or_final_usage": 1,
+      "maximum_observed_completed_response_output_tokens": 280,
+      "completed_response_usage": [
+        {
+          "input_tokens": 3406,
+          "output_tokens": 13,
+          "total_tokens": 3419,
+          "input_tokens_details": {
+            "cached_tokens": 3317
+          }
+        },
+        {
+          "input_tokens": 3478,
+          "output_tokens": 172,
+          "total_tokens": 3650,
+          "input_tokens_details": {
+            "cached_tokens": 3418
+          }
+        },
+        {
+          "input_tokens": 3814,
+          "output_tokens": 280,
+          "total_tokens": 4094,
+          "input_tokens_details": {
+            "cached_tokens": 3649
+          }
+        },
+        {
+          "input_tokens": 4167,
+          "output_tokens": 24,
+          "total_tokens": 4191,
+          "input_tokens_details": {
+            "cached_tokens": 4093
+          }
+        }
+      ],
+      "completed_response_engine_timings": [
+        {
+          "cache_n": 3317,
+          "prompt_n": 89,
+          "prompt_ms": 650.613,
+          "prompt_per_token_ms": 7.310258426966293,
+          "prompt_per_second": 136.79406959283014,
+          "predicted_n": 13,
+          "predicted_ms": 1494.484,
+          "predicted_per_token_ms": 124.54033333333332,
+          "predicted_per_second": 8.029527248200717
+        },
+        {
+          "cache_n": 3418,
+          "prompt_n": 60,
+          "prompt_ms": 571.13,
+          "prompt_per_token_ms": 9.518833333333333,
+          "prompt_per_second": 105.05489118064189,
+          "predicted_n": 172,
+          "predicted_ms": 21422.886,
+          "predicted_per_token_ms": 125.28003508771928,
+          "predicted_per_second": 7.982117815498809
+        },
+        {
+          "cache_n": 3649,
+          "prompt_n": 165,
+          "prompt_ms": 1302.531,
+          "prompt_per_token_ms": 7.894127272727272,
+          "prompt_per_second": 126.67644762389533,
+          "predicted_n": 280,
+          "predicted_ms": 35090.769,
+          "predicted_per_token_ms": 125.77336559139785,
+          "predicted_per_second": 7.9508089435144615
+        },
+        {
+          "cache_n": 4093,
+          "prompt_n": 74,
+          "prompt_ms": 621.369,
+          "prompt_per_token_ms": 8.396878378378378,
+          "prompt_per_second": 119.09187616376097,
+          "predicted_n": 24,
+          "predicted_ms": 2906.233,
+          "predicted_per_token_ms": 126.35795652173914,
+          "predicted_per_second": 7.91402478741381
+        }
+      ],
+      "quality_episode_retries": 0,
+      "provider_retries": 0,
+      "failovers": 0,
+      "answer_cache_hits": 0,
+      "automatic_admission_effect": "none",
+      "inspection_path": "failure-inspections/held-register-name.json",
+      "work_attempt_detail_coverage": {
+        "retained": 5,
+        "total": 5,
+        "truncated": false
+      },
+      "inspection": {
+        "case_id": "held-register-name",
+        "result_sha256": "55cf6c484bf602b1a6b4bbf27c9dc14d657aa8a8341773932a2dfe39ae91444f",
+        "implementation_sha256": "8d7334cfbafaf9aa7ec4b5bdc8ed0f08a4cf3acfb8db37e6d29b2330dfdb8c94",
+        "patch_sha256": "1ebfb09d5c26a7a94cc548b6d3b12fc04449d7225fa838c4d0d31744b325f601",
+        "native_events_sha256": "f80e1473d4a1216be7566fc2aab28ef3c72497c73b695baac6d490f1a224cd7e",
+        "no_harness_interference": true,
+        "independent_assertions_verified": false,
+        "normal_turn_completion_verified": false,
+        "normal_turn_completed_count": 0,
+        "native_failure_or_error_events": 2,
+        "mechanical_passed": false,
+        "qualification_acceptance": false,
+        "reviewer": "Codex operator independent implementation/patch/native-event inspection",
+        "finding": "Ordinary function with no oracle/process/receipt/assertion manipulation, but behavior is wrong: shallow dict copy retains the original names list and append mutates it; missing names is silently accepted instead of rejected, and names list content/type is not validated. Independent frozen assertions fail. Model own check omitted importing register_name, then imported solution in a different process, and hit the deadline. No code/oracle repair or retry performed."
+      },
+      "implementation": "def register_name(state, name):\n    if not isinstance(name, str):\n        raise ValueError(\"name must be a string\")\n    normalized_name = name.strip()\n    if not normalized_name:\n        raise ValueError(\"name cannot be empty or whitespace only\")\n    if 'names' not in state:\n        state = dict(state)\n        state['names'] = []\n    else:\n        state = dict(state)\n    if normalized_name in state['names']:\n        raise ValueError(f\"name '{normalized_name}' already registered\")\n    state['names'].append(normalized_name)\n    return state\n",
+      "patch": "--- solution.py.before\n+++ solution.py.after\n@@ -1,3 +1,15 @@\n def register_name(state, name):\n-    state['names'].append(name)\n+    if not isinstance(name, str):\n+        raise ValueError(\"name must be a string\")\n+    normalized_name = name.strip()\n+    if not normalized_name:\n+        raise ValueError(\"name cannot be empty or whitespace only\")\n+    if 'names' not in state:\n+        state = dict(state)\n+        state['names'] = []\n+    else:\n+        state = dict(state)\n+    if normalized_name in state['names']:\n+        raise ValueError(f\"name '{normalized_name}' already registered\")\n+    state['names'].append(normalized_name)\n     return state\n"
+    },
+    {
+      "case_id": "held-inverse-permutation",
+      "partition": "held_out",
+      "family": "validation_state",
+      "task_sha256": "05c0aa0146aa3d5535df76539c18055f46dd571a1ad7c1505ea4062e16ba1645",
+      "checks_sha256": "39539d3dbccf2167b7c0edcc8643049524ebe962501e29223c1797006a81357c",
+      "accepted": false,
+      "implementation_changed": false,
+      "independent_checker_passed": false,
+      "check_exit_code": 1,
+      "assertions_completed": false,
+      "native": {
+        "exit_code": 1,
+        "termination": "completed",
+        "elapsed_ms": 90010
+      },
+      "normal_turn_completed_count": 0,
+      "native_failure_or_error_events": 2,
+      "probe_state_after_native": "expired",
+      "requests": 3,
+      "completed_structured_function_calls": 2,
+      "completed_native_command_items": 2,
+      "function_calls_preserved_in_next_native_input": 2,
+      "completed_function_calls_without_followup_request": 0,
+      "completed_responses_with_usage": 2,
+      "responses_without_completion_or_final_usage": 1,
+      "maximum_observed_completed_response_output_tokens": 370,
+      "completed_response_usage": [
+        {
+          "input_tokens": 3400,
+          "output_tokens": 13,
+          "total_tokens": 3413,
+          "input_tokens_details": {
+            "cached_tokens": 3317
+          }
+        },
+        {
+          "input_tokens": 3466,
+          "output_tokens": 370,
+          "total_tokens": 3836,
+          "input_tokens_details": {
+            "cached_tokens": 3412
+          }
+        }
+      ],
+      "completed_response_engine_timings": [
+        {
+          "cache_n": 3317,
+          "prompt_n": 83,
+          "prompt_ms": 638.277,
+          "prompt_per_token_ms": 7.690084337349398,
+          "prompt_per_second": 130.03758556238122,
+          "predicted_n": 13,
+          "predicted_ms": 1513.332,
+          "predicted_per_token_ms": 126.111,
+          "predicted_per_second": 7.929522404865555
+        },
+        {
+          "cache_n": 3412,
+          "prompt_n": 54,
+          "prompt_ms": 564.881,
+          "prompt_per_token_ms": 10.460759259259259,
+          "prompt_per_second": 95.59535548195107,
+          "predicted_n": 370,
+          "predicted_ms": 46186.25,
+          "predicted_per_token_ms": 125.1659891598916,
+          "predicted_per_second": 7.98939078188855
+        }
+      ],
+      "quality_episode_retries": 0,
+      "provider_retries": 0,
+      "failovers": 0,
+      "answer_cache_hits": 0,
+      "automatic_admission_effect": "none",
+      "inspection_path": "failure-inspections/held-inverse-permutation.json",
+      "work_attempt_detail_coverage": {
+        "retained": 3,
+        "total": 3,
+        "truncated": false
+      },
+      "inspection": {
+        "case_id": "held-inverse-permutation",
+        "result_sha256": "7aa26b82ad18b73267bb23e052f8623166380538ab1427a3dd1baaf9d82dd0eb",
+        "implementation_sha256": "959f43499c1a73ed77ebe3c95636fc8aa5ad7da5c5339e92a5b406c40830c39f",
+        "patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "native_events_sha256": "3532d90152d20f81309996dfdb5c778d60ce30eee8a3d53cc9339ca31a136902",
+        "no_harness_interference": true,
+        "independent_assertions_verified": false,
+        "normal_turn_completion_verified": false,
+        "normal_turn_completed_count": 0,
+        "native_failure_or_error_events": 2,
+        "mechanical_passed": false,
+        "qualification_acceptance": false,
+        "reviewer": "Codex operator independent implementation/patch/native-event inspection",
+        "finding": "Implementation remains the frozen broken baseline, returning list(values) without inversion/validation. No malicious or harness-interfering code. Native read the file and ran verbose baseline printing; correction generation did not complete before90s. No edit, independent assertion failure and native turn.failed prevent acceptance. No retries or checker changes."
+      },
+      "implementation": "def inverse_permutation(values, size):\n    return list(values)\n",
+      "patch": ""
+    }
+  ]
+}

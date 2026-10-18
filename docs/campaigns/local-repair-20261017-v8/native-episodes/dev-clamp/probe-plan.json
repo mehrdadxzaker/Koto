@@ -1,0 +1,35 @@
+{
+  "schema_id": "hormuz.coding-probe-plan",
+  "schema_version": 2,
+  "campaign_id": "local-repair-20261017-v8",
+  "plan_sha256": "983891cfb5c723ad2f88335eea7e9b40f7c38b042f29d3e1e4de67edfeb9cf48",
+  "case_id": "dev-clamp",
+  "task_sha256": "33fd16c7939f008528fdcd40d4911c9d323eec130318414f0683d8bd7a2bc5aa",
+  "checks_sha256": "da25b64603054b72230db061e79855ed9d3f32b6f31076fa5755ac4eec12b942",
+  "model": "Qwen3-Coder-30B-A3B-Instruct-Q4_K_M",
+  "subject": {
+    "client_version": "0.160.0",
+    "system": "Darwin",
+    "machine": "arm64",
+    "runtime_profile": "managed-llama.v1",
+    "runtime_sha256": "051bb0b55b3e5e72081aa819131ba30c74d910acc915b28bab298757472e39d9",
+    "model_revision": "sha256:fadc3e5f8d42bf7e894a785b05082e47daee4df26680389817e2093056f088ad",
+    "upstream_model": "Qwen3-Coder-30B-A3B-Instruct-Q4_K_M",
+    "protocol": "openai",
+    "capabilities": [
+      "responses",
+      "text",
+      "streaming",
+      "tools",
+      "codex_http",
+      "codex_http_0160"
+    ],
+    "max_request_bytes": 65536,
+    "max_output_tokens": 512,
+    "upstream_timeout_seconds": 90,
+    "request_profile_sha256": "814720a51a697737ee8a460b5c3fcf3c4719a264a2dd59171217f3c1f1a307d7"
+  },
+  "first_input_sha256": "34ece832cca72a72d6c4d7d8359ba1907caa3b55c9557a5ae2d5ed1f18e0d20b",
+  "max_requests": 8,
+  "max_elapsed_seconds": 90
+}

@@ -1,0 +1,4 @@
+{"type":"thread.started","thread_id":"01a14cfc-cee8-71e3-846a-47323272128e"}
+{"type":"turn.started"}
+{"type":"error","message":"unexpected status 503 Service Unavailable: Intentional zero-inference preflight, url: http://127.0.0.1:52935/v1/responses"}
+{"type":"turn.failed","error":{"message":"unexpected status 503 Service Unavailable: Intentional zero-inference preflight, url: http://127.0.0.1:52935/v1/responses"}}

@@ -1,0 +1,6 @@
+{
+  "method": "POST",
+  "path": "/v1/responses/input_tokens",
+  "status": 500,
+  "response_excerpt": "{\"error\":{\"code\":500,\"message\":\"\\n------------\\nWhile executing CallExpression at line 46, column 32 in source:\\n...== 0) %}↵            {{- raise_exception('After the optional system message, con...\\n                                           ^\\nError: Jinja Exception: After the optional system message, conversation roles must alternate user and assistant roles except for tool calls and results.\",\"type\":\"server_error\"}}"
+}
