@@ -52,7 +52,7 @@ def main():
     parser.add_argument('--mode', choices=('text', 'function'), required=True)
     parser.add_argument('--minimal', action='store_true', help='Use the same supplied command in text and function form')
     parser.add_argument('--v8-driver', action='store_true', help='Exercise the isolated v8 launcher and trace tap')
-    parser.add_argument('--driver-version', choices=('v8', 'v9'), default='v8')
+    parser.add_argument('--driver-version', choices=('v8', 'v9', 'v10'), default='v8')
     parser.add_argument('--supplied-command', type=Path, help='Replay one supplied shell command, not model output')
     parser.add_argument('--stale-environment-date', help='Negative control: bind a stale native user environment date')
     parser.add_argument('--bind-current-date', action='store_true', help='Bind only the probe plan native user date before arming')
@@ -128,6 +128,8 @@ def main():
                            '/private/tmp/koto-tool-compat-preparation-20261017/checkers/dev-clamp.py',
                            '/private/tmp/koto-566-preparation-20261017/checker-references.json',
                            '/private/tmp/koto-566-native-v7-20261017/oracle.py',
+                           '/private/tmp/koto-devstral-preparation-20261018/checkers/dev-clamp.py',
+                           '/private/tmp/koto-devstral-preparation-20261018/checker-references.json',
                            str(REPOSITORY / 'docs/campaigns/local-repair-20261017-v8/corpus.json')]) + ':\n'
                        ' try:\n  Path(forbidden).read_text()\n'
                        ' except PermissionError:\n  pass\n'
@@ -172,7 +174,9 @@ def main():
         write(root / 'engine/frames.json', frames)
         driver = None
         if args.v8_driver:
-            driver = load_module('native_driver', REPOSITORY / ('docs/campaigns/local-repair-20261017-' + args.driver_version + '/campaign-runner.py'))
+            campaign_path = ('local-repair-20261018-v10' if args.driver_version == 'v10'
+                             else 'local-repair-20261017-' + args.driver_version)
+            driver = load_module('native_driver', REPOSITORY / ('docs/campaigns/' + campaign_path + '/campaign-runner.py'))
             driver.ROOT = driver.retained.ROOT = root
             driver.DIRECTORY = root / 'driver-artifacts'
             driver.DIRECTORY.mkdir(mode=0o700)

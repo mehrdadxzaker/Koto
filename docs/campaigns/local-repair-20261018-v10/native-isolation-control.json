@@ -1,0 +1,77 @@
+{
+  "mode": "function",
+  "driver_version": "v10",
+  "native_model_inferences": 0,
+  "response_origin": "supplied synthetic function call",
+  "model_quality_evidence": false,
+  "baseline_exit_code": 1,
+  "native": {
+    "exit_code": 0,
+    "termination": "completed",
+    "elapsed_ms": 495
+  },
+  "executed_tools": 1,
+  "implementation_changed": true,
+  "check_exit_code": 0,
+  "checks_unchanged": true,
+  "independent_checks": [
+    {
+      "process_exit_code": 1,
+      "assertions_completed": false,
+      "output_bytes": 0,
+      "within_budget": true,
+      "exit_code": 1
+    },
+    {
+      "process_exit_code": 0,
+      "assertions_completed": true,
+      "output_bytes": 49,
+      "within_budget": true,
+      "exit_code": 0
+    }
+  ],
+  "routing_after": {
+    "local_capacity": {
+      "active": 0,
+      "limit": 1
+    },
+    "mode": "local_only",
+    "routes": [
+      {
+        "automatic_task_types": [],
+        "capabilities": [
+          "responses",
+          "text",
+          "streaming",
+          "tools",
+          "codex_http",
+          "codex_http_0160"
+        ],
+        "coding_evidence": null,
+        "coding_readiness": "unknown",
+        "destination": "local-llama",
+        "evidence_basis": "operator_declared",
+        "generation": "11414fa8c04dd403d06e7e3f910cabdaf3aa1b7f7223d52e73c552ba633328fa",
+        "max_output_tokens": 512,
+        "max_request_bytes": 65536,
+        "model": "Qwen2.5-Coder-7B-Instruct-Q4_K_M",
+        "model_revision": "sha256:e7a7202a77d39ca333a76bf2b2ffcf629aba92c85e4be669ec087c211b42a9c1",
+        "qualification_id": "synthetic-native-tool-replay-v1",
+        "readiness": "ready",
+        "task_types": [
+          "code_change"
+        ]
+      }
+    ],
+    "schema_id": "hormuz.route-admission",
+    "schema_version": 2,
+    "task_classifier": "bounded_local_heuristic"
+  },
+  "settings_restored": true,
+  "owned_listeners_closed": true,
+  "source_report_sha256": "92cca975143a7dd871b2944c909f1cad1bda35072749519f2df6d5cbf178be89",
+  "fixture_requests": 2,
+  "native_tool_outputs": [
+    "checker_inventory_and_write_isolation_passed\n"
+  ]
+}
