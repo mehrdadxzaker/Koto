@@ -93,9 +93,11 @@ owner's first-release envelope remain separate decisions. Existing failed
 autonomous coding results remain unchanged.
 
 An operator can explicitly select `--catalog /absolute/reviewed-catalog.json`.
-Without `--executable`, this selects the catalog's declared supported client
-offline; setup still requires a matching actual client. Supply both flags to
-check the catalog against the selected executable before any transfer. A
+For preview and offline reuse, omitting `--executable` selects the catalog's
+declared supported client without running a client; setup still requires a
+matching actual client. Downloads always check the selected executable (default
+`codex` from PATH), including with an explicit catalog. Supply both flags to
+check a particular executable for every operation. A
 mismatch returns the existing `catalog_invalid` error and preserves all state.
 That is trust in a reviewed source declaration. It is not signed certification,
 model discovery or permission to expand capabilities. The strict version-1

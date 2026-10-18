@@ -90,13 +90,13 @@ def _sync(path):
         os.close(descriptor)
 
 
-def _catalog(path, executable):
+def _catalog(path, executable, *, download):
     try:
         client_version = None
-        if executable or not path:
+        if executable is not None or not path or download:
             from .connected_client import _qualify_client
 
-            program = shutil.which(executable or "codex")
+            program = shutil.which(executable if executable is not None else "codex")
             if program is None:
                 raise ValueError()
             client_version = _qualify_client(program)
@@ -229,7 +229,7 @@ def _remaining_bytes(catalog, generation):
 def acquire_local(args):
     if os.name != "posix":
         raise LocalAcquisitionError("platform_unsupported")
-    catalog = _catalog(args.catalog, args.executable)
+    catalog = _catalog(args.catalog, args.executable, download=args.download)
     if (catalog["profile"]["system"], catalog["profile"]["machine"]) != (platform.system(), platform.machine()):
         raise LocalAcquisitionError("platform_unsupported")
     if not 1 <= len(args.directory) <= 4096 or any(ord(c) < 32 or ord(c) == 127 for c in args.directory):

@@ -102,6 +102,11 @@ class LocalAcquisitionWorkflowTests(unittest.TestCase):
         self.addCleanup(self.client.doCleanups)
         self.root = self.client.root
         self.directory = self.root / "assets"
+        self.bin = self.root / "bin"
+        self.bin.mkdir()
+        (self.bin / "codex").symlink_to(self.client.executable)
+        (self.bin / "client-version.txt").symlink_to(self.root / "client-version.txt")
+        self.client.environment["PATH"] = str(self.bin) + os.pathsep + os.environ.get("PATH", "")
 
     def test_default_preview_matches_the_selected_client_without_creating_assets_or_changing_settings(self):
         settings = self.client.home / "config.toml"
@@ -112,19 +117,13 @@ class LocalAcquisitionWorkflowTests(unittest.TestCase):
         cases = (("0.147.0", "codex0147-llamab11617-qwen3-4b-macos-arm64-experiment-v1"),
                  ("0.160.0", "codex0160-llamab11617-qwen3-4b-single-agent-http-experiment-v1"),
                  ("0.162.0-alpha.17.2", "codex-app0162-llamab11617-qwen3-4b-interactive-review-360s-v3"))
-        binary = self.root / "bin"
-        binary.mkdir()
-        (binary / "codex").symlink_to(self.client.executable)
-        environment = {**self.client.environment, "PATH": str(binary) + os.pathsep + os.environ.get("PATH", "")}
-        # A symlinked executable reads the version alongside that executable.
         for version, expected in cases:
             with self.subTest(client=version):
                 (self.root / "client-version.txt").write_text(version)
-                (binary / "client-version.txt").write_text(version)
                 for selection in (["--executable", str(self.client.executable)], []):
                     result = subprocess.run([sys.executable, "-c", bootstrap, "client", "acquire", "codex",
                         "--directory", str(self.directory), *selection, "--dry-run"],
-                        env=environment, capture_output=True, text=True, timeout=10)
+                        env=self.client.environment, capture_output=True, text=True, timeout=10)
                     self.assertEqual(result.returncode, 0, result.stderr)
                     receipt = json.loads(result.stdout)
                     validate_contract(receipt)
@@ -142,13 +141,14 @@ class LocalAcquisitionWorkflowTests(unittest.TestCase):
             cases = (("client_mismatch", "0.160.0", self.client.executable, "0.147.0"),
                      ("unsupported_executable", "0.999.0", self.client.executable, "0.147.0"),
                      ("missing_executable", "0.147.0", self.root / "missing-codex", "0.147.0"),
+                     ("empty_executable", "0.147.0", "", "0.147.0"),
                      ("unsupported_catalog", "0.147.0", None, "0.999.0"))
             for name, actual, executable, declared in cases:
                 with self.subTest(case=name):
                     (self.root / "client-version.txt").write_text(actual)
                     catalog["profile"]["client_version"] = declared
                     (self.root / "catalog.json").write_text(json.dumps(catalog))
-                    options = ["--executable", str(executable)] if executable else []
+                    options = ["--executable", str(executable)] if executable is not None else []
                     for mode in ("--download", "--offline", "--dry-run"):
                         failed = self.acquire(*options, mode, check=False)
                         self.assertEqual(failed.returncode, 2, failed.stderr)
@@ -158,6 +158,27 @@ class LocalAcquisitionWorkflowTests(unittest.TestCase):
                         self.assertFalse(self.directory.exists())
                         self.assertEqual((self.client.home / "config.toml").read_bytes(), before)
                         self.assertEqual(observed, [])
+
+    def test_explicit_catalog_download_requires_a_matching_default_client_but_preview_stays_offline(self):
+        value, payloads = self.prepare()
+        before = (self.client.home / "config.toml").read_bytes()
+        with artifacts(payloads) as (origin, observed, _):
+            self.catalog(value, origin)
+            for actual in ("0.160.0", "missing"):
+                with self.subTest(default_client=actual):
+                    (self.root / "client-version.txt").write_text(actual)
+                    if actual == "missing":
+                        self.client.environment["PATH"] = str(self.root / "no-executables")
+                    preview = json.loads(self.acquire("--dry-run").stdout)
+                    self.assertEqual((preview["catalog_id"], preview["state"]), ("synthetic-acquisition-v1", "planned"))
+                    failed = self.acquire("--download", check=False)
+                    self.assertEqual(failed.returncode, 2, failed.stderr)
+                    error = json.loads(failed.stderr)
+                    validate_contract(error)
+                    self.assertEqual(error["error"]["code"], "catalog_invalid")
+                    self.assertFalse(self.directory.exists())
+                    self.assertEqual((self.client.home / "config.toml").read_bytes(), before)
+                    self.assertEqual(observed, [])
 
     def test_a_stalled_version_probe_returns_a_fixed_error_and_reaps_its_process(self):
         value, _ = self.prepare()

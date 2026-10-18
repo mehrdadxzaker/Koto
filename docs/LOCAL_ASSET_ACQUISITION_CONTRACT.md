@@ -57,8 +57,9 @@ selects reviewed 0.147.0, 0.160.0 or 0.162.0-alpha.17.2 catalogs using the share
 bounded client version check, before download. Each embeds the corresponding
 existing setup profile; the app-engine row does not qualify desktop activation.
 See [the acquisition workflow](LOCAL_ASSET_ACQUISITION.md) for exact flags.
-Missing, unsupported or mismatched rows fail before transfer. An explicit older
-catalog remains usable offline for its declared supported client, with setup
+Missing, unsupported or mismatched rows fail before transfer, including downloads
+with an explicit catalog. An explicit older catalog remains inspectable and
+reusable offline for its declared supported client without a client probe, with setup
 independently requiring that matching executable and its original limitations.
 
 A reviewed 0.160 acquisition row may reuse the first candidate's exact existing
