@@ -1,0 +1,10 @@
+{
+  "system": "Darwin",
+  "machine": "arm64",
+  "os_version": "26.2",
+  "os_build": "25C56",
+  "hardware": "Mac17,2",
+  "cpu": "Apple M5",
+  "memory": 34359738368,
+  "matches_v6_host": true
+}
