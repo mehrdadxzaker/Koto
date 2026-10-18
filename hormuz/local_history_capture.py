@@ -123,6 +123,7 @@ class HistoryCapture:
         self.sent = False
         self.data = bytearray()
         self.overflow = False
+        self.selection_response_valid = False
         self.is_event_stream = False
         self.pricing_known = _standard_pricing(protocol, request_value)
         tools = request_value.get("tools")
@@ -178,6 +179,9 @@ class HistoryCapture:
         if usage.evidence_complete:
             self.entry.update(input_tokens=usage.input_tokens, output_tokens=usage.output_tokens)
         self._decode_response()
+        if "selection" in self.entry:
+            self.entry["selection"]["verified_response"] = bool(self.selection_response_valid and downstream_ok
+                                                                  and self.entry["outcome"] == "succeeded")
         reason = "provider_usage_unknown"
         fields = self.route.explicit_price_fields
         required = {"input_cost_per_million", "output_cost_per_million"}
@@ -211,13 +215,20 @@ class HistoryCapture:
             self.entry["response_content_status"] = "omitted_limit"
             return
         try:
+            def verified(value):
+                return (type(value) is dict and value.get("object") == "response" and value.get("status") == "completed"
+                        and value.get("model") == self.route.upstream_model and type(value.get("output")) is list
+                        and value.get("error") is None and value.get("incomplete_details") is None)
             if not self.is_event_stream:
                 value = json.loads(self.data)
+                self.selection_response_valid = verified(value)
                 self.pricing_known &= _standard_pricing(self.entry["protocol"], value)
                 self.provider_tools |= _provider_tool_usage(value)
                 text = _response_text(value)
             else:
                 terminal, deltas = None, []
+                completed = 0
+                invalid = False
                 for frame in bytes(self.data).decode("utf-8").replace("\r\n", "\n").split("\n\n"):
                     lines = [line[5:].lstrip(" ") for line in frame.split("\n") if line.startswith("data:")]
                     if not lines or lines == ["[DONE]"]:
@@ -228,7 +239,11 @@ class HistoryCapture:
                     self.pricing_known &= _standard_pricing(self.entry["protocol"], value)
                     self.provider_tools |= _provider_tool_usage(value)
                     if value.get("type") in ("response.completed", "response.failed", "response.incomplete"):
+                        completed += value.get("type") == "response.completed"
+                        invalid |= value.get("type") != "response.completed" or not verified(value.get("response"))
                         terminal = _response_text(value.get("response"))
+                    elif value.get("type") in {"error", "response.error"}:
+                        invalid = True
                     elif value.get("type") == "response.output_text.delta" and isinstance(value.get("delta"), str):
                         deltas.append(value["delta"])
                     elif value.get("type") == "content_block_start":
@@ -243,6 +258,7 @@ class HistoryCapture:
                             if isinstance(delta, dict) and isinstance(delta.get("content"), str):
                                 deltas.append(delta["content"])
                 text = terminal if terminal is not None else "".join(deltas)
+                self.selection_response_valid = completed == 1 and not invalid
             if len(text.encode()) > MAX_TEXT_BYTES:
                 self.entry["response_content_status"] = "omitted_limit"
             elif text:
@@ -268,7 +284,8 @@ class HistoryCapture:
                 if source is not None and "selection" in self.entry:
                     from .model_benchmark import check_answer
                     quality = "unknown"
-                    if self.entry["outcome"] == "succeeded" and self.entry["response_content_status"] == "captured":
+                    if (self.entry["outcome"] == "succeeded" and self.entry["response_content_status"] == "captured"
+                            and self.entry["selection"]["verified_response"]):
                         response = {"output": [{"type": "message", "content": [{"type": "output_text", "text": self.entry["response_text"]}]}]}
                         quality = "pass" if all(check_answer(check, response) for check in source["quality"]["checks"]) else "fail"
                     self.entry["quality"] = {**source["quality"], "result": quality}

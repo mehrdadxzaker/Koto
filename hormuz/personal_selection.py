@@ -26,12 +26,13 @@ def validate_quality(value):
 
 
 def validate_context(value):
-    if (type(value) is not dict or set(value) != {"model", "generation", "route", "profile", "machine", "task", "fresh", "replayable", "parameters", "decision"}
+    if (type(value) is not dict or set(value) != {"model", "generation", "route", "profile", "machine", "task", "fresh", "replayable", "verified_response", "parameters", "decision"}
             or type(value["model"]) is not str or not 1 <= len(value["model"]) <= 128
             or not re.fullmatch(r"[0-9a-f]{32}", str(value["generation"]))
             or any(type(value[key]) is not str or not re.fullmatch(r"[0-9a-f]{64}", value[key]) for key in ("profile", "machine", "task"))
             or type(value["route"]) is not str or not re.fullmatch(r"destination-v1:[0-9a-f]{64}", value["route"])
-            or type(value["fresh"]) is not bool or type(value["replayable"]) is not bool or type(value["parameters"]) is not dict
+            or type(value["fresh"]) is not bool or type(value["replayable"]) is not bool
+            or type(value["verified_response"]) is not bool or type(value["parameters"]) is not dict
             or set(value["parameters"]) - {"max_output_tokens", "stream"}
             or type(value["decision"]) is not dict):
         raise LocalHistoryError("personal_selection_context_invalid")
@@ -68,19 +69,21 @@ def capture_context(config, decision, value, generation, captured_entry, recomme
     return {"model": decision.resolved_alias, "generation": generation,
             "route": benchmark_route_fingerprint(config, decision.route), "profile": profile,
             "machine": machine_digest(), "task": digest({"text": text, "profile": profile}),
+            "verified_response": False,
             "fresh": bool(text) and not contains_provider_state(value) and captured_entry["request_content_status"] == "captured",
             "replayable": (type(value.get("input")) is str and len(captured_entry["request_text"]) == 1
                            and captured_entry["request_content_status"] == "captured"
                            and not set(value) - {"model", "input", "max_output_tokens", "stream", "store"}),
             "parameters": {key: value[key] for key in ("max_output_tokens", "stream") if key in value},
-            "decision": recommendation}
+            "decision": {**recommendation, "executed_model": decision.resolved_alias} if recommendation else {}}
 
 
 def evaluation_source(history, actor_id, source_id, value):
     state, records = history.learning_snapshot(actor_id)
     source = next((row for row in records if row["id"] == source_id), None)
     if (not state["enabled"] or source is None or not source["selection"]["fresh"]
-            or not source["selection"]["replayable"] or not source.get("quality", {}).get("checks")
+            or not source["selection"]["replayable"] or not source["selection"]["verified_response"]
+            or not source.get("quality", {}).get("checks")
             or source["selection"]["profile"] != benchmark_profile_digest(value)
             or value.get("input") != retained_prompt(source)):
         raise LocalHistoryError("personal_selection_evaluation_source_invalid")
@@ -94,7 +97,7 @@ def examples(config, records, baseline, partition, profile=None):
                     if alias == baseline or alias in dict(config.route_admission.local_routes)}
     for entry in records:
         context, quality = entry["selection"], entry.get("quality")
-        if (not quality or not context["fresh"] or context["machine"] != machine_digest()
+        if (not quality or not context["fresh"] or not context["verified_response"] or context["machine"] != machine_digest()
                 or profile is not None and context["profile"] != profile):
             continue
         route = config.model_routes.get(context["model"])

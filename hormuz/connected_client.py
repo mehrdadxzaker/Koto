@@ -688,6 +688,8 @@ class ConnectedClientLifetime:
                               and (policy.allowed_models is None or alias in policy.allowed_models)}
                 if commercial:
                     selected = document.get("model")
+                    if not isinstance(selected, str):
+                        raise ConnectedClientError("configuration_shape_unsupported")
                     matches = ([selected] if selected in commercial else
                                [alias for alias, route in commercial.items() if route.upstream_model == selected])
                     if len(matches) != 1:

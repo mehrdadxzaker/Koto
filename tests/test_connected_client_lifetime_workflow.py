@@ -203,6 +203,22 @@ finally:
 
 
 class ConnectedClientLifetimeWorkflowTests(unittest.TestCase):
+    def test_automatic_connection_rejects_invalid_selected_model_without_touching_settings(self):
+        with provider("UNUSED") as (endpoint, calls):
+            value = destination_workflow.ExecutionDestinationWorkflowTests.configuration(self, endpoint, endpoint)
+            value["model_routes"]["current-commercial"] = {"protocol": "openai", "upstream_model": "original-model"}
+            value["policies"]["organization"]["allowed_models"].append("current-commercial")
+            value["route_admission"] = {"mode": "auto", "local_routes": {}}
+            self.path.write_text(json.dumps(value))
+            settings = self.home / "config.toml"
+            settings.write_text('model = []\n')
+            before = settings.read_bytes()
+            result = self.command("connect", check=False)
+            self.assertEqual(result.returncode, 2, result.stderr)
+            self.assertNotIn("Traceback", result.stderr)
+            self.assertEqual(settings.read_bytes(), before)
+            self.assertEqual(calls, [])
+
     def test_automatic_connection_preserves_the_selected_commercial_model_and_disconnect_restores_settings(self):
         with provider("LOCAL_MUST_STAY_UNUSED") as (local, local_calls), provider("COMMERCIAL_BASELINE") as (cloud, cloud_calls):
             value = destination_workflow.ExecutionDestinationWorkflowTests.configuration(self, local, cloud)
@@ -1579,7 +1595,7 @@ class ConnectedClientLifetimeWorkflowTests(unittest.TestCase):
             value = json.loads(self.path.read_text())
             local_route = {**value["model_routes"]["local-code"],
                            "model_revision": "fixture-weights-v1", "capabilities": ["responses", "text"]}
-            value["model_routes"] = {"cloud-code": {"protocol": "openai", "upstream_model": "cloud-model"},
+            value["model_routes"] = {"cloud-code": {"protocol": "openai", "upstream_model": "original-model"},
                                      "local-code": local_route}
             value["policies"]["organization"]["allowed_models"] = ["cloud-code", "local-code"]
             value["route_admission"] = {"mode": "auto", "local_routes": {"local-code": {

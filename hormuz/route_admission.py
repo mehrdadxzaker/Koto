@@ -537,6 +537,8 @@ class RouteAdmission:
         headers = dict(getattr(handler, "_route_admission_headers", {}))
         if not headers:
             return self.destinations.response_headers(route)
+        if "X-Koto-Selection-Mode" in headers:
+            headers["X-Koto-Executed-Model"] = route.alias
         forwarded = getattr(handler, "_benchmark_forwarded", None)
         if handler.headers.get("X-Hormuz-Benchmark") == "1" and forwarded is not None:
             headers.update({"X-Hormuz-Benchmark-Request-Bytes": str(forwarded[0]),

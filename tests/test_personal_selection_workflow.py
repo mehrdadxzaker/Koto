@@ -5,6 +5,8 @@ from pathlib import Path
 import subprocess
 import sys
 import time
+import threading
+from concurrent.futures import ThreadPoolExecutor
 import unittest
 
 from tests import test_execution_destination_workflow as workflow
@@ -134,6 +136,38 @@ class PersonalSelectionWorkflowTests(unittest.TestCase):
                 local_score = next(row for row in scorecard["models"] if row["model"] == "local-code")
                 self.assertEqual(local_score["quality"], {"pass": 1, "fail": 0, "unknown": 0})
 
+    def test_operational_fallback_reports_execution_separately_from_personal_recommendation(self):
+        reject = False
+        def slow_cloud(_body):
+            time.sleep(.04)
+            return "7"
+        with workflow.provider("7", status=lambda body: 429 if reject and body["model"] == "fixture-local-model" else 200) as (local, local_calls), \
+             workflow.provider(slow_cloud) as (cloud, cloud_calls):
+            value = self.fixture.admission_configuration(local, cloud, mode="auto")
+            value["model_routes"]["local-code"]["failover_alias"] = "local-alternate"
+            value["model_routes"]["local-alternate"] = {**value["model_routes"]["local-code"], "upstream_model": "alternate-model"}
+            value["model_routes"]["local-alternate"].pop("failover_alias")
+            value["route_admission"]["local_routes"]["local-alternate"] = dict(value["route_admission"]["local_routes"]["local-code"])
+            value["policies"]["organization"]["allowed_models"].append("local-alternate")
+            with self.fixture.connected_client(value) as submit:
+                self.history("enable")
+                self.history("learning", "enable")
+                for partition, suffix in (("development", ""), ("held_out", " today")):
+                    for tag in ("alpha", "beta", "gamma"):
+                        for model in ("cloud-code", "local-code"):
+                            self.assess(submit, "Summarize seven invoice boxes " + tag + suffix, model, "7", partition=partition)
+                self.history("learning", "validate", "--baseline", "cloud-code", "--activate")
+                reject = True
+                response = submit(request={"model": "cloud-code", "input": "Summarize seven invoice boxes alpha tomorrow"})
+                self.assertEqual(response["status"], 200, response)
+                self.assertEqual((response["headers"].get("x-koto-selection-model"), response["headers"].get("x-koto-executed-model")),
+                                 ("local-code", "local-alternate"))
+                latest = self.history("show", self.history("list")["entries"][0]["id"])["entry"]
+                self.assertEqual((latest["selection"]["model"], latest["selection"]["decision"]["executed_model"]),
+                                 ("local-alternate", "local-alternate"))
+                self.assertEqual(self.history("learning", "status")["last_selection"]["executed_model"], "local-alternate")
+            self.assertEqual((len(local_calls), len(cloud_calls)), (8, 6))
+
     def test_local_only_denies_unknown_personal_selection_without_commercial_egress(self):
         with workflow.provider("7") as (local, local_calls), workflow.provider("7") as (cloud, cloud_calls):
             with self.fixture.connected_client(self.fixture.admission_configuration(local, cloud, mode="auto")) as submit:
@@ -169,6 +203,38 @@ class PersonalSelectionWorkflowTests(unittest.TestCase):
                 result = self.history("learning", "evaluate", "--id", source, "--models", "local-code", expected=2)
                 self.assertEqual(result["error"]["code"], "personal_selection_evaluation_source_invalid")
                 self.assertEqual((len(local_calls), len(cloud_calls)), (0, 1))
+
+    def test_unverified_provider_identity_cannot_become_passing_history_evidence(self):
+        with workflow.provider("7", response_fields={"model": "different-model"}) as (local, _), workflow.provider("7") as (cloud, _):
+            with self.fixture.connected_client(self.fixture.admission_configuration(local, cloud, mode="auto")) as submit:
+                self.history("enable")
+                self.history("learning", "enable")
+                source = self.assess(submit, "Summarize seven boxes.", "cloud-code", "7")
+                result = self.history("learning", "evaluate", "--id", source, "--models", "local-code", expected=2)
+                self.assertEqual(result["observations"][0]["error"], "execution_unverified")
+                scores = self.history("learning", "scorecard")["models"]
+                self.assertEqual(next(row for row in scores if row["model"] == "local-code")["quality"],
+                                 {"pass": 0, "fail": 0, "unknown": 1})
+
+    def test_disabling_learning_discards_pending_derivatives_while_history_collection_continues(self):
+        entered, release = threading.Event(), threading.Event()
+        with workflow.provider("7") as (local, _), workflow.provider("7", hold_first=(entered, release)) as (cloud, _):
+            with self.fixture.connected_client(self.fixture.admission_configuration(local, cloud, mode="auto")) as submit:
+                self.history("enable")
+                self.history("learning", "enable")
+                with ThreadPoolExecutor(max_workers=1) as executor:
+                    pending = executor.submit(submit, request={"model": "cloud-code", "input": "Summarize seven boxes."})
+                    try:
+                        self.assertTrue(entered.wait(timeout=3))
+                        self.history("learning", "disable")
+                    finally:
+                        release.set()
+                    self.assertEqual(pending.result(timeout=5)["status"], 200)
+                entry = self.history("list")["entries"][0]["id"]
+                retained = self.history("show", entry)["entry"]
+                self.assertNotIn("selection", retained)
+                self.assertNotIn("quality", retained)
+                self.assertFalse(self.history("learning", "status")["enabled"])
 
     def test_failed_held_out_local_checks_remain_in_the_denominator_and_prevent_activation(self):
         def slow_cloud(_body):

@@ -293,6 +293,10 @@ class LocalHistory:
             state = self._state()
             if not state["enabled"] or generation != (state["generation"], state["actor_id"]) or record["actor_id"] != state["actor_id"]:
                 return False
+            if "selection" in record:
+                learning = self._learning(state)
+                if not learning["enabled"] or learning["generation"] != record["selection"]["generation"]:
+                    record = {key: value for key, value in record.items() if key not in {"selection", "quality"}}
             entries = self._entries(state)
             if record["recorded_at"] < time.time() - state["retention_days"] * 86400:
                 return False
@@ -414,12 +418,13 @@ class LocalHistory:
                     from .model_benchmark import check_answer
                     from .personal_selection import validate_quality
                     validate_quality({"result": "unknown", "source": "independent_check", "partition": partition, "checks": checks})
-                    if record["response_content_status"] != "captured" or record["outcome"] != "succeeded":
+                    if (record["response_content_status"] != "captured" or record["outcome"] != "succeeded"
+                            or not record["selection"]["verified_response"]):
                         result = "unknown"
                     else:
                         response = {"output": [{"type": "message", "content": [{"type": "output_text", "text": record["response_text"]}]}]}
                         result = "pass" if all(check_answer(check, response) for check in checks) else "fail"
-                if result == "pass" and record["outcome"] != "succeeded":
+                if result == "pass" and (record["outcome"] != "succeeded" or not record["selection"]["verified_response"]):
                     raise LocalHistoryError("personal_selection_attempt_incomplete")
                 source = "user_feedback" if checks is None else "independent_check"
                 record["quality"] = {"result": result, "source": source, "partition": partition, "checks": checks or []}

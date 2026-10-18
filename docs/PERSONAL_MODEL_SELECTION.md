@@ -54,7 +54,8 @@ A checks file is a JSON array using the existing benchmark `metric`, `kind`,
 response; tool execution is never reconstructed from history. Checks and their
 expected values stay encrypted locally and are excluded from model requests,
 list/status output and routing headers. User feedback is explicitly labeled;
-unchecked tasks stay unknown. Interrupted attempts cannot become passing evidence.
+unchecked tasks stay unknown. Interrupted attempts and responses without a
+verified completed result from the expected model cannot become passing evidence.
 
 For an independently checked, fresh, plain-text task, compare local models:
 
@@ -122,7 +123,9 @@ compute and subscription plan cost; this version activates on latency benefit.
 
 ## Privacy, migration and rollback
 
-`history learning disable` stops learning and selection. `history disable` also
+`history learning disable` stops learning and selection, including derivatives
+from responses still pending at opt-out. Separately consented ordinary history
+can continue. `history disable` also
 invalidates learning consent. Deleting/expiring history removes its examples;
 there is no persistent embedding index or duplicate transcript dataset. The
 bounded classifier is rebuilt from retained records, so deleted content cannot
