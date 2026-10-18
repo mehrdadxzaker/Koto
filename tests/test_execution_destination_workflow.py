@@ -85,7 +85,7 @@ finally:
 
 
 @contextmanager
-def provider(answer, *, status=200, health_status=200, hold_first=None, event_stream=False, cancel_stream=None, slow_stream=False, backpressure_first=None, observe_close=None, response_fields=None, text_deltas=(), trailing_events=(), response_body=None, compact_json=False):
+def provider(answer, *, status=200, health_status=200, hold_first=None, event_stream=False, cancel_stream=None, slow_stream=False, backpressure_first=None, observe_close=None, response_fields=None, text_deltas=(), trailing_events=(), response_body=None, compact_json=False, get_responses=None):
     received = []
 
     class Handler(BaseHTTPRequestHandler):
@@ -94,8 +94,8 @@ def provider(answer, *, status=200, health_status=200, hold_first=None, event_st
             pass
 
         def do_GET(self):
-            data = json.dumps({"status": "ok" if health_status == 200 else "loading model"}).encode()
-            self.send_response(health_status if self.path == "/health" else 404)
+            data = json.dumps((get_responses or {}).get(self.path, {"status": "ok" if health_status == 200 else "loading model"})).encode()
+            self.send_response(200 if self.path in (get_responses or {}) else health_status if self.path == "/health" else 404)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(data)))
             self.end_headers()
@@ -110,7 +110,7 @@ def provider(answer, *, status=200, health_status=200, hold_first=None, event_st
                 hold_first[1].wait(timeout=5)
             result = {"id": "fixture-response", "object": "response", "status": "completed",
                       "model": body["model"], "output": [{"type": "message", "role": "assistant",
-                      "content": [{"type": "output_text", "text": answer}]}],
+                      "content": [{"type": "output_text", "text": answer(body) if callable(answer) else answer}]}],
                       "usage": {"input_tokens": 4, "output_tokens": 2, "total_tokens": 6}}
             if response_fields is not None:
                 result.update(response_fields)

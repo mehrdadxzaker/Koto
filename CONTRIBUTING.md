@@ -2,7 +2,8 @@
 
 Work against [the customer-local router scope](docs/ROUTER_SCOPE.md). Use an
 isolated checkout and preserve unrelated dirty work. New product work must
-advance the approved public workflow: connect, submit through the real router,
+advance history → scorecard → classifier → model execution → observed outcome.
+Test through the approved public workflow: connect, submit through the real router,
 inspect result/status, disconnect. CLI and plugin callers share the connection
 implementation. Do not add a Koto coding UI or duplicate the host's agent loop.
 

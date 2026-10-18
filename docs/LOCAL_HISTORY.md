@@ -1,5 +1,8 @@
 # Local history and spending insights
 
+Separate opt-in [personal model selection](PERSONAL_MODEL_SELECTION.md)
+can learn model choices from checked history; collection alone never enables learning.
+
 History is optional and starts disabled. It records only future provider
 attempts admitted through this local router for the actor you select. It does
 not collect activity from other apps, capture denied requests, import previous
@@ -114,5 +117,6 @@ allow independent compatibility fixtures; normal review and export use the CLI.
 
 Before rolling back to a version without history commands, disable collection
 and export or delete retained data as desired. Older routers ignore the
-separate store; rollback does not delete it or grant consent. There is no
-training, dataset upload, cloud sync or automatic answer reuse in this feature.
+separate store; rollback does not delete it or grant consent. History collection alone grants no classifier learning, dataset upload, cloud sync
+or automatic answer reuse. Personal selection has its own consent and v3 entry
+metadata; see its migration and rollback contract.

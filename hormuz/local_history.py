@@ -1,6 +1,7 @@
 """Opt-in, encrypted device-local review history, separate from accounting.
 
-No network or model-training capabilities belong to this module. The local key
+This module stores separately consented selector metadata; classification and
+bounded evaluation live behind the personal-selection interface. The local key
 protects files at rest; it does not protect against code running as their owner.
 """
 
@@ -40,7 +41,8 @@ _ENTRY_FIELDS = frozenset({
 
 
 def _result(kind: str, **values) -> dict:
-    return {"schema_id": "hormuz.local-history-" + kind, "schema_version": 2 if kind == "entry" and "routing_evidence" in values else 1, **values}
+    version = 3 if kind == "entry" and "selection" in values else 2 if kind == "entry" and "routing_evidence" in values else 1
+    return {"schema_id": "hormuz.local-history-" + kind, "schema_version": version, **values}
 
 
 def _id(value) -> str:
@@ -58,8 +60,16 @@ def _number(value, *, nullable=False, maximum=2**63 - 1) -> bool:
 
 
 def _validate_entry(entry: dict) -> dict:
-    if not isinstance(entry, dict) or set(entry) not in (_ENTRY_FIELDS, _ENTRY_FIELDS | {"routing_evidence"}):
+    if not isinstance(entry, dict) or set(entry) - {"routing_evidence", "selection", "quality"} != _ENTRY_FIELDS:
         raise LocalHistoryError("local_history_entry_invalid")
+    if "selection" in entry:
+        from .personal_selection import validate_context
+        validate_context(entry["selection"])
+    if "quality" in entry:
+        from .personal_selection import validate_quality
+        if "selection" not in entry:
+            raise LocalHistoryError("local_history_entry_invalid")
+        validate_quality(entry["quality"])
     if "routing_evidence" in entry:
         evidence = entry["routing_evidence"]
         if (type(evidence) is not dict or set(evidence) != {"schema_version", "policy_action", "routing_mode", "routing_reason", "fallback"}
@@ -219,8 +229,8 @@ class LocalHistory:
         for path, data in self._files():
             entry = self._decode(data, purpose=path.stem)
             if (entry.get("schema_id") != "hormuz.local-history-entry"
-                    or type(entry.get("schema_version")) is not int or entry["schema_version"] not in (1, 2)
-                    or (entry["schema_version"] == 2) != ("routing_evidence" in entry)):
+                    or type(entry.get("schema_version")) is not int
+                    or entry["schema_version"] != (3 if "selection" in entry else 2 if "routing_evidence" in entry else 1)):
                 raise LocalHistoryError("local_history_data_invalid")
             record = _validate_entry({name: value for name, value in entry.items() if name not in {"schema_id", "schema_version"}})
             if record["id"] != path.stem:
@@ -301,7 +311,123 @@ class LocalHistory:
 
     @staticmethod
     def _summary(record):
-        return {name: value for name, value in record.items() if name not in {"request_text", "response_text", "actor_id"}}
+        return {name: value for name, value in record.items()
+                if name not in {"request_text", "response_text", "actor_id", "selection", "quality"}}
+
+    def _learning(self, state):
+        data = read_private(self.directory / "selection.enc")
+        if data is None:
+            return {"schema_version": 1, "enabled": False, "mode": "observe", "actor_id": None,
+                    "generation": None, "history_generation": None, "validation": None}
+        value = self._decode(data, purpose="selection-v1")
+        if (set(value) != {"schema_version", "enabled", "mode", "actor_id", "generation", "history_generation", "validation"}
+                or type(value["schema_version"]) is not int or value["schema_version"] != 1
+                or type(value["enabled"]) is not bool or value["mode"] not in {"observe", "auto"}
+                or not _text(value["actor_id"]) or not _ID.fullmatch(str(value["generation"]))
+                or not _ID.fullmatch(str(value["history_generation"]))
+                or value["validation"] is not None and type(value["validation"]) is not dict):
+            raise LocalHistoryError("personal_selection_state_invalid")
+        if not state["enabled"] or value["actor_id"] != state["actor_id"] or value["history_generation"] != state["generation"]:
+            value = {**value, "enabled": False, "mode": "observe", "validation": None}
+        if value["validation"] is not None:
+            from .contracts import validate_contract
+            validate_contract(value["validation"])
+            if value["validation"]["schema_id"] != "koto.personal-selection-validation":
+                raise LocalHistoryError("personal_selection_state_invalid")
+        return value
+
+    def learning_consent(self, actor_id):
+        """Read only consent metadata; nonparticipants' records stay encrypted."""
+        with locked(self.directory) as exists:
+            state = self._state() if exists else self._default_state()
+            if not state["enabled"] or state["actor_id"] != actor_id:
+                return {"enabled": False}
+            return self._learning(state)
+
+    def learning_snapshot(self, actor_id=None):
+        """Read consent and its retained examples atomically; never enables learning."""
+        with locked(self.directory) as exists:
+            state = self._state() if exists else self._default_state()
+            if not state["enabled"] or actor_id is not None and state["actor_id"] != actor_id:
+                return {"enabled": False, "mode": "observe", "validation": None}, []
+            learning = self._learning(state) if exists else {"enabled": False, "mode": "observe", "validation": None}
+            if not learning["enabled"] or actor_id is not None and actor_id != learning["actor_id"]:
+                return {"enabled": False, "mode": "observe", "validation": None}, []
+            records = [entry for _, entry, _ in self._entries(state)
+                       if entry["actor_id"] == learning["actor_id"]
+                       and entry.get("selection", {}).get("generation") == learning["generation"]]
+            return learning, records
+
+    def learning_enable(self):
+        with locked(self.directory) as exists:
+            state = self._state() if exists else self._default_state()
+            if not state["enabled"]:
+                raise LocalHistoryError("personal_selection_history_consent_required")
+            existing = self._learning(state)
+            if not existing["enabled"]:
+                value = {"schema_version": 1, "enabled": True, "mode": "observe", "actor_id": state["actor_id"],
+                         "generation": uuid4().hex, "history_generation": state["generation"], "validation": None}
+                write_private(self.directory / "selection.enc", self._encode(value, purpose="selection-v1"))
+        from .personal_selection import status
+        return status(self)
+
+    def learning_disable(self):
+        with locked(self.directory) as exists:
+            if exists:
+                state = self._learning(self._state())
+                if state["generation"] is not None:
+                    state.update(enabled=False, mode="observe", validation=None)
+                    write_private(self.directory / "selection.enc", self._encode(state, purpose="selection-v1"))
+        from .personal_selection import status
+        return status(self)
+
+    def learning_validation(self, receipt, activate):
+        from .personal_selection import dataset_digest
+        with locked(self.directory) as exists:
+            if not exists:
+                raise LocalHistoryError("personal_selection_consent_required")
+            state = self._state()
+            learning = self._learning(state)
+            records = [entry for _, entry, _ in self._entries(state)
+                       if entry["actor_id"] == learning["actor_id"]
+                       and entry.get("selection", {}).get("generation") == learning["generation"]]
+            if not learning["enabled"] or receipt["dataset"] != dataset_digest(records):
+                raise LocalHistoryError("personal_selection_evidence_changed")
+            learning.update(validation=receipt, mode="auto" if activate and receipt["passed"] else "observe")
+            write_private(self.directory / "selection.enc", self._encode(learning, purpose="selection-v1"))
+
+    def learning_feedback(self, entry_id, result, partition, checks=None):
+        _id(entry_id)
+        with locked(self.directory) as exists:
+            if not exists:
+                raise LocalHistoryError("personal_selection_consent_required")
+            state = self._state()
+            learning = self._learning(state)
+            if not learning["enabled"]:
+                raise LocalHistoryError("personal_selection_consent_required")
+            for path, record, _ in self._entries(state):
+                if record["id"] != entry_id:
+                    continue
+                if record.get("selection", {}).get("generation") != learning["generation"]:
+                    raise LocalHistoryError("personal_selection_context_unavailable")
+                if checks is not None:
+                    from .model_benchmark import check_answer
+                    from .personal_selection import validate_quality
+                    validate_quality({"result": "unknown", "source": "independent_check", "partition": partition, "checks": checks})
+                    if record["response_content_status"] != "captured" or record["outcome"] != "succeeded":
+                        result = "unknown"
+                    else:
+                        response = {"output": [{"type": "message", "content": [{"type": "output_text", "text": record["response_text"]}]}]}
+                        result = "pass" if all(check_answer(check, response) for check in checks) else "fail"
+                if result == "pass" and record["outcome"] != "succeeded":
+                    raise LocalHistoryError("personal_selection_attempt_incomplete")
+                source = "user_feedback" if checks is None else "independent_check"
+                record["quality"] = {"result": result, "source": source, "partition": partition, "checks": checks or []}
+                _validate_entry(record)
+                write_private(path, self._encode(_result("entry", **record), purpose=entry_id))
+                return {"schema_id": "koto.personal-selection-feedback", "schema_version": 1,
+                        "entry_id": entry_id, "quality": result, "source": source, "partition": partition}
+        raise LocalHistoryError("local_history_entry_not_found")
 
     def list_entries(self, limit=50):
         if not _number(limit, maximum=1000) or limit < 1:
@@ -327,8 +453,12 @@ class LocalHistory:
             if not exists:
                 return _result("delete", deleted=0)
             state = self._state()
+            learning = self._learning(state)
             state["generation"] = uuid4().hex
             self._save_state(state)
+            if learning["enabled"]:
+                learning["history_generation"] = state["generation"]
+                write_private(self.directory / "selection.enc", self._encode(learning, purpose="selection-v1"))
             entries = self._entries(state)
             for path, record, _ in entries:
                 if record["id"] == entry_id:
@@ -342,8 +472,12 @@ class LocalHistory:
             if not exists:
                 return _result("delete", deleted=0)
             state = self._state()
+            learning = self._learning(state)
             state["generation"] = uuid4().hex
             self._save_state(state)
+            if learning["enabled"]:
+                learning["history_generation"] = state["generation"]
+                write_private(self.directory / "selection.enc", self._encode(learning, purpose="selection-v1"))
             files = self._files()
             for path, _ in files:
                 path.unlink()

@@ -69,7 +69,14 @@ def _validate_error(value: Mapping[str, Any], allowed_codes: frozenset[str]) -> 
 
 
 def _validate_route_admission(value: Mapping[str, Any]) -> None:
-    _exact_keys(value, {"schema_id", "schema_version", "mode", "task_classifier", "local_capacity", "routes"})
+    fields = {"schema_id", "schema_version", "mode", "task_classifier", "local_capacity", "routes"}
+    if value["schema_version"] == 3:
+        fields.add("personal_selection")
+        from ..contracts import validate_contract
+        validate_contract(value["personal_selection"])
+        if value["personal_selection"]["schema_id"] != "koto.personal-selection-status":
+            raise ContractValidationError("invalid personal selection status")
+    _exact_keys(value, fields)
     if _value_string(value, "mode") not in {"configured", "auto", "local_only"} or _value_string(value, "task_classifier") != "bounded_local_heuristic":
         raise ContractValidationError("route admission mode or classifier is invalid")
     capacity = _value_mapping(value, "local_capacity")
@@ -83,12 +90,12 @@ def _validate_route_admission(value: Mapping[str, Any]) -> None:
         if not isinstance(route, Mapping):
             raise ContractValidationError("local qualification route is invalid")
         fields = {"model", "destination", "generation", "model_revision", "qualification_id", "evidence_basis", "capabilities", "max_request_bytes", "max_output_tokens", "task_types", "readiness"}
-        if value["schema_version"] == 2:
+        if value["schema_version"] >= 2:
             fields |= {"coding_readiness", "coding_evidence", "automatic_task_types"}
         _exact_keys(route, fields)
         for field in ("capabilities", "task_types"):
             _value_string_list(route, field)
-        if value["schema_version"] == 2:
+        if value["schema_version"] >= 2:
             coding_readiness = _value_string(route, "coding_readiness")
             if coding_readiness not in {"unknown", "incomplete", "failed", "subject_mismatch", "qualified"}:
                 raise ContractValidationError("invalid local coding readiness")

@@ -135,7 +135,7 @@ def _ports(existing):
         return router.getsockname()[1], engine.getsockname()[1]
 
 
-def _configuration(path, profile, managed, credential_env, listen_port, *, credential_file=None, shadow_router=False):
+def _configuration(path, profile, managed, credential_env, listen_port, *, credential_file=None):
     revision = "sha256:" + profile["model_sha256"]
     state = path.with_name(path.name + ".state")
     value = {
@@ -164,9 +164,6 @@ def _configuration(path, profile, managed, credential_env, listen_port, *, crede
     }
     if profile["schema_version"] >= 2:
         value["route_admission"]["local_routes"][profile["model"]]["coding_evidence"] = profile["coding_evidence"]
-    if shadow_router:
-        value["shadow_router"] = {"schema_version": 1, "mode": "shadow", "model": profile["model"],
-                                  "local_model": profile["model"]}
     return value
 
 
@@ -209,6 +206,8 @@ def _credential_candidate(state, *, configuration_exists):
 
 
 def setup_local(lifetime, args):
+    if args.shadow_router:
+        raise ConnectedClientError("configuration_invalid")
     program = shutil.which(args.executable)
     if program is None:
         raise ConnectedClientError("client_unavailable")
@@ -243,8 +242,7 @@ def setup_local(lifetime, args):
         existing = _read(path, private=True)
         listen_port, runtime_port = _ports(existing)
         managed = replace(managed, port=runtime_port)
-        text = json.dumps(_configuration(path, profile, managed, args.credential_env, listen_port,
-                         shadow_router=args.shadow_router), sort_keys=True, indent=2) + "\n"
+        text = json.dumps(_configuration(path, profile, managed, args.credential_env, listen_port), sort_keys=True, indent=2) + "\n"
         if existing is not None and existing != text:
             raise ConnectedClientError("setup_changed")
         state = path.with_name(path.name + ".state")
@@ -267,7 +265,7 @@ def setup_local(lifetime, args):
                 descriptor, temporary = tempfile.mkstemp(prefix=_stage_prefix(path), dir=path.parent)
                 try:
                     preview_text = (json.dumps(_configuration(path, profile, managed, args.credential_env, listen_port,
-                                    credential_file=candidate, shadow_router=args.shadow_router), sort_keys=True, indent=2) + "\n")
+                                    credential_file=candidate), sort_keys=True, indent=2) + "\n")
                     with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
                         os.fchmod(stream.fileno(), 0o600)
                         stream.write(preview_text)
@@ -300,14 +298,12 @@ def setup_local(lifetime, args):
                     if os.path.exists(temporary):
                         os.unlink(temporary)
         result = {
-            "schema_id": LOCAL_SETUP_SCHEMA_ID, "schema_version": 3 if args.shadow_router else 1 if args.credential_env else 2,
+            "schema_id": LOCAL_SETUP_SCHEMA_ID, "schema_version": 1 if args.credential_env else 2,
             "configuration": {"operation": "reuse" if existing is not None else "create", "mode": "local_only",
                 "qualification_id": profile["qualification_id"],
                 **({"credential_env": args.credential_env} if args.credential_env else {"authentication": "managed_local"}),
                 "model": profile["model"], "listen_port": listen_port, "runtime_port": runtime_port},
             "connection": connection,
         }
-        if args.shadow_router:
-            result["configuration"]["shadow_router"] = "shadow"
         validate_contract(result)
         return result

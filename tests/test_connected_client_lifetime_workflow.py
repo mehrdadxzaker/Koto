@@ -203,6 +203,24 @@ finally:
 
 
 class ConnectedClientLifetimeWorkflowTests(unittest.TestCase):
+    def test_automatic_connection_preserves_the_selected_commercial_model_and_disconnect_restores_settings(self):
+        with provider("LOCAL_MUST_STAY_UNUSED") as (local, local_calls), provider("COMMERCIAL_BASELINE") as (cloud, cloud_calls):
+            value = destination_workflow.ExecutionDestinationWorkflowTests.configuration(self, local, cloud)
+            value["model_routes"]["current-commercial"] = {"protocol": "openai", "upstream_model": "original-model"}
+            value["policies"]["organization"]["allowed_models"].append("current-commercial")
+            value["route_admission"] = {"mode": "auto", "local_routes": {}}
+            self.path.write_text(json.dumps(value))
+            settings = self.home / "config.toml"
+            original = 'personality = "none"\nmodel = "original-model"\n'
+            settings.write_text(original)
+            self.addCleanup(lambda: self.command("disconnect", check=False))
+            self.command("connect")
+            self.assertEqual(self.client("inspect")["model"], "current-commercial")
+            self.assertEqual(self.client()["body"]["output"][0]["content"][0]["text"], "COMMERCIAL_BASELINE")
+            self.command("disconnect")
+            self.assertEqual(settings.read_text(), original)
+            self.assertEqual((len(local_calls), len(cloud_calls)), (0, 1))
+
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
@@ -937,30 +955,16 @@ class ConnectedClientLifetimeWorkflowTests(unittest.TestCase):
             self.assertTrue((engine / "stopped").exists())
             self.assertEqual(requests, [])
 
-    def test_local_setup_enables_shadow_routing_without_manual_configuration_or_tokens(self):
+    def test_retired_shadow_setup_leaves_settings_assets_and_configuration_unchanged(self):
         with provider("CLOUD_MUST_STAY_UNUSED") as (cloud, requests):
             value, _, engine = self.managed_configuration(cloud)
             options = self.local_setup_options(value)[:-2]
-            self.environment.pop("DESTINATION_WORKFLOW_TOKEN", None)
-            self.environment.pop("HORMUZ_GATEWAY_TOKEN", None)
-            self.addCleanup(lambda: self.command("disconnect", check=False))
-            preview = json.loads(self.command("setup", *options, "--shadow-router", "--dry-run").stdout)
-            self.assertEqual((preview["schema_version"], preview["configuration"]["shadow_router"]), (3, "shadow"))
+            before = self.client("inspect")
+            result = self.command("setup", *options, "--shadow-router", "--dry-run", check=False)
+            self.assertEqual(result.returncode, 2)
+            self.assertEqual(json.loads(result.stderr)["error"]["code"], "connected_client_configuration_invalid")
             self.assertFalse(self.path.exists())
-            connected = json.loads(self.command("setup", *options, "--shadow-router").stdout)
-            validate_contract(connected)
-            validate_contract(json.loads((Path(__file__).parent / "fixtures/local-setup-v3.json").read_text()))
-            result = self.client()
-            self.assertEqual(result["body"]["output"][0]["content"][0]["text"], "MANAGED_LOCAL")
-            work = self.client("work-state")["body"]["works"][0]
-            advice = work["attempts"][0]["shadow_routing"]
-            self.assertEqual((advice["status"], advice["recommendation"], advice["actual_locality"]),
-                             ("classified", "local", "local"))
-            repeated = json.loads(self.command("setup", *options, "--shadow-router").stdout)
-            self.assertEqual(repeated["connection"]["generation"], connected["connection"]["generation"])
-            self.command("disconnect")
-            self.assertEqual(self.client("inspect")["model"], "original-model")
-            self.assertTrue((engine / "stopped").exists())
+            self.assertEqual(self.client("inspect"), before)
             self.assertEqual(requests, [])
 
     def test_local_credential_preview_leaves_no_persistent_credential_or_connection(self):

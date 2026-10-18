@@ -264,6 +264,14 @@ class HistoryCapture:
                 elif self.entry["http_status"] == 529:
                     self.entry["outcome"] = "failed"
                 self.entry["latency_ms"] = int((time.monotonic() - self.started) * 1000)
+                source = getattr(self, "evaluation_source", None)
+                if source is not None and "selection" in self.entry:
+                    from .model_benchmark import check_answer
+                    quality = "unknown"
+                    if self.entry["outcome"] == "succeeded" and self.entry["response_content_status"] == "captured":
+                        response = {"output": [{"type": "message", "content": [{"type": "output_text", "text": self.entry["response_text"]}]}]}
+                        quality = "pass" if all(check_answer(check, response) for check in source["quality"]["checks"]) else "fail"
+                    self.entry["quality"] = {**source["quality"], "result": quality}
                 self.history.append(self.generation, self.entry)
         except (OSError, ValueError):
             LOGGER.warning("local_history_write_unavailable")

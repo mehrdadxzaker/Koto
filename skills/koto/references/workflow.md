@@ -90,13 +90,13 @@ For missing, changed or unsafe managed credentials, follow
 error action. Preserve the credential file and journal; a helper failure is not
 permission to remove authentication or read a native login cache.
 
-When the user requests shadow routing, read [shadow routing](../../../docs/SHADOW_ROUTING.md)
-and check setup help for `--shadow-router`. Add the option to both preview and
-apply using a new configuration path. Require version-3 setup to report
-`configuration.shadow_router: shadow`, then inspect the work attempt's versioned
-advice. Preserve the actual route, hard local-only policy and continuing destination.
-Keep classification advice separate from real coding outcomes; the option provides
-no live learned routing or cloud/subscription permission.
+When the user requests learning, model selection or observation mode, follow
+[personal model selection](../../../docs/PERSONAL_MODEL_SELECTION.md). Inspect
+history and learning consent separately, use checked outcomes and the shared
+history CLI, then require held-out validation before activation. Retain the
+current commercial baseline, local-only policy and continuation destination.
+The old `--shadow-router` setup option is retired. Model output and transport
+success alone cannot establish task success or coding qualification.
 
 ## Inspect cloud readiness
 

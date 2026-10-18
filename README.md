@@ -2,65 +2,36 @@
 
 <img src="assets/koto-logo.png" alt="Koto wooden K logo" width="160" height="160" />
 
-Koto is a customer-local model router for existing coding clients. Its entry
-points are a terminal CLI and a skills-only plugin that calls the same
-setup, status and disconnect implementation. Coding clients retain their editor,
-tools, permissions and agent loop.
+**Koto adds local models to the selection pool alongside the commercial model
+you already use, then learns from your work which model should handle each prompt.**
 
-The approved workflow is **connect → submit a coding-client request through the
-router → inspect result/status → disconnect**. See [scope and implementation
-order](docs/ROUTER_SCOPE.md) and [specification #523](https://github.com/Xpounder-com/hormuz/issues/523).
+Koto runs on your device and connects to your existing coding client. The client
+keeps its editor, tools, permissions and agent loop. Initially, Koto chooses
+between the client's selected commercial model and qualified local alternatives.
+GPT, Gemini and Claude are possible commercial model families; actual support
+depends on the client adapter and authorized provider connection. Codex is the
+first implemented connection.
 
-The current source implements destination ownership, automatic route admission,
-hard local-only enforcement and recoverable Codex CLI connection lifetime.
-Routine tests use disposable clients and model endpoints. Real llama.cpp/model
-quality, subscription eligibility, installed-platform support and plugin
-distribution remain separate qualification work. The plugin bundles setup,
-status, troubleshooting and disconnect instructions over the CLI. MCP is
-optional if a concrete integration needs it.
+The core workflow is **history → scorecard → classifier → model execution →
+observed outcome**. With separate consent, Koto maintains a personal scorecard
+from retained tasks, independent checks or explicit feedback, latency, failures
+and known costs. A small nearest-neighbor classifier runs locally without a
+classifier model call. It first observes; automatic selection requires held-out
+quality and latency validation. Unfamiliar work keeps the approved commercial
+baseline. Hard local-only mode blocks when a suitable local choice is unavailable.
 
-A [pinned Codex → llama.cpp profile](docs/qualifications/codex-0147-llama-b11617-qwen3-4b.md)
-now records real local tool execution, incremental streaming, cancellation and
-restoration. Its supplied-script case passed; autonomous repair and strict
-answer formatting failed. That historical run used manual work binding; the
-router now supports [automatic conversation binding](docs/CONVERSATION_WORK_BINDING.md)
-for the recognized native HTTP envelope.
+See [personal model selection](docs/PERSONAL_MODEL_SELECTION.md) for consent,
+feedback, bounded local evaluations, validation, status and migration. Existing
+manual [benchmark suites](docs/MODEL_SCORECARDS.md) remain an advanced tool.
+Neither learning nor a scorecard grants missing local coding qualification.
+Current experimental local coding setups remain unqualified; prior successful
+controls and failed trials are retained as evidence.
 
-An optional [managed llama.cpp profile](docs/MANAGED_LLAMA_LIFETIME.md) now
-starts and stops one engine from existing verified runtime/model files through
-the same connection commands. It verifies bundled libraries as well as the
-launcher, preserves external engines, and keeps cleanup pending until its owned
-lease is released. [Verified acquisition](docs/LOCAL_ASSET_ACQUISITION.md) now
-previews and explicitly downloads the existing pinned experimental runtime/model
-into a private generation. Model selection and coding qualification remain separate.
-
-[Shared local setup](docs/SHARED_LOCAL_SETUP.md) now generates the local-only
-configuration from existing verified engine/model files and connects through
-that same owner. The CLI and plugin use `client setup codex`; repeated setup
-reuses the configuration and active generation, and preserves edited files.
-The installed router remains a prerequisite. Setup now creates a private local
-caller credential and configures Codex's command-backed authentication without
-manual token exports. See [local credential setup](docs/LOCAL_CREDENTIAL_SETUP.md).
-
-Opt-in [shadow routing](docs/SHADOW_ROUTING.md) records a local model's routing
-recommendation alongside the actual attempt. Shared setup accepts `--shadow-router`;
-recommendations preserve existing routing, local-only policy and conversation affinity.
-
-[Local coding qualification](docs/LOCAL_CODING_QUALIFICATION.md) now gates automatic
-coding admission on a pinned, predeclared campaign of actual edits, independent
-checks and normal completion. The bundled experiment remains unqualified for
-automatic coding. Engine health and shadow advice do not grant that qualification.
-
-The [first candidate setup](docs/CANDIDATE_SETUP.md) pins an experimental
-Codex 0.160.0/macOS arm64 combination and a sixteen-case preparation campaign.
-It has no new native coding outcomes or admission receipt.
-
-[Personal model scorecards](docs/MODEL_SCORECARDS.md) benchmark your own examples
-through the local router. Create a suite with reference checks and targets, compare
-quality, latency, streaming first-token timing, throughput, usage and configured
-cost estimates, then explicitly enable deterministic routing among already
-qualified local models. Scorecards stay local and preserve failed or unknown
-measurements. They do not grant coding qualification.
+Setup, verified model assets, streaming, tools, continuation affinity and safe
+disconnect support this workflow. The CLI and skills plugin share their
+implementation. See [product scope](docs/ROUTER_SCOPE.md) and
+[shared setup](docs/SHARED_LOCAL_SETUP.md). Plugin installation alone does not
+activate routing, download models or establish provider access.
 
 ## Install in your agent
 
@@ -165,8 +136,8 @@ runtime. See [admission](docs/LOCAL_ROUTE_ADMISSION.md),
 
 Local-only blocks every intercepted model path from cloud execution, including
 helpers. It does not control unrelated coding-client tools, plugins or network
-connections. Automatic mode considers only eligible qualified local routes;
-unknown evidence uses an explicitly permitted baseline or blocks. Continuing
+connections. Personal selection considers the selected commercial baseline and eligible
+qualified local routes; unknown evidence uses the permitted baseline or blocks. Continuing
 tool and provider state retains destination affinity.
 
 Codex subscription access is not established by login or these tests. There is
@@ -185,8 +156,7 @@ authorized ChatGPT plan paths and reports their remaining blockers.
 review and spending estimates on your device. Collection starts disabled;
 `koto --config koto.json history enable` opts in for future intercepted
 requests. Use `history list`, `history show`, `history insights`, `history export`,
-`history delete` and `history disable` to control retained data. No training or
-cloud upload is part of this feature; exports are explicitly decrypted files.
+`history delete` and `history disable` to control retained data. History collection alone does not enable classifier learning or cloud upload; exports are explicitly decrypted files.
 
 The 2.0 development line retires standalone apps, hosted/enterprise front doors,
 billing and PostgreSQL deployment support. [Migration and rollback](docs/MIGRATION_2.md)
