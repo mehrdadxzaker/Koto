@@ -1,0 +1,44 @@
+{
+  "model_requests": 0,
+  "controls": [
+    {
+      "private_artifact": "native-isolation-control.json",
+      "sha256": "85589db75c3be9669ea7aa2c33082d6d46eaa1a3c42dc1815573f340e094cc27",
+      "native_model_inferences": 0,
+      "checks_unchanged": true,
+      "check_exit_code": 0,
+      "settings_restored": true,
+      "owned_listeners_closed": true
+    },
+    {
+      "private_artifact": "checker-read-isolation-control.json",
+      "sha256": "33bc621377e58cbd7c055a2bd1c487d81aeb253c991b49bc3532a43689521874",
+      "native_model_inferences": 0,
+      "checks_unchanged": true,
+      "check_exit_code": 0,
+      "settings_restored": true,
+      "owned_listeners_closed": true
+    },
+    {
+      "private_artifact": "premature-exit-control.json",
+      "sha256": "3a037c1a22bb4aa4d460007ff1e128af8f28ae21eb7a27533c4e17451426a69a",
+      "native_model_inferences": 0,
+      "checks_unchanged": true,
+      "check_exit_code": 2,
+      "settings_restored": true,
+      "owned_listeners_closed": true
+    }
+  ],
+  "checker_validation_sha256": "bd991c76df3f2b841844f3ff12da9d0b3b4872a657acf761e5c2d4e8b8dbdefc",
+  "assertion_failing_baselines": 16,
+  "completed_references": 16,
+  "prior_evidence": {
+    "campaign_id": "local-repair-20261018-v15",
+    "archive_index_sha256": "532e77e68e93e64bd77badd2a147d3a271858636633f5c8a79be560e6ef76c0a",
+    "verified_files": 600,
+    "verified_bytes": 17538451,
+    "v15_manifest_sha256": "c7e52258b2c91027b4aeb4238d4605154ceb149c3cc14bea2f725800c1acd56c",
+    "inference_requests": 0
+  },
+  "preparation_correction": "One hand-transcribed large-integer checker literal was corrected before freeze against an independent Decimal worked example. Original unfrozen inputs are retained privately."
+}
