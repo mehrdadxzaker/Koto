@@ -397,7 +397,7 @@ def _control(record, command, **payload):
         if command == "routing":
             admission = value.get("admission")
             if (not isinstance(admission, dict) or admission.get("schema_id") != "hormuz.route-admission"
-                    or admission.get("schema_version") not in (2, 3)):
+                    or admission.get("schema_version") not in (2, 3, 4)):
                 raise ValueError()
             validate_contract(admission)
             return admission

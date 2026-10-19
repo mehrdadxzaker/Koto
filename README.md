@@ -24,8 +24,10 @@ See [personal model selection](docs/PERSONAL_MODEL_SELECTION.md) for consent,
 feedback, bounded local evaluations, validation, status and migration. Existing
 manual [benchmark suites](docs/MODEL_SCORECARDS.md) remain an advanced tool.
 Neither learning nor a scorecard grants missing local coding qualification.
-Current experimental local coding setups remain unqualified; prior successful
-controls and failed trials are retained as evidence.
+Bundled local coding examples remain unqualified; prior successful controls and
+failed trials are retained as evidence. The optional
+[2,048-token coding profile](docs/BOUNDED_CODING_OUTPUT.md) requires its own frozen
+campaign and the same sixteen-case independent quality gate.
 
 Setup, verified model assets, streaming, tools, continuation affinity and safe
 disconnect support this workflow. The CLI and skills plugin share their

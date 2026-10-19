@@ -595,7 +595,9 @@ class RouteAdmission:
                 "automatic_task_types": list(qualification.automatic_task_types(coding))})
         with self._capacity_lock:
             capacity = {"limit": 1, "active": self._active_local}
-        result = {"schema_id": "hormuz.route-admission", "schema_version": 2, "mode": self.settings.mode,
+        version = 4 if any(row["coding_evidence"] and row["coding_evidence"]["criteria_version"] == "local-repair.v2"
+                           for row in routes) else 2
+        result = {"schema_id": "hormuz.route-admission", "schema_version": version, "mode": self.settings.mode,
                   "task_classifier": "bounded_local_heuristic", "local_capacity": capacity, "routes": routes}
         if self.history is not None:
             from .personal_selection import status
@@ -604,7 +606,7 @@ class RouteAdmission:
             except (OSError, ValueError):
                 personal = None
             if personal is not None and personal["enabled"]:
-                result.update(schema_version=3, personal_selection=personal)
+                result.update(schema_version=4 if version == 4 else 3, personal_selection=personal)
         return result
 
     def benchmark_status(self, identity, policy_engine):
