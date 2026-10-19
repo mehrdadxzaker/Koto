@@ -5,6 +5,7 @@ retain the raw upstream SSE. Supplied function arguments are a transport control
 not model-quality evidence. Exit 1 is the retained no-edit symptom.
 """
 import argparse
+import contextlib
 import hashlib
 import importlib.util
 import json
@@ -60,10 +61,14 @@ def main():
     parser.add_argument('--alter-tool-schema', action='store_true', help='Negative control: change one captured tool description')
     parser.add_argument('--premature-checker-exit', action='store_true',
                         help='Negative control: a checker process exit zero must not prove assertion completion')
+    parser.add_argument('--checker-read-isolation', action='store_true',
+                        help='Import code that must be denied reads of owned sentinels outside the checker inputs')
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     if args.premature_checker_exit and (not args.v8_driver or args.mode != 'function'):
         parser.error('The premature-exit control requires --v8-driver --mode function')
+    if args.checker_read_isolation and (not args.v8_driver or args.mode != 'function' or args.premature_checker_exit):
+        parser.error('The checker-read control requires --v8-driver --mode function without premature exit')
     if args.output.exists():
         raise RuntimeError('Preserve an existing diagnostic result')
     args.output.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
@@ -73,7 +78,7 @@ def main():
     native_events = [json.loads(line) for line in (V7 / 'development-native.jsonl').read_text().splitlines()]
     frozen_text = next(e['item']['text'] for e in native_events
                        if e.get('item', {}).get('type') == 'agent_message')
-    with tempfile.TemporaryDirectory(prefix='koto-native-tool-replay-',
+    with contextlib.ExitStack() as owned, tempfile.TemporaryDirectory(prefix='koto-native-tool-replay-',
                                      dir='/private/tmp' if args.v8_driver else None) as temporary:
         root = Path(temporary)
         root.chmod(0o700)
@@ -152,6 +157,22 @@ def main():
             if args.premature_checker_exit:
                 command = 'python3 -c ' + shlex.quote(
                     'from pathlib import Path; Path("solution.py").write_text("import os; os._exit(0)\\n")')
+            if args.checker_read_isolation:
+                home = Path(owned.enter_context(tempfile.TemporaryDirectory(
+                    prefix='koto-checker-read-control-', dir=Path.home())))
+                sentinels = [home / 'sentinel.txt', root / 'checker-forbidden.txt']
+                for path in sentinels:
+                    path.write_text('Owned synthetic sentinel; no personal data.\n')
+                implementation = ('from pathlib import Path\n'
+                    'for forbidden in ' + repr([str(path) for path in sentinels]) + ':\n'
+                    ' try:\n  Path(forbidden).read_bytes()\n'
+                    ' except PermissionError:\n  pass\n'
+                    ' else:\n  raise AssertionError("checker could read outside inputs")\n'
+                    'def clamp(value, lower, upper):\n'
+                    ' if lower > upper: raise ValueError("inverted bounds")\n'
+                    ' return max(lower, min(value, upper))\n')
+                command = 'python3 -c ' + shlex.quote(
+                    'from pathlib import Path; Path("solution.py").write_text(' + repr(implementation) + ')')
         if args.supplied_command:
             command = args.supplied_command.read_text()
             if len(command.encode()) > 65536:
@@ -258,6 +279,7 @@ def main():
                   'alter_tool_schema': args.alter_tool_schema,
                   'supplied_command_sha256': digest(command.encode()) if args.supplied_command else None,
                   'premature_checker_exit': args.premature_checker_exit, 'native_model_inferences': 0,
+                  'checker_read_isolation': args.checker_read_isolation,
                   'response_origin': 'reconstructed client text' if args.mode == 'text' else 'supplied synthetic function call',
                   'model_quality_evidence': False, 'baseline_exit_code': independent_check()}
         before = (root / 'project/solution.py').read_bytes()

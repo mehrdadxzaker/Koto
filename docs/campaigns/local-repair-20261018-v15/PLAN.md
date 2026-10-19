@@ -66,6 +66,11 @@ only local destinations; preserve unknown ordinary coding readiness and empty
 automatic task lists. Tools may write only the disposable project and temporary
 directory. Deny tool network access and reads of the owner's Codex home, source
 checkouts, other temporary generations, independent checkers and references.
+The independent checker separately denies network access and file writes, and
+allows file content reads only for interpreter/system support and its active
+checker/solution pair. Disable Python site initialization. Prove read denial
+with owned synthetic sentinels in the user home and outside the active inputs;
+retain the failing pre-correction control and revalidate all sixteen checkers.
 
 Keep four development tasks for comparison, starting with `dev-clamp`. The twelve
 held-out cases cover three new behaviors each in arithmetic, text, collections

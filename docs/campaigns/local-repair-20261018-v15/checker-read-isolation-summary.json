@@ -1,0 +1,36 @@
+{
+  "model_completion_requests": 0,
+  "model_quality_evidence": false,
+  "red": {
+    "checker_exit_code": 1,
+    "actual_tool_execution": 1,
+    "changed_implementation": true,
+    "outside_input_reads_rejected": false,
+    "settings_restored": true,
+    "owned_listeners_closed": true
+  },
+  "green": {
+    "checker_exit_code": 0,
+    "assertions_completed": true,
+    "actual_tool_execution": 1,
+    "changed_implementation": true,
+    "outside_input_reads_rejected": true,
+    "settings_restored": true,
+    "owned_listeners_closed": true
+  },
+  "sentinels": "Owned synthetic files in user home and disposable trial root; no personal file contents read",
+  "corrected_checker_validation": "checker-read-boundary-validation-green.json",
+  "preserved_preparation_failures": [
+    "checker-read-boundary-validation-attempt-01.json",
+    "checker-read-boundary-validation-attempt-02.json"
+  ],
+  "correction": "Allow content reads of interpreter/system support plus only active checker and solution; disable site initialization; canonicalize input paths; root directory itself is allowed for macOS startup",
+  "restricted_checker_premature_exit_control": {
+    "process_exit_code": 0,
+    "assertions_completed": false,
+    "accepted_check_exit_code": 2,
+    "settings_restored": true,
+    "owned_listeners_closed": true,
+    "model_completion_requests": 0
+  }
+}

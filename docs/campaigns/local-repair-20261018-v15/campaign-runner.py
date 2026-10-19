@@ -89,10 +89,23 @@ def checker(case):
     code = ('import runpy,sys\noracle=sys.argv.pop(1)\nsys.argv[0]=oracle\ntry:\n'
             ' runpy.run_path(oracle,run_name="__main__")\nexcept AssertionError:\n sys.exit(1)\n'
             'except BaseException:\n sys.exit(2)\nprint(' + repr(completion) + ',flush=True)\n')
+    # Submitted code also runs here, after leaving the native tool sandbox.
+    # Permit interpreter support and only the two active trial input files.
+    readable = [('literal', '/'),  # Required for macOS interpreter startup, not descendants.
+                ('subpath', str(PYTHON.resolve().parent.parent)),
+                ('literal', str(PYTHON)),
+                ('literal', str(PYTHON.parent.parent / 'pyvenv.cfg')),
+                ('literal', str(oracle.resolve())), ('literal', str((ROOT / 'project/solution.py').resolve())),
+                *[('subpath', path) for path in ('/System/Library', '/usr/lib',
+                    '/Library/Apple/System/Library', '/private/var/db/dyld')],
+                *[('literal', path) for path in ('/dev/null', '/dev/urandom', '/dev/random')]]
+    allowed = ' '.join('(' + kind + ' ' + json.dumps(path) + ')' for kind, path in readable)
+    profile = ('(version 1)(allow default)(deny network*)(deny file-write*)'
+               '(deny file-read-data (require-not (require-any ' + allowed + ')))')
     with tempfile.TemporaryFile(dir=ROOT / 'tmp') as output:
         process = subprocess.Popen(['/usr/bin/sandbox-exec', '-p',
-            '(version 1)(allow default)(deny network*)(deny file-write*)', str(PYTHON),
-            '-I', '-B', '-c', code, str(oracle), str(ROOT / 'project/solution.py')],
+            profile, str(PYTHON),
+            '-I', '-B', '-S', '-c', code, str(oracle), str(ROOT / 'project/solution.py')],
             cwd=ROOT / 'tmp', env={'PATH': '/usr/bin:/bin', 'HOME': str(ROOT / 'tmp')},
             stdin=subprocess.DEVNULL, stdout=output, stderr=subprocess.DEVNULL, start_new_session=True)
         deadline = time.monotonic() + 2
