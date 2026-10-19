@@ -246,6 +246,9 @@ class CodexAppWorkflowTests(unittest.TestCase):
         with destination.provider('LOCAL', event_stream=True, response_fields={'output': output}) as (local, requests), \
              destination.provider('UNUSED_CLOUD') as (cloud, cloud_requests):
             value = self.configuration(local, cloud)
+            # Match the six-capability terminal campaign, which uses ordinary
+            # function tools and does not opt into rich Codex tool translation.
+            value['model_routes']['local-code']['capabilities'].remove('codex_llama_v1')
             value['ai_work'] = {'enabled': True, 'tool_capable_aliases': ['local-code'],
                                 'database': str(self.fixture.root / 'work.sqlite3')}
             with self.fixture.connected_client(value) as submit:
@@ -268,6 +271,7 @@ class CodexAppWorkflowTests(unittest.TestCase):
         with destination.provider('LOCAL', response_fields={'output': [call]}) as (local, requests), \
              destination.provider('UNUSED_CLOUD') as (cloud, cloud_requests):
             value = self.configuration(local, cloud)
+            value['model_routes']['local-code']['capabilities'].remove('codex_llama_v1')
             value['ai_work'] = {'enabled': True, 'tool_capable_aliases': ['local-code'],
                                 'database': str(self.fixture.root / 'work.sqlite3')}
             with self.fixture.connected_client(value) as submit:
@@ -289,6 +293,10 @@ class CodexAppWorkflowTests(unittest.TestCase):
                     'reasoning': {'effort': 'none'}, 'input': [{**no_status, 'arguments': '{"cmd":"unfinished'}, result]})
                 self.assertEqual(rejected['status'], 503, rejected)
             self.assertEqual(requests[1]['body']['input'][0]['arguments'], '{ "cmd" : "true" }')
+            self.assertEqual(requests[0]['body']['tools'], [tool])
+            self.assertEqual(requests[0]['body']['reasoning'], {'effort': 'none'})
+            self.assertNotIn('chat_template_kwargs', requests[0]['body'])
+            self.assertNotIn('reasoning_budget_tokens', requests[0]['body'])
             self.assertEqual((len(requests), cloud_requests), (2, []))
 
     def test_incremental_arguments_stop_before_an_invalid_done_event(self):

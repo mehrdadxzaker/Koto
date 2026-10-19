@@ -31,12 +31,15 @@ def needs_adapter(value):
 
 
 class CodexLlamaRequest:
-    def __init__(self, value):
+    def __init__(self, value, *, translate=True):
         self.value = copy.deepcopy(value)
+        self.translate = translate
         self.identities = {}
         self.declarations = {}
         self.buffer = bytearray()
         self.stream_kinds = {}
+        if not translate:
+            return
         tags = value.get('client_metadata', {})
         if isinstance(tags, dict) and any(key in tags and (not isinstance(tags[key], str)
                 or not 0 < len(tags[key]) <= 2048 or any(ord(c) < 32 or ord(c) > 126 for c in tags[key]))
@@ -204,6 +207,10 @@ class CodexLlamaRequest:
         if not isinstance(value, dict):
             raise CodexLlamaError('invalid_provider_item')
         if value.get('type') != 'function_call':
+            return value
+        if not self.translate:
+            if complete:
+                _function_arguments(value.get('arguments', ''))
             return value
         if not isinstance(value.get('name'), str):
             raise CodexLlamaError('invalid_provider_tool_name')
