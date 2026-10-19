@@ -107,6 +107,19 @@ checked dataset, pool/setup identities, classifier version and request profiles
 and expires after 24 hours. Further checked feedback, source deletion, expiry or
 setup changes require revalidation before new automatic selections.
 
+Omit `--activate` to validate retained outcomes in observation mode. Validation
+makes no provider requests; even a passing receipt keeps recommendations separate
+from execution on the commercial baseline. Unchecked held-out outcomes and zero
+or negative latency benefit prevent activation. A passing selector receipt never
+supplies missing coding qualification.
+
+Authored loopback responses and timings verify these gates, not real model quality
+or measured savings. A comparison using an existing ChatGPT subscription remains
+blocked until its account and host have a supported, authorized connection:
+cloud readiness currently reports the native gateway and ChatGPT app paths as
+`not_implemented`. Native transport support alone does not qualify that connection.
+A paid API baseline requires separate authorization.
+
 Automatic mode uses the current commercial baseline on insufficient evidence.
 Hard local-only selection blocks instead of contacting it. Explicit local model
 choices and bounded qualification probes retain their separate authority.
