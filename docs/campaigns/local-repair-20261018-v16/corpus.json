@@ -1,0 +1,198 @@
+{
+  "schema_id": "hormuz.model-benchmark-corpus",
+  "schema_version": 1,
+  "entries": [
+    {
+      "case_id": "dev-clamp",
+      "partition": "development",
+      "family": "arithmetic",
+      "goal": "Fix the Python implementation in solution.py. Repair clamp(value, lower, upper): return value bounded by the inclusive lower and upper limits. Raise ValueError when lower exceeds upper. Inputs are integers. Do not change the public function name. Make the edit and check the behavior. /no_think",
+      "files": {
+        "solution.py": "def clamp(value, lower, upper):\n    return max(lower, value)\n"
+      },
+      "checks": "import runpy\nimport sys\n\ns = runpy.run_path(sys.argv[1])\nf = s['clamp']\nassert f(12, 2, 8) == 8\nassert f(-5, -3, 4) == -3\nassert f(0, -3, 4) == 0\nassert f(4, 4, 4) == 4\ntry:\n    f(2, 4, 1)\nexcept ValueError:\n    pass\nelse:\n    raise AssertionError('inverted bounds accepted')\n",
+      "task_sha256": "33fd16c7939f008528fdcd40d4911c9d323eec130318414f0683d8bd7a2bc5aa",
+      "checks_sha256": "da25b64603054b72230db061e79855ed9d3f32b6f31076fa5755ac4eec12b942"
+    },
+    {
+      "case_id": "dev-strip-prefix",
+      "partition": "development",
+      "family": "text",
+      "goal": "Fix the Python implementation in solution.py. Repair strip_prefix(text, prefix): remove exactly one prefix only when it is at the beginning of text; otherwise return the original text. An empty prefix leaves text unchanged. Preserve Unicode and later occurrences. Make the edit and check the behavior. /no_think",
+      "files": {
+        "solution.py": "def strip_prefix(text, prefix):\n    return text.replace(prefix, '')\n"
+      },
+      "checks": "import runpy\nimport sys\n\ns = runpy.run_path(sys.argv[1])\nf = s['strip_prefix']\nassert f('abcabc', 'abc') == 'abc'\nassert f('xabc', 'abc') == 'xabc'\nassert f('abc', '') == 'abc'\nassert f('', 'x') == ''\nassert f('\u03b1\u03b2\u03b1', '\u03b1') == '\u03b2\u03b1'\nassert f('same', 'same') == ''\n",
+      "task_sha256": "ac666d5237460f22274f88ec968dec3498caa5e45251b0fc62379a429f5ca7d1",
+      "checks_sha256": "fcc045ad3370cc3e2e8306bb1f1ec3105eda3b1566d72877c25269822dd8ff8d"
+    },
+    {
+      "case_id": "dev-rotate-left",
+      "partition": "development",
+      "family": "collections",
+      "goal": "Fix the Python implementation in solution.py. Repair rotate_left(items, steps): return a new list rotated left by integer steps modulo the list length. Negative steps rotate right. Empty input returns a new empty list. Preserve elements and do not mutate the input. Make the edit and check the behavior. /no_think",
+      "files": {
+        "solution.py": "def rotate_left(items, steps):\n    return items[steps:] + items[:steps]\n"
+      },
+      "checks": "import runpy\nimport sys\n\ns = runpy.run_path(sys.argv[1])\nf = s['rotate_left']\na = [1, 2, 3, 4]\nassert f(a, 5) == [2, 3, 4, 1]\nassert f(a, -5) == [4, 1, 2, 3]\nassert f(a, 0) == a and f(a, 0) is not a\nassert a == [1, 2, 3, 4]\nempty = []\nassert f(empty, 10) == [] and f(empty, 10) is not empty\nassert f([[1], [2]], 3) == [[2], [1]]\n",
+      "task_sha256": "b90c5095ab8c1f6e0c1da0e665b881cd3014f318acaca864caa38482eaea3002",
+      "checks_sha256": "3f83dd8fc94581f1d72a6952b1e0f0c4988e90c0ec9001383c325de44954d3b1"
+    },
+    {
+      "case_id": "dev-positive-counter",
+      "partition": "development",
+      "family": "validation_state",
+      "goal": "Fix the Python implementation in solution.py. Repair Counter.increment(step=1). Accept only strict positive integers (bool is invalid). Raise ValueError before mutation for invalid step. Add a valid step to value and return the new value; a new counter starts at zero. Make the edit and check the behavior. /no_think",
+      "files": {
+        "solution.py": "class Counter:\n    def __init__(self):\n        self.value = 0\n    def increment(self, step=1):\n        self.value += step\n        return self.value\n"
+      },
+      "checks": "import runpy\nimport sys\n\ns = runpy.run_path(sys.argv[1])\nc = s['Counter']()\nassert c.increment() == 1\nassert c.increment(3) == 4\nfor bad in [0, -1, True, False, 1.5, '2', None]:\n    try:\n        c.increment(bad)\n    except ValueError:\n        pass\n    else:\n        raise AssertionError('invalid step accepted')\n    assert c.value == 4\nassert c.increment(2) == 6\n",
+      "task_sha256": "40cf635d46f648cb990a97596d31fb79be3641b52a957c701a1b4a06b5148d5f",
+      "checks_sha256": "65e4123e7ba3a0b5e8f953213a1078d170b9fe997e27372efe413719edabb6d3"
+    },
+    {
+      "case_id": "held-proper-divisor-sum",
+      "partition": "held_out",
+      "family": "arithmetic",
+      "goal": "Fix the Python implementation in solution.py. Repair proper_divisor_sum(n): require a positive built-in int, rejecting bool and int subclasses with ValueError. Return the sum of all positive divisors strictly smaller than n. For one return zero. Make the edit and check the behavior. /no_think",
+      "files": {
+        "solution.py": "def proper_divisor_sum(n):\n    return n\n"
+      },
+      "checks": "import runpy\nimport sys\ns=runpy.run_path(sys.argv[1])\nclass IntegerSubclass(int): pass\nf=s['proper_divisor_sum']\nassert f(1)==0 and f(2)==1 and f(6)==6\nassert f(12)==16 and f(25)==6 and f(28)==28 and f(97)==1\nfor n in [0,-1,True,False,6.0,'6',None,IntegerSubclass(6)]:\n try: f(n)\n except ValueError: pass\n else: raise AssertionError('invalid divisor input')\n",
+      "task_sha256": "ed464fb5750af3b019ab713b3e690e35aba9c150d267c8aa446725a48de4f2d7",
+      "checks_sha256": "d7d76b28650ebe736502346c8c450477b2e9837818ade38350e9d4117b0802f2"
+    },
+    {
+      "case_id": "held-decimal-trailing-zeros",
+      "partition": "held_out",
+      "family": "arithmetic",
+      "goal": "Fix the Python implementation in solution.py. Repair decimal_trailing_zeros(n): require a nonnegative built-in int, rejecting bool and int subclasses with ValueError. Count consecutive zero digits at the end of its base-ten representation. Define zero to return zero. Support arbitrarily large integers exactly. Make the edit and check the behavior. /no_think",
+      "files": {
+        "solution.py": "def decimal_trailing_zeros(n):\n    return str(n).count(\"0\")\n"
+      },
+      "checks": "import runpy\nimport sys\ns=runpy.run_path(sys.argv[1])\nclass IntegerSubclass(int): pass\nf=s['decimal_trailing_zeros']\nassert f(0)==0 and f(7)==0 and f(1010)==1 and f(12000)==3\nassert f(10001)==0 and f(10**100)==100 and f(10**5000)==5000\nfor n in [-1,True,False,10.0,'10',None,IntegerSubclass(10)]:\n try: f(n)\n except ValueError: pass\n else: raise AssertionError('invalid trailing-zero input')\n",
+      "task_sha256": "8a9f364cd1a36c507fe25d5ba87e7d8731642ea3a947a8c8f63d626aefc410ac",
+      "checks_sha256": "753b95bf1473ae5cea55070e686eb53c1a70b098d8abc9f9b4da46c57f04733b"
+    },
+    {
+      "case_id": "held-polynomial-value",
+      "partition": "held_out",
+      "family": "arithmetic",
+      "goal": "Fix the Python implementation in solution.py. Repair polynomial_value(coefficients, x): coefficients is a list of integers in ascending power order, starting with the constant term, and x is an integer. Return the exact integer polynomial value, including for negative or arbitrarily large integers. Empty coefficients returns zero. Preserve the list. Make the edit and check the behavior. /no_think",
+      "files": {
+        "solution.py": "def polynomial_value(coefficients, x):\n    return sum(coefficients)*x\n"
+      },
+      "checks": "import runpy\nimport sys\ns=runpy.run_path(sys.argv[1])\nclass IntegerSubclass(int): pass\nf=s['polynomial_value']\nassert f([3,2,4],2)==23 and f([3,2,4],-2)==15\nassert f([],7)==0 and f([9],0)==9 and f([0,0,1],0)==0\nassert f([1,1,1],2**80)==1461501637330902918203686041642102634285107249153\na=[2,0,-3];assert f(a,3)==-25 and a==[2,0,-3]\n",
+      "task_sha256": "2f31d3e609c858c9a0fdd7d78546e7c1f596a2f618269923fcb2e757b66ffad0",
+      "checks_sha256": "4fde939cf3d4a6b34e7892d324916c24885062de86c23c67a8100dae20a69567"
+    },
+    {
+      "case_id": "held-dna-reverse-complement",
+      "partition": "held_out",
+      "family": "text",
+      "goal": "Fix the Python implementation in solution.py. Repair reverse_complement(text): accept strings containing only A C G T N or their lowercase forms. Return the reversed DNA complement, mapping A to T, C to G, G to C, T to A and N to N while preserving each character's case. Empty string is valid. All other inputs raise ValueError. Make the edit and check the behavior. /no_think",
+      "files": {
+        "solution.py": "def reverse_complement(text):\n    return text[::-1]\n"
+      },
+      "checks": "import runpy\nimport sys\ns=runpy.run_path(sys.argv[1])\nclass IntegerSubclass(int): pass\nf=s['reverse_complement']\nassert f('ACGTN')=='NACGT' and f('acgtn')=='nacgt'\nassert f('AaCGtN')=='NaCGtT' and f('')=='' and f('A')=='T'\nfor text in ['X','A C','\uff21',None,True,[],b'AC']:\n try: f(text)\n except ValueError: pass\n else: raise AssertionError('invalid DNA')\n",
+      "task_sha256": "07ba22ddcb899ddf2c20230ae3dafa3393bf3ace3d44da153620ce85793e4272",
+      "checks_sha256": "5f5a4e0686e0f9b3c69869daab3da2589c30e193c6d7939d0191d0f443c750fb"
+    },
+    {
+      "case_id": "held-tabstop-expansion",
+      "partition": "held_out",
+      "family": "text",
+      "goal": "Fix the Python implementation in solution.py. Repair expand_tabstops(text, width): width must be a positive built-in int, excluding bool and int subclasses; otherwise ValueError. Replace each tab with spaces to the next width-column tab stop. Columns start at zero and reset only at newline; every other character advances one column and is preserved. Empty text stays empty. Make the edit and check the behavior. /no_think",
+      "files": {
+        "solution.py": "def expand_tabstops(text, width):\n    return text.replace('\\t',' '*width)\n"
+      },
+      "checks": "import runpy\nimport sys\ns=runpy.run_path(sys.argv[1])\nclass IntegerSubclass(int): pass\nf=s['expand_tabstops']\nassert f('a\\tb',4)=='a   b'\nassert f('abcd\\tX',4)=='abcd    X'\nassert f('a\\t\\tb\\nxy\\tz',4)=='a       b\\nxy  z'\nassert f('\u03b1\\t',3)=='\u03b1  ' and f('\\r\\t',3)=='\\r  ' and f('',2)==''\nfor n in [0,-2,True,False,2.0,'2',None,IntegerSubclass(2)]:\n try: f('',n)\n except ValueError: pass\n else: raise AssertionError('invalid width')\n",
+      "task_sha256": "00c0881f8178fc7a86051b1036171ff234b29e4e9e6b0d5a5b21b93cd0a376bd",
+      "checks_sha256": "aac40feaf2f188d0e5ebd19b2a5d5999744c672ed65c35dd9821beeb5a4b7d3f"
+    },
+    {
+      "case_id": "held-ascii-word-histogram",
+      "partition": "held_out",
+      "family": "text",
+      "goal": "Fix the Python implementation in solution.py. Repair ascii_word_counts(text): a word is a maximal nonempty run of ASCII letters A-Z or a-z. Every other character, including digits, underscores and Unicode letters, separates words. Return a dictionary counting words after ASCII lowercasing. Empty or wordless text returns an empty dictionary. Make the edit and check the behavior. /no_think",
+      "files": {
+        "solution.py": "def ascii_word_counts(text):\n    return {word:1 for word in text.lower().split()}\n"
+      },
+      "checks": "import runpy\nimport sys\ns=runpy.run_path(sys.argv[1])\nclass IntegerSubclass(int): pass\nf=s['ascii_word_counts']\nassert f('One one TWO')=={'one':2,'two':1}\nassert f('a1a_a-\u00e9A')=={'a':4}\nassert f('\u03b2foo\u03a9bar')=={'foo':1,'bar':1}\nassert f('')=={} and f('\u0661123__')=={}\nassert f('X\\tx\\nx')=={'x':3}\n",
+      "task_sha256": "47e3517ec70dbe0c8a4f99a11313f8d0a7bdbb2c54a805cdc141b25b1855d20b",
+      "checks_sha256": "480eb58f7431f9775ea77566af328967cae21d4c5b81b1c9f9e8c74e1c130081"
+    },
+    {
+      "case_id": "held-running-minima",
+      "partition": "held_out",
+      "family": "collections",
+      "goal": "Fix the Python implementation in solution.py. Repair running_minima(items): items is a list of integers. Return a new list whose entry at index i is the minimum of items from zero through i, inclusive. Empty input returns a new empty list. Never mutate or return the input list. Make the edit and check the behavior. /no_think",
+      "files": {
+        "solution.py": "def running_minima(items):\n    return sorted(items)\n"
+      },
+      "checks": "import runpy\nimport sys\ns=runpy.run_path(sys.argv[1])\nclass IntegerSubclass(int): pass\nf=s['running_minima']\na=[4,6,2,3,-1,0];r=f(a);assert r==[4,4,2,2,-1,-1] and a==[4,6,2,3,-1,0] and r is not a\na=[];r=f(a);assert r==[] and r is not a\nassert f([3,3,2])==[3,3,2] and f([-5,-4])==[-5,-5] and f([7])==[7]\n",
+      "task_sha256": "5eead49c34e1bfed2435f4f398650b912f3e354b9c0695f07b2cb1a8c5bb0ebe",
+      "checks_sha256": "6f65b407e8b5f7c08972ff130379cac0d0f5dbdb3f6a2afe305f09d2e39042f3"
+    },
+    {
+      "case_id": "held-permutation-composition",
+      "partition": "held_out",
+      "family": "collections",
+      "goal": "Fix the Python implementation in solution.py. Repair compose_permutations(left, right): both inputs are lists of equal length n, each containing every built-in int from zero to n-1 exactly once. Bool and int subclasses are invalid. Invalid permutations raise ValueError. Return the new permutation whose entry i is left[right[i]]. Empty lists are valid. Preserve both inputs. Make the edit and check the behavior. /no_think",
+      "files": {
+        "solution.py": "def compose_permutations(left, right):\n    return right\n"
+      },
+      "checks": "import runpy\nimport sys\ns=runpy.run_path(sys.argv[1])\nclass IntegerSubclass(int): pass\nf=s['compose_permutations']\na=[2,0,1];b=[1,2,0];r=f(a,b);assert r==[0,1,2] and a==[2,0,1] and b==[1,2,0] and r is not a and r is not b\nassert f([1,0,2],[2,0,1])==[2,1,0] and f([],[])==[]\nfor a,b in [([0],[0,1]),([0,0],[0,1]),([0,2],[1,0]),([True,0],[0,1]),([IntegerSubclass(0)],[0]),([0],[False]),([-1],[0])]:\n try: f(a,b)\n except ValueError: pass\n else: raise AssertionError('invalid permutation')\n",
+      "task_sha256": "64d89471d7462e15a1efeea5b56ad73a885d288799b918037a29af76d8848527",
+      "checks_sha256": "6147e489315e40d88000199282e265823a65a066d455b6320a93d45e28810c59"
+    },
+    {
+      "case_id": "held-matrix-product",
+      "partition": "held_out",
+      "family": "collections",
+      "goal": "Fix the Python implementation in solution.py. Repair matrix_product(a, b): inputs are lists of rows of integers. Each matrix must have at least one row and one column, all its rows must have equal length, and columns of a must equal rows of b; otherwise raise ValueError. Return a new matrix containing the exact mathematical matrix product. Preserve both input matrices. Make the edit and check the behavior. /no_think",
+      "files": {
+        "solution.py": "def matrix_product(a, b):\n    return a+b\n"
+      },
+      "checks": "import runpy\nimport sys\ns=runpy.run_path(sys.argv[1])\nclass IntegerSubclass(int): pass\nf=s['matrix_product']\na=[[1,2],[3,4]];b=[[5,6],[7,8]];r=f(a,b);assert r==[[19,22],[43,50]] and a==[[1,2],[3,4]] and b==[[5,6],[7,8]] and r is not a\nassert f([[2,-1,3]],[[4],[5],[6]])==[[21]]\nassert f([[2**80]],[[2]])==[[2417851639229258349412352]]\nfor a,b in [([],[[1]]),([[1]],[]),([[]],[[1]]),([[1]],[[]]),([[1,2],[3]],[[1],[2]]),([[1,2]],[[1]]),([[1]],[[1,2],[3]]),([[1,2]],[[1,2],[3]])]:\n try: f(a,b)\n except ValueError: pass\n else: raise AssertionError('invalid matrix dimensions')\n",
+      "task_sha256": "d1ecc40e7bfd56e4d66aab4b7835bfad5bae9c8efe7e281c712c05a98e522223",
+      "checks_sha256": "d596b004909a07c6eaaf901b8c04d587bcff36031d683b45cf695d74dc3ebefe"
+    },
+    {
+      "case_id": "held-parse-rgb",
+      "partition": "held_out",
+      "family": "validation_state",
+      "goal": "Fix the Python implementation in solution.py. Repair parse_rgb(text): accept only strings of exactly seven characters consisting of # followed by six ASCII hexadecimal digits, allowing A-F or a-f. Return a tuple of three integers for red, green and blue, each from 00 through FF. Every other input raises ValueError; whitespace and Unicode lookalikes are invalid. Make the edit and check the behavior. /no_think",
+      "files": {
+        "solution.py": "def parse_rgb(text):\n    return tuple(int(c,16) for c in text[1:])\n"
+      },
+      "checks": "import runpy\nimport sys\ns=runpy.run_path(sys.argv[1])\nclass IntegerSubclass(int): pass\nf=s['parse_rgb']\nassert f('#12aBcD')==(18,171,205) and f('#000000')==(0,0,0) and f('#FFFFFF')==(255,255,255)\nfor text in ['123456','#FFF','#1234567',' #123456','#123456 ','#\uff11\uff12\uff13\uff14\uff15\uff16','#zz0000','#+10000','',None,True,123]:\n try: f(text)\n except ValueError: pass\n else: raise AssertionError('invalid rgb')\n",
+      "task_sha256": "fdb59d18d1db57f7759f4b122412eca07fcd353d1b1f2caa5da628416b78fa40",
+      "checks_sha256": "f2fdc2821b2f6e4777c79ccf603835fe3f4edd808659ab09448fbcacb3e23ece"
+    },
+    {
+      "case_id": "held-toggle-permissions",
+      "partition": "held_out",
+      "family": "validation_state",
+      "goal": "Fix the Python implementation in solution.py. Repair toggle_permissions(state, names): state is a dictionary of string keys to bool values and names is a list of strings. Return a new shallow dictionary toggling each named bool once per occurrence, in sequence; repeated names toggle repeatedly. If any name is absent raise KeyError. Never mutate state or names, including when raising. Make the edit and check the behavior. /no_think",
+      "files": {
+        "solution.py": "def toggle_permissions(state, names):\n    for name in set(names): state[name]=not state[name]\n    return state\n"
+      },
+      "checks": "import runpy\nimport sys\ns=runpy.run_path(sys.argv[1])\nclass IntegerSubclass(int): pass\nf=s['toggle_permissions']\na={'a':True,'b':False};names=['a','a','b'];r=f(a,names);assert r=={'a':True,'b':True} and a=={'a':True,'b':False} and names==['a','a','b'] and r is not a\nassert f({},[])=={}\na={'a':True};r=f(a,[]);assert r==a and r is not a\ntry: f(a,['a','missing'])\nexcept KeyError: pass\nelse: raise AssertionError('unknown permission')\nassert a=={'a':True}\n",
+      "task_sha256": "2e5e7b7043b7229a84f25ceb253b7eb6d982baf3dc4f1fbbcffe873e666ff401",
+      "checks_sha256": "f42d85a803be63f98bb4fb437941dab34286172182a694cae0f8b8defd7fa596"
+    },
+    {
+      "case_id": "held-parse-signed-decimal",
+      "partition": "held_out",
+      "family": "validation_state",
+      "goal": "Fix the Python implementation in solution.py. Repair parse_signed_decimal(text): accept a string of one or more ASCII digits with an optional single leading + or - sign. Leading zeros are allowed. Return the exact integer. Reject empty input, sign alone, whitespace, underscores, Unicode digits, decimal points, multiple signs and all non-strings with ValueError. Make the edit and check the behavior. /no_think",
+      "files": {
+        "solution.py": "def parse_signed_decimal(text):\n    return int(text)\n"
+      },
+      "checks": "import runpy\nimport sys\ns=runpy.run_path(sys.argv[1])\nclass IntegerSubclass(int): pass\nf=s['parse_signed_decimal']\nassert f('12')==12 and f('-0012')==-12 and f('+000')==0 and f('0007')==7\nassert f('1208925819614629174706176')==2**80\nfor text in ['', '+','-',' 1','1 ','1_0','\u0661\u0662','\uff11\uff12','1.0','+-1','--2',None,True,12,b'12']:\n try: f(text)\n except ValueError: pass\n else: raise AssertionError('invalid decimal')\n",
+      "task_sha256": "15fb113029c11cd655ddb4d025ef6cd7989697570aec00551c2d0f62f6a036a4",
+      "checks_sha256": "b3fb710e3d8642e343ecf40d72eeab30914576733854903e59bd614682d37f36"
+    }
+  ]
+}

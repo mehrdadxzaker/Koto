@@ -1,0 +1,108 @@
+{
+  "campaign_id": "local-repair-20261018-v16",
+  "owner_local_authorization_date": "2026-10-18",
+  "runtime_source_commit": "92f0a8b9159bd929b21068f448eda6ff8c1e98b5",
+  "base_commit": "d1429fa420cf656786269c518a38dc9c67e21a21",
+  "model": "Qwen3-Coder-30B-A3B-Instruct Q4_K_M",
+  "pins": {
+    "client": {
+      "path": "/opt/homebrew/lib/node_modules/@openai/codex/node_modules/@openai/codex-darwin-arm64/vendor/aarch64-apple-darwin/bin/codex",
+      "bytes": 241555024,
+      "sha256": "112fae7a5a1223e673c8a1791d32338f37df8b527ff1159bb8adac6c4dbf1b4b"
+    },
+    "runtime_archive": {
+      "path": "/private/tmp/hormuz-537-verified-assets-20261016/5cf8e5ae2209d7e6d4a037640e9ae7395494e0f2467c60c7a8e6cee0116c5891/runtime.tar.gz",
+      "bytes": 12157609,
+      "sha256": "051bb0b55b3e5e72081aa819131ba30c74d910acc915b28bab298757472e39d9"
+    },
+    "runtime_executable": {
+      "path": "/private/tmp/hormuz-537-verified-assets-20261016/5cf8e5ae2209d7e6d4a037640e9ae7395494e0f2467c60c7a8e6cee0116c5891/runtime/llama-b11617/llama-server",
+      "bytes": 49984,
+      "sha256": "1bf5602a2be50097c44282a6ecc63234d94ee8f96d39fd45fed6eff4e74b6b41"
+    },
+    "model": {
+      "path": "/private/tmp/koto-tool-compat-preparation-20261017/assets/model.gguf",
+      "bytes": 18556689568,
+      "sha256": "fadc3e5f8d42bf7e894a785b05082e47daee4df26680389817e2093056f088ad"
+    },
+    "host": {
+      "system": "Darwin",
+      "machine": "arm64",
+      "os_version": "26.2",
+      "os_build": "25C56",
+      "hardware": "Mac17,2",
+      "memory": 34359738368
+    }
+  },
+  "profile": {
+    "schema_id": "hormuz.local-setup-profile",
+    "schema_version": 2,
+    "qualification_id": "codex0160-m5-32g-qwen3coder30b-v16-concise-tools-probe",
+    "client_version": "0.160.0",
+    "system": "Darwin",
+    "machine": "arm64",
+    "runtime_sha256": "051bb0b55b3e5e72081aa819131ba30c74d910acc915b28bab298757472e39d9",
+    "model_sha256": "fadc3e5f8d42bf7e894a785b05082e47daee4df26680389817e2093056f088ad",
+    "model": "Qwen3-Coder-30B-A3B-Instruct-Q4_K_M",
+    "capabilities": [
+      "responses",
+      "text",
+      "streaming",
+      "tools",
+      "codex_http",
+      "codex_http_0160"
+    ],
+    "max_request_bytes": 65536,
+    "max_output_tokens": 512,
+    "task_types": [
+      "code_change"
+    ],
+    "upstream_timeout_seconds": 90,
+    "startup_timeout_seconds": 60,
+    "coding_evidence": null
+  },
+  "wheel_sha256": "b23c4c1ca2bf8d4ba5134a034a74ed225b9291a5053ed0db0c6273433edb86a0",
+  "goals_disabled": true,
+  "unchanged_tools": [
+    "exec_command",
+    "write_stdin",
+    "request_user_input",
+    "view_image"
+  ],
+  "native_text_blocks_preserved_in_order": true,
+  "developer_guidance_rendered": true,
+  "zero_inference_metadata_requests": [
+    {
+      "method": "GET",
+      "path": "/props",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses/input_tokens",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/apply-template",
+      "status": 200
+    }
+  ],
+  "actual_completion_requests_before_freeze": 0,
+  "budget": {
+    "requests": 8,
+    "seconds": 90,
+    "output_tokens": 512,
+    "quality_retries": 0,
+    "transport_retries": 0,
+    "parallel_episodes": 1
+  },
+  "canary_episodes": 1,
+  "gated_remaining_episodes": 15,
+  "ordinary_coding_readiness": "unknown",
+  "automatic_coding_enabled": false,
+  "previous_failed_campaign": "https://github.com/mehrdadxzaker/Koto/pull/576",
+  "public_raw_native_context": false,
+  "plain_codex_response_validation": true,
+  "rich_tool_translation": false
+}

@@ -12,6 +12,7 @@ from types import MappingProxyType
 from .work_learning import contains_provider_state, request_characteristics
 from .coding_qualification import assess_coding_evidence, request_profile_digest
 from .coding_probe import CodingProbe, ProbeError, HEADER as PROBE_HEADER
+from .codex_llama import CodexLlamaRequest, validate_function_arguments
 
 
 @dataclass(frozen=True)
@@ -182,11 +183,18 @@ def _text_envelope(value, protocol, endpoint):
         if type(item) is list:
             pending.extend(item)
             continue
-        if type(item) is not dict or set(item) - {"role", "content", "type", "text", "name", "call_id", "arguments", "output", "id", "input", "tool_use_id", "is_error", "tool_calls", "tool_call_id", "function"}:
+        if type(item) is not dict or set(item) - {"role", "content", "type", "text", "name", "call_id", "arguments", "output", "id", "input", "tool_use_id", "is_error", "tool_calls", "tool_call_id", "function", "status"}:
             return None
         kind = item.get("type")
         if kind is not None and (type(kind) is not str or kind not in kinds):
             return None
+        if "status" in item and (kind != "function_call" or item["status"] != "completed"):
+            return None
+        if kind == "function_call":
+            try:
+                validate_function_arguments(item.get("arguments", ""))
+            except (ValueError, TypeError, RecursionError):
+                return None
         if kind in {"function_call", "function_call_output", "tool_use", "tool_result"} or item.get("tool_calls") or item.get("role") == "tool":
             required.add("tools")
         pending.extend(item[key] for key in ("content", "output") if key in item)
@@ -315,6 +323,13 @@ class RouteAdmission:
         handler._route_admission_task_selection = task_selection[0] if task_selection else None
         handler._route_admission_mode = mode
         if mode == "configured":
+            if (protocol == 'openai' and handler.path.split('?', 1)[0] == '/v1/responses'
+                    and 'codex_http_0160' in decision.route.capabilities
+                    and self.destinations.resolve(decision.route).locality == 'local'):
+                try:
+                    CodexLlamaRequest(value, translate=False)
+                except (ValueError, TypeError, RecursionError):
+                    raise RouteAdmissionError('invalid_tool_history', 503) from None
             return decision
         continuation = contains_provider_state(value)
         work_headers = handler.headers.get_all("X-Hormuz-Work-Id", [])

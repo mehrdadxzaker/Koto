@@ -1,0 +1,53 @@
+{
+  "campaign_id": "local-repair-20261018-v16",
+  "cases": 16,
+  "accepted_cases": 6,
+  "mechanical_passes": 6,
+  "independent_checker_passes": 11,
+  "actual_edits": 15,
+  "normal_native_completions": 8,
+  "forwarded_local_requests": 109,
+  "http_status_counts": {
+    "200": 109
+  },
+  "observed_completed_generations": 108,
+  "structured_calls": {
+    "exec_command": 100
+  },
+  "completed_native_commands": 100,
+  "nonzero_native_commands": 5,
+  "preserved_continuation_pairs": 93,
+  "blocked_incomplete_streams": 1,
+  "request_cap_failures": 7,
+  "max_observed_output_tokens": 448,
+  "observed_output_tokens": 17582,
+  "unobserved_completed_usage_requests": 1,
+  "unknown_gateway_attempts": 1,
+  "max_native_ms": 63249,
+  "median_native_ms": 30743.5,
+  "quality_retries": 0,
+  "transport_retries": 0,
+  "failover_attempts": 0,
+  "gateway_answer_cache_hits": 0,
+  "local_only": true,
+  "goals_disabled": true,
+  "qualification_passed": false,
+  "automatic_admission_effect": "none",
+  "ordinary_coding_readiness": "unknown",
+  "automatic_coding_enabled": false,
+  "canary": {
+    "case_id": "dev-clamp",
+    "requests": 5,
+    "elapsed_ms": 16475,
+    "checker_exit": 0,
+    "mechanical_passed": true,
+    "accepted": true
+  },
+  "matched_development_requests": 24,
+  "matched_development_native_ms": 90948,
+  "frozen_manifest_sha256": "c13a5f5dfd2a77a3ff900bac9981126178907f61148c24f91ebb95e3795f9c74",
+  "plan_sha256": "678aa25f07daa1199a2bb7f2b374679759dc317b9a7a6299ebc856c12566a5f5",
+  "raw_native_context_exported": false,
+  "isolated_settings_restored": true,
+  "owned_listeners_closed": true
+}

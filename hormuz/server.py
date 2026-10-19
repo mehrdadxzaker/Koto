@@ -1167,6 +1167,11 @@ class GatewayRequestHandler(BaseHTTPRequestHandler):
                 and urlsplit(self.path).path == '/v1/responses'):
             codex_adapter = CodexLlamaRequest(request_value)
             body = json.dumps(codex_adapter.value, separators=(',', ':')).encode()
+        elif (destination.locality == 'local' and 'codex_http_0160' in route.capabilities
+                and urlsplit(self.path).path == '/v1/responses' and request_value.get('tools')):
+            # Plain Codex functions need completed-argument validation too.
+            # Keep the qualified provider request and catalog unchanged.
+            codex_adapter = CodexLlamaRequest(request_value, translate=False)
         if selected_upstream.upstream.authentication == "none":
             headers.pop("Authorization", None)
             headers.pop("X-Api-Key", None)
