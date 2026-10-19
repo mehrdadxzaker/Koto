@@ -697,7 +697,8 @@ def run_frozen(args):
         except (OSError, ValueError, KeyError, RuntimeError, subprocess.SubprocessError) as error:
             report.setdefault('cleanup_errors', []).append(str(error))
         report['passed'] = bool(report['passed'] and not report.get('cleanup_errors') and all(report.get(key) for key in (
-            'settings_restored', 'live_settings_preserved', 'owned_listeners_closed')))
+            'settings_restored', 'live_settings_preserved', 'owned_listeners_closed'))
+            and not report.get('native', {}).get('cleanup_error'))
         write(output / 'result.json', report)
     print(json.dumps({'passed': report['passed'], 'scenario': name, 'evidence': str(output / 'result.json'), 'error': report.get('error')}))
     return 0 if report['passed'] else 2
@@ -806,6 +807,9 @@ def prepare(args):
                 output.mkdir(mode=0o700)
                 with Capture() as capture:
                     report[item['id'] + ':' + name] = session.native(name, output, base_url=capture.url)
+                native = report[item['id'] + ':' + name]
+                if native['cleanup_error'] or native['termination'] != 'completed':
+                    raise RuntimeError('Native zero-inference capture did not stop cleanly; preserve its failed evidence')
                 if len(capture.requests) != 1:
                     raise RuntimeError('Native capture must observe exactly one non-forwarded request')
                 captured = capture.requests[0]
@@ -820,7 +824,10 @@ def prepare(args):
         manifest['scenarios'] = manifest['cases'][case['id']]['scenarios']
         report['passed'] = True
     finally:
-        session.close(report)
+        try:
+            session.close(report)
+        except (OSError, ValueError, KeyError, RuntimeError, subprocess.SubprocessError) as error:
+            report.setdefault('cleanup_errors', []).append(str(error))
         write(root / 'prepare-result.json', report)
     if not report['passed'] or report.get('cleanup_errors') or not all(report.get(key) for key in (
             'settings_restored', 'live_settings_preserved', 'owned_listeners_closed')):
