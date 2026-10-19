@@ -369,7 +369,10 @@ class GatewayServer(ThreadingHTTPServer):
     # runtime's explicitly bounded backpressure path.
     request_queue_size = 128
 
-    def __init__(self, config: GatewayConfig, *, environ: Mapping[str, str] | None = None):
+    def __init__(self, config: GatewayConfig, *, environ: Mapping[str, str] | None = None,
+                 request_deadline: float | None = None, capture_history: bool = True):
+        self.request_deadline = request_deadline
+        self.capture_history = capture_history
         config = replace(config, upstreams=MappingProxyType(dict(config.upstreams)),
                          model_routes=MappingProxyType(dict(config.model_routes)))
         self.config = config
@@ -729,7 +732,8 @@ class GatewayRequestHandler(BaseHTTPRequestHandler):
         if identity is None:
             return
         protocol, default_client, account_usage = route
-        self._history_generation = history_consent(self.server.local_history, identity.actor_id)
+        self._history_generation = (history_consent(self.server.local_history, identity.actor_id)
+                                    if self.server.capture_history else None)
         try:
             self._learning_ingress = self.server.local_history.learning_consent(identity.actor_id).get("generation")
         except (OSError, ValueError):

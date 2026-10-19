@@ -23,6 +23,9 @@ baseline. Hard local-only mode blocks when a suitable local choice is unavailabl
 See [personal model selection](docs/PERSONAL_MODEL_SELECTION.md) for consent,
 feedback, bounded local evaluations, validation, status and migration. Existing
 manual [benchmark suites](docs/MODEL_SCORECARDS.md) remain an advanced tool.
+For an existing ChatGPT subscription, use an explicitly launched
+[Koto-enabled Codex session](docs/NATIVE_PERSONAL_SESSIONS.md). It selects before
+each fresh read-only task while Codex owns sign-in and execution.
 Neither learning nor a scorecard grants missing local coding qualification.
 Bundled local coding examples remain unqualified; prior successful controls and
 failed trials are retained as evidence. The optional

@@ -249,6 +249,9 @@ class RouteAdmission:
 
     def remaining_timeout(self, handler):
         deadline = getattr(handler, "_local_route_deadline", None)
+        owner_deadline = getattr(handler.server, 'request_deadline', None)
+        if owner_deadline is not None:
+            deadline = min(deadline, owner_deadline) if deadline is not None else owner_deadline
         if deadline is None:
             return self.config.upstream_timeout_seconds
         remaining = deadline - time.monotonic()

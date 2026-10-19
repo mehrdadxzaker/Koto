@@ -65,6 +65,7 @@ from ._contract_schemas.coding_probe import (PLAN_FIELDS as PROBE_PLAN_FIELDS, S
     validate_plan as _validate_probe_plan, validate_status as _validate_probe_status, validate_error as _validate_probe_error)
 from ._contract_schemas.benchmark import FIELDS as BENCHMARK_FIELDS, validate_benchmark as _validate_benchmark
 from ._contract_schemas.personal_selection import FIELDS as SELECTION_FIELDS, validate as _validate_selection
+from ._contract_schemas.native_task import FIELDS as NATIVE_TASK_FIELDS, validate as _validate_native_task
 from ._contract_schemas.cloud_readiness import FIELDS as CLOUD_READINESS_FIELDS, validate_readiness as _validate_cloud_readiness
 from ._contract_schemas.codex_app_bridge import FIELDS as APP_BRIDGE_FIELDS, validate_install as _validate_app_bridge_install
 from ._contract_schemas.chat_task import (TASK_FIELDS as CHAT_TASK_FIELDS, MODELS_FIELDS as CHAT_MODELS_FIELDS,
@@ -563,6 +564,8 @@ def contract_manifest() -> dict[str, object]:
             _manifest_schema("hormuz.chat-models", 1, "cli-output", "hormuz", sorted(CHAT_MODELS_FIELDS)),
             _manifest_schema("hormuz.chat-error", 1, "cli-output", "hormuz", sorted(CHAT_ERROR_FIELDS)),
             _manifest_schema("hormuz.chat-owner", 1, "durable-evidence", "hormuz", sorted(CHAT_OWNER_FIELDS)),
+            *[_manifest_schema(schema, 1, "cli-output", "hormuz", sorted(fields))
+              for schema, fields in NATIVE_TASK_FIELDS.items()],
             _manifest_schema("hormuz.local-acquisition", 1, "cli-output", "hormuz", sorted(ACQUISITION_RECEIPT_FIELDS)),
             _manifest_schema("hormuz.local-acquisition-error", 1, "cli-output", "hormuz", ["schema_id", "schema_version", "error"]),
             _manifest_schema(LOCAL_SETUP_SCHEMA_ID, 1, "cli-output", "hormuz",
@@ -628,6 +631,7 @@ def validate_contract(value: Mapping[str, Any]) -> None:
     validator = {
         **{(schema, 1): _validate_benchmark for schema in BENCHMARK_FIELDS},
         **{(schema, 1): _validate_selection for schema in SELECTION_FIELDS},
+        **{(schema, 1): _validate_native_task for schema in NATIVE_TASK_FIELDS},
         ("hormuz.local-acquisition-catalog", 1): _validate_acquisition_catalog,
         ("hormuz.codex-app-bridge-install", 1): _validate_app_bridge_install,
         ("hormuz.chat-task", 1): _validate_chat_task,

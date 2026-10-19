@@ -40,8 +40,13 @@ _ENTRY_FIELDS = frozenset({
 })
 
 
+def _entry_version(values):
+    return (4 if values.get("protocol") == "codex_app_server" else 3 if "selection" in values
+            else 2 if "routing_evidence" in values else 1)
+
+
 def _result(kind: str, **values) -> dict:
-    version = 3 if kind == "entry" and "selection" in values else 2 if kind == "entry" and "routing_evidence" in values else 1
+    version = _entry_version(values) if kind == "entry" else 1
     return {"schema_id": "hormuz.local-history-" + kind, "schema_version": version, **values}
 
 
@@ -86,7 +91,7 @@ def _validate_entry(entry: dict) -> dict:
         "request_content_status", "response_content_status",
     )):
         raise LocalHistoryError("local_history_entry_invalid")
-    if (entry["protocol"] not in {"openai", "anthropic"} or entry["locality"] not in {"local", "cloud"}
+    if (entry["protocol"] not in {"openai", "anthropic", "codex_app_server"} or entry["locality"] not in {"local", "cloud"}
             or entry["outcome"] not in {"succeeded", "failed", "outcome_unknown", "rate_limited"}
             or entry["request_content_status"] not in _CONTENT_STATUSES
             or entry["response_content_status"] not in _CONTENT_STATUSES
@@ -94,6 +99,9 @@ def _validate_entry(entry: dict) -> dict:
             or any(not _number(entry[name], nullable=True) for name in (
                 "input_tokens", "output_tokens", "estimated_cost_microusd"))
             or not _number(entry["latency_ms"])):
+        raise LocalHistoryError("local_history_entry_invalid")
+    if entry["protocol"] == "codex_app_server" and (
+            entry["http_status"] is not None or entry["estimated_cost_microusd"] is not None):
         raise LocalHistoryError("local_history_entry_invalid")
     request = entry["request_text"]
     if (not isinstance(request, list) or len(request) > 256
@@ -230,7 +238,7 @@ class LocalHistory:
             entry = self._decode(data, purpose=path.stem)
             if (entry.get("schema_id") != "hormuz.local-history-entry"
                     or type(entry.get("schema_version")) is not int
-                    or entry["schema_version"] != (3 if "selection" in entry else 2 if "routing_evidence" in entry else 1)):
+                    or entry["schema_version"] != _entry_version(entry)):
                 raise LocalHistoryError("local_history_data_invalid")
             record = _validate_entry({name: value for name, value in entry.items() if name not in {"schema_id", "schema_version"}})
             if record["id"] != path.stem:
