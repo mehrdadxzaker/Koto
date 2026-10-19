@@ -26,7 +26,6 @@ def needs_adapter(value):
             or isinstance(value.get('client_metadata'), dict) and bool(PARENT_TAGS.intersection(value['client_metadata']))
             or isinstance(tools, list) and any(isinstance(tool, dict) and tool.get('type') in ('namespace', 'custom', 'tool_search', 'web_search') for tool in tools)
             or isinstance(history, list) and any(isinstance(item, dict) and ('namespace' in item
-                or item.get('type') == 'function_call' and 'status' in item
                 or item.get('type') in ('custom_tool_call', 'custom_tool_call_output', 'tool_search_call', 'tool_search_output', 'reasoning')) for item in history))
 
 

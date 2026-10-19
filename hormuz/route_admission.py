@@ -182,10 +182,12 @@ def _text_envelope(value, protocol, endpoint):
         if type(item) is list:
             pending.extend(item)
             continue
-        if type(item) is not dict or set(item) - {"role", "content", "type", "text", "name", "call_id", "arguments", "output", "id", "input", "tool_use_id", "is_error", "tool_calls", "tool_call_id", "function"}:
+        if type(item) is not dict or set(item) - {"role", "content", "type", "text", "name", "call_id", "arguments", "output", "id", "input", "tool_use_id", "is_error", "tool_calls", "tool_call_id", "function", "status"}:
             return None
         kind = item.get("type")
         if kind is not None and (type(kind) is not str or kind not in kinds):
+            return None
+        if "status" in item and (kind != "function_call" or item["status"] != "completed"):
             return None
         if kind == "function_call":
             try:
