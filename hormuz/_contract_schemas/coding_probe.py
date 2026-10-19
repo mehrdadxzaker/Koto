@@ -14,7 +14,7 @@ ERRORS = {"probe_invalid_plan", "probe_subject_mismatch", "probe_already_active"
 
 def validate_plan(value):
     _exact_keys(value, PLAN_FIELDS)
-    if value["schema_id"] != "hormuz.coding-probe-plan" or type(value["schema_version"]) is not int or value["schema_version"] not in (1, 2):
+    if value["schema_id"] != "hormuz.coding-probe-plan" or type(value["schema_version"]) is not int or value["schema_version"] not in (1, 2, 3):
         raise ContractValidationError("unsupported coding probe plan")
     for key in ("campaign_id", "case_id", "model"):
         validate_identifier(value[key])
@@ -23,7 +23,7 @@ def validate_plan(value):
     for key, maximum in (("max_requests", 32), ("max_elapsed_seconds", 90)):
         if type(value[key]) is not int or not 1 <= value[key] <= maximum:
             raise ContractValidationError("invalid coding probe budget")
-    validate_subject(value["subject"])
+    validate_subject(value["subject"], namespaces=value["schema_version"] == 3)
 
 
 def validate_status(value):

@@ -15,7 +15,7 @@ def _tag(value, key):
         raise ContractValidationError("invalid local setup identifier")
 
 
-def validate_profile(value, *, extended=False):
+def validate_profile(value, *, extended=False, namespaces=False):
     _exact_keys(value, PROFILE_FIELDS | ({"coding_evidence"} if value["schema_version"] >= 2 else set()))
     if value["schema_version"] >= 2 and value["coding_evidence"] is not None:
         from .local_coding import validate_evidence
@@ -32,7 +32,7 @@ def validate_profile(value, *, extended=False):
             raise ContractValidationError("invalid local setup limit")
     choices = {
         "capabilities": {"responses", "text", "streaming", "tools", "codex_http", "codex_http_0160", "structured_output"}
-                        | ({"codex_llama_v1"} if extended else set()),
+                        | ({"codex_llama_v1"} if extended or namespaces else set()),
         "task_types": {"summarization", "translation", "structured_extraction", "code_change", "code_review"}
                       | ({"interactive"} if extended else set()),
     }
@@ -48,6 +48,10 @@ def validate_profile(value, *, extended=False):
 
 def validate_profile_v3(value):
     validate_profile(value, extended=True)
+
+
+def validate_profile_v4(value):
+    validate_profile(value, namespaces=True)
 
 
 def validate_setup(value):
