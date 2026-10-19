@@ -12,7 +12,7 @@ from types import MappingProxyType
 from .work_learning import contains_provider_state, request_characteristics
 from .coding_qualification import assess_coding_evidence, request_profile_digest
 from .coding_probe import CodingProbe, ProbeError, HEADER as PROBE_HEADER
-from .codex_llama import validate_function_arguments
+from .codex_llama import CodexLlamaRequest, validate_function_arguments
 
 
 @dataclass(frozen=True)
@@ -323,6 +323,13 @@ class RouteAdmission:
         handler._route_admission_task_selection = task_selection[0] if task_selection else None
         handler._route_admission_mode = mode
         if mode == "configured":
+            if (protocol == 'openai' and handler.path.split('?', 1)[0] == '/v1/responses'
+                    and 'codex_http_0160' in decision.route.capabilities
+                    and self.destinations.resolve(decision.route).locality == 'local'):
+                try:
+                    CodexLlamaRequest(value, translate=False)
+                except (ValueError, TypeError, RecursionError):
+                    raise RouteAdmissionError('invalid_tool_history', 503) from None
             return decision
         continuation = contains_provider_state(value)
         work_headers = handler.headers.get_all("X-Hormuz-Work-Id", [])

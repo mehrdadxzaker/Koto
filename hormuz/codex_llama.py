@@ -41,7 +41,14 @@ class CodexLlamaRequest:
         self.declarations = {}
         self.buffer = bytearray()
         self.stream_kinds = {}
+        self.pending_functions = set()
         if not translate:
+            if isinstance(self.value.get('input'), list):
+                for item in self.value['input']:
+                    if isinstance(item, dict) and item.get('type') == 'function_call':
+                        if item.get('status') not in (None, 'completed'):
+                            raise CodexLlamaError('incomplete_tool_history')
+                        validate_function_arguments(item.get('arguments', ''))
             return
         tags = value.get('client_metadata', {})
         if isinstance(tags, dict) and any(key in tags and (not isinstance(tags[key], str)
@@ -211,6 +218,8 @@ class CodexLlamaRequest:
             raise CodexLlamaError('invalid_provider_item')
         if value.get('type') != 'function_call':
             return value
+        if complete and value.get('status') not in (None, 'completed'):
+            raise CodexLlamaError('incomplete_provider_tool')
         if not self.translate:
             if complete:
                 validate_function_arguments(value.get('arguments', ''))
@@ -252,22 +261,46 @@ class CodexLlamaRequest:
         if not isinstance(value, dict):
             raise CodexLlamaError('invalid_provider_response')
         if isinstance(value.get('output'), list):
-            value = {**value, 'output': [self._item(item) for item in value['output']]}
+            output = []
+            for item in value['output']:
+                partial = (value.get('status') in ('failed', 'incomplete') and isinstance(item, dict)
+                           and item.get('type') == 'function_call' and item.get('status') in ('in_progress', 'incomplete'))
+                output.append(self._item(item, complete=not partial))
+                if not partial and isinstance(item, dict) and item.get('type') == 'function_call':
+                    self.pending_functions.discard(item.get('id'))
+            value = {**value, 'output': output}
+        if value.get('status') == 'completed' and self.pending_functions:
+            raise CodexLlamaError('unfinished_provider_tools')
         return value
+
+    def _start_function(self, item_id):
+        if not isinstance(item_id, str) or not 1 <= len(item_id) <= 256:
+            raise CodexLlamaError('invalid_provider_item_id')
+        self.pending_functions.add(item_id)
+        if len(self.pending_functions) > 1024:
+            raise CodexLlamaError('too_many_provider_items')
 
     def _event(self, value):
         if not isinstance(value, dict):
             raise CodexLlamaError('invalid_provider_event')
         if value.get('type') in {'response.output_item.added', 'response.output_item.done'}:
             item = self._item(value['item'], complete=value['type'].endswith('.done'))
+            if value['item'].get('type') == 'function_call':
+                if value['type'] == 'response.output_item.added':
+                    self._start_function(value['item'].get('id'))
+                else:
+                    self.pending_functions.discard(value['item'].get('id'))
             if item.get('id'):
                 self.stream_kinds[item['id']] = item['type']
             value = {**value, 'item': item}
+        if value.get('type') == 'response.function_call_arguments.delta':
+            self._start_function(value.get('item_id'))
         if (value.get('type', '').startswith('response.function_call_arguments.')
                 and self.stream_kinds.get(value.get('item_id')) in {'custom_tool_call', 'tool_search_call'}):
             return None
         if value.get('type') == 'response.function_call_arguments.done':
             validate_function_arguments(value.get('arguments', ''))
+            self.pending_functions.discard(value.get('item_id'))
         if isinstance(value.get('response'), dict):
             value = {**value, 'response': self._response(value['response'])}
         return value

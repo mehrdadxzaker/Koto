@@ -1,6 +1,9 @@
 """Rich coding-client requests observed through the approved router workflow."""
 import json
 from importlib.resources import files
+import os
+import subprocess
+import sys
 import unittest
 
 from tests import test_execution_destination_workflow as destination
@@ -11,6 +14,14 @@ class CodexAppWorkflowTests(unittest.TestCase):
         self.fixture = destination.ExecutionDestinationWorkflowTests()
         self.fixture.setUp()
         self.addCleanup(self.fixture.doCleanups)
+        self.fixture.environment['KOTO_HISTORY_HOME'] = str(self.fixture.root / 'history')
+
+    def history(self, *arguments):
+        result = subprocess.run([sys.executable, '-m', 'koto', '--config', str(self.fixture.root / 'gateway.json'),
+                                 'history', *arguments], env={**os.environ, **self.fixture.environment},
+                                capture_output=True, text=True, timeout=10)
+        self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+        return json.loads(result.stdout)
 
     def configuration(self, local, cloud):
         value = self.fixture.admission_configuration(local, cloud, mode='local_only')
@@ -358,6 +369,33 @@ class CodexAppWorkflowTests(unittest.TestCase):
             self.assertNotIn('reasoning_budget_tokens', requests[0]['body'])
             self.assertEqual((len(requests), cloud_requests), (2, []))
 
+    def test_configured_plain_function_replay_is_validated_before_dispatch_without_rewriting_valid_bytes(self):
+        tool = {'type': 'function', 'name': 'exec_command', 'parameters': {'type': 'object'}, 'strict': False}
+        call = {'type': 'function_call', 'call_id': 'configured-call', 'name': 'exec_command',
+                'arguments': '{ "cmd" : "true" }', 'status': 'completed'}
+        with destination.provider('LOCAL', response_fields={'output': [call]}) as (local, requests), \
+             destination.provider('UNUSED_CLOUD') as (cloud, cloud_requests):
+            value = self.configuration(local, cloud)
+            value['route_admission']['mode'] = 'configured'
+            value['model_routes']['local-code']['capabilities'].remove('codex_llama_v1')
+            with self.fixture.connected_client(value) as submit:
+                self.history('enable')
+                for catalog in ({'tools': [tool]}, {}):
+                    for invalid in ({**call, 'arguments': '{"cmd":"unfinished'}, {**call, 'status': 'in_progress'}):
+                        with self.subTest(catalog=catalog, replay=invalid):
+                            rejected = submit(request={**catalog, 'input': [invalid], 'reasoning': {'effort': 'none'}})
+                            self.assertEqual(rejected['status'], 503, rejected)
+                            self.assertEqual(rejected['body']['error']['code'], 'hormuz_route_invalid_tool_history')
+                self.assertEqual((requests, cloud_requests), ([], []))
+                self.assertEqual(self.history('list')['entries'], [])
+                for catalog in ({'tools': [tool]}, {}):
+                    valid = submit(request={**catalog, 'input': [call], 'reasoning': {'effort': 'none'}})
+                    self.assertEqual(valid['status'], 200, valid)
+                self.assertEqual([request['body']['input'][0] for request in requests], [call, call])
+                self.assertEqual([entry['outcome'] for entry in self.history('list')['entries']], ['succeeded', 'succeeded'])
+                self.assertEqual(submit(method='GET', path='/router/state')['body']['mode'], 'configured')
+            self.assertEqual((len(requests), cloud_requests), (2, []))
+
     def test_incremental_arguments_stop_before_an_invalid_done_event(self):
         tool = {'type': 'function', 'name': 'exec_command', 'description': 'Run a command.',
                 'parameters': {'type': 'object'}, 'strict': False}
@@ -383,6 +421,106 @@ class CodexAppWorkflowTests(unittest.TestCase):
                 work = submit(method='GET', path='/work/jobs/' + response['headers']['x-hormuz-work-id'])['body']
                 self.assertEqual(work['attempts'][0]['state'], 'unknown')
             self.assertEqual((len(requests), cloud_requests), (1, []))
+
+    def test_successful_terminal_requires_observed_function_calls_to_be_complete(self):
+        tool = {'type': 'function', 'name': 'exec_command', 'parameters': {'type': 'object'}, 'strict': False}
+        call = {'type': 'function_call', 'id': 'fc-pending', 'call_id': 'pending-call', 'name': 'exec_command'}
+        cases = [('missing_call', [], False),
+                 ('unfinished_snapshot', [{**call, 'status': 'in_progress', 'arguments': '{}'}], False),
+                 ('complete_snapshot', [{**call, 'status': 'completed', 'arguments': '{ "cmd" : "true" }'}], True),
+                 ('arguments_done', [], True), ('item_done', [], True)]
+        def reply(body, number):
+            name, output, _ = cases[(number - 1) % len(cases)]
+            events = [
+                {'type': 'response.output_item.added', 'item': {**call, 'status': 'in_progress', 'arguments': ''}},
+                {'type': 'response.function_call_arguments.delta', 'item_id': call['id'], 'delta': '{"cmd":'},
+                {'type': 'response.completed', 'response': {'id': 'pending-response', 'object': 'response',
+                    'status': 'completed', 'model': body['model'], 'output': output,
+                    'usage': {'input_tokens': 4, 'output_tokens': 2, 'total_tokens': 6}}},
+            ]
+            if name == 'arguments_done':
+                events.insert(2, {'type': 'response.function_call_arguments.done', 'item_id': call['id'],
+                                  'arguments': '{ "cmd" : "true" }'})
+            elif name == 'item_done':
+                events.insert(2, {'type': 'response.output_item.done',
+                                  'item': {**call, 'status': 'completed', 'arguments': '{ "cmd" : "true" }'}})
+            return b''.join(('data: ' + json.dumps(event) + '\n\n').encode() for event in events)
+        with destination.provider('LOCAL', event_stream=True, response_body=reply) as (local, requests), \
+             destination.provider('UNUSED_CLOUD') as (cloud, cloud_requests):
+            for rich in (False, True):
+                value = self.configuration(local, cloud)
+                if not rich:
+                    value['model_routes']['local-code']['capabilities'].remove('codex_llama_v1')
+                value['ai_work'] = {'enabled': True, 'tool_capable_aliases': ['local-code'],
+                                    'database': str(self.fixture.root / 'work.sqlite3')}
+                with self.fixture.connected_client(value) as submit:
+                    self.history('enable')
+                    for name, output, completed in cases:
+                        with self.subTest(rich=rich, terminal=name):
+                            response = submit(request={'input': 'Summarize the fixture.', 'stream': True,
+                                                       'reasoning': {'effort': 'none'}, 'tools': [tool]})
+                            if completed:
+                                self.assertIn('response.completed', response['body'])
+                            else:
+                                self.assertNotIn('response.completed', response['body'])
+                            entry = self.history('show', self.history('list')['entries'][0]['id'])['entry']
+                            self.assertEqual(entry['outcome'], 'succeeded' if completed else 'outcome_unknown')
+                            self.assertEqual((entry['input_tokens'], entry['output_tokens']),
+                                             (4, 2) if completed else (None, None))
+                            work = submit(method='GET', path='/work/jobs/' + response['headers']['x-hormuz-work-id'])['body']
+                            self.assertEqual(work['attempts'][0]['state'], 'succeeded' if completed else 'unknown')
+                    self.assertEqual(submit(method='GET', path='/router/state')['status'], 200)
+            self.assertEqual((len(requests), cloud_requests), (10, []))
+
+    def test_known_incomplete_response_preserves_partial_function_arguments_and_usage(self):
+        tool = {'type': 'function', 'name': 'exec_command', 'parameters': {'type': 'object'}, 'strict': False}
+        call = {'type': 'function_call', 'id': 'fc-incomplete', 'call_id': 'incomplete-call', 'name': 'exec_command'}
+        partial = '{"cmd":"unfinished'
+        cases = [('in_progress', partial, True), ('incomplete', partial, True),
+                 ('completed', partial, False), ('completed', '{ "cmd" : "true" }', True)]
+        def reply(body, number):
+            status, arguments, _ = cases[(number - 1) % len(cases)]
+            events = [
+                {'type': 'response.output_item.added', 'item': {**call, 'status': 'in_progress', 'arguments': ''}},
+                {'type': 'response.function_call_arguments.delta', 'item_id': call['id'], 'delta': partial},
+                {'type': 'response.incomplete', 'response': {'id': 'incomplete-response', 'object': 'response',
+                    'status': 'incomplete', 'model': body['model'],
+                    'incomplete_details': {'reason': 'max_output_tokens'},
+                    'output': [{**call, 'status': status, 'arguments': arguments}],
+                    'usage': {'input_tokens': 4, 'output_tokens': 2, 'total_tokens': 6}}},
+            ]
+            return b''.join(('data: ' + json.dumps(event) + '\n\n').encode() for event in events)
+        with destination.provider('LOCAL', event_stream=True, response_body=reply) as (local, requests), \
+             destination.provider('UNUSED_CLOUD') as (cloud, cloud_requests):
+            for rich in (False, True):
+                value = self.configuration(local, cloud)
+                if not rich:
+                    value['model_routes']['local-code']['capabilities'].remove('codex_llama_v1')
+                value['ai_work'] = {'enabled': True, 'tool_capable_aliases': ['local-code'],
+                                    'database': str(self.fixture.root / 'work.sqlite3')}
+                with self.fixture.connected_client(value) as submit:
+                    self.history('enable')
+                    for status, arguments, known in cases:
+                        with self.subTest(rich=rich, item_status=status, arguments=arguments):
+                            response = submit(request={'input': 'Summarize the fixture.', 'stream': True,
+                                                       'reasoning': {'effort': 'none'}, 'tools': [tool]})
+                            self.assertNotIn('response.completed', response['body'])
+                            if known:
+                                self.assertIn('response.incomplete', response['body'])
+                                events = [json.loads(line[5:]) for line in response['body'].splitlines() if line.startswith('data:')]
+                                terminal = next(event['response'] for event in events if event['type'] == 'response.incomplete')
+                                self.assertEqual(terminal['output'][0]['arguments'], arguments)
+                                self.assertEqual(terminal['output'][0]['status'], status)
+                            else:
+                                self.assertNotIn('response.incomplete', response['body'])
+                            entry = self.history('show', self.history('list')['entries'][0]['id'])['entry']
+                            self.assertEqual(entry['outcome'], 'failed' if known else 'outcome_unknown')
+                            self.assertEqual((entry['input_tokens'], entry['output_tokens']),
+                                             (4, 2) if known else (None, None))
+                            work = submit(method='GET', path='/work/jobs/' + response['headers']['x-hormuz-work-id'])['body']
+                            self.assertEqual(work['attempts'][0]['state'], 'failed' if known else 'unknown')
+                    self.assertEqual(submit(method='GET', path='/router/state')['status'], 200)
+            self.assertEqual((len(requests), cloud_requests), (8, []))
 
     def test_expanded_native_namespace_output_still_settles_real_usage(self):
         tool = {'type': 'namespace', 'name': 'fixture', 'description': 'Fixture.', 'tools': [
