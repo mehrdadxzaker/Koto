@@ -1,9 +1,12 @@
 # V17 preparation: concise workflow and explicit contract distinctions
 
-Status: authored offline fixtures and proposed instructions only. No V17 model
-request, frozen execution subject, canary outcome or coding qualification exists.
-The final reviewed wheel, native capture/profile and asset commitments must be
-registered before inference. Historical V16 and predecessor failures stay intact.
+Status: the reviewed execution subject is preregistered in [FREEZE.json](FREEZE.json)
+and [coding-plan.json](coding-plan.json), with zero model completions before
+registration. Forty-eight actual native captures bind all sixteen cases and the
+three scenarios to one instruction/tool profile. Preparation restored its owned
+settings, preserved live settings fingerprints and closed its listeners. No
+canary outcome or coding qualification exists at this checkpoint. Historical V16
+and predecessor failures stay intact.
 
 ## Hypothesis and limits
 
@@ -29,6 +32,11 @@ byte-for-byte from V16 and must be passed through the driver's
 `--client-instructions` option. Leaving that option unset would use stock Codex
 system instructions and constitute a different treatment; do not silently make
 that substitution. The actual captured request profile must bind both files.
+
+The router wheel also contains the reviewed streaming and tool-history guards
+from #578/#577. A resulting full-setup observation cannot isolate the effect of
+developer guidance from those transport changes. The exact wheel, source, native
+profile and existing asset digests are committed before model execution.
 
 Keep the existing Qwen3-Coder-30B-A3B-Instruct Q4_K_M weights, llama.cpp b11617,
 original template, managed-llama.v1 controls, native Codex 0.160.0 and its four

@@ -1,9 +1,13 @@
-# V17 offline campaign preparation
+# V17 frozen Codex acceptance campaign
 
 This candidate has sixteen fresh authored tasks and task-independent developer
 guidance aimed at V16's repeated tools and explicit contract failures. It has
-made **zero model requests**. The execution subject and native request profiles
-are not frozen. No model is newly qualified and automatic local coding stays off.
+made **zero model requests at registration**. [FREEZE.json](FREEZE.json) commits
+the reviewed wheel, existing assets, runner and actual native profile;
+[coding-plan.json](coding-plan.json) binds all sixteen task/checker pairs.
+Forty-eight zero-inference captures share one instruction/tool profile. Owned
+settings and listeners were restored and live settings fingerprints preserved.
+No model is newly qualified and automatic local coding stays off.
 
 [PLAN.md](PLAN.md) specifies the unchanged acceptance gates and proposed
 treatment. [corpus.json](corpus.json) indexes four development and twelve held-out
