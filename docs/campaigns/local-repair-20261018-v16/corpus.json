@@ -70,9 +70,9 @@
       "files": {
         "solution.py": "def decimal_trailing_zeros(n):\n    return str(n).count(\"0\")\n"
       },
-      "checks": "import runpy\nimport sys\ns=runpy.run_path(sys.argv[1])\nclass IntegerSubclass(int): pass\nf=s['decimal_trailing_zeros']\nassert f(0)==0 and f(7)==0 and f(1010)==1 and f(12000)==3\nassert f(10001)==0 and f(10**100)==100\nfor n in [-1,True,False,10.0,'10',None,IntegerSubclass(10)]:\n try: f(n)\n except ValueError: pass\n else: raise AssertionError('invalid trailing-zero input')\n",
+      "checks": "import runpy\nimport sys\ns=runpy.run_path(sys.argv[1])\nclass IntegerSubclass(int): pass\nf=s['decimal_trailing_zeros']\nassert f(0)==0 and f(7)==0 and f(1010)==1 and f(12000)==3\nassert f(10001)==0 and f(10**100)==100 and f(10**5000)==5000\nfor n in [-1,True,False,10.0,'10',None,IntegerSubclass(10)]:\n try: f(n)\n except ValueError: pass\n else: raise AssertionError('invalid trailing-zero input')\n",
       "task_sha256": "8a9f364cd1a36c507fe25d5ba87e7d8731642ea3a947a8c8f63d626aefc410ac",
-      "checks_sha256": "c007dee66c73793e5cfc7614300595e13cd64c2e31f4c304baa36dc1beb28f37"
+      "checks_sha256": "753b95bf1473ae5cea55070e686eb53c1a70b098d8abc9f9b4da46c57f04733b"
     },
     {
       "case_id": "held-polynomial-value",

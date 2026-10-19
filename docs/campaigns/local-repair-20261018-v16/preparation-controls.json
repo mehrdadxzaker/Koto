@@ -90,6 +90,7 @@
   "preparation_corrections": [
     "One hand-transcribed polynomial literal corrected against independent Decimal calculation before freeze.",
     "Prepared-profile outgoing-validation bypass reproduced and corrected without rich catalog activation; unsupported profile attempt retained.",
-    "Independent compatible-dimension ragged-b matrix check added before freeze; missing-validation mutant passes old checker and fails revised checker."
+    "Independent compatible-dimension ragged-b matrix check added before freeze; missing-validation mutant passes old checker and fails revised checker.",
+    "Explicit arbitrary-size decimal contract includes 10**5000 before freeze, beyond Python decimal string conversion defaults."
   ]
 }
