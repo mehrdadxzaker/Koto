@@ -37,11 +37,14 @@ activate routing, download models or establish provider access.
 
 The plugin manifests and shared CLI implementation are included in this source.
 Installation remains subject to each coding client's plugin support and review.
+Clone this repository or download and extract its source archive, then run the
+commands below from the Koto source directory. Keep that directory available
+while the plugins are installed.
 
 ### Codex
 
 ```sh
-codex plugin marketplace add mehrdadxzaker/hormuz
+codex plugin marketplace add ./
 codex plugin add koto@koto
 ```
 
@@ -51,7 +54,7 @@ the marketplace, select Koto in your client's plugin browser and install it.
 ### Gemini CLI
 
 ```sh
-gemini extensions install https://github.com/mehrdadxzaker/hormuz
+gemini extensions install ./
 ```
 
 Restart the Gemini CLI session after installation.
@@ -59,14 +62,14 @@ Restart the Gemini CLI session after installation.
 ### GitHub Copilot CLI
 
 ```sh
-copilot plugin marketplace add mehrdadxzaker/hormuz
+copilot plugin marketplace add ./
 copilot plugin install koto@koto
 ```
 
 ### Claude Code
 
 ```sh
-claude plugin marketplace add mehrdadxzaker/hormuz
+claude plugin marketplace add ./
 claude plugin install koto@koto
 ```
 
@@ -79,7 +82,7 @@ Use the [open Agent Skills installer](https://github.com/vercel-labs/skills)
 (requires Node.js/npm). Choose your agent when prompted:
 
 ```sh
-npx skills add mehrdadxzaker/hormuz --skill koto
+npx skills add ./ --skill koto
 ```
 
 Or select it explicitly with `--agent cursor` or `--agent opencode`.

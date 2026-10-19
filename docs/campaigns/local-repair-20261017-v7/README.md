@@ -1,7 +1,7 @@
 # Local repair version 7: Qwen2.5-Coder-7B model treatment
 
-Owner authorization: [Choose the next local coding candidate after the frozen
-v6 failure](https://github.com/mehrdadxzaker/hormuz/issues/566), with the explicit
+Owner authorization (issue #566): choose the next local coding candidate after
+the [frozen v6 failure](../local-repair-20261016-v6/OUTCOME.md), with the explicit
 October 17, 2026 instruction to choose, freeze and run one bounded repair while
 preserving prior evidence, local-only enforcement and the owner's Codex settings.
 

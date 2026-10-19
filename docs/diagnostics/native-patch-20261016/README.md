@@ -1,6 +1,6 @@
 # Native empty-patch diagnosis
 
-Issue: [#537](https://github.com/mehrdadxzaker/hormuz/issues/537).
+Issue: #537.
 The [resolution and publication verification](RESOLUTION.md) records the
 completed investigation and the remaining model-qualification boundary.
 The original [v5 episode](../../campaigns/local-repair-20261016-v5/README.md)
@@ -10,10 +10,11 @@ The frozen independent checker remained failing. Original evidence is unchanged.
 
 ## Feedback loop and minimization
 
-Run from this checkout on the pinned macOS host:
+Run from the Koto source directory on the pinned macOS host, using its virtual
+environment:
 
 ```sh
-/Users/mehrdadz/Downloads/memoWiki/hormuz/.venv/bin/python \
+.venv/bin/python \
   docs/diagnostics/native-patch-20261016/replay-v5.py --minimal
 ```
 
@@ -60,7 +61,7 @@ eligible. These findings avoid a speculative metadata change.
 
 ## Finding and next treatment
 
-The immediate observed failure is an empty patch command. No Hormuz integration
+The immediate observed failure is an empty patch command. No Koto integration
 defect requiring a production TDD fix was demonstrated. Preserve the approved
 workflow seam; add a failing regression there if a later observation identifies
 a real integration defect. Do not convert a supplied synthetic patch into
