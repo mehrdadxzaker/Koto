@@ -17,6 +17,9 @@ Every initial implementation fails a checker assertion with exit 1. Every
 authored reference completes the same unchanged assertions with exit zero.
 These are fixture tests, not observations of Codex or model success. The
 preparation mistakes and corrected controls are retained separately.
+The final [v2 preparation controls](preparation-controls-v2.json) include five
+checker sensitivity improvements from review; deliberately incorrect variants
+that passed the earlier checks now fail. Earlier controls remain unchanged.
 
 Recheck fixtures without any model, router, network, credentials or settings:
 

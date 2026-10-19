@@ -42,10 +42,12 @@ then write and execute its reference implementation. All sixteen have an
 assertion-failing baseline and a passing authored reference. These offline
 controls establish checker applicability, not model quality or native behavior.
 
-[authoring-controls.json](authoring-controls.json) retains the sequential red
-and green results. [preparation-controls.json](preparation-controls.json) repeats
-all checks in isolated `-I -S` Python processes with an unpredictable completion
-marker after all assertions. Frozen checks, task/source digests and case-file
+[authoring-controls.json](authoring-controls.json) retains the original sequential
+red and green results. [preparation-controls-v2.json](preparation-controls-v2.json)
+repeats all final reviewed checks in isolated `-I -S` Python processes with an
+unpredictable completion marker after all assertions. The earlier
+[preparation-controls.json](preparation-controls.json) remains unchanged.
+Prepared checks, task/source digests and case-file
 hashes are retained in [corpus.json](corpus.json). Checkers use worked literal
 results and contract assertions; strict built-in-int contracts test bool and an
 int subclass on every constrained parameter or element position.
@@ -54,7 +56,17 @@ Two preparation errors were corrected before inference and are preserved in
 `preparation-attempts/`: source escaping produced an indentation error, and the
 initial size-parser baseline raised ValueError before a failing assertion. The
 final baseline for every case fails an assertion; neither preparation error is
-reported as a model observation. References and private checks must never be
+reported as a model observation. Review then exposed five authored checker
+sensitivity gaps: fraction result integer type/precision, size-parser integer
+type/precision, unconditional ragged-row validation with empty indices, exact
+large-value argsort ordering and preservation of low bits during wide reversal.
+Each deliberately incorrect reference variant passed the earlier checker and
+fails its hardened checker; those before/after controls and original checker
+sources are retained in `preparation-attempts/03-review-checker-sensitivity.json`.
+All sixteen initial/reference controls pass after hardening, with no task,
+reference solution, model treatment or model observation changed. These are
+pre-freeze improvements; the final execution freeze must bind the v2 checks.
+References and private checks must never be
 placed in the native project's permitted roots.
 
 ## Freeze and native acceptance
