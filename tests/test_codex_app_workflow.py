@@ -235,6 +235,58 @@ class CodexAppWorkflowTests(unittest.TestCase):
                 self.assertEqual(work['attempts'][0]['state'], 'unknown')
             self.assertEqual((len(requests), cloud_requests), (1, []))
 
+    def test_plain_tool_stream_cannot_complete_an_unterminated_terminal_frame(self):
+        tool = {'type': 'function', 'name': 'exec_command', 'description': 'Run a command.',
+                'parameters': {'type': 'object'}, 'strict': False}
+        wire = (b'data: {"type":"response.output_text.delta","delta":"working"}\n\n'
+                b'data: {"type":"response.completed","response":{"id":"terminal","status":"completed",'
+                b'"model":"fixture-local-model","output":[],"usage":{"input_tokens":4,"output_tokens":2,"total_tokens":6}}}\n')
+        with destination.provider('LOCAL', event_stream=True, response_body=wire) as (local, requests), \
+             destination.provider('UNUSED_CLOUD') as (cloud, cloud_requests):
+            value = self.configuration(local, cloud)
+            value['model_routes']['local-code']['capabilities'].remove('codex_llama_v1')
+            value['ai_work'] = {'enabled': True, 'tool_capable_aliases': ['local-code'],
+                                'database': str(self.fixture.root / 'work.sqlite3')}
+            with self.fixture.connected_client(value) as submit:
+                response = submit(request={'input': 'Summarize the fixture.', 'stream': True,
+                                           'reasoning': {'effort': 'none'}, 'tools': [tool]})
+                self.assertIn('working', response['body'])
+                self.assertNotIn('response.completed', response['body'])
+                work = submit(method='GET', path='/work/jobs/' + response['headers']['x-hormuz-work-id'])['body']
+                self.assertEqual(work['attempts'][0]['state'], 'unknown')
+            self.assertEqual((len(requests), cloud_requests), (1, []))
+
+    def test_non_json_plain_tool_arguments_are_not_delivered_as_complete(self):
+        tool = {'type': 'function', 'name': 'exec_command', 'description': 'Run a command.',
+                'parameters': {'type': 'object'}, 'strict': False}
+        arguments = ['{"cmd":"true","timeout_ms":NaN}', '{"cmd":"true","timeout_ms":Infinity}',
+                     '{"cmd":"true","timeout_ms":1e400}', '{"cmd":"true","cmd":"false"}',
+                     '{"cmd":"\\ud800"}']
+        def reply(body, number):
+            item = {'type': 'function_call', 'id': 'fc-invalid', 'call_id': 'invalid-call',
+                    'name': 'exec_command', 'status': 'completed', 'arguments': arguments[number - 1]}
+            events = [{'type': 'response.output_item.done', 'item': item},
+                      {'type': 'response.completed', 'response': {'id': 'invalid', 'status': 'completed',
+                       'model': body['model'], 'output': [item],
+                       'usage': {'input_tokens': 4, 'output_tokens': 2, 'total_tokens': 6}}}]
+            return b''.join(('data: ' + json.dumps(event) + '\n\n').encode() for event in events)
+        with destination.provider('LOCAL', event_stream=True, response_body=reply) as (local, requests), \
+             destination.provider('UNUSED_CLOUD') as (cloud, cloud_requests):
+            value = self.configuration(local, cloud)
+            value['model_routes']['local-code']['capabilities'].remove('codex_llama_v1')
+            value['ai_work'] = {'enabled': True, 'tool_capable_aliases': ['local-code'],
+                                'database': str(self.fixture.root / 'work.sqlite3')}
+            with self.fixture.connected_client(value) as submit:
+                for argument in arguments:
+                    with self.subTest(arguments=argument):
+                        response = submit(request={'input': 'Summarize the fixture.', 'stream': True,
+                                                   'reasoning': {'effort': 'none'}, 'tools': [tool]})
+                        self.assertNotIn('response.completed', response['body'])
+                        self.assertNotIn('invalid-call', response['body'])
+                        work = submit(method='GET', path='/work/jobs/' + response['headers']['x-hormuz-work-id'])['body']
+                        self.assertEqual(work['attempts'][0]['state'], 'unknown')
+            self.assertEqual((len(requests), cloud_requests), (len(arguments), []))
+
     def test_truncated_function_arguments_are_not_delivered_as_a_completed_tool_call(self):
         # Minimized from v15: the provider claimed completion at the token cap
         # inside the exec_command JSON string. Codex could not execute this call.
@@ -292,6 +344,13 @@ class CodexAppWorkflowTests(unittest.TestCase):
                 rejected = submit(headers=headers, request={'tools': [tool], 'client_metadata': tags,
                     'reasoning': {'effort': 'none'}, 'input': [{**no_status, 'arguments': '{"cmd":"unfinished'}, result]})
                 self.assertEqual(rejected['status'], 503, rejected)
+                for arguments in ('{"cmd":"true","timeout_ms":NaN}', '{"cmd":"true","timeout_ms":Infinity}',
+                                  '{"cmd":"true","timeout_ms":1e400}', '{"cmd":"true","cmd":"false"}',
+                                  '{"cmd":"\\ud800"}'):
+                    with self.subTest(arguments=arguments):
+                        rejected = submit(headers=headers, request={'tools': [tool], 'client_metadata': tags,
+                            'reasoning': {'effort': 'none'}, 'input': [{**call, 'arguments': arguments}, result]})
+                        self.assertEqual(rejected['status'], 503, rejected)
             self.assertEqual(requests[1]['body']['input'][0]['arguments'], '{ "cmd" : "true" }')
             self.assertEqual(requests[0]['body']['tools'], [tool])
             self.assertEqual(requests[0]['body']['reasoning'], {'effort': 'none'})

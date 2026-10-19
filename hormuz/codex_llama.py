@@ -3,6 +3,7 @@ import copy
 import hashlib
 import json
 import re
+from .compaction_formats import strict_json_loads
 
 CAPABILITY = 'codex_llama_v1'
 MAX_FRAME = 2 * 1024 * 1024
@@ -13,10 +14,13 @@ class CodexLlamaError(ValueError):
     pass
 
 
-def _function_arguments(value):
-    arguments = json.loads(value)
+def validate_function_arguments(value):
+    arguments = strict_json_loads(value)
     if type(arguments) is not dict:
         raise CodexLlamaError('invalid_function_arguments')
+    # Validate decoded strings too; the outer JSON only sees escaped argument
+    # bytes. Keep the original argument string unchanged for native replay.
+    json.dumps(arguments, ensure_ascii=False, allow_nan=False).encode('utf-8')
 
 
 def needs_adapter(value):
@@ -131,7 +135,7 @@ class CodexLlamaRequest:
                 item = {key: value for key, value in item.items() if key != 'input'} | {
                     'type': 'function_call', 'arguments': json.dumps({'input': item['input']}, separators=(',', ':'))}
             else:
-                _function_arguments(item.get('arguments', ''))
+                validate_function_arguments(item.get('arguments', ''))
         elif isinstance(item, dict) and item.get('type') == 'custom_tool_call_output':
             item = {**item, 'type': 'function_call_output'}
         return item
@@ -209,7 +213,7 @@ class CodexLlamaRequest:
             return value
         if not self.translate:
             if complete:
-                _function_arguments(value.get('arguments', ''))
+                validate_function_arguments(value.get('arguments', ''))
             return value
         if not isinstance(value.get('name'), str):
             raise CodexLlamaError('invalid_provider_tool_name')
@@ -221,7 +225,7 @@ class CodexLlamaRequest:
         if namespace:
             result['namespace'] = namespace
         if kind == 'function' and complete:
-            _function_arguments(value.get('arguments', ''))
+            validate_function_arguments(value.get('arguments', ''))
         if kind == 'custom':
             if not complete:
                 raw_input = ''
@@ -263,7 +267,7 @@ class CodexLlamaRequest:
                 and self.stream_kinds.get(value.get('item_id')) in {'custom_tool_call', 'tool_search_call'}):
             return None
         if value.get('type') == 'response.function_call_arguments.done':
-            _function_arguments(value.get('arguments', ''))
+            validate_function_arguments(value.get('arguments', ''))
         if isinstance(value.get('response'), dict):
             value = {**value, 'response': self._response(value['response'])}
         return value
@@ -286,13 +290,9 @@ class CodexLlamaRequest:
             return json.dumps(value, separators=(',', ':')).encode()
         output = bytearray()
         self.buffer[:] = self.buffer.replace(b'\r\n', b'\n')
-        while b'\n\n' in self.buffer or final and self.buffer:
-            if b'\n\n' in self.buffer:
-                frame, _, rest = self.buffer.partition(b'\n\n')
-                self.buffer[:] = rest
-            else:
-                frame = bytes(self.buffer)
-                self.buffer.clear()
+        while b'\n\n' in self.buffer:
+            frame, _, rest = self.buffer.partition(b'\n\n')
+            self.buffer[:] = rest
             lines = []
             skip = False
             for line in frame.split(b'\n'):
@@ -305,4 +305,9 @@ class CodexLlamaRequest:
                 lines.append(line)
             if not skip:
                 output.extend(b'\n'.join(lines) + b'\n\n')
+        if final:
+            incomplete = bool(self.buffer.strip(b'\r\n'))
+            self.buffer.clear()
+            if incomplete:
+                raise CodexLlamaError('incomplete_provider_frame')
         return bytes(output)

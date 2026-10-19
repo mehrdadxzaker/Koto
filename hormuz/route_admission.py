@@ -12,6 +12,7 @@ from types import MappingProxyType
 from .work_learning import contains_provider_state, request_characteristics
 from .coding_qualification import assess_coding_evidence, request_profile_digest
 from .coding_probe import CodingProbe, ProbeError, HEADER as PROBE_HEADER
+from .codex_llama import validate_function_arguments
 
 
 @dataclass(frozen=True)
@@ -191,8 +192,7 @@ def _text_envelope(value, protocol, endpoint):
             return None
         if kind == "function_call":
             try:
-                if type(json.loads(item.get("arguments", ""))) is not dict:
-                    return None
+                validate_function_arguments(item.get("arguments", ""))
             except (ValueError, TypeError, RecursionError):
                 return None
         if kind in {"function_call", "function_call_output", "tool_use", "tool_result"} or item.get("tool_calls") or item.get("role") == "tool":
