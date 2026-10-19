@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import pickle
 import select
+import signal
 import sqlite3
 import struct
 import threading
@@ -232,21 +233,38 @@ def owned_router(config, workspace, deadline):
         router = _Router(process, parent, deadline)
         yield router
     finally:
-        child.close()
+        interrupted = False
+
+        def defer_interrupt(_signum, _frame):
+            nonlocal interrupted
+            interrupted = True
+
+        main_thread = threading.current_thread() is threading.main_thread()
+        previous_handler = signal.getsignal(signal.SIGINT) if main_thread else None
+        defer_signal = main_thread and previous_handler != signal.SIG_IGN
+        if defer_signal:
+            signal.signal(signal.SIGINT, defer_interrupt)
         try:
-            if router is not None and not router.broken:
-                router._send(b'{"command":"close"}', deadline=min(deadline + 3, time.monotonic() + .05))
-        except (OSError, NativeSessionError):
-            pass
-        parent.close()
-        if started:
-            process.join(.2)
-            if process.is_alive():
-                process.terminate()
-                process.join(1)
-            if process.is_alive():
-                process.kill()
-                process.join(1)
-            if process.is_alive():
-                raise NativeSessionError("native_router_cleanup_incomplete")
-        process.close()
+            child.close()
+            try:
+                if router is not None and not router.broken:
+                    router._send(b'{"command":"close"}', deadline=min(deadline + 3, time.monotonic() + .05))
+            except (OSError, NativeSessionError):
+                pass
+            parent.close()
+            if started:
+                process.join(.2)
+                if process.is_alive():
+                    process.terminate()
+                    process.join(1)
+                if process.is_alive():
+                    process.kill()
+                    process.join(1)
+                if process.is_alive():
+                    raise NativeSessionError("native_router_cleanup_incomplete")
+            process.close()
+        finally:
+            if defer_signal:
+                signal.signal(signal.SIGINT, previous_handler)
+        if interrupted:
+            signal.raise_signal(signal.SIGINT)

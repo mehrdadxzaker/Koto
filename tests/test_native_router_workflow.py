@@ -5,6 +5,10 @@ import os
 from pathlib import Path
 import socket
 import signal
+import select
+import subprocess
+import sys
+import textwrap
 import threading
 import time
 from dataclasses import replace
@@ -134,6 +138,66 @@ class NativeRouterWorkflowTests(unittest.TestCase):
                     router.routes("developer")
         self.assertLess(time.monotonic() - started, 6)
         self.assert_stopped(pid)
+
+    @unittest.skipUnless(hasattr(signal, "SIGSTOP"), "POSIX process interruption")
+    def test_interrupt_during_cleanup_reaches_caller_only_after_owned_router_is_reaped(self):
+        self.config("http://127.0.0.1:9/v1", "http://127.0.0.1:9/v1")
+        wrapper = self.root / "interrupt_router.py"
+        wrapper.write_text(textwrap.dedent('''\
+            import json
+            import os
+            import signal
+            import socket
+            import sys
+            import time
+            from hormuz.config import GatewayConfig
+            from hormuz.native_router import owned_router
+
+            if __name__ == "__main__":
+                connection = None
+                original_handler = signal.getsignal(signal.SIGINT)
+                try:
+                    config = GatewayConfig.load(sys.argv[1])
+                    with owned_router(config, sys.argv[2], time.monotonic() + 8) as router:
+                        connection = socket.create_connection(("127.0.0.1", router.server_port), timeout=1)
+                        connection.sendall(b"POST /v1/responses HTTP/1.1\\r\\nX-Incomplete: ")
+                        os.kill(router.pid, signal.SIGSTOP)
+                        print(json.dumps({"cleanup": router.pid}), flush=True)
+                except KeyboardInterrupt:
+                    assert signal.getsignal(signal.SIGINT) is original_handler
+                    print("interrupted", flush=True)
+                finally:
+                    if connection is not None:
+                        connection.close()
+        '''))
+        environment = {**os.environ, **self.fixture.environment,
+            "PYTHONPATH": str(Path(__file__).resolve().parents[1])}
+        process = subprocess.Popen([sys.executable, "-u", str(wrapper), str(self.path), str(self.root)],
+            stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+            env=environment)
+        pid = None
+        try:
+            self.assertTrue(select.select([process.stdout], [], [], 4)[0], "Router wrapper never became ready")
+            pid = json.loads(process.stdout.readline())["cleanup"]
+            # The stopped child keeps the bounded cleanup window open for this one signal.
+            time.sleep(.05)
+            os.kill(process.pid, signal.SIGINT)
+            self.assertTrue(select.select([process.stdout], [], [], 4)[0], "Cleanup did not return the interruption")
+            self.assertEqual(process.stdout.readline().strip(), "interrupted")
+            self.assert_stopped(pid)
+            output, error = process.communicate(timeout=2)
+            self.assertEqual((process.returncode, output, error), (0, "", ""))
+        finally:
+            if pid is not None:
+                try:
+                    os.kill(pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+            try:
+                process.communicate(timeout=3)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.communicate(timeout=2)
 
     def test_unserializable_configuration_stops_before_a_router_is_started(self):
         from hormuz.native_router import owned_router

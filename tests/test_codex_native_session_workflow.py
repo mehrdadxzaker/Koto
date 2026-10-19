@@ -13,11 +13,18 @@ from unittest.mock import patch
 
 
 NATIVE = r'''#!PYTHON
-import json,os,pathlib,sys,time,tomllib
-if '--version' in sys.argv:
- print('codex-cli 0.160.0');sys.exit(0)
+import json,os,pathlib,signal,sys,time,tomllib
 home=pathlib.Path(os.environ['CODEX_HOME'])
 mode=(home/'mode').read_text() if (home/'mode').exists() else 'normal'
+if '--version' in sys.argv:
+ print('codex-cli 0.160.0',flush=True)
+ if mode=='interrupt_version_cleanup':
+  signal.signal(signal.SIGTERM,signal.SIG_IGN)
+  sys.stdin.read()
+  (home/'cleanup-ready').write_text(str(os.getpid()))
+  time.sleep(12)
+ sys.exit(0)
+if mode=='interrupt_during_cleanup': signal.signal(signal.SIGTERM,signal.SIG_IGN)
 for line in sys.stdin:
  request=json.loads(line)
  with (home/'requests.jsonl').open('a') as output: output.write(json.dumps({**request,'nativePid':os.getpid()})+'\n')
@@ -97,17 +104,35 @@ for line in sys.stdin:
   if mode=='client_action':
    print(json.dumps({'id':99,'method':'item/tool/call','params':{'threadId':'thread-one','turnId':'turn-one'}}),flush=True)
   if mode in ('missing_terminal','truncated_terminal'): events=events[:-1]
-  if mode in ('interrupt_after_partial','partial_failed','partial_interrupted','partial_completed'):
+  if mode in ('interrupt_after_partial','interrupt_during_cleanup','partial_failed','partial_interrupted','partial_completed'):
    events[1][1]['item'].update(text='Native retained partial answer.',phase='partial_answer')
-  if mode=='interrupt_after_partial': events=events[:2]
+  if mode in ('interrupt_after_partial','interrupt_during_cleanup'): events=events[:2]
   for method,params in events:
    print(json.dumps({'method':method,'params':params}),flush=True)
   if mode=='interrupt_after_partial':
    for _ in range(160): print(json.dumps({'method':'notice','params':{'data':'x'*8192}}),flush=True)
    (home/'partial-ready').write_text('The partial item preceded bounded pipe backpressure.')
    time.sleep(12)
+  if mode=='interrupt_during_cleanup':
+   os.close(sys.stdout.fileno());os.close(sys.stderr.fileno())
+   continue
   if mode=='truncated_terminal': print('{"method":"turn/completed"',end='',flush=True)
   if mode!='normal': sys.exit(0)
+if mode=='interrupt_during_cleanup':
+ (home/'cleanup-ready').write_text(str(os.getpid()))
+ time.sleep(12)
+'''
+
+WRAPPER = '''import json,signal,sys
+from hormuz.codex_native_session import run_session
+previous=signal.getsignal(signal.SIGINT)
+result=run_session(*sys.argv[1:], 'An ordinary user prompt.', timeout_seconds=8)
+assert signal.getsignal(signal.SIGINT)==previous
+print(json.dumps({'schema_id':'koto.native-task','schema_version':1,
+ 'status':result['status'],'text':result['text'],'model':None,'locality':'cloud',
+ 'selection':None,'history_entry':None,
+ 'execution':{'verified':False,'source':'native_provider_binding','local_attempts':None},
+ 'native':result,'error':result['error']}),flush=True)
 '''
 
 
@@ -478,16 +503,7 @@ class CodexNativeSessionWorkflowTests(unittest.TestCase):
     def test_ctrl_c_retains_the_partial_native_observation_and_stops_owned_processes(self):
         from hormuz.contracts import validate_contract
         (self.home / 'mode').write_text('interrupt_after_partial')
-        wrapper = '''import json,sys
-from hormuz.codex_native_session import run_session
-result=run_session(*sys.argv[1:], 'An ordinary user prompt.', timeout_seconds=8)
-print(json.dumps({'schema_id':'koto.native-task','schema_version':1,
- 'status':result['status'],'text':result['text'],'model':None,'locality':'cloud',
- 'selection':None,'history_entry':None,
- 'execution':{'verified':False,'source':'native_provider_binding','local_attempts':None},
- 'native':result,'error':result['error']}),flush=True)
-'''
-        process = subprocess.Popen([sys.executable, '-c', wrapper, str(self.executable), str(self.home), str(self.cwd)],
+        process = subprocess.Popen([sys.executable, '-c', WRAPPER, str(self.executable), str(self.home), str(self.cwd)],
                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True)
         try:
             deadline = time.monotonic() + 5
@@ -517,6 +533,49 @@ print(json.dumps({'schema_id':'koto.native-task','schema_version':1,
                     process.communicate(timeout=2)
             process.stdout.close()
             process.stderr.close()
+
+    def test_ctrl_c_during_native_cleanup_finishes_cleanup_and_preserves_the_interrupted_receipt(self):
+        from hormuz.contracts import validate_contract
+        for mode in ('interrupt_during_cleanup', 'interrupt_version_cleanup'):
+            with self.subTest(interrupted_cleanup=mode):
+                (self.home / 'mode').write_text(mode)
+                marker = self.home / 'cleanup-ready'
+                marker.unlink(missing_ok=True)
+                process = subprocess.Popen([sys.executable, '-c', WRAPPER, str(self.executable), str(self.home), str(self.cwd)],
+                                           stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True)
+                owned_pid = None
+                try:
+                    deadline = time.monotonic() + 5
+                    while not marker.exists() and process.poll() is None and time.monotonic() < deadline:
+                        time.sleep(.01)
+                    self.assertTrue(marker.exists(), 'Native owned cleanup did not start')
+                    owned_pid = int(marker.read_text())
+                    process.send_signal(signal.SIGINT)
+                    output, errors = process.communicate(timeout=5)
+                    self.assertEqual(process.returncode, 0, errors or output)
+                    receipt = json.loads(output)
+                    validate_contract(receipt)
+                    self.assertEqual((receipt['status'], receipt['error']), ('interrupted', 'native_interrupted'))
+                    self.assertEqual(receipt['text'], '' if mode == 'interrupt_version_cleanup' else 'Native retained partial answer.')
+                    self.assertIsNone(receipt['native']['native_terminal_status'])
+                    self.assertTrue(receipt['native']['cleanup']['owned_processes_stopped'])
+                    with self.assertRaises(ProcessLookupError):
+                        os.kill(owned_pid, 0)
+                finally:
+                    if process.poll() is None:
+                        process.send_signal(signal.SIGINT)
+                        try:
+                            process.communicate(timeout=12)
+                        except subprocess.TimeoutExpired:
+                            process.kill()
+                            process.communicate(timeout=2)
+                    if owned_pid is not None:
+                        try:
+                            os.kill(owned_pid, signal.SIGKILL)
+                        except ProcessLookupError:
+                            pass
+                    process.stdout.close()
+                    process.stderr.close()
 
     def test_fixed_selection_alias_and_router_failures_keep_their_recovery_codes(self):
         from hormuz.codex_native_session import NativeSessionError, run_session

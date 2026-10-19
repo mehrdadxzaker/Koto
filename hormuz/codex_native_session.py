@@ -146,6 +146,7 @@ def _usage(value):
 class _Child:
     def __init__(self, arguments, environment, cwd, deadline, limit=MAX_OUTPUT):
         self.deadline, self.limit = deadline, limit
+        self.interrupted = False
         self.selector = selectors.DefaultSelector()
         self.buffer = bytearray()
         self.counts = {'stdout': 0, 'stderr': 0}
@@ -224,6 +225,23 @@ class _Child:
         return value
 
     def close(self):
+        previous = signal.getsignal(signal.SIGINT)
+        installed = False
+        def defer_interrupt(_signum, _frame):
+            self.interrupted = True
+        if previous is not None and previous != signal.SIG_IGN:
+            try:
+                signal.signal(signal.SIGINT, defer_interrupt)
+                installed = True
+            except ValueError:
+                pass  # Only the main thread receives Python SIGINT callbacks.
+        try:
+            return self._close_group()
+        finally:
+            if installed:
+                signal.signal(signal.SIGINT, previous)
+
+    def _close_group(self):
         self.process.stdin.close()
         stopped = False
         for action, grace in ((None, .2), (signal.SIGTERM, 1), (signal.SIGKILL, 1)):
@@ -306,6 +324,8 @@ def run_session(executable, client_home, cwd, prompt, model=None, provider=None,
         finally:
             if not version_child.close():
                 raise NativeSessionError('native_cleanup_failed')
+            if version_child.interrupted:
+                raise KeyboardInterrupt
         if version not in (SUPPORTED_CODEX_VERSION, SUPPORTED_CODEX_APP_VERSION):
             raise NativeSessionError('native_version_unsupported')
         if _binary_snapshot(executable, deadline) != binary:
@@ -448,6 +468,8 @@ def run_session(executable, client_home, cwd, prompt, model=None, provider=None,
         if child is not None:
             try:
                 result['cleanup']['owned_processes_stopped'] = child.close()
+                if child.interrupted:
+                    result.update(status='interrupted', error='native_interrupted')
             except (OSError, subprocess.SubprocessError):
                 result['cleanup']['owned_processes_stopped'] = False
             if not result['cleanup']['owned_processes_stopped']:
