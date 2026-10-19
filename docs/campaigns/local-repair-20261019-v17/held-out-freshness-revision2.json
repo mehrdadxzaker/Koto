@@ -1,0 +1,22 @@
+{
+  "compared_at_utc": "2026-10-19T14:32:30.141092+00:00",
+  "original_registration": "ab6d81519790b687d0ebdef5bcdb53389b7780d3",
+  "current_cases_unchanged": 16,
+  "additional_independent_corpora": [
+    {
+      "corpus": "koto-local-coding-20261019-v14/corpus.json",
+      "sha256": "cf18b9f90d57fe97d54f5b0a8bdca76ac22b7b3fca012dfcf3c6d65df6c8c9f7",
+      "case_instances": 16
+    },
+    {
+      "corpus": "koto-local-coding-20261019-v15/corpus.json",
+      "sha256": "f37998b5be50940c46a1f94058c9a979c97c8e7364baa0849ab871a66e4f8f29",
+      "case_instances": 16
+    }
+  ],
+  "compared_case_instances": 32,
+  "additional_distinct_goal_texts": 28,
+  "verbatim_overlaps": 0,
+  "full_semantic_contract_overlaps": 0,
+  "assessment": "Independent later authoring does not alter the original registration or provide model-quality feedback. Current sixteen task/checker bindings remain unchanged. Distinctness is claimed against this inventory, not all possible future tasks."
+}

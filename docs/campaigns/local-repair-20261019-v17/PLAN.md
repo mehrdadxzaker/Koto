@@ -1,12 +1,13 @@
 # V17 preparation: concise workflow and explicit contract distinctions
 
-Status: the reviewed execution subject is preregistered in [FREEZE.json](FREEZE.json)
-and [coding-plan.json](coding-plan.json), with zero model completions before
-registration. Forty-eight actual native captures bind all sixteen cases and the
-three scenarios to one instruction/tool profile. Preparation restored its owned
-settings, preserved live settings fingerprints and closed its listeners. No
-canary outcome or coding qualification exists at this checkpoint. Historical V16
-and predecessor failures stay intact.
+Status: revision 1 was rejected before dispatch with zero model submissions;
+its original freeze and failed observation remain intact. Revision 2 is separately
+preregistered in [FREEZE-revision2.json](FREEZE-revision2.json) and
+[coding-plan-revision2.json](coding-plan-revision2.json), after forty-nine actual
+native captures and identical repeated first inputs. Task/checker/guidance/model
+bytes are unchanged. This frozen #577 payload predates independent #579 on main.
+No canary outcome or coding qualification exists at this checkpoint. Historical
+V16 and predecessor failures remain intact.
 
 ## Hypothesis and limits
 
