@@ -52,6 +52,8 @@ if 'model_instructions_file' in overrides:
  request['instructions']=pathlib.Path(overrides['model_instructions_file']).read_text()
 project=pathlib.Path(sys.argv[sys.argv.index('-C')+1])
 origin=urlsplit(base)
+if 'Malformed observation control.' in sys.argv[-1]:
+ print('not a JSON event',flush=True)
 for attempt in range(8):
  connection=http.client.HTTPConnection(origin.hostname,origin.port,timeout=12)
  try:
@@ -290,6 +292,39 @@ class CodexAcceptanceWorkflowTests(unittest.TestCase):
         self.assertEqual(result['automatic_admission_effect'], 'none')
         self.assertTrue(result['settings_restored'] and result['owned_listeners_closed'])
         self.assertEqual(self.settings.read_bytes(), before)
+
+    @MACOS_CHECKER
+    def test_malformed_native_observations_cannot_pass_denial_or_cancellation(self):
+        before = self.settings.read_bytes()
+        case = self.root / 'case.json'
+        case.write_text(json.dumps({'id': 'dev-malformed-observation', 'partition': 'development', 'family': 'arithmetic',
+            'prompt': 'Fix the Python function bounded_add to add integers. Malformed observation control.',
+            'initial_solution': 'def bounded_add(a, b):\n    return a - b\n',
+            'checker': 'import runpy,sys\nassert runpy.run_path(sys.argv[1])["bounded_add"](2,5)==7\n'}))
+        self.tool('prepare', '--case', str(case))
+        for scenario in ('deny', 'cancel'):
+            with self.subTest(scenario=scenario):
+                completed = self.tool('run', '--scenario', scenario, check=False)
+                output = self.output / 'results' / scenario
+                result = json.loads((output / 'result.json').read_text())
+                self.assertEqual(result['error'], 'native_event_invalid')
+                self.assertIn('not a JSON event', (output / 'native.jsonl').read_text())
+                self.assertEqual((result['native']['completed_turns'], result['native']['completed_tools']), (0, 0))
+                self.assertFalse(result['implementation_changed'])
+                self.assertTrue(result['settings_restored'] and result['live_settings_preserved']
+                                and result['owned_listeners_closed'])
+                self.assertEqual(self.settings.read_bytes(), before)
+                if scenario == 'deny':
+                    self.assertEqual(result['denial'], {'status': 503, 'code': 'hormuz_route_local_route_unavailable'})
+                    self.assertEqual(result['probe_after']['submitted_requests'], 0)
+                    self.assertEqual(result['history']['entries'], [])
+                    self.assertFalse((self.engine.parent / 'calls.jsonl').exists())
+                else:
+                    self.assertEqual(result['native']['termination'], 'canceled')
+                    self.assertEqual(result['probe_after']['submitted_requests'], 1)
+                    self.assertEqual([entry['outcome'] for entry in result['history']['entries']], ['outcome_unknown'])
+                self.assertEqual(completed.returncode, 2, completed.stdout + completed.stderr)
+                self.assertFalse(result['passed'], result)
 
     @MACOS_CHECKER
     def test_authored_case_and_shared_guidance_are_frozen_without_exposing_the_checker(self):

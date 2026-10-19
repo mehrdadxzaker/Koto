@@ -697,7 +697,7 @@ def run_frozen(args):
             session.close(report)
         except (OSError, ValueError, KeyError, RuntimeError, subprocess.SubprocessError) as error:
             report.setdefault('cleanup_errors', []).append(str(error))
-        report['passed'] = bool(report['passed'] and not report.get('cleanup_errors') and all(report.get(key) for key in (
+        report['passed'] = bool(report['passed'] and not report.get('error') and not report.get('cleanup_errors') and all(report.get(key) for key in (
             'settings_restored', 'live_settings_preserved', 'owned_listeners_closed'))
             and not report.get('native', {}).get('cleanup_error'))
         write(output / 'result.json', report)
