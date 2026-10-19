@@ -126,6 +126,36 @@ class NamespacedCodingWorkflowTests(unittest.TestCase):
             f.command('disconnect')
             self.assertEqual(f.client('inspect')['model'], 'original-model')
 
+    def test_managed_v1_catalog_does_not_restrict_a_separate_unmanaged_alias(self):
+        f = self.fixture
+        with lifetime.provider('CLOUD_MUST_STAY_UNUSED') as (cloud, cloud_requests):
+            value, engine, _ = self.prepare(cloud)
+            value['model_routes']['unmanaged-code'] = deepcopy(value['model_routes']['local-code'])
+            value['route_admission']['local_routes']['unmanaged-code'] = deepcopy(
+                value['route_admission']['local_routes']['local-code'])
+            value['policies']['organization']['allowed_models'].append('unmanaged-code')
+            f.path.write_text(json.dumps(value))
+            self.addCleanup(lambda: f.command('disconnect', check=False))
+            f.command('connect')
+            origin = urlsplit(f.client('inspect')['base_url'])
+            connection = http.client.HTTPConnection(origin.hostname, origin.port, timeout=3)
+            try:
+                connection.request('GET', origin.path + '/models', headers={
+                    'Authorization': 'Bearer ' + f.environment['DESTINATION_WORKFLOW_TOKEN']})
+                response = connection.getresponse()
+                self.assertEqual(response.status, 200)
+                models = {row['slug']: row for row in json.loads(response.read())['models']}
+            finally:
+                connection.close()
+            self.assertFalse(models['local-code'].get('supports_search_tool', False))
+            unmanaged = models['unmanaged-code']
+            self.assertEqual((unmanaged.get('supports_search_tool'), unmanaged['default_reasoning_level'],
+                              unmanaged['apply_patch_tool_type']), (True, 'medium', 'freeform'))
+            self.assertFalse((engine / 'inference-count').exists())
+            self.assertEqual(cloud_requests, [])
+            f.command('disconnect')
+            self.assertEqual(f.client('inspect')['model'], 'original-model')
+
     def test_thinking_runtime_flags_cannot_inherit_non_thinking_coding_evidence(self):
         f = self.fixture
         with lifetime.provider('CLOUD_MUST_STAY_UNUSED') as (cloud, cloud_requests):
