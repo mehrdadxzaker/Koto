@@ -226,7 +226,8 @@ class Session:
     def argv(self, scenario, *, base_url=None, probe=None):
         root = self.root
         permissions = {':root': 'read', '/private/tmp': 'deny', str(Path.home()): 'deny',
-            str(root): 'deny', str(root / 'tmp'): 'write', str(root / 'project'): 'write'}
+            str(root): 'deny', str(root / 'tmp'): 'write', str(root / 'project'): 'write',
+            str(self.client_home / 'tmp/arg0'): 'read'}
         table = '{' + ','.join(json.dumps(key) + '=' + json.dumps(value) for key, value in permissions.items()) + '}'
         args = [self.manifest['assets']['codex']['path'], 'exec', '--skip-git-repo-check', '--ephemeral', '--json',
             '-c', 'approval_policy="never"', '-c', 'agents.enabled=false', '--disable', 'multi_agent_v2', '--disable', 'goals',
@@ -749,7 +750,8 @@ def prepare(args):
         raise RuntimeError('Every existing wheel/client/runtime/model asset must be a readable file')
     root = args.output.expanduser().resolve()
     root.mkdir(mode=0o700, exist_ok=False)
-    for name in ('home', 'home/.codex', 'tmp', 'project', 'installed', 'private', 'private/cases', 'captures', 'results'):
+    for name in ('home', 'home/.codex', 'home/.codex/tmp', 'home/.codex/tmp/arg0',
+                 'tmp', 'project', 'installed', 'private', 'private/cases', 'captures', 'results'):
         (root / name).mkdir(mode=0o700)
     original = 'personality = "none"\nmodel_reasoning_effort = "xhigh"\n'
     private_text(root / 'home/.codex/config.toml', original)
@@ -816,6 +818,29 @@ def prepare(args):
                 write(output / 'request.json', captured)
                 selected['scenarios'][name]['input_sha256'] = hashlib.sha256(canonical(semantic_input(captured['input']))).hexdigest()
                 selected['scenarios'][name]['profile_sha256'] = hashlib.sha256(canonical(request_profile(captured))).hexdigest()
+                if item['id'] == cases[0]['id'] and name == 'edit':
+                    repeated_output = captures / 'edit-repeat'
+                    repeated_output.mkdir(mode=0o700)
+                    with Capture() as repeated_capture:
+                        native = session.native('edit', repeated_output, base_url=repeated_capture.url)
+                    report[item['id'] + ':edit-repeat'] = native
+                    if native['cleanup_error'] or native['termination'] != 'completed':
+                        raise RuntimeError('Repeated native capture did not stop cleanly; preserve its failed evidence')
+                    if len(repeated_capture.requests) != 1:
+                        raise RuntimeError('Repeated native capture must observe exactly one non-forwarded request')
+                    repeated = repeated_capture.requests[0]
+                    write(repeated_output / 'request.json', repeated)
+                    repeatability = {'case_id': item['id'], 'scenario': 'edit', 'model_requests': 0,
+                        'first_input_sha256': selected['scenarios'][name]['input_sha256'],
+                        'repeat_input_sha256': hashlib.sha256(canonical(semantic_input(repeated['input']))).hexdigest(),
+                        'first_profile_sha256': selected['scenarios'][name]['profile_sha256'],
+                        'repeat_profile_sha256': hashlib.sha256(canonical(request_profile(repeated))).hexdigest()}
+                    repeatability['passed'] = (repeatability['first_input_sha256'] == repeatability['repeat_input_sha256']
+                        and repeatability['first_profile_sha256'] == repeatability['repeat_profile_sha256'])
+                    report['repeatability'] = manifest['repeatability'] = repeatability
+                    if not repeatability['passed']:
+                        report['failure'] = 'native_capture_not_repeatable'
+                        raise RuntimeError('Native first request is not repeatable; retain both zero-inference captures and do not freeze')
         profiles = {scenario['profile_sha256'] for item in manifest['cases'].values() for scenario in item['scenarios'].values()}
         if len(profiles) != 1:
             raise RuntimeError('All frozen cases must share the same exact native instruction/tool profile')

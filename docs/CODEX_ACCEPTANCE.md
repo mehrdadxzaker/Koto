@@ -50,6 +50,14 @@ profile/input, case/checkers and instruction files. It then disconnects and
 verifies restoration and closed owned listeners. Inspect the private capture,
 preparation report and `freeze.json` before explicitly running inference.
 
+The first case's edit request is captured twice in separate native launches.
+Both the complete semantic input and instruction/tool profile hashes must match
+before preparation continues or publishes a freeze. The existing version-2
+message-ID rule is the only input normalization; environment/permission text is
+still bound in full. A mismatch retains both captures and the failed preparation
+report, restores owned settings and closes listeners, and creates no freeze.
+There is no model inference or retry of an evaluated repair in this check.
+
 ## Authored cases and one shared campaign
 
 Each `--case` is a UTF-8 JSON object containing these fields:
@@ -124,6 +132,13 @@ tools can write only project/temp; the rest of the evidence root, checkers,
 references, previous/future case captures and gateway credentials are denied.
 Both TMPDIR and zsh TMPPREFIX use the owned temporary directory. Native tool
 PATH uses system/Homebrew executables rather than a denied live-repo virtualenv.
+The one additional read exception is the owned
+`home/.codex/tmp/arg0` parent containing native executable shims. Codex otherwise
+adds a random readable leaf there to each launch's permission context, making
+the actual first input differ after preregistration. The stable parent is
+created during preparation and granted read access only; the rest of the
+isolated home, settings, credentials, private evidence and future cases remain
+denied. No permission/environment metadata is removed from probe binding.
 
 Native stdout and stderr each have a hard 2 MiB retained-byte cap; the relay
 also bounds each response. Project snapshots permit at most 64 entries, eight

@@ -38,6 +38,14 @@ headers={'Authorization':'Bearer '+token,'Content-Type':'application/json','User
 headers.update(overrides.get('model_providers.'+provider+'.http_headers',{}))
 request={'model':config['model'],'stream':True,'reasoning':{'effort':'none'},'tools':[tool],
  'input':[{'role':'user','content':sys.argv[-1]}],'client_metadata':{'thread_id':thread,'session_id':session}}
+arg0=pathlib.Path(os.environ['CODEX_HOME'])/'tmp/arg0'
+permissions=overrides.get('permissions.acceptance.filesystem',{})
+# Native Codex adds a per-launch readable leaf when this parent is denied.
+readable=arg0 if permissions.get(str(arg0))=='read' else arg0/('codex-arg0'+uuid.uuid4().hex)
+if 'Unstable context control.' in sys.argv[-1]:
+ readable=arg0/('unrelated-context-'+uuid.uuid4().hex)
+request['input'].insert(0,{'type':'message','role':'user','id':'msg_'+str(uuid.uuid4()),
+ 'content':[{'type':'input_text','text':'<environment_context><read>'+str(readable)+'</read></environment_context>'}]})
 if 'developer_instructions' in overrides:
  request['input'].insert(0,{'role':'developer','content':overrides['developer_instructions']})
 if 'model_instructions_file' in overrides:
@@ -187,6 +195,52 @@ class CodexAcceptanceWorkflowTests(unittest.TestCase):
         repeated = self.tool('prepare', check=False)
         self.assertEqual(repeated.returncode, 2)
         self.assertEqual(json.loads((self.output / 'freeze.json').read_text()), frozen)
+
+    def test_prepare_repeats_the_first_capture_with_a_stable_narrow_arg0_read_exception(self):
+        self.tool('prepare')
+        original = json.loads((self.output / 'captures/edit/request.json').read_text())
+        repeated = json.loads((self.output / 'captures/edit-repeat/request.json').read_text())
+        arg0 = self.output.resolve() / 'home/.codex/tmp/arg0'
+        expected = '<environment_context><read>' + str(arg0) + '</read></environment_context>'
+        self.assertEqual(original['input'][1]['content'], [{'type': 'input_text', 'text': expected}])
+        self.assertEqual(repeated['input'][1]['content'], original['input'][1]['content'])
+        frozen = json.loads((self.output / 'freeze.json').read_text())
+        repeatability = frozen['repeatability']
+        self.assertTrue(repeatability['passed'])
+        self.assertEqual(repeatability['first_input_sha256'], repeatability['repeat_input_sha256'])
+        self.assertEqual(repeatability['first_profile_sha256'], repeatability['repeat_profile_sha256'])
+        self.assertEqual(repeatability['model_requests'], 0)
+        argv = json.loads((self.output / 'captures/edit/argv.json').read_text())
+        import tomllib
+        filesystem = next(item.partition('=')[2] for item in argv
+                          if item.startswith('permissions.acceptance.filesystem='))
+        permissions = tomllib.loads('value=' + filesystem)['value']
+        self.assertEqual(permissions[str(arg0)], 'read')
+        self.assertEqual(permissions[str(self.output.resolve())], 'deny')
+        self.assertNotIn(str(arg0.parent), permissions)
+        self.assertNotIn(str(arg0.parent.parent), permissions)
+        self.assertFalse((self.engine.parent / 'calls.jsonl').exists())
+
+    def test_unstable_native_context_is_retained_and_rejected_before_freeze(self):
+        case = self.root / 'case.json'
+        case.write_text(json.dumps({'id': 'dev-unstable-context', 'partition': 'development', 'family': 'arithmetic',
+            'prompt': 'Fix the Python function bounded_add to add integers. Unstable context control.',
+            'initial_solution': 'def bounded_add(a, b):\n    return a - b\n',
+            'checker': 'import runpy,sys\nassert runpy.run_path(sys.argv[1])["bounded_add"](2,5)==7\n'}))
+        rejected = self.tool('prepare', '--case', str(case), check=False)
+        self.assertEqual(rejected.returncode, 2)
+        self.assertIn('not repeatable', rejected.stdout)
+        self.assertFalse((self.output / 'freeze.json').exists())
+        report = json.loads((self.output / 'prepare-result.json').read_text())
+        self.assertFalse(report['passed'])
+        self.assertFalse(report['repeatability']['passed'])
+        self.assertNotEqual(report['repeatability']['first_input_sha256'], report['repeatability']['repeat_input_sha256'])
+        self.assertEqual(report['repeatability']['first_profile_sha256'], report['repeatability']['repeat_profile_sha256'])
+        self.assertTrue((self.output / 'captures/edit/request.json').is_file())
+        self.assertTrue((self.output / 'captures/edit-repeat/request.json').is_file())
+        self.assertFalse((self.output / 'captures/cancel').exists())
+        self.assertTrue(report['settings_restored'] and report['owned_listeners_closed'])
+        self.assertFalse((self.engine.parent / 'calls.jsonl').exists())
 
     @MACOS_CHECKER
     def test_edit_journey_retains_checked_outcome_affinity_history_and_cleanup(self):
