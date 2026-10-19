@@ -1,4 +1,5 @@
 """Personal selection through history CLI and connected-client routing."""
+from contextlib import contextmanager
 import json
 import os
 from pathlib import Path
@@ -6,11 +7,36 @@ import subprocess
 import sys
 import time
 import threading
+from types import SimpleNamespace
 from concurrent.futures import ThreadPoolExecutor
 import unittest
+from unittest.mock import patch
 
 from tests import test_execution_destination_workflow as workflow
 from hormuz.contracts import validate_contract
+
+
+@contextmanager
+def provider_measurements():
+    """Control only the observation clock; network/process deadlines stay real."""
+    elapsed = 0
+    lock = threading.Lock()
+
+    def monotonic():
+        with lock:
+            return elapsed
+
+    def reply(answer, seconds):
+        def respond(body):
+            nonlocal elapsed
+            result = answer(body) if callable(answer) else answer
+            with lock:
+                elapsed += seconds
+            return result
+        return respond
+
+    with patch("hormuz.local_history_capture.time", SimpleNamespace(monotonic=monotonic, time=time.time)):
+        yield reply
 
 
 class PersonalSelectionWorkflowTests(unittest.TestCase):
@@ -71,10 +97,10 @@ class PersonalSelectionWorkflowTests(unittest.TestCase):
 
     def test_one_classifier_observes_multiple_local_classes_without_an_extra_model_call(self):
         def slower_cloud(body):
-            time.sleep(0.04)
             return "7" if "invoice" in body["input"] else "9"
-        with workflow.provider("7") as (local, local_calls), workflow.provider("9") as (second, second_calls), \
-             workflow.provider(slower_cloud) as (cloud, cloud_calls):
+        with provider_measurements() as reply, workflow.provider(reply("7", 1)) as (local, local_calls), \
+             workflow.provider(reply("9", 1)) as (second, second_calls), \
+             workflow.provider(reply(slower_cloud, 10)) as (cloud, cloud_calls):
             with self.fixture.connected_client(self.two_local_configuration(local, second, cloud)) as submit:
                 self.history("enable")
                 self.history("learning", "enable")
@@ -93,11 +119,11 @@ class PersonalSelectionWorkflowTests(unittest.TestCase):
 
     def test_held_out_validation_enables_selection_then_deletion_and_unfamiliar_work_use_the_baseline(self):
         def cloud_answer(body):
-            time.sleep(0.04)
             text = body["input"]
             return "7" if "invoice" in text else "9" if "inventory" in text else "18"
-        with workflow.provider("7") as (local, local_calls), workflow.provider("9") as (second, second_calls), \
-             workflow.provider(cloud_answer) as (cloud, cloud_calls):
+        with provider_measurements() as reply, workflow.provider(reply("7", 1)) as (local, local_calls), \
+             workflow.provider(reply("9", 1)) as (second, second_calls), \
+             workflow.provider(reply(cloud_answer, 10)) as (cloud, cloud_calls):
             with self.fixture.connected_client(self.two_local_configuration(local, second, cloud)) as submit:
                 self.history("enable")
                 self.history("learning", "enable")
@@ -157,11 +183,9 @@ class PersonalSelectionWorkflowTests(unittest.TestCase):
 
     def test_operational_fallback_reports_execution_separately_from_personal_recommendation(self):
         reject = False
-        def slow_cloud(_body):
-            time.sleep(.04)
-            return "7"
-        with workflow.provider("7", status=lambda body: 429 if reject and body["model"] == "fixture-local-model" else 200) as (local, local_calls), \
-             workflow.provider(slow_cloud) as (cloud, cloud_calls):
+        with provider_measurements() as reply, \
+             workflow.provider(reply("7", 1), status=lambda body: 429 if reject and body["model"] == "fixture-local-model" else 200) as (local, local_calls), \
+             workflow.provider(reply("7", 10)) as (cloud, cloud_calls):
             value = self.fixture.admission_configuration(local, cloud, mode="auto")
             value["model_routes"]["local-code"]["failover_alias"] = "local-alternate"
             value["model_routes"]["local-alternate"] = {**value["model_routes"]["local-code"], "upstream_model": "alternate-model"}
@@ -256,12 +280,10 @@ class PersonalSelectionWorkflowTests(unittest.TestCase):
                 self.assertFalse(self.history("learning", "status")["enabled"])
 
     def test_failed_held_out_local_checks_remain_in_the_denominator_and_prevent_activation(self):
-        def slow_cloud(_body):
-            time.sleep(.04)
-            return "7"
         def local_answer(body):
             return "WRONG" if "held" in body["input"] else "7"
-        with workflow.provider(local_answer) as (local, _), workflow.provider(slow_cloud) as (cloud, _):
+        with provider_measurements() as reply, workflow.provider(reply(local_answer, 1)) as (local, _), \
+             workflow.provider(reply("7", 10)) as (cloud, _):
             with self.fixture.connected_client(self.fixture.admission_configuration(local, cloud, mode="auto")) as submit:
                 self.history("enable")
                 self.history("learning", "enable")
@@ -276,16 +298,17 @@ class PersonalSelectionWorkflowTests(unittest.TestCase):
                 self.assertEqual(next(row for row in scores if row["model"] == "local-code")["quality"]["fail"], 3)
 
     def test_model_revision_change_drops_stale_local_recommendations(self):
-        def slow_cloud(_body):
-            time.sleep(.04)
-            return "7"
-        with workflow.provider("7") as (local, _), workflow.provider(slow_cloud) as (cloud, _):
+        with provider_measurements() as reply, workflow.provider(reply("7", 1)) as (local, _), \
+             workflow.provider(reply("7", 10)) as (cloud, _):
             value = self.fixture.admission_configuration(local, cloud, mode="auto")
             with self.fixture.connected_client(value) as submit:
                 self.history("enable")
                 self.history("learning", "enable")
                 for model in ("cloud-code", "local-code"):
                     self.assess(submit, "Summarize seven invoice boxes", model, "7")
+                scores = self.history("learning", "scorecard")["models"]
+                self.assertEqual({row["model"]: row["mean_latency_ms"] for row in scores},
+                                 {"cloud-code": 10000, "local-code": 1000})
                 before = submit(request={"model": "cloud-code", "input": "Summarize seven invoice boxes today"})
                 self.assertEqual(before["headers"].get("x-koto-selection-model"), "local-code")
             value["model_routes"]["local-code"]["model_revision"] = "fixture-weights-v2"
@@ -293,6 +316,22 @@ class PersonalSelectionWorkflowTests(unittest.TestCase):
             with self.fixture.connected_client(value) as submit:
                 after = submit(request={"model": "cloud-code", "input": "Summarize seven invoice boxes today"})
                 self.assertEqual(after["headers"].get("x-koto-selection-model"), "cloud-code")
+
+    def test_a_faster_checked_commercial_model_remains_the_recommended_class(self):
+        with provider_measurements() as reply, workflow.provider(reply("7", 10)) as (local, local_calls), \
+             workflow.provider(reply("7", 1)) as (cloud, cloud_calls):
+            with self.fixture.connected_client(self.fixture.admission_configuration(local, cloud, mode="auto")) as submit:
+                self.history("enable")
+                self.history("learning", "enable")
+                for model in ("cloud-code", "local-code"):
+                    self.assess(submit, "Summarize seven invoice boxes", model, "7")
+                scores = self.history("learning", "scorecard")["models"]
+                self.assertEqual({row["model"]: row["mean_latency_ms"] for row in scores},
+                                 {"cloud-code": 1000, "local-code": 10000})
+                response = submit(request={"model": "cloud-code", "input": "Summarize seven invoice boxes today"})
+                self.assertEqual((response["headers"].get("x-koto-selection-model"),
+                                  response["headers"].get("x-koto-executed-model")), ("cloud-code", "cloud-code"))
+            self.assertEqual((len(local_calls), len(cloud_calls)), (1, 2))
 
     def test_learning_preserves_native_tool_continuation_affinity(self):
         fixture = json.loads((Path(__file__).parent / "fixtures/codex-conversation-request-v1.json").read_text())
