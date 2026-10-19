@@ -153,6 +153,14 @@ collection path without changing ordinary coding admission. It binds one frozen
 case and native profile to a local conversation with finite request/time budgets.
 Probe permission is not an outcome or passing receipt.
 
+The reusable [real Codex acceptance journey](CODEX_ACCEPTANCE.md) freezes an
+installed wheel and actual native inputs, checks edits independently, inspects
+public evidence, and verifies revoke/disconnect. Its [V17 observation](campaigns/local-repair-20261019-v17/RESULTS.md)
+made a correct checked edit but exhausted the request limit before a final turn;
+the other fifteen quality cases remained unrun. Separate ordinary denial and
+cancellation scenarios passed. This creates no coding qualification or automatic
+admission, and retains all failed observations and owned-setting restoration.
+
 The [version-five development observation](campaigns/local-repair-20261016-v5/README.md)
 ran that path with frozen native pins/profile. One local episode completed, but
 made no edit and failed independent checks after malformed patch commands.
