@@ -4,7 +4,7 @@
 - Date: 2026-10-14
 - Decision owner: Product owner
 - Approval: The owner requested setup, disconnect and configuration restoration with TDD at the previously approved connect/request/result/status/disconnect workflow seam.
-- Parent specification: [#523](https://github.com/Xpounder-com/hormuz/issues/523)
+- Parent specification: [#523](https://github.com/mehrdadxzaker/Koto/issues/523)
 
 Persistent host configuration outlives a launched child client. Reusing the transient launch adapter's lifetime would duplicate setup/recovery ordering in CLI and plugin callers and give launch adapters configuration authority they do not currently own.
 

@@ -2,8 +2,8 @@
 
 `koto client acquire codex` obtains the runtime and model files consumed by
 [shared setup](SHARED_LOCAL_SETUP.md). It advances the acquisition gap in
-[#523](https://github.com/Xpounder-com/hormuz/issues/523) and
-[#542](https://github.com/Xpounder-com/hormuz/issues/542). The existing Codex CLI
+[#523](https://github.com/mehrdadxzaker/Koto/issues/523) and
+[#542](https://github.com/mehrdadxzaker/Koto/issues/542). The existing Codex CLI
 and installed Koto remain prerequisites. CLI and skills-only plugin callers
 invoke this same operation; acquisition does not install a second connection
 owner or activate routing.

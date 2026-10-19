@@ -1,15 +1,27 @@
-# Personal-account transfer preparation
+# GitHub repository identity
 
-This branch stages the destination `mehrdadxzaker/hormuz`. Keep it unmerged
-until a separately approved repository transfer: its public install commands,
-support links, plugin metadata, and governance manifest intentionally name the
-future destination. Preparing this branch changes no live ownership, rules,
-App settings, package ownership, deployment, or billing.
+The canonical repository is
+[`mehrdadxzaker/Koto`](https://github.com/mehrdadxzaker/Koto). Its repository ID
+remains `1335333868` after the personal-account transfer and the Koto rename.
+Public install commands, support links, plugin metadata and the governance
+manifest use this address.
 
-## Changes prepared here
+For an existing checkout:
+
+```sh
+git remote set-url origin https://github.com/mehrdadxzaker/Koto.git
+```
+
+For a fresh checkout:
+
+```sh
+git clone https://github.com/mehrdadxzaker/Koto.git koto
+```
+
+## Recorded transfer preparation
 
 - Public install, support, issue-template, and vulnerability-reporting links
-  use `mehrdadxzaker/hormuz`. Portable and Claude plugin metadata name the
+  use `mehrdadxzaker/Koto`. Portable and Claude plugin metadata name the
   personal owner; local marketplace sources and shared skill paths stay local.
 - The two tag-creation rule templates use the specific `User` actor
   `157386627` (`mehrdadxzaker`) rather than `OrganizationAdmin`, which GitHub
@@ -19,8 +31,10 @@ App settings, package ownership, deployment, or billing.
 - The former website publication companion patch has been removed. Website
   publication is retired and is not part of the transferred router.
 
-Historical issue references, evidence, attribution, and retired release assets
-keep their original identity. In particular, an owner rename does not establish
+Issue and commit identifiers remain attached to the same GitHub repository.
+Hash-bound qualification records keep their original bytes and recorded URLs;
+GitHub redirects those URLs to Koto. Attribution and retired release assets
+keep their original identity. In particular, a repository rename does not establish
 that `ghcr.io/mehrdadxzaker/hormuz` exists. Keep existing
 `ghcr.io/xpounder-com/hormuz` image references and digests until package access
 has been explicitly checked. GitHub notes that package transfer/link behavior
@@ -37,9 +51,9 @@ No public product domain is configured. Hosting under Neuralint will be
 configured separately. Historical Git commits remain records of the retired
 publication, not instructions to reactivate it.
 
-## Later cutover
+## Historical transfer checklist
 
-These are manual instructions for the separately approved maintenance window:
+This checklist records the separately approved transfer maintenance window:
 
 1. Confirm the destination name is available, admin access works, and open PRs
    and required checks have a stable head. Schedule a quiet period between

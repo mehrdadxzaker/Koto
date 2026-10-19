@@ -13,7 +13,7 @@ The remaining three development and twelve held-out cases **did not run**.
 The [plan](PLAN.md) and [236-input manifest](frozen-manifest.json) were frozen at
 `118548a6743d9ef1b38f2072e57b3bf02930be2a`, approved by Spec and
 Standards/AI technical-lead reviews, and
-[published before inference](https://github.com/mehrdadxzaker/hormuz/issues/569#issuecomment-6253534506).
+[published before inference](https://github.com/mehrdadxzaker/Koto/issues/569#issuecomment-6253534506).
 Protected [preregistration](preregistration.json) binds that checkpoint, the
 owner's single-canary authorization, exact digests, zero prior completions and
 the stronger normal-native-completion inspection gate.

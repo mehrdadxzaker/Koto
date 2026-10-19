@@ -5,8 +5,8 @@
 - Status: **Accepted**
 - Decision date: 2026-08-23
 - Decision owner: Product owner
-- Approval record: [issue #89 approved boundary](https://github.com/Xpounder-com/hormuz/issues/89)
-- Implementation issue: [#89](https://github.com/Xpounder-com/hormuz/issues/89)
+- Approval record: [issue #89 approved boundary](https://github.com/mehrdadxzaker/Koto/issues/89)
+- Implementation issue: [#89](https://github.com/mehrdadxzaker/Koto/issues/89)
 
 ## Decision
 

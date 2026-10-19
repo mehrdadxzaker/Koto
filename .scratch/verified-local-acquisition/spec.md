@@ -1,7 +1,7 @@
 # Verified local runtime and model acquisition
 
-Origin: customer-local router [#523](https://github.com/Xpounder-com/hormuz/issues/523),
-the acquisition gap in [#542](https://github.com/Xpounder-com/hormuz/issues/542),
+Origin: customer-local router [#523](https://github.com/mehrdadxzaker/Koto/issues/523),
+the acquisition gap in [#542](https://github.com/mehrdadxzaker/Koto/issues/542),
 and the owner's October 15 selection of "Verified runtime/model acquisition:
 preview and explicitly requested downloads using pinned artifacts."
 

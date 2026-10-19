@@ -77,7 +77,7 @@ command; no persisted state needs migration or rollback.
 The owner selected this slice on October 15, 2026 while coding qualification
 (#538), verified acquisition (#542) and plugin capability work (#545) proceed
 independently. It advances the inspection stage of
-[the approved workflow](https://github.com/Xpounder-com/hormuz/issues/523).
+[the approved workflow](https://github.com/mehrdadxzaker/Koto/issues/523).
 Tests stay at that public seam: invoke the real CLI against disposable client
 and provider fixtures, connect and submit a request, inspect the receipt and
 status, then disconnect and observe restoration. Negative cases must preserve

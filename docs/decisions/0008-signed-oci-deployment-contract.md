@@ -4,9 +4,9 @@
 
 - **Status:** Accepted
 - **Decision date:** August 24, 2026
-- **Public-alpha amendment:** August 26, 2026 ([issue #149](https://github.com/Xpounder-com/hormuz/issues/149))
-- **Decision record:** [issue #101 comment](https://github.com/Xpounder-com/hormuz/issues/101#issuecomment-5399436923)
-- **Implementation gate:** [issue #101](https://github.com/Xpounder-com/hormuz/issues/101)
+- **Public-alpha amendment:** August 26, 2026 ([issue #149](https://github.com/mehrdadxzaker/Koto/issues/149))
+- **Decision record:** [issue #101 comment](https://github.com/mehrdadxzaker/Koto/issues/101#issuecomment-5399436923)
+- **Implementation gate:** [issue #101](https://github.com/mehrdadxzaker/Koto/issues/101)
 
 ## Context
 

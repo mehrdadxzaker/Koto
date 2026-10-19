@@ -1,6 +1,6 @@
 # Native empty-patch diagnosis
 
-Issue: #537.
+Issue: [#537](https://github.com/mehrdadxzaker/Koto/issues/537).
 The [resolution and publication verification](RESOLUTION.md) records the
 completed investigation and the remaining model-qualification boundary.
 The original [v5 episode](../../campaigns/local-repair-20261016-v5/README.md)

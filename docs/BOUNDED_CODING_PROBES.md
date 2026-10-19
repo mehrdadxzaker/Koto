@@ -1,6 +1,6 @@
 # Bounded local coding probes
 
-This experimental outcome-collection path for [#537](https://github.com/Xpounder-com/hormuz/issues/537)
+This experimental outcome-collection path for [#537](https://github.com/mehrdadxzaker/Koto/issues/537)
 uses the shared connected-client owner at connect → request → inspect → disconnect.
 It does not install coding evidence or admit ordinary unqualified coding.
 The [qualification criteria](LOCAL_CODING_QUALIFICATION.md) still govern readiness.

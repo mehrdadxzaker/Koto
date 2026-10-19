@@ -1,7 +1,7 @@
 # Local coding diagnosis resolution
 
 This resolves the investigation in [Establish the failing local coding workflow
-and its qualification boundary](https://github.com/mehrdadxzaker/hormuz/issues/537).
+and its qualification boundary](https://github.com/mehrdadxzaker/Koto/issues/537).
 It does not qualify a model or complete the customer-local router release.
 
 ## Observed failure and reproducible check

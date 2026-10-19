@@ -1,6 +1,6 @@
 # Local coding qualification
 
-This resolves the admission decision in [#538](https://github.com/Xpounder-com/hormuz/issues/538).
+This resolves the admission decision in [#538](https://github.com/mehrdadxzaker/Koto/issues/538).
 The approved workflow remains connect → submit through the real router → inspect
 result/status → disconnect. Qualification gates fresh automatic coding admission;
 it does not grant a routing model execution authority.

@@ -4,7 +4,7 @@
 verified llama.cpp and model files, then connects through the existing
 [connected-client lifetime](CONNECTED_CLIENT_LIFETIME.md). The terminal and
 [Koto skill](../skills/koto/references/workflow.md) call this same command.
-This implements the next setup slice of [#523](https://github.com/Xpounder-com/hormuz/issues/523).
+This implements the next setup slice of [#523](https://github.com/mehrdadxzaker/Koto/issues/523).
 
 ## Use
 
