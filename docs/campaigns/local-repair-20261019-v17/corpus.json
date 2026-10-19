@@ -34,19 +34,19 @@
       "reference_sha256": "1ca85dbee500ff73e82cfe657d9aca07b18627baae008600de59dc607c6440fd"
     },
     {
-      "id": "dev-adjacent-deltas",
+      "id": "dev-split-by-sizes",
       "partition": "development",
       "family": "collections",
-      "prompt": "Fix the Python implementation in solution.py. Repair adjacent_deltas(values): values is a list of integers. Return a new list containing each next item minus its immediately preceding item, in input order. Inputs with fewer than two items return a new empty list. Preserve values and exact large integers. Make the edit, check the behavior, and complete the task. /no_think",
-      "initial_solution": "def adjacent_deltas(values):\n    return values[:]\n",
-      "checker": "import runpy\nimport sys\ns = runpy.run_path(sys.argv[1])\nf=s['adjacent_deltas']\na=[3,8,8,-2];r=f(a)\nassert r==[5,0,-10] and a==[3,8,8,-2] and r is not a\na=[];r=f(a);assert r==[] and r is not a\nassert f([7])==[] and f([-4,-9])==[-5]\nassert f([1208925819614629174706176,1208925819614629174706183])==[7]\n",
-      "reference_solution": "def adjacent_deltas(values):\n    return [values[i] - values[i-1] for i in range(1,len(values))]\n",
-      "case_file": "cases/dev-adjacent-deltas.json",
-      "case_sha256": "931e629fe83622b96492aa60b1dd70c0f0bf3200392233e74a1f67ffc086d0a7",
-      "task_sha256": "3348cf576687004b7d9b1250a89f6244a2de83abe02705540707e071587253e1",
-      "checks_sha256": "c9663a12f13f077edcd83b20dbc1dafba9f79c1c0341caa1bc8d8aadfe7d5fbb",
-      "initial_sha256": "f2ac8de13dd47b19951fdcf0f29544edb7d0aaa6946ac73d1724b19580b5549d",
-      "reference_sha256": "d631b7d57c1a16c5805ef6d4bddfefb0420550acb695e436a257d5e5f3dba0ec"
+      "prompt": "Fix the Python implementation in solution.py. Repair split_by_sizes(items, sizes): items and sizes are lists. Every size must be a nonnegative built-in int, excluding bool and every int subclass, and the sizes must sum exactly to len(items); otherwise raise ValueError. Return a new list of new shallow consecutive chunks, one per size, consuming items in order. Zero sizes produce empty chunks. Preserve element identity and never mutate either input, including when invalid. Empty sizes is valid only for empty items. Make the edit, check the behavior, and complete the task. /no_think",
+      "initial_solution": "def split_by_sizes(items, sizes):\n    return [items]\n",
+      "checker": "import runpy\nimport sys\ns=runpy.run_path(sys.argv[1])\nf=s['split_by_sizes']\na=[1,2,3,4];b=[1,0,3];r=f(a,b)\nassert r==[[1],[],[2,3,4]] and a==[1,2,3,4] and b==[1,0,3] and r is not a\nassert all(chunk is not a for chunk in r)\nx=[];y={};r=f([x,y],[1,1]);assert r[0][0] is x and r[1][0] is y\nassert f([],[])==[] and f([],[0,0])==[[],[]] and f([1,2],[2])==[[1,2]]\nclass IntChild(int): pass\nfor a,b in [([1],[0]),([1],[2]),([1],[]),([1],[-1,2]),([1],[True]),([],[False]),([1],[IntChild(1)]),([1],[1.0]),([1],['1']),([1],[None])]:\n    before=a[:];sizes=b[:]\n    try: f(a,b)\n    except ValueError: pass\n    else: raise AssertionError('invalid partition accepted')\n    assert a==before and b==sizes\n",
+      "reference_solution": "def split_by_sizes(items, sizes):\n    if any(type(size) is not int or size<0 for size in sizes) or sum(sizes)!=len(items):\n        raise ValueError('invalid partition')\n    result=[]\n    start=0\n    for size in sizes:\n        result.append(items[start:start+size])\n        start+=size\n    return result\n",
+      "case_file": "cases/dev-split-by-sizes.json",
+      "case_sha256": "5d987e6c119fb122e23130efa99497e4da9237058937ef54a0acb4d539ea0416",
+      "task_sha256": "96ae566434d89634c5cc0173d8e1a1a3c7425486451c4fc0d211238575ee07ba",
+      "checks_sha256": "29dbddfc555623e1da5c26707bb55dc65ca215db0d31b3b0a120e3c3f4a5d264",
+      "initial_sha256": "7ae43d35553431cd4d9db43d526384dd04f935f8e2146fb154e6d0c97774f1c2",
+      "reference_sha256": "47b7c680673f49245545f140b8118ff659bd230f303c3474fcb158528396bb26"
     },
     {
       "id": "dev-pin-attempts",
@@ -79,19 +79,19 @@
       "reference_sha256": "cd2729d5291c410c1aeb079109c07c9caf097af735268d2161c3eb2bc78cd8ae"
     },
     {
-      "id": "held-exact-integer-power",
+      "id": "held-count-column-carries",
       "partition": "held_out",
       "family": "arithmetic",
-      "prompt": "Fix the Python implementation in solution.py. Repair integer_power(base, exponent): both arguments must be built-in ints (bool and every int subclass invalid), and exponent must be nonnegative; otherwise raise ValueError. Return base raised to exponent as an exact integer, including negative bases and arbitrarily large results. Define zero raised to zero as one. Make the edit, check the behavior, and complete the task. /no_think",
-      "initial_solution": "def integer_power(base, exponent):\n    return base*exponent\n",
-      "checker": "import runpy\nimport sys\ns = runpy.run_path(sys.argv[1])\nf=s['integer_power']\nassert f(3,7)==2187 and f(-2,5)==-32 and f(-2,6)==64\nassert f(0,0)==1 and f(7,0)==1 and f(0,9)==0\nassert f(2,80)==1208925819614629174706176\nassert f(10,40)==10000000000000000000000000000000000000000\nclass IntChild(int): pass\nfor b,e in [(2,-1),(True,2),(2,True),(False,2),(2,False),(IntChild(2),3),(2,IntChild(3)),(2.0,2),(2,2.0),('2',2),(2,None)]:\n    try: f(b,e)\n    except ValueError: pass\n    else: raise AssertionError('invalid exponentiation accepted')\n",
-      "reference_solution": "def integer_power(base, exponent):\n    if type(base) is not int or type(exponent) is not int or exponent<0:\n        raise ValueError('invalid exponentiation')\n    return pow(base,exponent)\n",
-      "case_file": "cases/held-exact-integer-power.json",
-      "case_sha256": "d0f79863a38332201dd1f85641ef4d88b1c2dd5bd37d3292b6ba963b48cede0f",
-      "task_sha256": "2c1086b427c9d06c24b396125835a04740c7d73babd40e57b85b3383eea3860e",
-      "checks_sha256": "a3311270999f60c92dfa4b60b2339f5f608ca909f7d037206bbedaf95218e1da",
-      "initial_sha256": "12e112705293c2599f23196c110dab1f0d4449ace197985f33d5c54f604fe85a",
-      "reference_sha256": "8ee8b5b57062807685de7201fce5d17dc57af80664eaf3295189516926965b9c"
+      "prompt": "Fix the Python implementation in solution.py. Repair count_column_carries(left, right, base=10): all arguments must be built-in ints, excluding bool and every int subclass; left and right must be nonnegative and base must be from 2 through 36 inclusive. Invalid input raises ValueError. Return the exact integer number of digit positions that produce a carry into the next position when adding left and right in the given base, including cascaded carries and a carry out of the most significant position. Zero plus zero has zero carries. Support arbitrarily large integers exactly. Make the edit, check the behavior, and complete the task. /no_think",
+      "initial_solution": "def count_column_carries(left, right, base=10):\n    return 0\n",
+      "checker": "import runpy\nimport sys\ns=runpy.run_path(sys.argv[1])\nf=s['count_column_carries']\nassert f(95,7)==2 and f(15,7)==1 and f(999,1)==3\nassert f(0,0)==0 and f(123,456)==0 and f(99,99)==2\nassert f(7,1,2)==3 and f(255,1,16)==2 and f(35,1,36)==1\nassert f(10**80-1,1)==80 and f(1,10**80-1)==80\nassert type(f(0,0)) is int and type(f(95,7)) is int\nclass IntChild(int): pass\nfor a,b,base in [(-1,0,10),(0,-1,10),(1,1,1),(1,1,37),(True,1,10),(1,False,10),(1,1,True),(IntChild(1),1,10),(1,IntChild(1),10),(1,1,IntChild(10)),(1.0,1,10),(1,'1',10),(1,1,10.0),(None,1,10)]:\n    try: f(a,b,base)\n    except ValueError: pass\n    else: raise AssertionError('invalid digit addition accepted')\n",
+      "reference_solution": "def count_column_carries(left, right, base=10):\n    if any(type(x) is not int for x in (left,right,base)) or left<0 or right<0 or not 2<=base<=36:\n        raise ValueError('invalid digit addition')\n    result=carry=0\n    while left or right:\n        carry=int(left%base+right%base+carry>=base)\n        result+=carry\n        left//=base\n        right//=base\n    return result\n",
+      "case_file": "cases/held-count-column-carries.json",
+      "case_sha256": "afe9610f5082d6cd369b5ba575d5a8e57575e7a5d9a9e1a52e5f94d4d3fdf226",
+      "task_sha256": "dc64714363e531f0174b8279df60e2cc3534bf0a22695034a9cbc2e72f802ef3",
+      "checks_sha256": "2e3e88ff692eb208f6d6ba400073bdef55fd54f319cd9cf6c7462d6df1598ec7",
+      "initial_sha256": "68fec1ca16fc74a46593f07a4844e532404c4a5cb8d0fcfc0259e786f6e8e0ff",
+      "reference_sha256": "ecbab9a4ec52efad8c9d3820f6a79f58406ea12dc0baa7b604b77ee14e0fba8b"
     },
     {
       "id": "held-reverse-low-bits",

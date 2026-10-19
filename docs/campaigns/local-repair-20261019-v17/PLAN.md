@@ -48,7 +48,7 @@ assertion-failing baseline and a passing authored reference. These offline
 controls establish checker applicability, not model quality or native behavior.
 
 [authoring-controls.json](authoring-controls.json) retains the original sequential
-red and green results. [preparation-controls-v2.json](preparation-controls-v2.json)
+red and green results. [preparation-controls-v3.json](preparation-controls-v3.json)
 repeats all final reviewed checks in isolated `-I -S` Python processes with an
 unpredictable completion marker after all assertions. The earlier
 [preparation-controls.json](preparation-controls.json) remains unchanged.
@@ -70,7 +70,18 @@ fails its hardened checker; those before/after controls and original checker
 sources are retained in `preparation-attempts/03-review-checker-sensitivity.json`.
 All sixteen initial/reference controls pass after hardening, with no task,
 reference solution, model treatment or model observation changed. These are
-pre-freeze improvements; the final execution freeze must bind the v2 checks.
+pre-freeze improvements. A later inventory refresh discovered an independently
+running user-owned campaign with the same exponentiation and adjacent-difference
+goals. Both unfrozen V17 cases were withdrawn and their exact sources retained
+in `preparation-attempts/04-concurrent-corpus-inventory/`. New digit-carry counting
+and variable-size list partitioning cases were authored assertion-red before
+their references passed; five deliberately incorrect variants fail the new
+checks. The v3 controls cover the resulting sixteen-case corpus. The
+[updated freshness review](held-out-freshness-v2.json) compares nineteen retained
+corpora and two hundred distinct prior goal texts. Before freezing, recheck that
+the independently owned workspace inventory has not changed again. The final
+execution freeze must bind this current corpus and v3 controls, retaining all
+earlier controls and withdrawn preparation cases as historical evidence.
 References and private checks must never be
 placed in the native project's permitted roots.
 

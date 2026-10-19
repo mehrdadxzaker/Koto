@@ -20,9 +20,12 @@ Every initial implementation fails a checker assertion with exit 1. Every
 authored reference completes the same unchanged assertions with exit zero.
 These are fixture tests, not observations of Codex or model success. The
 preparation mistakes and corrected controls are retained separately.
-The final [v2 preparation controls](preparation-controls-v2.json) include five
+The [v2 preparation controls](preparation-controls-v2.json) include five
 checker sensitivity improvements from review; deliberately incorrect variants
 that passed the earlier checks now fail. Earlier controls remain unchanged.
+The final [v3 controls](preparation-controls-v3.json) also cover two replacements
+made after discovering concurrent independently owned campaigns with overlapping
+goals. The withdrawn unfrozen cases remain in `preparation-attempts/04-concurrent-corpus-inventory/`.
 
 Recheck fixtures without any model, router, network, credentials or settings:
 
@@ -32,8 +35,10 @@ python3 docs/campaigns/local-repair-20261019-v17/verify-preparation.py \
 ```
 
 The output path must not exist. This preserves each control run and refuses
-replacement. [held-out-freshness.json](held-out-freshness.json) records exact-hash
-and semantic comparison with all retained corpora, including V15's local archive.
+replacement. [held-out-freshness-v2.json](held-out-freshness-v2.json) records
+exact-hash and semantic comparison with nineteen retained corpora, including
+V15's local archive and all currently present `koto-local-coding-20261019*`
+campaigns. The earlier freshness report remains historical preparation evidence.
 The next operator step is review and complete preregistration of the actual
 installed wheel, native profile and exact assets, followed by one bounded
 development canary. Do not infer an outcome from this preparation.
