@@ -216,6 +216,14 @@ disconnect and remove that record before downgrade. Existing v1 records are not
 rewritten or reinterpreted. Freeze a separately versioned v2 campaign before
 collecting new evidence; retained failures keep their original treatment.
 
+[Version-3 evidence and probe plans](BOUNDED_NAMESPACE_CODING.md) additionally
+support the existing reversible adapter for native function namespaces, with the
+same criteria and bounds. The raw native instruction/tool/control profile stays
+bound. Setup profile version 4 selects this bounded adapter envelope with the
+unchanged managed schema-1 inference flags. It does not select the wider app
+profile or qualify a model. A managed schema-2 runtime cannot inherit
+`managed-llama.v1` coding evidence.
+
 Local route declarations may embed `coding_evidence`. Version-1 declarations
 without it remain readable and explicitly unqualified for coding. Setup profile
 version 2 adds nullable `coding_evidence`, shared by CLI and plugin; version 1

@@ -44,7 +44,7 @@ def validate_identifier(value):
         raise ContractValidationError("invalid coding evidence identifier")
 
 
-def validate_subject(subject):
+def validate_subject(subject, *, namespaces=False):
     if type(subject) is not dict:
         raise ContractValidationError("invalid coding evidence subject")
     _exact_keys(subject, SUBJECT_FIELDS)
@@ -57,8 +57,11 @@ def validate_subject(subject):
     if re.fullmatch(r"sha256:[a-f0-9]{64}", subject["model_revision"]) is None:
         raise ContractValidationError("invalid coding model revision")
     caps = subject["capabilities"]
+    allowed = {"responses", "text", "streaming", "tools", "codex_http", "codex_http_0160", "structured_output"}
+    if namespaces:
+        allowed.add("codex_llama_v1")
     if (type(caps) is not list
-            or any(type(cap) is not str or cap not in {"responses", "text", "streaming", "tools", "codex_http", "codex_http_0160", "structured_output"} for cap in caps)
+            or any(type(cap) is not str or cap not in allowed for cap in caps)
             or not {"responses", "text"}.issubset(caps) or len(caps) != len(set(caps))):
         raise ContractValidationError("invalid coding capabilities")
     for key, maximum in (("max_request_bytes", 65536), ("max_output_tokens", 512), ("upstream_timeout_seconds", 90)):
@@ -68,7 +71,7 @@ def validate_subject(subject):
 
 def validate_evidence(value):
     _exact_keys(value, EVIDENCE_FIELDS)
-    if value["schema_id"] != "hormuz.local-coding-evidence" or type(value["schema_version"]) is not int or value["schema_version"] not in (1, 2):
+    if value["schema_id"] != "hormuz.local-coding-evidence" or type(value["schema_version"]) is not int or value["schema_version"] not in (1, 2, 3):
         raise ContractValidationError("invalid coding evidence version")
     validate_identifier(value["evidence_id"])
     plan = value["plan"]
@@ -77,7 +80,7 @@ def validate_evidence(value):
     _exact_keys(plan, {"criteria_version", "subject", "cases"})
     if plan["criteria_version"] != "local-repair.v1":
         raise ContractValidationError("unsupported coding criteria")
-    validate_subject(plan["subject"])
+    validate_subject(plan["subject"], namespaces=value["schema_version"] == 3)
     cases = plan["cases"]
     if type(cases) is not list or not 1 <= len(cases) <= 64:
         raise ContractValidationError("invalid coding case inventory")

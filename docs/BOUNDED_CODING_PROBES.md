@@ -121,5 +121,11 @@ plans/receipts; revoke and disconnect before downgrade and remove v2 records.
 Do not rewrite failed v1 observations as v2 successes. The v4 integration denial
 and zero-inference diagnosis are retained in the campaign records.
 
+[Version-3 plans](BOUNDED_NAMESPACE_CODING.md) retain version-2 normalization and
+budgets while permitting a frozen native namespace profile through the existing
+reversible adapter. Older plan versions do not gain that capability. The probe
+still has no automatic admission effect; successful native outcomes belong in a
+separately reviewed version-3 coding receipt only after the full campaign passes.
+
 Controlled external workflow fixtures establish isolation, affinity, no replay
 and finite lifecycle behavior, not native coding quality.
