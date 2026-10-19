@@ -94,8 +94,9 @@ def provider(answer, *, status=200, health_status=200, hold_first=None, event_st
             pass
 
         def do_GET(self):
-            data = json.dumps((get_responses or {}).get(self.path, {"status": "ok" if health_status == 200 else "loading model"})).encode()
-            self.send_response(200 if self.path in (get_responses or {}) else health_status if self.path == "/health" else 404)
+            current_health = health_status() if callable(health_status) else health_status
+            data = json.dumps((get_responses or {}).get(self.path, {"status": "ok" if current_health == 200 else "loading model"})).encode()
+            self.send_response(200 if self.path in (get_responses or {}) else current_health if self.path == "/health" else 404)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(data)))
             self.end_headers()

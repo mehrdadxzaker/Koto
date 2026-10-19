@@ -45,6 +45,12 @@ qualified local route. Insufficient evidence uses the permitted baseline;
 hard local-only mode blocks when it cannot select a qualified local. The native
 thread is bound once, before its first turn.
 
+Before selecting a local, the session checks its engine with the router's bounded,
+prompt-free health probe. An unavailable local is excluded before the native task
+starts, allowing automatic mode to use the permitted commercial baseline.
+Explicit local requests and hard local-only mode fail closed. A local failure
+after the turn starts never triggers a commercial retry.
+
 To explicitly request an existing qualified local alternative, add
 `--model LOCAL_ALIAS` to the same command. The route must be admitted in `auto`
 or `local_only` mode, permitted for the task and compatible with the native

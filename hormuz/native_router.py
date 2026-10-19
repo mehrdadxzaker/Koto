@@ -94,7 +94,7 @@ def _serve(connection, config, workspace, deadline):
             try:
                 identity = config.identities_by_actor[request["actor_id"]]
                 if request["command"] == "routes":
-                    value = server.route_admission.status(identity, server.policy_engine)["routes"]
+                    value = server.route_admission.status(identity, server.policy_engine, check_readiness=True)["routes"]
                 elif request["command"] == "create_work":
                     value = server.work_runtime.create_work(identity, "koto-native-session", task_type=request["task"])
                 elif request["command"] == "observe":

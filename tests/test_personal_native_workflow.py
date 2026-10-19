@@ -229,7 +229,9 @@ class PersonalNativeWorkflowTests(unittest.TestCase):
     def test_checked_native_work_history_selects_local_and_unfamiliar_work_stays_commercial(self):
         (self.home / 'fixture-answer').write_text('7')
         (self.home / 'cloud-delay').write_text('bounded fixture delay')
-        with workflow.provider('7') as (local, local_calls), workflow.provider('UNUSED') as (cloud, cloud_calls):
+        available = [True]
+        with workflow.provider('7', health_status=lambda: 200 if available[0] else 503) as (local, local_calls), \
+             workflow.provider('UNUSED') as (cloud, cloud_calls):
             self.configure(local, cloud)
             for args in (('history', 'enable'), ('history', 'learning', 'enable')):
                 result = self.command(*args)
@@ -264,7 +266,33 @@ class PersonalNativeWorkflowTests(unittest.TestCase):
             self.assertEqual(len(local_calls) - before, 1)
             self.assertEqual(cloud_calls, [])
             self.assertEqual((self.home / 'config.toml').read_bytes(), self.original)
+            available[0] = False
+            self.prompt.write_text('Summarize invoice tally seven boxes tomorrow')
+            offline = self.command('chat', 'route', '--executable', str(self.native),
+                '--client-home', str(self.home), '--prompt-file', str(self.prompt))
+            self.assertEqual(offline.returncode, 0, offline.stderr or offline.stdout)
+            self.assertEqual(json.loads(offline.stdout)['model'], 'cloud-code')
+            requests = [json.loads(line) for line in (self.home / 'requests.jsonl').read_text().splitlines()]
+            starts = [row['params'] for row in requests if row.get('method') == 'thread/start']
+            self.assertEqual(starts[-1]['modelProvider'], 'openai')
+            explicit = self.command('chat', 'route', '--executable', str(self.native),
+                '--client-home', str(self.home), '--prompt-file', str(self.prompt), '--model', 'local-code')
+            self.assertEqual(explicit.returncode, 2, explicit.stderr or explicit.stdout)
+            self.assertEqual(json.loads(explicit.stdout)['error'], 'native_local_model_not_qualified')
             value = json.loads(self.path.read_text())
+            value['route_admission']['mode'] = 'local_only'
+            self.path.write_text(json.dumps(value))
+            blocked = self.command('chat', 'route', '--executable', str(self.native),
+                '--client-home', str(self.home), '--prompt-file', str(self.prompt))
+            self.assertEqual(blocked.returncode, 2, blocked.stderr or blocked.stdout)
+            self.assertEqual(json.loads(blocked.stdout)['error'], 'native_local_only_requires_qualified_selection')
+            after = [json.loads(line) for line in (self.home / 'requests.jsonl').read_text().splitlines()]
+            self.assertEqual(sum(row.get('method') == 'thread/start' for row in after), len(starts))
+            self.assertEqual(len(local_calls) - before, 1)
+            self.assertEqual(cloud_calls, [])
+            available[0] = True
+            value = json.loads(self.path.read_text())
+            value['route_admission']['mode'] = 'auto'
             value['route_admission']['local_routes']['local-code']['max_output_tokens'] = 4
             self.path.write_text(json.dumps(value))
             self.prompt.write_text('Summarize invoice tally seven boxes tomorrow')

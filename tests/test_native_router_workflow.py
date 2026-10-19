@@ -39,6 +39,31 @@ class NativeRouterWorkflowTests(unittest.TestCase):
         with self.assertRaises(ProcessLookupError):
             os.kill(pid, 0)
 
+    def test_native_route_discovery_checks_health_while_ordinary_status_remains_passive(self):
+        from hormuz.native_router import owned_router
+        for health_status, expected in ((200, "ready"), (503, "unavailable")):
+            with self.subTest(health_status=health_status), workflow.provider(
+                    "UNUSED", health_status=health_status) as (local, local_calls):
+                config = self.config(local, "http://127.0.0.1:9/v1")
+                with patch.dict(os.environ, self.fixture.environment):
+                    with owned_router(config, self.root, time.monotonic() + 8) as router:
+                        connection = http.client.HTTPConnection("127.0.0.1", router.server_port, timeout=3)
+                        try:
+                            def status():
+                                connection.request("GET", "/v1/router/state", headers={
+                                    "Authorization": "Bearer " + self.fixture.environment["DESTINATION_WORKFLOW_TOKEN"]})
+                                response = connection.getresponse()
+                                data = response.read()
+                                self.assertEqual(response.status, 200, data)
+                                return json.loads(data)["routes"]
+
+                            self.assertEqual(status()[0]["readiness"], "unchecked")
+                            self.assertEqual(router.routes("developer")[0]["readiness"], expected)
+                            self.assertEqual(status()[0]["readiness"], expected)
+                        finally:
+                            connection.close()
+                self.assertEqual(local_calls, [])
+
     def test_one_owned_router_returns_policy_filtered_routes_and_verified_http_observations(self):
         from hormuz.native_router import owned_router
         with workflow.provider("7") as (local, local_calls), workflow.provider("UNUSED") as (cloud, cloud_calls):

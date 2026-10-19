@@ -100,7 +100,8 @@ def run(args):
             task = request_characteristics({'input': prompt})['task_hint']
             candidates = [] if server is None else server.routes(identity.actor_id)
             qualified = {row['model'] for row in candidates
-                if _valid_alias(row['model']) and {'responses', 'text', 'streaming', 'tools', 'codex_http_0160'} <= set(row['capabilities'])
+                if row['readiness'] == 'ready' and _valid_alias(row['model'])
+                and {'responses', 'text', 'streaming', 'tools', 'codex_http_0160'} <= set(row['capabilities'])
                 and task not in {'code_change', 'code_review'} and task in row['automatic_task_types']}
             state, records = history.learning_snapshot(identity.actor_id)
             advice = recommend(config, state, records, {'input': prompt}, {baseline, *qualified}, baseline,
@@ -117,6 +118,7 @@ def run(args):
                 if server is None or config.route_admission.mode == 'configured':
                     raise NativeSessionError('native_automatic_admission_required')
                 eligible = [row for row in candidates if row['model'] == args.model
+                    and row['readiness'] == 'ready'
                     and {'responses', 'text', 'streaming', 'tools', 'codex_http_0160'} <= set(row['capabilities'])
                     and task not in {'code_change', 'code_review'}
                     and (task in row['task_types'] or 'interactive' in row['task_types'])]

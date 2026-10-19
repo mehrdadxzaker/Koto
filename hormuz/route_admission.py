@@ -575,7 +575,7 @@ class RouteAdmission:
             headers['X-Hormuz-Task-Selection'] = handler._route_admission_task_selection
         return headers
 
-    def status(self, identity, policy_engine):
+    def status(self, identity, policy_engine, *, check_readiness=False):
         routes = []
         for alias, qualification in self.qualifications.items():
             route = self.config.model_routes[alias]
@@ -585,6 +585,8 @@ class RouteAdmission:
             if not decision.allowed or decision.resolved_alias != alias:
                 continue
             destination = self.destinations.resolve(route)
+            if check_readiness:
+                self._ready(route)
             with self._health_lock:
                 health = self._health.get(destination.generation)
             readiness = "unchecked" if health is None else "stale" if time.monotonic() - health[0] >= 5 else "ready" if health[1] else "unavailable"
