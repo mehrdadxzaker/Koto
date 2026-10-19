@@ -12,6 +12,9 @@ cases, with one development and three held-outs in each required family. Each
 `prompt`, `initial_solution`, `checker` and optional `reference_solution` fields.
 The reference is an offline preparation control and must remain outside the
 native client's permitted project, alongside the independent checker.
+The shared `client-instructions.txt` is byte-for-byte V16 text; use it with the
+driver's `--client-instructions` option and the new `developer-instructions.txt`
+as `--instructions`. Both must be bound by the actual native profile before run.
 
 Every initial implementation fails a checker assertion with exit 1. Every
 authored reference completes the same unchanged assertions with exit zero.

@@ -24,6 +24,11 @@ redefined test functions and long integer literals. This is a new instruction
 profile and an unproven behavioral hypothesis. No gateway state machine forces a
 final response, changes tool output, invents command arguments, executes a second
 agent loop, substitutes a solution or exposes independent checks.
+The separately frozen [client instructions](client-instructions.txt) are copied
+byte-for-byte from V16 and must be passed through the driver's
+`--client-instructions` option. Leaving that option unset would use stock Codex
+system instructions and constitute a different treatment; do not silently make
+that substitution. The actual captured request profile must bind both files.
 
 Keep the existing Qwen3-Coder-30B-A3B-Instruct Q4_K_M weights, llama.cpp b11617,
 original template, managed-llama.v1 controls, native Codex 0.160.0 and its four
@@ -71,7 +76,8 @@ placed in the native project's permitted roots.
 
 ## Freeze and native acceptance
 
-Use the reviewed installed-wheel acceptance driver with each `cases/<id>.json`.
+Use the reviewed installed-wheel acceptance driver with each `cases/<id>.json`,
+the shared `developer-instructions.txt` and retained `client-instructions.txt`.
 Freeze the complete corpus together with client/runtime/model/template hashes,
 wheel/runtime-module parity, native instruction/tool/request controls, actual
 first-input hash, budgets, implementation/checker hashes, runner dependencies and
