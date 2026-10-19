@@ -14,7 +14,7 @@ the candidate remains unqualified. The sections below record preregistration.
 
 The [diagnosis](../../diagnostics/native-patch-20261016/README.md) distinguishes
 the observed empty patch commands from an integration defect. Native controls
-through Hormuz retain streamed command arguments exactly: an empty call leaves
+through Koto retain streamed command arguments exactly: an empty call leaves
 the implementation broken; a supplied complete patch edits it and passes the
 unchanged checker. That supplied patch is a transport control, never model
 quality evidence. No production integration defect was demonstrated, so no
