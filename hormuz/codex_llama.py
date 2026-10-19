@@ -13,6 +13,12 @@ class CodexLlamaError(ValueError):
     pass
 
 
+def _function_arguments(value):
+    arguments = json.loads(value)
+    if type(arguments) is not dict:
+        raise CodexLlamaError('invalid_function_arguments')
+
+
 def needs_adapter(value):
     tools = value.get('tools', [])
     history = value.get('input', [])
@@ -20,6 +26,7 @@ def needs_adapter(value):
             or isinstance(value.get('client_metadata'), dict) and bool(PARENT_TAGS.intersection(value['client_metadata']))
             or isinstance(tools, list) and any(isinstance(tool, dict) and tool.get('type') in ('namespace', 'custom', 'tool_search', 'web_search') for tool in tools)
             or isinstance(history, list) and any(isinstance(item, dict) and ('namespace' in item
+                or item.get('type') == 'function_call' and 'status' in item
                 or item.get('type') in ('custom_tool_call', 'custom_tool_call_output', 'tool_search_call', 'tool_search_output', 'reasoning')) for item in history))
 
 
@@ -121,6 +128,8 @@ class CodexLlamaRequest:
                     raise CodexLlamaError('invalid_custom_history')
                 item = {key: value for key, value in item.items() if key != 'input'} | {
                     'type': 'function_call', 'arguments': json.dumps({'input': item['input']}, separators=(',', ':'))}
+            else:
+                _function_arguments(item.get('arguments', ''))
         elif isinstance(item, dict) and item.get('type') == 'custom_tool_call_output':
             item = {**item, 'type': 'function_call_output'}
         return item
@@ -205,6 +214,8 @@ class CodexLlamaRequest:
         result = {**value, 'name': name}
         if namespace:
             result['namespace'] = namespace
+        if kind == 'function' and complete:
+            _function_arguments(value.get('arguments', ''))
         if kind == 'custom':
             if not complete:
                 raw_input = ''
@@ -245,6 +256,8 @@ class CodexLlamaRequest:
         if (value.get('type', '').startswith('response.function_call_arguments.')
                 and self.stream_kinds.get(value.get('item_id')) in {'custom_tool_call', 'tool_search_call'}):
             return None
+        if value.get('type') == 'response.function_call_arguments.done':
+            _function_arguments(value.get('arguments', ''))
         if isinstance(value.get('response'), dict):
             value = {**value, 'response': self._response(value['response'])}
         return value

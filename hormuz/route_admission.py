@@ -187,6 +187,12 @@ def _text_envelope(value, protocol, endpoint):
         kind = item.get("type")
         if kind is not None and (type(kind) is not str or kind not in kinds):
             return None
+        if kind == "function_call":
+            try:
+                if type(json.loads(item.get("arguments", ""))) is not dict:
+                    return None
+            except (ValueError, TypeError, RecursionError):
+                return None
         if kind in {"function_call", "function_call_output", "tool_use", "tool_result"} or item.get("tool_calls") or item.get("role") == "tool":
             required.add("tools")
         pending.extend(item[key] for key in ("content", "output") if key in item)
