@@ -6,8 +6,9 @@ preregistered in [FREEZE-revision2.json](FREEZE-revision2.json) and
 [coding-plan-revision2.json](coding-plan-revision2.json), after forty-nine actual
 native captures and identical repeated first inputs. Task/checker/guidance/model
 bytes are unchanged. This frozen #577 payload predates independent #579 on main.
-No canary outcome or coding qualification exists at this checkpoint. Historical
-V16 and predecessor failures remain intact.
+The subsequent [canary failed normal completion](RESULTS.md); the remaining
+fifteen quality cases were not run. No coding qualification was created.
+Historical V16 and predecessor failures remain intact.
 
 ## Hypothesis and limits
 

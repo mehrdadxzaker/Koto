@@ -9,7 +9,7 @@ and original [FREEZE.json](FREEZE.json) remain unchanged.
 operator, read-only helper parent, forty-nine zero-inference native captures and
 [coding-plan-revision2.json](coding-plan-revision2.json). The repeated first input
 and all sixteen native profiles match. Task, checker, guidance and model bytes
-remain unchanged and unseen by the model. Owned settings/listeners restored and
+were unchanged and unseen by the model at registration. Owned settings/listeners restored and
 live settings fingerprints verified. No model is newly qualified; automatic
 local coding and learning stay off. This pins the reviewed #577 payload, before
 the independently merged #579; it is not qualification of a later main tip.
@@ -48,7 +48,8 @@ replacement. [held-out-freshness-v2.json](held-out-freshness-v2.json) records
 exact-hash and semantic comparison with nineteen retained corpora, including
 V15's local archive and all currently present `koto-local-coding-20261019*`
 campaigns. The earlier freshness report remains historical preparation evidence.
-The next operator step is one bounded development canary under revision 2.
-The remaining fifteen run only if that canary passes. Preparation is not a
-model-quality observation. The revision-2 freshness addendum records V14/V15
-from the independently owned campaign with no semantic contract overlap.
+The [real revision-2 canary failed normal completion](RESULTS.md) despite a
+correct independently checked edit. The other fifteen quality cases remain
+unrun. Separate ordinary denial and cancellation scenarios passed. The
+revision-2 freshness addendum records V14/V15 from the independently owned
+campaign with no semantic contract overlap.

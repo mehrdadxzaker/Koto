@@ -1,0 +1,31 @@
+--- solution.py.before
++++ solution.py.after
+@@ -1,2 +1,27 @@
+ def distribute_units(total, buckets):
+-    return [total // buckets] * buckets
++    # Validate that both arguments are built-in ints
++    if not isinstance(total, int) or type(total) != int:
++        raise ValueError("total must be a built-in int")
++    if not isinstance(buckets, int) or type(buckets) != int:
++        raise ValueError("buckets must be a built-in int")
++    
++    # Validate total is nonnegative
++    if total < 0:
++        raise ValueError("total must be nonnegative")
++    
++    # Validate buckets is positive
++    if buckets <= 0:
++        raise ValueError("buckets must be positive")
++    
++    # Calculate base value and remainder
++    base_value = total // buckets
++    remainder = total % buckets
++    
++    # Create the result list
++    result = [base_value] * buckets
++    
++    # Distribute the remainder by adding 1 to the first 'remainder' elements
++    for i in range(remainder):
++        result[i] += 1
++    
++    return result
