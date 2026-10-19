@@ -1,7 +1,7 @@
 {
   "campaign_id": "local-repair-20261018-v16",
   "owner_local_authorization_date": "2026-10-18",
-  "runtime_source_commit": "6bd7c5b6023073ded95e2d47102cc71f79ab6347",
+  "runtime_source_commit": "92f0a8b9159bd929b21068f448eda6ff8c1e98b5",
   "base_commit": "d1429fa420cf656786269c518a38dc9c67e21a21",
   "model": "Qwen3-Coder-30B-A3B-Instruct Q4_K_M",
   "pins": {
@@ -61,7 +61,7 @@
     "startup_timeout_seconds": 60,
     "coding_evidence": null
   },
-  "wheel_sha256": "fbb408235aea8b0ebb99c8e56ec02c7fcc8986b20564024fcdd7a483ded763e0",
+  "wheel_sha256": "b23c4c1ca2bf8d4ba5134a034a74ed225b9291a5053ed0db0c6273433edb86a0",
   "goals_disabled": true,
   "unchanged_tools": [
     "exec_command",
@@ -102,5 +102,7 @@
   "ordinary_coding_readiness": "unknown",
   "automatic_coding_enabled": false,
   "previous_failed_campaign": "https://github.com/mehrdadxzaker/Koto/pull/576",
-  "public_raw_native_context": false
+  "public_raw_native_context": false,
+  "plain_codex_response_validation": true,
+  "rich_tool_translation": false
 }

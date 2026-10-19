@@ -55,6 +55,8 @@ def main():
     parser.add_argument('--v8-driver', action='store_true', help='Exercise the isolated v8 launcher and trace tap')
     parser.add_argument('--driver-version', choices=('v8', 'v9', 'v10', 'v12', 'v13', 'v14', 'v15', 'v16'), default='v8')
     parser.add_argument('--supplied-command', type=Path, help='Replay one supplied shell command, not model output')
+    parser.add_argument('--malformed-arguments', action='store_true',
+                        help='The prepared profile must interrupt a malformed completed call before delivery')
     parser.add_argument('--stale-environment-date', help='Negative control: bind a stale native user environment date')
     parser.add_argument('--bind-current-date', action='store_true', help='Bind only the probe plan native user date before arming')
     parser.add_argument('--alter-permission-context', action='store_true', help='Negative control: change one captured writable root')
@@ -108,6 +110,9 @@ def main():
         profile.update(qualification_id='synthetic-native-tool-replay-v1',
                        runtime_sha256=pins['runtime_archive']['sha256'],
                        model_sha256=pins['model']['sha256'])
+        if args.driver_version == 'v16':
+            prepared = json.loads((Path(__file__).parent / 'setup-profile.json').read_text())
+            profile['capabilities'] = prepared['capabilities']
         write(root / 'setup-profile.json', profile)
         for path in (REPOSITORY / 'hormuz').rglob('*'):
             relative = path.relative_to(REPOSITORY)
@@ -181,6 +186,8 @@ def main():
             if len(command.encode()) > 65536:
                 raise RuntimeError('Supplied command exceeds the request bound')
         arguments = json.dumps({'cmd': command, 'max_output_tokens': 512})
+        if args.malformed_arguments:
+            arguments = '{"cmd":"python3 - <<'
         if args.minimal and args.mode == 'text':
             final_message['content'][0]['text'] = '```json\n' + json.dumps({'name': 'exec_command', 'arguments': json.loads(arguments)}) + '\n```'
         call = {'id': 'fc_replay', 'type': 'function_call', 'status': 'completed',
@@ -321,6 +328,12 @@ def main():
             return 2
         if args.premature_checker_exit:
             return 0 if report['executed_tools'] and report['implementation_changed'] and report['check_exit_code'] != 0 else 1
+        if args.malformed_arguments:
+            rejected = (report['executed_tools'] == 0 and not report['implementation_changed']
+                        and report['check_exit_code'] == 1 and len(report['upstream_requests']) == 1
+                        and not any(e.get('type') in {'response.function_call_arguments.done', 'response.output_item.done',
+                                                     'response.completed'} for row in report['trace'] for e in row['events']))
+            return 0 if rejected else 1
         return 0 if report['executed_tools'] and report['implementation_changed'] and report['check_exit_code'] == 0 else 1
 
 

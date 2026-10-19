@@ -32,8 +32,8 @@ ASSETS = Path('/private/tmp/koto-tool-compat-preparation-20261017')
 ROOT = Path('/private/tmp/koto-native-v16-20261018')
 PYTHON = Path('/Users/mehrdadz/Downloads/memoWiki/hormuz/.venv/bin/python')
 CAMPAIGN = 'local-repair-20261018-v16'
-WHEEL = Path('/private/tmp/koto-v16-runtime-artifact-20261018/koto_router-2.0.0a4-py3-none-any.whl')
-WHEEL_SHA256 = 'fbb408235aea8b0ebb99c8e56ec02c7fcc8986b20564024fcdd7a483ded763e0'
+WHEEL = Path('/private/tmp/koto-v16-runtime-reviewed-artifact-20261018/koto_router-2.0.0a4-py3-none-any.whl')
+WHEEL_SHA256 = 'b23c4c1ca2bf8d4ba5134a034a74ed225b9291a5053ed0db0c6273433edb86a0'
 ALIAS = 'Qwen3-Coder-30B-A3B-Instruct-Q4_K_M'
 BYTE_LIMIT = 2 * 1024 * 1024
 spec = importlib.util.spec_from_file_location('retained_v7_support',
@@ -495,7 +495,7 @@ def freeze():
     paths.add(SOURCE / 'docs/diagnostics/native-tool-compat-20261017/native-date-binding.py')
     pins = read(ROOT / 'pins.json')
     paths.update(Path(pins[key]['path']) for key in ('client', 'runtime_archive', 'runtime_executable', 'model'))
-    manifest = {'document_version': 1, 'campaign_id': CAMPAIGN, 'source_commit': '6bd7c5b6023073ded95e2d47102cc71f79ab6347',
+    manifest = {'document_version': 1, 'campaign_id': CAMPAIGN, 'source_commit': '92f0a8b9159bd929b21068f448eda6ff8c1e98b5',
         'plan_sha256': sha(canonical(plan)),
         'budget': {'canary_episodes': 1, 'total_episodes_if_canary_passes': 16, 'max_requests_per_episode': 8,
                    'max_elapsed_seconds_per_episode': 90, 'max_output_tokens_per_generation': 512,
