@@ -3,8 +3,8 @@
 - Status: **Superseded for the core gateway**
 - Scope change recorded: 2026-08-21
 - Decision owner: Product owner
-- Historical tracking issue: [#3](https://github.com/Xpounder-com/hormuz/issues/3)
-- Superseding release gate: [#23](https://github.com/Xpounder-com/hormuz/issues/23)
+- Historical tracking issue: [#3](https://github.com/mehrdadxzaker/Koto/issues/3)
+- Superseding release gate: [#23](https://github.com/mehrdadxzaker/Koto/issues/23)
 
 The 2026-10-08 `ai_work` exact-answer-reuse contract is separately authorized
 by [ADR 0014](0014-customer-local-ai-work-and-exact-reuse.md). The historical
@@ -13,7 +13,7 @@ to that explicitly enabled, bounded, process-memory-only work contract.
 
 ## Decision
 
-The former proposal mixed provider prompt-caching controls with a Hormuz-owned context-pack cache. Hormuz core no longer implements or plans to implement the latter. The detailed historical proposal is archived with the separately packaged experiment at [`../../experiments/context/docs/decisions/0003-cache-privacy-tiers.md`](https://github.com/Xpounder-com/hormuz/blob/2e5011f8e1064976c33c5694e74fd0bb17539c14/experiments/context/docs/decisions/0003-cache-privacy-tiers.md).
+The former proposal mixed provider prompt-caching controls with a Hormuz-owned context-pack cache. Hormuz core no longer implements or plans to implement the latter. The detailed historical proposal is archived with the separately packaged experiment at [`../../experiments/context/docs/decisions/0003-cache-privacy-tiers.md`](https://github.com/mehrdadxzaker/Koto/blob/2e5011f8e1064976c33c5694e74fd0bb17539c14/experiments/context/docs/decisions/0003-cache-privacy-tiers.md).
 
 The core gateway continues to record provider-reported cache token fields when providers expose them. It makes no claim to store, retrieve, reuse, or invalidate customer context or model answers. Any future provider-cache policy must be proposed as a new, versioned core contract after the policy/evidence stabilization gate; it must not reintroduce a context or memory runtime by implication.
 

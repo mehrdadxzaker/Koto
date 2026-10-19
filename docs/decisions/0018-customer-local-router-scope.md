@@ -4,7 +4,7 @@
 - Date: 2026-10-14
 - Approval: The owner requested repository/backlog cleanup and chose
   “Keep operational cleanup; close unrelated product issues.”
-- Specification: [#523](https://github.com/Xpounder-com/hormuz/issues/523)
+- Specification: [#523](https://github.com/mehrdadxzaker/Koto/issues/523)
 
 Koto is a customer-local router for existing coding clients, with CLI and
 skills-only plugin entry points. The approved public test seam is connect →

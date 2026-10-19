@@ -25,8 +25,8 @@ finite authorization, while retaining this failure.
 
 ## Preregistration and preserved controls
 
-The [preregistration commit](https://github.com/mehrdadxzaker/hormuz/commit/1adb8fe9279e7d082fd8bf784837659146bad0f3)
-and [issue checkpoint](https://github.com/mehrdadxzaker/hormuz/issues/566#issuecomment-6243927931)
+The [preregistration commit](https://github.com/mehrdadxzaker/Koto/commit/1adb8fe9279e7d082fd8bf784837659146bad0f3)
+and [issue checkpoint](https://github.com/mehrdadxzaker/Koto/issues/566#issuecomment-6243927931)
 preceded inference. The frozen manifest SHA-256 remains
 `aaf157a64c0fa6649cfdf4fa00993262857e9f098f9aaec56dac08efe065b774`;
 the plan SHA-256 remains

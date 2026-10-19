@@ -5,9 +5,9 @@
 Scope confirmed 2026-10-13: evaluate **all Hormuz-related accounts and resources**
 and clean up those proved unused, while preserving other projects, shared
 accounts, users, data, custody and payment obligations. Parent:
-[#494](https://github.com/Xpounder-com/hormuz/issues/494).
+[#494](https://github.com/mehrdadxzaker/Koto/issues/494).
 The work uses `track:cleanup` and the separate
-[cleanup milestone](https://github.com/Xpounder-com/hormuz/milestone/16).
+[cleanup milestone](https://github.com/mehrdadxzaker/Koto/milestone/16).
 
 The user's instruction authorizes cleanup within that scope; do not ask for a
 blanket confirmation again. It does not turn an unknown consumer, retained
@@ -21,14 +21,14 @@ it does not claim every account or retained resource has been retired.
 
 UI exploration and the simulated project/chat/model experience can start
 independently. Account cleanup is not a dependency of
-[#487–#492](https://github.com/Xpounder-com/hormuz/issues/487).
+[#487–#492](https://github.com/mehrdadxzaker/Koto/issues/487).
 The [infrastructure audit](DESKTOP_INFRASTRUCTURE_AUDIT.md) records why the first
 local desktop needs no mandatory hosted runtime.
 
 ## Current ledger and evidence gaps
 
 Local build/dependency/test debris is a separate cleanup slice in
-[#504](https://github.com/Xpounder-com/hormuz/issues/504). Its
+[#504](https://github.com/mehrdadxzaker/Koto/issues/504). Its
 [verified local checkpoint](DESKTOP_LOCAL_CLEANUP.md) records removal of 699
 approved generated folders, retirement of 113 merged checkouts and archival/
 retirement of 19 test-export folders. All 31 protected checkouts and exact
@@ -79,13 +79,13 @@ post-operation verification.
 
 | Work order | Required result | Keep/shared boundary |
 | --- | --- | --- |
-| [#495 — Render services and attached disks](https://github.com/Xpounder-com/hormuz/issues/495) | Retain the verified all-services-suspended checkpoint; reconcile domains/hooks/cost and disk state; preserve verified owner-controlled export/restore before selected final deletion. | Do not close a shared Render account/workspace or confuse compute with disk/data cost. Suspended resources remain suspended while archive/retention holds are unresolved. |
-| [#496 — PostgreSQL archive and retirement](https://github.com/Xpounder-com/hormuz/issues/496) | Inventory logical databases/roles/clients/state, preserve required evidence and unknown reservations, verify exact application/database recovery pair, then retire selected databases or the whole instance only when all consumers/holds close. | One unused logical database does not authorize deleting its shared instance. A snapshot without recoverable custody/authority is insufficient. |
-| [#497 — Okta and pilot access](https://github.com/Xpounder-com/hormuz/issues/497) | Reconcile callbacks, clients/sessions and shipped origins; transition endpoints first; retire selected enrollment/callback/client/session scope in order and verify remaining sign-in works. | Preserve shared identity organization/users and generic OIDC implementation. Keep any remaining recovery authority explicit. |
-| [#498 — Stripe offers and payment obligations](https://github.com/Xpounder-com/hormuz/issues/498) | Preserve the user's no-paid-commitment confirmation; reconcile historical financial records, merchant sharing and public catalog; retire obsolete sales/price/webhook scope with public copy continuity. Record any actual cancellation/refund separately if discovered. | Keep financial history and shared merchant. No repricing or account-wide deletion is inferred from a new desktop plan. |
-| [#499 — Website acquisition/contact/booking](https://github.com/Xpounder-com/hormuz/issues/499) | Inventory current measurement/campaign/form/schedule use and cost; retain or replace useful channels; preserve inquiries/bookings/retention; retire only unused scopes and verify live contact/consent/links. | Preserve shared Google/X/calendar accounts and unrelated campaigns. Source pixel presence is not an active paid campaign. |
-| [#500 — GitHub pilot authority and delivery hygiene](https://github.com/Xpounder-com/hormuz/issues/500) | Retain verified external-pilot environment cleanup and disabled workflow evidence; complete remaining consumer/permission review; verify publishing/signing/checks and no orphan hooks. | Keep canonical Pages, historical redirects/releases/checksums, required checks, signing/notary custody still used and independent support evidence. Local Render container CI is not running cloud spend. |
-| [#501 — Provider/KMS/catalog authority](https://github.com/Xpounder-com/hormuz/issues/501) | Build a named consumer/permission/retention map for dedicated provider tokens, custody keys, cloud/KMS resources and optional catalog/connector credentials; retire only proved-unused Hormuz scope after active/unknown attempts and decryption/recovery holds resolve. | Keep direct paid-model accounts, user OS custody and credentials used by other products. Do not delete a KMS key needed to decrypt retained archives; public model downloads do not require inventing a new account/proxy. |
+| [#495 — Render services and attached disks](https://github.com/mehrdadxzaker/Koto/issues/495) | Retain the verified all-services-suspended checkpoint; reconcile domains/hooks/cost and disk state; preserve verified owner-controlled export/restore before selected final deletion. | Do not close a shared Render account/workspace or confuse compute with disk/data cost. Suspended resources remain suspended while archive/retention holds are unresolved. |
+| [#496 — PostgreSQL archive and retirement](https://github.com/mehrdadxzaker/Koto/issues/496) | Inventory logical databases/roles/clients/state, preserve required evidence and unknown reservations, verify exact application/database recovery pair, then retire selected databases or the whole instance only when all consumers/holds close. | One unused logical database does not authorize deleting its shared instance. A snapshot without recoverable custody/authority is insufficient. |
+| [#497 — Okta and pilot access](https://github.com/mehrdadxzaker/Koto/issues/497) | Reconcile callbacks, clients/sessions and shipped origins; transition endpoints first; retire selected enrollment/callback/client/session scope in order and verify remaining sign-in works. | Preserve shared identity organization/users and generic OIDC implementation. Keep any remaining recovery authority explicit. |
+| [#498 — Stripe offers and payment obligations](https://github.com/mehrdadxzaker/Koto/issues/498) | Preserve the user's no-paid-commitment confirmation; reconcile historical financial records, merchant sharing and public catalog; retire obsolete sales/price/webhook scope with public copy continuity. Record any actual cancellation/refund separately if discovered. | Keep financial history and shared merchant. No repricing or account-wide deletion is inferred from a new desktop plan. |
+| [#499 — Website acquisition/contact/booking](https://github.com/mehrdadxzaker/Koto/issues/499) | Inventory current measurement/campaign/form/schedule use and cost; retain or replace useful channels; preserve inquiries/bookings/retention; retire only unused scopes and verify live contact/consent/links. | Preserve shared Google/X/calendar accounts and unrelated campaigns. Source pixel presence is not an active paid campaign. |
+| [#500 — GitHub pilot authority and delivery hygiene](https://github.com/mehrdadxzaker/Koto/issues/500) | Retain verified external-pilot environment cleanup and disabled workflow evidence; complete remaining consumer/permission review; verify publishing/signing/checks and no orphan hooks. | Keep canonical Pages, historical redirects/releases/checksums, required checks, signing/notary custody still used and independent support evidence. Local Render container CI is not running cloud spend. |
+| [#501 — Provider/KMS/catalog authority](https://github.com/mehrdadxzaker/Koto/issues/501) | Build a named consumer/permission/retention map for dedicated provider tokens, custody keys, cloud/KMS resources and optional catalog/connector credentials; retire only proved-unused Hormuz scope after active/unknown attempts and decryption/recovery holds resolve. | Keep direct paid-model accounts, user OS custody and credentials used by other products. Do not delete a KMS key needed to decrypt retained archives; public model downloads do not require inventing a new account/proxy. |
 
 Optional KMS/AWS/connector imports in source are not evidence of live resources
 or paid accounts. Inventory actual owner-selected integrations rather than

@@ -1,8 +1,9 @@
 # Koto rebrand
 
 The product, plugin, skills, CLI help and documentation now use **Koto** and
-the supplied [wooden K logo](../assets/koto-logo.png). Plugin version 0.3.1 is
-named `koto`; install it as `koto@koto` from the existing GitHub marketplace.
+the supplied [wooden K logo](../assets/koto-logo.png). The plugin is named
+`koto`; install it as `koto@koto` from the
+[Koto repository](https://github.com/mehrdadxzaker/Koto).
 The Python distribution is `koto-router`, installed from this source checkout.
 
 ```sh
@@ -14,6 +15,23 @@ python -m koto --help
 New configurations use `koto.json` or `KOTO_CONFIG`. `KOTO_HISTORY_HOME`
 overrides the local history directory. New default history directories use
 `Koto` on macOS and `koto` in the XDG data directory.
+
+## GitHub repository
+
+The canonical repository is `mehrdadxzaker/Koto`. Install commands, plugin
+metadata, support forms and documentation links use that address. The repository
+keeps its existing issues, pull requests, commits and protection rules.
+
+Update an existing checkout's remote with:
+
+```sh
+git remote set-url origin https://github.com/mehrdadxzaker/Koto.git
+```
+
+The plugin and marketplace identity remains `koto@koto`. See
+[agent installation](AGENT_INSTALLATION.md) for each client's commands.
+Hash-bound qualification records retain their original bytes and recorded
+addresses; GitHub redirects those addresses to the renamed repository.
 
 ## Existing installations
 

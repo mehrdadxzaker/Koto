@@ -2,7 +2,7 @@
 
 The single authorized actual-model canary ran after the reviewed freeze at
 `282980a9efdc4da47ef62fb3f00efebd5082cef0` and the
-[published checkpoint](https://github.com/mehrdadxzaker/hormuz/issues/569#issuecomment-6252110449).
+[published checkpoint](https://github.com/mehrdadxzaker/Koto/issues/569#issuecomment-6252110449).
 It used the derived Devstral Small 2 Q4_K_M artifact, native Codex 0.160.0,
 the pinned llama.cpp runtime and unchanged managed profile. The limits remained
 eight requests, 90 seconds and 512 output tokens per generation, with zero

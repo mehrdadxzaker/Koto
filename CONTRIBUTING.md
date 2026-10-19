@@ -95,5 +95,5 @@ repository protections as a side effect of deleting a workflow. See the
 [required-check cutover](docs/MIGRATION_2.md).
 Merge also requires technical-lead sign-off against the exact PR head.
 
-Report defects using synthetic inputs through the [issue tracker](https://github.com/mehrdadxzaker/hormuz/issues).
+Report defects using synthetic inputs through the [issue tracker](https://github.com/mehrdadxzaker/Koto/issues).
 Use [SECURITY.md](SECURITY.md) for private vulnerability reporting.

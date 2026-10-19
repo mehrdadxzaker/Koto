@@ -5,7 +5,7 @@
 - Decision owner: Product owner
 - Approval: Automatic local credential setup, TDD at the approved workflow seam,
   existing verified engine/model files, no manual token exports.
-- Parent specification: [#523](https://github.com/Xpounder-com/hormuz/issues/523)
+- Parent specification: [#523](https://github.com/mehrdadxzaker/Koto/issues/523)
 
 Default shared setup creates or reuses one private local caller credential.
 Generated router configuration references its private versioned file; the

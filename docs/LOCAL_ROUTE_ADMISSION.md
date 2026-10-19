@@ -1,6 +1,6 @@
 # Local route admission
 
-This implements the admission slice of [router spec #523](https://github.com/Xpounder-com/hormuz/issues/523)
+This implements the admission slice of [router spec #523](https://github.com/mehrdadxzaker/Koto/issues/523)
 on top of [execution destinations](EXECUTION_DESTINATIONS.md). Existing coding
 apps submit requests to one router. No additional Koto UI is introduced.
 Runtime/model acquisition, subscription adapters and plugin publication

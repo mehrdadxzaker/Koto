@@ -1,7 +1,7 @@
 # First-release local asset acquisition contract
 
 Decision for [Decide verified runtime and model acquisition for the supported
-release envelope](https://github.com/mehrdadxzaker/hormuz/issues/542).
+release envelope](https://github.com/mehrdadxzaker/Koto/issues/542).
 Accepted by the owner on October 17, 2026. This decision does not implement an
 installer, acquire assets, activate a connection or establish a supported coding
 model.
@@ -133,7 +133,7 @@ retaining asset files does not authorize leaving workers or listeners running.
 ## Handoff and acceptance boundaries
 
 Do not close the router epic on this decision. Its
-[closure contract](https://github.com/mehrdadxzaker/hormuz/issues/543) must still
+[closure contract](https://github.com/mehrdadxzaker/Koto/issues/543) must still
 require matching model-quality, actual client/plugin/cloud and fresh-user
 distribution evidence. This contract does not select a local-only subset of the
 approved product scope or authorize paid API fallback.

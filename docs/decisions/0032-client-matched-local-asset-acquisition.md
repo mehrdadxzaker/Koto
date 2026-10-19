@@ -2,7 +2,7 @@
 
 Status: accepted decision, October 17, 2026; client-matched software handoff implemented.
 
-For [the acquisition decision](https://github.com/mehrdadxzaker/hormuz/issues/542),
+For [the acquisition decision](https://github.com/mehrdadxzaker/Koto/issues/542),
 the owner adopted client-matched reviewed catalogs, explicit private asset
 directories and retained generations after disconnect or plugin removal, with
 deletion kept as a separate inspected action. Reuse ADR 0026's shared acquisition

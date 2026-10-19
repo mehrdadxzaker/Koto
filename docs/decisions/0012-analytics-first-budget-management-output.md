@@ -8,9 +8,9 @@
 - Issues: #214, #217, #222, #223, #224
 - Supersedes: only the planned default budget-report output version in ADR 0011
 - Approval: owner-approved direction recorded in
-  https://github.com/Xpounder-com/hormuz/issues/217#issuecomment-5487469699
+  https://github.com/mehrdadxzaker/Koto/issues/217#issuecomment-5487469699
 - Preflight acceptance: merged-main evidence recorded in
-  https://github.com/Xpounder-com/hormuz/issues/214#issuecomment-5487882220
+  https://github.com/mehrdadxzaker/Koto/issues/214#issuecomment-5487882220
 - Acceptance update: #217 runtime accepted through PR #262 and exact-main CI
   run `33630063750`; #214 final-candidate acceptance remains open
 

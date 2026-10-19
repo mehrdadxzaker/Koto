@@ -1,8 +1,8 @@
 # Native Codex catalog authentication boundary
 
 Selected October 15, 2026 as the next independent cloud-auth implementation
-after [#547](https://github.com/Xpounder-com/hormuz/pull/547), advancing
-[#523](https://github.com/Xpounder-com/hormuz/issues/523). Acquisition (#548),
+after [#547](https://github.com/mehrdadxzaker/Koto/pull/547), advancing
+[#523](https://github.com/mehrdadxzaker/Koto/issues/523). Acquisition (#548),
 coding qualification (#546) and the current CLI adapter (#549) have separate
 owners. Preserve their work and integrate main normally.
 

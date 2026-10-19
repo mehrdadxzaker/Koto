@@ -11,7 +11,7 @@ and **2/12 held-out**. This setup does **not** qualify for automatic coding.
 The [plan](PLAN.md), [manifest](frozen-manifest.json), native instruction profile,
 tools, checks, runtime, model and budget were frozen at commit
 `8ffc263bc0e7e30881423f02b9254bec0a57000b` and published in the
-[pre-inference checkpoint](https://github.com/mehrdadxzaker/hormuz/issues/569#issuecomment-6252552887).
+[pre-inference checkpoint](https://github.com/mehrdadxzaker/Koto/issues/569#issuecomment-6252552887).
 The [preregistration](preregistration.json) binds the owner authorization and
 reviews. V11 remains a retained, unrun preparation; it consumed no model trial.
 
