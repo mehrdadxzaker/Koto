@@ -20,6 +20,12 @@ and output bounds, timeout and the instruction/tool/generation-control profile.
 Changing any of these requires new evidence. User text, conversation IDs and
 provider-owned continuation state are not part of the instruction profile hash.
 
+The separately selected [bounded output profile](BOUNDED_CODING_OUTPUT.md) adds
+`local-repair.v2` with up to 2,048 output tokens and `managed-llama.v2` runtime
+identity. It retains the same sixteen-case quality gate, byte and deadline
+bounds, with new evidence/probe v4 and setup v5. Existing v1 campaigns and
+512-token profiles are not upgraded or relabelled.
+
 Coding admission and final dispatch also require one printable `User-Agent`
 header, at most 512 characters, whose first product is
 `codex_exec/<evidence client_version>`. This is the product/version observed in

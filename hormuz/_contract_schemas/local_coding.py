@@ -44,7 +44,7 @@ def validate_identifier(value):
         raise ContractValidationError("invalid coding evidence identifier")
 
 
-def validate_subject(subject, *, namespaces=False):
+def validate_subject(subject, *, namespaces=False, extended_output=False):
     if type(subject) is not dict:
         raise ContractValidationError("invalid coding evidence subject")
     _exact_keys(subject, SUBJECT_FIELDS)
@@ -52,7 +52,8 @@ def validate_subject(subject, *, namespaces=False):
         validate_identifier(subject[key])
     for key in ("runtime_sha256", "request_profile_sha256"):
         _digest(subject[key])
-    if subject["protocol"] != "openai" or subject["runtime_profile"] != "managed-llama.v1":
+    runtime_profile = "managed-llama.v2" if extended_output else "managed-llama.v1"
+    if subject["protocol"] != "openai" or subject["runtime_profile"] != runtime_profile:
         raise ContractValidationError("unsupported coding execution profile")
     if re.fullmatch(r"sha256:[a-f0-9]{64}", subject["model_revision"]) is None:
         raise ContractValidationError("invalid coding model revision")
@@ -64,23 +65,25 @@ def validate_subject(subject, *, namespaces=False):
             or any(type(cap) is not str or cap not in allowed for cap in caps)
             or not {"responses", "text"}.issubset(caps) or len(caps) != len(set(caps))):
         raise ContractValidationError("invalid coding capabilities")
-    for key, maximum in (("max_request_bytes", 65536), ("max_output_tokens", 512), ("upstream_timeout_seconds", 90)):
+    for key, maximum in (("max_request_bytes", 65536), ("max_output_tokens", 2048 if extended_output else 512), ("upstream_timeout_seconds", 90)):
         if type(subject[key]) is not int or not 1 <= subject[key] <= maximum:
             raise ContractValidationError("invalid coding evidence limit")
 
 
 def validate_evidence(value):
     _exact_keys(value, EVIDENCE_FIELDS)
-    if value["schema_id"] != "hormuz.local-coding-evidence" or type(value["schema_version"]) is not int or value["schema_version"] not in (1, 2, 3):
+    if value["schema_id"] != "hormuz.local-coding-evidence" or type(value["schema_version"]) is not int or value["schema_version"] not in (1, 2, 3, 4):
         raise ContractValidationError("invalid coding evidence version")
     validate_identifier(value["evidence_id"])
     plan = value["plan"]
     if type(plan) is not dict:
         raise ContractValidationError("invalid coding evidence plan")
     _exact_keys(plan, {"criteria_version", "subject", "cases"})
-    if plan["criteria_version"] != "local-repair.v1":
+    criteria = "local-repair.v2" if value["schema_version"] == 4 else "local-repair.v1"
+    if plan["criteria_version"] != criteria:
         raise ContractValidationError("unsupported coding criteria")
-    validate_subject(plan["subject"], namespaces=value["schema_version"] == 3)
+    validate_subject(plan["subject"], namespaces=value["schema_version"] >= 3,
+                     extended_output=value["schema_version"] == 4)
     cases = plan["cases"]
     if type(cases) is not list or not 1 <= len(cases) <= 64:
         raise ContractValidationError("invalid coding case inventory")

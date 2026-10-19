@@ -567,10 +567,11 @@ class GatewayRequestHandler(BaseHTTPRequestHandler):
                     else:
                         schema = "hormuz.route-admission"
                         value = self.server.route_admission.status(identity, self.server.policy_engine)
-                    if value.get("schema_version") == 3 and schema == "hormuz.route-admission":
+                    if value.get("schema_version") in (3, 4) and schema == "hormuz.route-admission":
                         from .contracts import validate_contract
                         validate_contract(value)
-                        self._send_json(HTTPStatus.OK, value, contract_header_value="hormuz.route-admission;v=3",
+                        self._send_json(HTTPStatus.OK, value,
+                                        contract_header_value=f"hormuz.route-admission;v={value['schema_version']}",
                                         extra_headers={"X-Hormuz-Chat-Tasks": "v1"})
                         return
                     self._send_contract_json(HTTPStatus.OK, schema, value,
