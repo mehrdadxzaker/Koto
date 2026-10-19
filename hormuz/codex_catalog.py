@@ -39,7 +39,8 @@ def qualified_models(config, aliases):
             'truncation_policy': {'mode': 'bytes', 'limit': 10000},
             'experimental_supported_tools': [], 'input_modalities': ['text'],
         })
-        if 'codex_llama_v1' in route.capabilities:
+        if ('codex_llama_v1' in route.capabilities
+                and (config.managed_llama is None or config.managed_llama.schema_version >= 2)):
             result[-1].update(supports_search_tool=True, supports_reasoning_summary_parameter=True,
                 default_reasoning_summary='auto', default_reasoning_level='medium',
                 include_skills_usage_instructions=True, include_plugin_usage_instructions=True,

@@ -60,7 +60,7 @@ def matches_coding_subject(subject, config, route, qualification):
                 "max_output_tokens": qualification.max_output_tokens, "upstream_timeout_seconds": config.upstream_timeout_seconds,
                 "request_profile_sha256": subject["request_profile_sha256"]}
     declared = {**subject, "capabilities": sorted(subject["capabilities"])}
-    return (subject["client_version"] in supported_versions and managed is not None
+    return (subject["client_version"] in supported_versions and managed is not None and managed.schema_version == 1
                and managed.route == route.alias and declared == expected)
 
 
