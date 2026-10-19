@@ -1,6 +1,6 @@
 # Local coding campaign version 3: prepared, not executed
 
-This prepares [#537](https://github.com/Xpounder-com/hormuz/issues/537) for the
+This prepares issue #537 for the
 [selected candidate](../../CANDIDATE_SETUP.md). The exact inputs are in
 [manifest.json](manifest.json), [candidate.json](candidate.json),
 [setup-profile.json](setup-profile.json), and the
@@ -64,7 +64,7 @@ Use only the verified asset paths corresponding to candidate.json. This is a
 preview of the existing shared setup, with a separate private client home:
 
 ```sh
-hormuz --config /absolute/private/gateway.json client setup codex \
+koto --config /absolute/private/gateway.json client setup codex \
   --client-home /absolute/private/codex-home \
   --executable /absolute/verified/codex-native \
   --runtime-archive /absolute/verified/llama-b11617-bin-macos-arm64.tar.gz \

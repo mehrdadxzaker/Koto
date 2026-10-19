@@ -1,6 +1,6 @@
 # Install Koto in an existing agent
 
-The [README](../README.md#install-in-your-agent) lists default-branch install
+The [README](../README.md#install-in-your-agent) lists local-checkout install
 commands. All packages expose the same [Koto skill](../skills/koto/SKILL.md)
 and [shared workflow](../skills/koto/references/workflow.md). They contain no
 MCP server, lifecycle hook, background installer or separate agent loop.
