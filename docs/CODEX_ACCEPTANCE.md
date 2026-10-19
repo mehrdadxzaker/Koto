@@ -151,6 +151,8 @@ Private reports retain patches, native/relay observations, independent outcomes
 and cleanup receipts, including failed native completion. A passing report
 still requests operator inspection. Revoke/disconnect run in cleanup, and
 settings/listeners/live fingerprints must verify before a scenario passes.
+Malformed native events keep every scenario failed; an expected denial or
+cancellation outcome cannot override an observation error.
 Cleanup targets only this invocation's process groups and owned listeners.
 No raw native context is published by the tool.
 
