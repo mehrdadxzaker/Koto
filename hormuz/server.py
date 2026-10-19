@@ -86,7 +86,7 @@ from .store_router import (
     create_usage_store,
     create_work_budget_request_repository,
 )
-from .usage import ResponseUsageParser
+from .usage import ResponseUsageLimitError, ResponseUsageParser
 from .local_history import LocalHistory
 from .local_history_capture import HistoryCapture, history_consent, history_redactor
 
@@ -1490,7 +1490,10 @@ class GatewayRequestHandler(BaseHTTPRequestHandler):
                 if first_body_byte_us is None:
                     first_body_byte_us = self._elapsed_us(started_ns)
                 provider_bytes_read += len(partial)
-                parser.feed(partial)
+                try:
+                    parser.feed(partial)
+                except ResponseUsageLimitError:
+                    pass  # The truncated oversized response remains unknown.
                 if history_capture is not None:
                     history_capture.feed(partial)
             downstream_ok = False
@@ -1503,7 +1506,7 @@ class GatewayRequestHandler(BaseHTTPRequestHandler):
                 decision.requested_model,
                 type(error).__name__,
             )
-        except (http.client.HTTPException, TimeoutError, OSError, CodexLlamaError) as error:
+        except (http.client.HTTPException, TimeoutError, OSError, CodexLlamaError, ResponseUsageLimitError) as error:
             downstream_ok = False
             LOGGER.warning(
                 "upstream_stream_failed actor=%s team=%s client=%s protocol=%s requested_model=%s error=%s",

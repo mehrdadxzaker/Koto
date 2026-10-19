@@ -78,7 +78,7 @@ try:
         data = response.readline() if value.get("cancel_after_event") else response.read()
     print(json.dumps({"status": response.status,
                       "headers": dict((k.lower(), v) for k, v in response.getheaders()),
-                      "body": json.loads(data) if "application/json" in response.getheader("Content-Type", "") else data.decode()}))
+                          "body": json.loads(data) if "application/json" in response.getheader("Content-Type", "") else data.decode(value.get("response_encoding", "utf-8"))}))
 finally:
     connection.close()
 '''
@@ -124,7 +124,7 @@ def provider(answer, *, status=200, health_status=200, hold_first=None, event_st
                           {"type": "response.completed", "response": result}, *trailing_events]
                 data = b"".join(("data: " + json.dumps(event, separators=separators) + "\n\n").encode() for event in events)
             if response_body is not None:
-                data = response_body
+                data = response_body(body, len(received)) if callable(response_body) else response_body
             if backpressure_first and len(received) == 1:
                 data = b"data: " + b" " * (16 * 1024 * 1024) + b"\n\n" + data
             self.send_response(status(body) if callable(status) else status)

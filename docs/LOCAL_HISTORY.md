@@ -69,6 +69,15 @@ or partial; a successful response does not establish that the user's task
 succeeded. Text from supported JSON and event-stream response shapes is
 assembled locally without changing bytes sent to the coding client.
 
+Stream completion requires a complete UTF-8 SSE data frame; an event name,
+malformed JSON, mismatched response status or an unfinished frame cannot certify
+success. `[DONE]` only completes a supported single-choice Chat Completions
+stream after a successful finish, not a Responses or Anthropic stream.
+Each provider SSE line and accumulated data event is limited to 1 MiB,
+independently of history's smaller content limits. Exceeding this transport
+limit closes the upstream connection and ends the partial downstream stream,
+with unknown outcome/usage evidence and no retry or alternate provider.
+
 At most 1000 entries and 32 MiB of encrypted entries are retained, evicting the
 oldest entries as needed. Retention is applied on capture and management
 operations, including review and export. An idle or stopped router does not
