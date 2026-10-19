@@ -1,0 +1,9 @@
+{
+  "id": "dev-distribute-units",
+  "partition": "development",
+  "family": "arithmetic",
+  "prompt": "Fix the Python implementation in solution.py. Repair distribute_units(total, buckets): both arguments must be built-in ints (bool and every int subclass are invalid), total must be nonnegative, and buckets positive; invalid input raises ValueError. Return a list of buckets nonnegative integers summing exactly to total, differing by at most one, with larger shares at the lowest indices. Use exact integer arithmetic. Make the edit, check the behavior, and complete the task. /no_think",
+  "initial_solution": "def distribute_units(total, buckets):\n    return [total // buckets] * buckets\n",
+  "checker": "import runpy\nimport sys\ns = runpy.run_path(sys.argv[1])\nf=s['distribute_units']\nassert f(8,3)==[3,3,2]\nassert f(2,4)==[1,1,0,0] and f(0,3)==[0,0,0]\nassert f(17,1)==[17] and f(10,5)==[2,2,2,2,2]\nassert f(2417851639229258349412353,2)==[1208925819614629174706177,1208925819614629174706176]\nclass IntChild(int): pass\nfor a,b in [(-1,2),(1,0),(1,-2),(True,2),(2,True),(False,2),(2,False),(2.0,2),(2,2.0),(IntChild(2),2),(2,IntChild(2)),('2',2),(2,None)]:\n    try: f(a,b)\n    except ValueError: pass\n    else: raise AssertionError('invalid allocation accepted')\n",
+  "reference_solution": "def distribute_units(total, buckets):\n    if type(total) is not int or type(buckets) is not int or total < 0 or buckets <= 0:\n        raise ValueError('invalid allocation')\n    share, extra = divmod(total, buckets)\n    return [share + (i < extra) for i in range(buckets)]\n"
+}

@@ -1,0 +1,9 @@
+{
+  "id": "dev-pin-attempts",
+  "partition": "development",
+  "family": "validation_state",
+  "prompt": "Fix the Python implementation in solution.py. Repair PinLock.check_code(candidate). The constructor receives a valid four-ASCII-digit pin and starts attempts at zero. A candidate must be a string of exactly four ASCII digits 0-9; otherwise raise ValueError before changing attempts. For each syntactically valid candidate, increment attempts once and return whether it exactly matches pin. Make the edit, check the behavior, and complete the task. /no_think",
+  "initial_solution": "class PinLock:\n    def __init__(self, pin):\n        self.pin=pin\n        self.attempts=0\n    def check_code(self, candidate):\n        self.attempts+=1\n        return candidate==self.pin\n",
+  "checker": "import runpy\nimport sys\ns = runpy.run_path(sys.argv[1])\nc=s['PinLock']('0123')\nassert c.attempts==0 and c.check_code('9999') is False and c.attempts==1\nfor bad in ['', '123', '12345', ' 123', '١٢٣٤', '１２３４', '+123', '1_23', None, True, 123, b'0123']:\n    try: c.check_code(bad)\n    except ValueError: pass\n    else: raise AssertionError('invalid pin accepted')\n    assert c.attempts==1 and c.pin=='0123'\nassert c.check_code('0123') is True and c.attempts==2\nassert c.check_code('0000') is False and c.attempts==3\n",
+  "reference_solution": "class PinLock:\n    def __init__(self, pin):\n        self.pin=pin\n        self.attempts=0\n    def check_code(self, candidate):\n        if not isinstance(candidate,str) or len(candidate)!=4 or any(c not in '0123456789' for c in candidate):\n            raise ValueError('invalid pin')\n        self.attempts+=1\n        return candidate==self.pin\n"
+}
