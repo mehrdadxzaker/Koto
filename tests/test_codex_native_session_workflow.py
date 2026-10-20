@@ -271,6 +271,48 @@ class CodexNativeSessionWorkflowTests(unittest.TestCase):
         self.assertIn('thread/start', [item['method'] for item in requests])
         self.assertTrue(result['cleanup']['owned_processes_stopped'])
 
+    def test_a_transient_process_group_probe_denial_still_finishes_owned_cleanup(self):
+        from hormuz.codex_native_session import run_session
+        (self.home / 'mode').write_text('blocked_input')
+        kill_group = os.killpg
+        denied = []
+
+        def probe(group, action):
+            requests = self.home / 'requests.jsonl'
+            owned = {json.loads(line)['nativePid'] for line in requests.read_text().splitlines()} if requests.exists() else set()
+            if action == 0 and group in owned and not denied:
+                denied.append(group)
+                raise PermissionError(1, 'External process-group observation temporarily unavailable')
+            return kill_group(group, action)
+
+        try:
+            started = time.monotonic()
+            with patch.object(os, 'killpg', side_effect=probe):
+                result = run_session(self.executable, self.home, self.cwd, 'x' * 65536, timeout_seconds=2)
+            self.assertEqual(len(denied), 1)
+            self.assertEqual((result['status'], result['error']), ('unknown', 'native_deadline'), result)
+            self.assertTrue(result['cleanup']['owned_processes_stopped'], result)
+            self.assertLess(time.monotonic() - started, 3.5)
+            with self.assertRaises(ProcessLookupError):
+                os.kill(denied[0], 0)
+        finally:
+            for pid in denied:
+                try:
+                    kill_group(pid, signal.SIGKILL)
+                except (ProcessLookupError, PermissionError):
+                    pass
+                deadline = time.monotonic() + 2
+                while time.monotonic() < deadline:
+                    try:
+                        reaped, _ = os.waitpid(pid, os.WNOHANG)
+                    except ChildProcessError:
+                        break
+                    if reaped == pid:
+                        break
+                    time.sleep(.02)
+                else:
+                    self.fail('Owned native fixture could not be reaped within cleanup deadline')
+
     def test_only_explicit_gateway_credentials_reach_the_selected_local_provider_environment(self):
         from hormuz.codex_native_session import run_session
         (self.home / 'mode').write_text('gateway_environment')
