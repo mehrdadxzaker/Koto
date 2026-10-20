@@ -1,7 +1,8 @@
 # Qwen request-adapter comparison — October 19, 2026
 
-This is the historical pre-fix study. See the [post-fix six-case rerun](post-fix-results.md)
-for the current result and [integration diagnosis](integration-fixes.md) for the two Koto failures.
+This is the historical pre-fix study. See the [fresh six-task verification](verification-20261020.md),
+the [first corrected rerun](post-fix-results.md), and the [integration diagnosis](integration-fixes.md)
+for the later results and the two Koto failures.
 
 **No improvement in coding success was observed: baseline 0/6; adapted 0/6.** Neither arm saved a changed implementation. The adapter remains an opt-in experiment and does not qualify automatic coding.
 

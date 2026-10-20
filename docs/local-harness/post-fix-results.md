@@ -1,5 +1,8 @@
 # Six-case comparison after the integration fixes — October 20, 2026
 
+This is the first corrected run. A [fresh verification](verification-20261020.md)
+subsequently found baseline 4/6 and adapted 5/6; both runs remain preserved.
+
 **Baseline: 4/6 successful repairs. Adapted: 3/6. No coding-quality improvement from the optional Qwen guidance was observed.**
 
 All twelve episodes saved changed implementations and completed their native turns normally. The two diagnosed integration failures were resolved. Five episodes still failed independent correctness checks. Automatic coding remains disabled.

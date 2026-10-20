@@ -105,10 +105,12 @@ machine pressure limit latency conclusions. It cannot establish Codex desktop
 activation or general local-model coding readiness. Recorded results and the
 separate standards/spec reviews accompany this change.
 
-The [post-fix comparison](local-harness/post-fix-results.md) found **4/6 successful
-repairs for baseline and 3/6 for adapted**. All twelve native turns completed and
-saved edits after the [integration fixes](local-harness/integration-fixes.md).
-The [original pre-fix study](local-harness/results.md) found 0/6 in both arms.
-Keep the optional guidance experimental; no coding-quality improvement over the
-corrected baseline was observed. The comparison runner uses the native macOS
-sandbox and is currently a macOS maintainer tool.
+The [fresh verification](local-harness/verification-20261020.md) found **4/6
+successful repairs for baseline and 5/6 for adapted**. The [first corrected
+comparison](local-harness/post-fix-results.md) found 4/6 and 3/6 respectively.
+Across both corrected runs each arm completed 8/12 repairs; a consistent quality
+advantage has not been established. Every native turn saved an edit and completed
+after the [integration fixes](local-harness/integration-fixes.md). The [original
+pre-fix study](local-harness/results.md) found 0/6 in both arms. Keep the optional
+guidance experimental. The comparison runner uses the native macOS sandbox and
+is currently a macOS maintainer tool.

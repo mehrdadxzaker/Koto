@@ -1,0 +1,25 @@
+{
+  "original_source": "522ed7f8ee1f98e7c2dfbc17e0668bb2aebf5783",
+  "fixed_installed_source": "bba6ecc05db5e7cf83ecdc3bc5655e6f3be66e4d",
+  "isolated_test_directory": "/private/tmp/koto-six-task-diagnosis-20261020",
+  "workflow_test_names": [
+    "tests.test_coding_output_workflow.CodingOutputWorkflowTests.test_v5_setup_uses_bounded_non_thinking_flags_and_stays_unqualified",
+    "tests.test_coding_output_workflow.CodingOutputWorkflowTests.test_v4_probe_accepts_native_patch_result_without_granting_automatic_coding"
+  ],
+  "fast_module": "tests.test_coding_probe_fast",
+  "original": {
+    "ran": 2,
+    "failed": 2,
+    "seconds": 2.891,
+    "signals": [
+      "AssertionError: None != 'freeform'",
+      "AssertionError: 403 != 200: probe_request_mismatch"
+    ]
+  },
+  "fixed": {
+    "ran": 5,
+    "failed": 0,
+    "seconds": 3.129
+  },
+  "new_product_changes": false
+}

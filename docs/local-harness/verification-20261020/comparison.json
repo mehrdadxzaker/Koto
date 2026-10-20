@@ -1,0 +1,322 @@
+{
+  "frozen_plan_sha256": "3b1be9cd762808713ef136fbb3a73171041b078be4c47fffe4cc37016886c73a",
+  "outcomes": [
+    {
+      "case_id": "signed-ceiling",
+      "arm": "baseline",
+      "model": "Qwen3-14B-Q4_K_M",
+      "client_exit_code": 0,
+      "termination": "completed",
+      "elapsed_ms": 46495,
+      "turn_completed": true,
+      "tool_calls": 2,
+      "tool_errors": 0,
+      "implementation_changed": true,
+      "check_exit_code": 0,
+      "independent_check": {
+        "exit_code": 0,
+        "termination": "completed",
+        "stdout": "",
+        "stderr": ""
+      },
+      "baseline_exit_code": 1,
+      "checks_unchanged": true,
+      "request_profile_sha256": "6cde003eb8f09cdef3a3833dd0b03170602e3061b98a1da4cd702de7465bcbc6",
+      "submitted_requests": 3,
+      "passed": true
+    },
+    {
+      "case_id": "literal-first",
+      "arm": "baseline",
+      "model": "Qwen3-14B-Q4_K_M",
+      "client_exit_code": 0,
+      "termination": "completed",
+      "elapsed_ms": 23750,
+      "turn_completed": true,
+      "tool_calls": 2,
+      "tool_errors": 0,
+      "implementation_changed": true,
+      "check_exit_code": 0,
+      "independent_check": {
+        "exit_code": 0,
+        "termination": "completed",
+        "stdout": "",
+        "stderr": ""
+      },
+      "baseline_exit_code": 1,
+      "checks_unchanged": true,
+      "request_profile_sha256": "6cde003eb8f09cdef3a3833dd0b03170602e3061b98a1da4cd702de7465bcbc6",
+      "submitted_requests": 3,
+      "passed": true
+    },
+    {
+      "case_id": "adjacent-groups",
+      "arm": "baseline",
+      "model": "Qwen3-14B-Q4_K_M",
+      "client_exit_code": 0,
+      "termination": "completed",
+      "elapsed_ms": 28870,
+      "turn_completed": true,
+      "tool_calls": 2,
+      "tool_errors": 0,
+      "implementation_changed": true,
+      "check_exit_code": 0,
+      "independent_check": {
+        "exit_code": 0,
+        "termination": "completed",
+        "stdout": "",
+        "stderr": ""
+      },
+      "baseline_exit_code": 1,
+      "checks_unchanged": true,
+      "request_profile_sha256": "6cde003eb8f09cdef3a3833dd0b03170602e3061b98a1da4cd702de7465bcbc6",
+      "submitted_requests": 3,
+      "passed": true
+    },
+    {
+      "case_id": "signed-ceiling",
+      "arm": "adapted",
+      "model": "Qwen3-14B-Q4_K_M",
+      "client_exit_code": 0,
+      "termination": "completed",
+      "elapsed_ms": 45038,
+      "turn_completed": true,
+      "tool_calls": 2,
+      "tool_errors": 0,
+      "implementation_changed": true,
+      "check_exit_code": 0,
+      "independent_check": {
+        "exit_code": 0,
+        "termination": "completed",
+        "stdout": "",
+        "stderr": ""
+      },
+      "baseline_exit_code": 1,
+      "checks_unchanged": true,
+      "request_profile_sha256": "6cde003eb8f09cdef3a3833dd0b03170602e3061b98a1da4cd702de7465bcbc6",
+      "submitted_requests": 3,
+      "passed": true
+    },
+    {
+      "case_id": "literal-first",
+      "arm": "adapted",
+      "model": "Qwen3-14B-Q4_K_M",
+      "client_exit_code": 0,
+      "termination": "completed",
+      "elapsed_ms": 26985,
+      "turn_completed": true,
+      "tool_calls": 2,
+      "tool_errors": 0,
+      "implementation_changed": true,
+      "check_exit_code": 0,
+      "independent_check": {
+        "exit_code": 0,
+        "termination": "completed",
+        "stdout": "",
+        "stderr": ""
+      },
+      "baseline_exit_code": 1,
+      "checks_unchanged": true,
+      "request_profile_sha256": "6cde003eb8f09cdef3a3833dd0b03170602e3061b98a1da4cd702de7465bcbc6",
+      "submitted_requests": 3,
+      "passed": true
+    },
+    {
+      "case_id": "adjacent-groups",
+      "arm": "adapted",
+      "model": "Qwen3-14B-Q4_K_M",
+      "client_exit_code": 0,
+      "termination": "completed",
+      "elapsed_ms": 33438,
+      "turn_completed": true,
+      "tool_calls": 2,
+      "tool_errors": 0,
+      "implementation_changed": true,
+      "check_exit_code": 0,
+      "independent_check": {
+        "exit_code": 0,
+        "termination": "completed",
+        "stdout": "",
+        "stderr": ""
+      },
+      "baseline_exit_code": 1,
+      "checks_unchanged": true,
+      "request_profile_sha256": "6cde003eb8f09cdef3a3833dd0b03170602e3061b98a1da4cd702de7465bcbc6",
+      "submitted_requests": 3,
+      "passed": true
+    },
+    {
+      "case_id": "interval-union",
+      "arm": "adapted",
+      "model": "Qwen3-14B-Q4_K_M",
+      "client_exit_code": 0,
+      "termination": "completed",
+      "elapsed_ms": 43017,
+      "turn_completed": true,
+      "tool_calls": 2,
+      "tool_errors": 0,
+      "implementation_changed": true,
+      "check_exit_code": 0,
+      "independent_check": {
+        "exit_code": 0,
+        "termination": "completed",
+        "stdout": "",
+        "stderr": ""
+      },
+      "baseline_exit_code": 1,
+      "checks_unchanged": true,
+      "request_profile_sha256": "6cde003eb8f09cdef3a3833dd0b03170602e3061b98a1da4cd702de7465bcbc6",
+      "submitted_requests": 3,
+      "passed": true
+    },
+    {
+      "case_id": "atomic-stock",
+      "arm": "adapted",
+      "model": "Qwen3-14B-Q4_K_M",
+      "client_exit_code": 0,
+      "termination": "completed",
+      "elapsed_ms": 32955,
+      "turn_completed": true,
+      "tool_calls": 2,
+      "tool_errors": 0,
+      "implementation_changed": true,
+      "check_exit_code": 1,
+      "independent_check": {
+        "exit_code": 1,
+        "termination": "completed",
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"/Users/mehrdadz/Downloads/memoWiki/koto-local-harness-comparison-20261020-verification/checks/atomic-stock.py\", line 14, in <module>\n    assert x == {'a': 5, 'b': 2}\n           ^^^^^^^^^^^^^^^^^^^^^\nAssertionError\n"
+      },
+      "baseline_exit_code": 1,
+      "checks_unchanged": true,
+      "request_profile_sha256": "6cde003eb8f09cdef3a3833dd0b03170602e3061b98a1da4cd702de7465bcbc6",
+      "submitted_requests": 3,
+      "passed": false
+    },
+    {
+      "case_id": "stable-key-unique",
+      "arm": "adapted",
+      "model": "Qwen3-14B-Q4_K_M",
+      "client_exit_code": 0,
+      "termination": "completed",
+      "elapsed_ms": 33001,
+      "turn_completed": true,
+      "tool_calls": 2,
+      "tool_errors": 0,
+      "implementation_changed": true,
+      "check_exit_code": 0,
+      "independent_check": {
+        "exit_code": 0,
+        "termination": "completed",
+        "stdout": "",
+        "stderr": ""
+      },
+      "baseline_exit_code": 1,
+      "checks_unchanged": true,
+      "request_profile_sha256": "6cde003eb8f09cdef3a3833dd0b03170602e3061b98a1da4cd702de7465bcbc6",
+      "submitted_requests": 3,
+      "passed": true
+    },
+    {
+      "case_id": "interval-union",
+      "arm": "baseline",
+      "model": "Qwen3-14B-Q4_K_M",
+      "client_exit_code": 0,
+      "termination": "completed",
+      "elapsed_ms": 63607,
+      "turn_completed": true,
+      "tool_calls": 2,
+      "tool_errors": 0,
+      "implementation_changed": true,
+      "check_exit_code": 0,
+      "independent_check": {
+        "exit_code": 0,
+        "termination": "completed",
+        "stdout": "",
+        "stderr": ""
+      },
+      "baseline_exit_code": 1,
+      "checks_unchanged": true,
+      "request_profile_sha256": "6cde003eb8f09cdef3a3833dd0b03170602e3061b98a1da4cd702de7465bcbc6",
+      "submitted_requests": 3,
+      "passed": true
+    },
+    {
+      "case_id": "atomic-stock",
+      "arm": "baseline",
+      "model": "Qwen3-14B-Q4_K_M",
+      "client_exit_code": 0,
+      "termination": "completed",
+      "elapsed_ms": 31131,
+      "turn_completed": true,
+      "tool_calls": 2,
+      "tool_errors": 0,
+      "implementation_changed": true,
+      "check_exit_code": 1,
+      "independent_check": {
+        "exit_code": 1,
+        "termination": "completed",
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"/Users/mehrdadz/Downloads/memoWiki/koto-local-harness-comparison-20261020-verification/checks/atomic-stock.py\", line 14, in <module>\n    assert x == {'a': 5, 'b': 2}\n           ^^^^^^^^^^^^^^^^^^^^^\nAssertionError\n"
+      },
+      "baseline_exit_code": 1,
+      "checks_unchanged": true,
+      "request_profile_sha256": "6cde003eb8f09cdef3a3833dd0b03170602e3061b98a1da4cd702de7465bcbc6",
+      "submitted_requests": 3,
+      "passed": false
+    },
+    {
+      "case_id": "stable-key-unique",
+      "arm": "baseline",
+      "model": "Qwen3-14B-Q4_K_M",
+      "client_exit_code": 0,
+      "termination": "completed",
+      "elapsed_ms": 23809,
+      "turn_completed": true,
+      "tool_calls": 2,
+      "tool_errors": 0,
+      "implementation_changed": true,
+      "check_exit_code": 2,
+      "independent_check": {
+        "exit_code": 2,
+        "termination": "completed",
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"/Users/mehrdadz/Downloads/memoWiki/koto-local-harness-comparison-20261020-verification/checks/stable-key-unique.py\", line 10, in <module>\n    r = s.unique_records(x, 'id')\n        ^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/mehrdadz/Downloads/memoWiki/koto-local-harness-comparison-20261020-verification/project/solution.py\", line 6, in unique_records\n    if val not in seen:\n       ^^^^^^^^^^^^^^^\nTypeError: unhashable type: 'list'\n"
+      },
+      "baseline_exit_code": 1,
+      "checks_unchanged": true,
+      "request_profile_sha256": "6cde003eb8f09cdef3a3833dd0b03170602e3061b98a1da4cd702de7465bcbc6",
+      "submitted_requests": 3,
+      "passed": false
+    }
+  ],
+  "baseline": {
+    "passed": 4,
+    "total": 6,
+    "median_elapsed_ms": 30000.5,
+    "tool_errors": 0
+  },
+  "adapted": {
+    "passed": 5,
+    "total": 6,
+    "median_elapsed_ms": 33219.5,
+    "tool_errors": 0
+  },
+  "same_native_profiles": true,
+  "cleanup": [
+    {
+      "settings_restored": true,
+      "owned_listeners_closed": true
+    },
+    {
+      "settings_restored": true,
+      "owned_listeners_closed": true
+    },
+    {
+      "settings_restored": true,
+      "owned_listeners_closed": true
+    }
+  ],
+  "normal_settings_unchanged": true,
+  "frozen_artifacts_unchanged": true
+}

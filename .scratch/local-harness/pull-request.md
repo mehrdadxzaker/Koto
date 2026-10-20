@@ -16,27 +16,38 @@ automatic coding remains disabled for the tested route.
 
 ## Evidence
 
-- **Before:** the original paired study completed 0/6 repairs in either arm.
-  **After both integration fixes:** baseline **4/6**, adapted **3/6**. All twelve
-  episodes saved edits and completed normally. The guidance showed no coding
-  improvement; remaining failures were syntax, stock-validation and unhashable-key
-  errors. These are separate from the repaired transport/admission failures.
-- Deterministic native replay changed from bare `apply_patch`/exit 2/no edit to a
-  saved native patch and normal completion. The public probe regression changed
-  from HTTP 403 after that patch to an accepted continuation, while retaining
-  legacy-envelope, replay and changed-task rejection.
-- **55 fast + 582 workflow tests passed** against the exact installed candidate wheel outside the source checkout. All 171 packaged files match final source. Source-scope and version checks passed. An unchanged cleanup timing test failed on the first full attempt, then passed in isolation and in the fresh complete run; that failure is retained in validation metadata.
-- All six tasks/checks and installed client/runtime/model hashes match the
-  original study. Both arms used the same native profile, fixed sampling, serial
-  inference and 16-request/90-second episode limits, with no quality retries.
-  All three owned connection lifetimes restored settings and closed listeners;
-  normal Codex settings were unchanged.
+- **Before:** original paired study 0/6 in both arms, confounded by integration
+  defects. **After both fixes:** the first corrected run scored baseline **4/6**,
+  adapted **3/6**; fresh verification scored baseline **4/6**, adapted **5/6**.
+  Both arms total **8/12** across the corrected runs. There is no consistent
+  guidance advantage. These repeated development cases are diagnostic evidence,
+  not independent held-out qualification.
+- All twelve fresh episodes saved an edit and completed normally, with 36 serial
+  submissions and no failed tool commands or probe rejections. The three failures
+  were batch rollback in both stock implementations and baseline list-key
+  hashability. No fresh episode ran its own test command; independent checks
+  caught the failures. All saved outputs and unchanged checks remain retained.
+- Both targeted regressions failed against the original code: missing freeform
+  editor and HTTP 403 after native patch history. The same two regressions plus
+  three probe-boundary tests passed against the corrected installed wheel. The
+  gates still reject legacy/undeclared history, replays and changed tasks, while
+  ordinary unqualified coding stays blocked.
+- The retained **55 fast + 582 workflow tests (637 total)** passed against that
+  installed wheel outside the checkout. Its full log was rehashed and all 171
+  packaged files rechecked against source. This follow-up changes documentation
+  and evidence only; it reran the five affected regressions and the real paired
+  comparison. The earlier cleanup timing failure and clean full rerun remain
+  disclosed in validation metadata.
+- The same six tasks/checks and installed client/runtime/model hashes were used.
+  Native profiles match within each pair. Sampling and 16-request/90-second
+  episode limits stayed fixed, with no quality retries or treatment tuning.
+  Settings restoration and listener cleanup passed; normal Codex settings were
+  unchanged. Independent fix/report review found no actionable issues.
 
-See [the paired rerun](docs/local-harness/post-fix-results.md),
-[integration diagnosis](docs/local-harness/integration-fixes.md), and
-[full outcomes and traces](docs/local-harness/post-fix/comparison.json).
-The original failed study remains separately retained. Six stochastic samples
-per arm are exploratory evidence and do not qualify automatic coding.
+See [fresh verification and diagnosis](docs/local-harness/verification-20261020.md),
+[the first corrected run](docs/local-harness/post-fix-results.md), and
+[integration fixes](docs/local-harness/integration-fixes.md).
+The original failed study remains separately retained.
 
 ## Merge Danger
 
