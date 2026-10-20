@@ -52,6 +52,14 @@ def stop(process):
             os.killpg(process.pid, sig)
         except ProcessLookupError:
             break
+        except PermissionError as denied:
+            # A child can exit between group signals. Permission denial alone
+            # proves nothing; accept this race only after positively reaping it.
+            try:
+                process.wait(timeout=2)
+            except subprocess.TimeoutExpired:
+                raise denied from None
+            break
         try:
             process.wait(timeout=2)
         except subprocess.TimeoutExpired:
