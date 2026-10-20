@@ -5,6 +5,7 @@ ac1fcc8fe57aba51fcc3c79afd57a0883237fe87, core/src/harness/qwen_code.rs.
 This is an independent, transport-only adaptation, not its complete harness.
 """
 from .compaction_formats import strict_json_loads
+from .local_harness_progress import GUIDANCE as V4_GUIDANCE, REPEATED_PATCH_ADVICE as V4_REPEATED_PATCH, progress_checkpoint
 import json
 import re
 
@@ -14,7 +15,10 @@ V2_CAPABILITY = 'qwen_code_v2'
 V2_PROFILE = 'qwen-code.v2'
 V3_CAPABILITY = 'qwen_code_v3'
 V3_PROFILE = 'qwen-code.v3'
-PROFILES = {CAPABILITY: PROFILE, V2_CAPABILITY: V2_PROFILE, V3_CAPABILITY: V3_PROFILE}
+V4_CAPABILITY = 'qwen_code_v4'
+V4_PROFILE = 'qwen-code.v4'
+PROFILES = {CAPABILITY: PROFILE, V2_CAPABILITY: V2_PROFILE, V3_CAPABILITY: V3_PROFILE,
+            V4_CAPABILITY: V4_PROFILE}
 MODEL = 'Qwen3-14B-Q4_K_M'
 GUIDANCE = '''Local coding guidance (subordinate to all existing host and repository instructions):
 Read the relevant source and nearby tests before editing. Follow existing project
@@ -103,7 +107,7 @@ verified the edit, report those actual results. If no allowed approach exists,
 report it.'''
 
 
-def _patch_recovery(items, declarations):
+def _patch_recovery(items, declarations, *, repeated_advice=V3_REPEATED_PATCH):
     """Derive advice from correlated native feedback; never repair tool arguments."""
     calls, failures = {}, {}
     repeated = 0
@@ -130,7 +134,7 @@ def _patch_recovery(items, declarations):
                 repeated = 0
     if not repeated:
         return ''
-    return '\n\n' + V3_PATCH_RECOVERY + ('\n\n' + V3_REPEATED_PATCH if repeated >= 2 else '')
+    return '\n\n' + V3_PATCH_RECOVERY + ('\n\n' + repeated_advice if repeated >= 2 else '')
 
 
 def profile_for_capabilities(capabilities):
@@ -147,7 +151,8 @@ def adapt_qwen_request(value, declarations, *, profile=PROFILE):
     instructions = value.get('instructions', '')
     if not isinstance(instructions, str):
         raise ValueError('invalid_harness_instructions')
-    value['instructions'] = instructions + '\n\n' + (GUIDANCE if profile == PROFILE else V2_GUIDANCE)
+    guidance = V4_GUIDANCE if profile == V4_PROFILE else GUIDANCE if profile == PROFILE else V2_GUIDANCE
+    value['instructions'] = instructions + '\n\n' + guidance
     for item in value.get('input', []):
         if not isinstance(item, dict) or item.get('type') != 'function_call':
             continue
@@ -156,12 +161,16 @@ def adapt_qwen_request(value, declarations, *, profile=PROFILE):
         ordered = {key: arguments[key] for key in properties if key in arguments}
         ordered.update(arguments)
         item['arguments'] = json.dumps(ordered, separators=(',', ':'), ensure_ascii=False, allow_nan=False)
-    if profile in {V2_PROFILE, V3_PROFILE} and isinstance(value.get('input'), str):
+    if profile in {V2_PROFILE, V3_PROFILE, V4_PROFILE} and isinstance(value.get('input'), str):
         value['input'] = [{'type': 'message', 'role': 'user', 'content': [
             {'type': 'input_text', 'text': value['input']}]}]
-    if profile in {V2_PROFILE, V3_PROFILE} and isinstance(value.get('input'), list):
+    if profile in {V2_PROFILE, V3_PROFILE, V4_PROFILE} and isinstance(value.get('input'), list):
         # A model-facing reminder, never a fabricated user message, tool result,
         # or extra agent turn. The native transcript remains an exact prefix.
-        checkpoint = V2_CHECKPOINT + (_patch_recovery(value['input'], declarations) if profile == V3_PROFILE else '')
+        checkpoint = progress_checkpoint(value['input'], declarations) if profile == V4_PROFILE else V2_CHECKPOINT
+        if profile == V4_PROFILE:
+            checkpoint += _patch_recovery(value['input'], declarations, repeated_advice=V4_REPEATED_PATCH)
+        elif profile == V3_PROFILE:
+            checkpoint += _patch_recovery(value['input'], declarations)
         value['input'].append({'type': 'message', 'role': 'developer', 'content': [
             {'type': 'input_text', 'text': checkpoint}]})

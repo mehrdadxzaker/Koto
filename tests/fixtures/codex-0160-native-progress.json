@@ -1,0 +1,189 @@
+{
+  "client_version": "0.160.0",
+  "capture_kind": "scripted_native_host_zero_model_inference_exact_benchmark_sandbox",
+  "declarations": {
+    "exec_command": {
+      "type": "function",
+      "name": "exec_command",
+      "description": "Runs a command in a PTY, returning output or a session ID for ongoing interaction.",
+      "strict": false,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "cmd": {
+            "type": "string",
+            "description": "Shell command to execute."
+          },
+          "justification": {
+            "type": "string",
+            "description": "User-facing approval question for `require_escalated`; omit otherwise."
+          },
+          "login": {
+            "type": "boolean",
+            "description": "True runs the shell with -l/-i semantics; false disables them. Defaults to true."
+          },
+          "max_output_tokens": {
+            "type": "number",
+            "description": "Output token budget. Defaults to 10000 tokens; larger requests may be capped by policy."
+          },
+          "prefix_rule": {
+            "type": "array",
+            "description": "Reusable approval prefix for `cmd`, only with `sandbox_permissions: \"require_escalated\"`; for example [\"git\", \"pull\"].",
+            "items": {
+              "type": "string"
+            }
+          },
+          "sandbox_permissions": {
+            "type": "string",
+            "description": "Per-command sandbox override. Defaults to `use_default`; use `require_escalated` for unsandboxed execution.",
+            "enum": [
+              "use_default",
+              "require_escalated"
+            ]
+          },
+          "shell": {
+            "type": "string",
+            "description": "Shell binary to launch. Defaults to the user's default shell."
+          },
+          "tty": {
+            "type": "boolean",
+            "description": "True allocates a PTY for the command; false or omitted uses plain pipes."
+          },
+          "workdir": {
+            "type": "string",
+            "description": "Working directory for the command. Defaults to the turn cwd."
+          },
+          "yield_time_ms": {
+            "type": "number",
+            "description": "Wait before yielding output. Defaults to 10000 ms; effective range is 250-30000 ms."
+          }
+        },
+        "required": [
+          "cmd"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "write_stdin": {
+      "type": "function",
+      "name": "write_stdin",
+      "description": "Writes characters to an existing unified exec session and returns recent output.",
+      "strict": false,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "chars": {
+            "type": "string",
+            "description": "Bytes to write to stdin. Defaults to empty, which polls without writing."
+          },
+          "max_output_tokens": {
+            "type": "number",
+            "description": "Output token budget. Defaults to 10000 tokens; larger requests may be capped by policy."
+          },
+          "session_id": {
+            "type": "number",
+            "description": "Identifier of the running unified exec session."
+          },
+          "yield_time_ms": {
+            "type": "number",
+            "description": "Wait before yielding output. Non-empty writes default to 250 ms and cap at 30000 ms; empty polls wait 5000-300000 ms by default."
+          }
+        },
+        "required": [
+          "session_id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "apply_patch": {
+      "type": "custom",
+      "name": "apply_patch",
+      "description": "The `apply_patch` tool can be used to edit files. This is a FREEFORM tool, so do not wrap the patch in JSON.",
+      "format": {
+        "type": "grammar",
+        "syntax": "lark",
+        "definition": "start: begin_patch hunk+ end_patch\nbegin_patch: \"*** Begin Patch\" LF\nend_patch: \"*** End Patch\" LF?\n\nhunk: add_hunk | delete_hunk | update_hunk\nadd_hunk: \"*** Add File: \" filename LF add_line+\ndelete_hunk: \"*** Delete File: \" filename LF\nupdate_hunk: \"*** Update File: \" filename LF change_move? change?\n\nfilename: /(.+)/\nadd_line: \"+\" /(.*)/ LF -> line\n\nchange_move: \"*** Move to: \" filename LF\nchange: (change_context | change_line)+ eof_line?\nchange_context: (\"@@\" | \"@@ \" /(.+)/) LF\nchange_line: (\"+\" | \"-\" | \" \") /(.*)/ LF\neof_line: \"*** End of File\" LF\n\n%import common.LF\n"
+      }
+    }
+  },
+  "cases": {
+    "exec_failure": {
+      "call": {
+        "type": "function_call",
+        "name": "exec_command",
+        "arguments": "{\"cmd\": \"python3 -c \\\"import copy\\\\ndef test_consume_stock():\\\\n    stock = {\\\\\\\"apple\\\\\\\": 10, \\\\\\\"banana\\\\\\\": 5}\\\\n    requests = [(\\\\\\\"apple\\\\\\\", 3), (\\\\\\\"banana\\\\\\\", 2)]\\\\n    try:\\\\n        consume_stock(stock, requests)\\\\n    except Exception as e:\\\\n        print(\\\\\\\"Error:\\\\\\\", e)\\\\n    else:\\\\n        assert stock == {\\\\\\\"apple\\\\\\\": 7, \\\\\\\"banana\\\\\\\": 3}, \\\\\\\"Stock not updated correctly\\\\\\\"\\\\n    # Test unknown item\\\\n    stock = {\\\\\\\"apple\\\\\\\": 10}\\\\n    requests = [(\\\\\\\"orange\\\\\\\", 2)]\\\\n    try:\\\\n        consume_stock(stock, requests)\\\\n    except KeyError as e:\\\\n        print(\\\\\\\"KeyError caught:\\\\\\\", e)\\\\n    else:\\\\n        assert stock == {\\\\\\\"apple\\\\\\\": 10}, \\\\\\\"Stock should not change on error\\\\\\\"\\\\n    # Test negative quantity\\\\n    stock = {\\\\\\\"apple\\\\\\\": 10}\\\\n    requests = [(\\\\\\\"apple\\\\\\\", -2)]\\\\n    try:\\\\n        consume_stock(stock, requests)\\\\n    except ValueError as e:\\\\n        print(\\\\\\\"ValueError caught:\\\\\\\", e)\\\\n    else:\\\\n        assert stock == {\\\\\\\"apple\\\\\\\": 10}, \\\\\\\"Stock should not change on error\\\\\\\"\\\\n    # Test insufficient stock\\\\n    stock = {\\\\\\\"apple\\\\\\\": 10}\\\\n    requests = [(\\\\\\\"apple\\\\\\\", 15)]\\\\n    try:\\\\n        consume_stock(stock, requests)\\\\n    except ValueError as e:\\\\n        print(\\\\\\\"ValueError caught:\\\\\\\", e)\\\\n    else:\\\\n        assert stock == {\\\\\\\"apple\\\\\\\": 10}, \\\\\\\"Stock should not change on error\\\\\\\"\\\\n    # Test empty requests\\\\n    stock = {\\\\\\\"apple\\\\\\\": 10}\\\\n    requests = []\\\\n    consume_stock(stock, requests)\\\\n    assert stock == {\\\\\\\"apple\\\\\\\": 10}, \\\\\\\"Stock should remain unchanged for empty requests\\\\\\\"\\\\n    print(\\\\\\\"All tests passed.\\\")\\\\ntest_consume_stock()\\\"\", \"yield_time_ms\": 1000, \"max_output_tokens\": 1000}",
+        "call_id": "command-bad"
+      },
+      "result": {
+        "type": "function_call_output",
+        "id": "fco_01a159e5-a131-7ea3-b87f-0fde4f90b6bb",
+        "call_id": "command-bad",
+        "output": "Chunk ID: af55ab\nWall time: 0.0000 seconds\nProcess exited with code 1\nOriginal token count: 7\nOutput:\nzsh:1: parse error near `)'\n"
+      }
+    },
+    "exec_success": {
+      "call": {
+        "type": "function_call",
+        "name": "exec_command",
+        "arguments": "{\"cmd\": \"python3 -c 'values = [1, 2]\\nassert values[0] == 1\\nassert sum(values) == 3\\nprint(\\\"SCRIPTED_ASSERTIONS_EXECUTED\\\")'\", \"yield_time_ms\": 1000, \"max_output_tokens\": 1000}",
+        "call_id": "command-good"
+      },
+      "result": {
+        "type": "function_call_output",
+        "id": "fco_01a159e5-a16b-78a0-9aaf-2cc6db5b75c3",
+        "call_id": "command-good",
+        "output": "Chunk ID: a4dc07\nWall time: 0.0000 seconds\nProcess exited with code 0\nOriginal token count: 35\nOutput:\npython3: warning: confstr() failed with code 5: couldn't get path of DARWIN_USER_TEMP_DIR; using /tmp instead\nSCRIPTED_ASSERTIONS_EXECUTED\n"
+      }
+    },
+    "patch_failure": {
+      "call": {
+        "type": "function_call",
+        "status": "completed",
+        "call_id": "patch-bad",
+        "name": "apply_patch",
+        "arguments": "{\"input\":\"*** Begin Patch\\n*** Update File: solution.py\\n@@ -1,2 +1,2 @@\\n-    return value\\n+    return value + 1\\n*** End Patch\"}"
+      },
+      "result": {
+        "type": "function_call_output",
+        "id": "ctco_01a159b9-b890-7ec2-bb52-3ee2b4210d69",
+        "call_id": "patch-bad",
+        "output": "apply_patch verification failed: Failed to find context '-1,2 +1,2 @@' in /Users/mehrdadz/Downloads/memoWiki/koto-harness-v3-diagnosis-20261020/native-feedback-1/project/solution.py"
+      }
+    },
+    "patch_success": {
+      "call": {
+        "type": "function_call",
+        "status": "completed",
+        "call_id": "patch-good",
+        "name": "apply_patch",
+        "arguments": "{\"input\":\"*** Begin Patch\\n*** Update File: solution.py\\n@@\\n-    return value\\n+    return value + 1\\n*** End Patch\"}"
+      },
+      "result": {
+        "type": "function_call_output",
+        "id": "ctco_01a159b9-b89e-7b32-9a97-222b783e4f55",
+        "call_id": "patch-good",
+        "output": "Exit code: 0\nWall time: 0 seconds\nOutput:\nSuccess. Updated the following files:\nM solution.py\n"
+      }
+    },
+    "heredoc_blocked": {
+      "call": {
+        "type": "function_call",
+        "name": "exec_command",
+        "arguments": "{\"cmd\": \"python3 - <<'PY'\\nvalues = [1, 2]\\nassert values[0] == 1\\nassert sum(values) == 3\\nprint('SCRIPTED_ASSERTIONS_EXECUTED')\\nPY\", \"yield_time_ms\": 1000, \"max_output_tokens\": 1000}",
+        "call_id": "command-good"
+      },
+      "result": {
+        "type": "function_call_output",
+        "id": "fco_01a159e5-6b2b-7191-8c4b-32199531dba7",
+        "call_id": "command-good",
+        "output": "Chunk ID: f1a26a\nWall time: 0.0000 seconds\nProcess exited with code 1\nOriginal token count: 19\nOutput:\nzsh:1: can't create temp file for here document: operation not permitted\n"
+      }
+    }
+  },
+  "sandbox_flags": [
+    "sandbox_workspace_write.network_access=false",
+    "sandbox_workspace_write.exclude_slash_tmp=true",
+    "sandbox_workspace_write.exclude_tmpdir_env_var=true"
+  ],
+  "tmpdir_scope": "private path outside allowed project workspace, excluded from sandbox writes"
+}
