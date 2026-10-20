@@ -49,6 +49,12 @@ for line in sys.stdin:
    wire=home/'native-wire.json'
    body=json.loads(wire.read_text()) if wire.exists() else {'max_output_tokens':8}
    body.update(model=selected['model'],input=params['input'][0]['text'])
+   if mode=='hosted-web-search' and selected['config'].get('web_search')!='disabled':
+    body['tools']=[{'type':'web_search','external_web_access':True}]
+   if mode=='app-tool-catalog':
+    body['tools']=[{'type':'function','name':'get_count','parameters':{'type':'object','properties':{}}}]
+    if selected['config'].get('features.apps') is not False:
+     body['tools'].append({'type':'namespace','name':'apps','tools':[{'type':'function','name':'lookup','parameters':{'type':'object','properties':{}}}]})
    connection.request('POST',origin.path+'/responses',json.dumps(body),
     {'Content-Type':'application/json','Authorization':'Bearer '+os.environ[provider['env_key']],**provider.get('http_headers',{})})
    response=connection.getresponse()
@@ -212,6 +218,75 @@ class PersonalNativeWorkflowTests(unittest.TestCase):
                     self.assertEqual(self.path.read_bytes(), original_router)
                     self.assertEqual((self.home / 'config.toml').read_bytes(), self.original)
                     self.assertEqual((self.home / 'auth.json').read_bytes(), original_auth)
+
+    def test_local_turn_disables_hosted_web_search_without_changing_the_subscription_or_saved_settings(self):
+        (self.home / 'fixture-mode').write_text('hosted-web-search')
+        self.original += b'web_search = "live"\n'
+        (self.home / 'config.toml').write_bytes(self.original)
+        with workflow.provider('LOCAL checked answer') as (local, local_calls), workflow.provider('UNUSED') as (cloud, cloud_calls):
+            self.configure(local, cloud)
+            original_router = self.path.read_bytes()
+            original_auth = (self.home / 'auth.json').read_bytes()
+            for model, expected in (('local-code', 'LOCAL checked answer'), (None, 'Native final answer.')):
+                with self.subTest(model=model or 'current_subscription'):
+                    log = self.home / 'requests.jsonl'
+                    log.unlink(missing_ok=True)
+                    arguments = () if model is None else ('--model', model)
+                    result = self.command('chat', 'route', '--executable', str(self.native),
+                        '--client-home', str(self.home), '--prompt-file', str(self.prompt), *arguments)
+                    self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+                    receipt = json.loads(result.stdout)
+                    self.assertEqual((receipt['status'], receipt['error'], receipt['text']), ('completed', None, expected))
+                    self.assertTrue(receipt['execution']['verified'])
+                    self.assertTrue(receipt['native']['cleanup']['owned_processes_stopped'])
+                    requests = [json.loads(line) for line in log.read_text().splitlines()]
+                    thread = next(row['params'] for row in requests if row.get('method') == 'thread/start')
+                    if model:
+                        self.assertEqual(thread['config']['web_search'], 'disabled')
+                        self.assertEqual((receipt['execution']['source'], receipt['execution']['local_attempts']),
+                            ('owned_router_receipts', 1))
+                    else:
+                        self.assertNotIn('web_search', thread['config'])
+                        self.assertEqual(receipt['native']['provider'], 'openai')
+                    self.assertEqual(self.path.read_bytes(), original_router)
+                    self.assertEqual((self.home / 'config.toml').read_bytes(), self.original)
+                    self.assertEqual((self.home / 'auth.json').read_bytes(), original_auth)
+            self.assertEqual(len(local_calls), 1)
+            self.assertEqual(cloud_calls, [])
+
+    def test_local_text_profile_omits_app_catalog_but_keeps_native_function_tools_and_subscription_preferences(self):
+        (self.home / 'fixture-mode').write_text('app-tool-catalog')
+        self.original += b'\n[features]\napps = true\n'
+        (self.home / 'config.toml').write_bytes(self.original)
+        with workflow.provider('LOCAL checked answer') as (local, local_calls), workflow.provider('UNUSED') as (cloud, cloud_calls):
+            self.configure(local, cloud)
+            original_router = self.path.read_bytes()
+            original_auth = (self.home / 'auth.json').read_bytes()
+            for model, expected in (('local-code', 'LOCAL checked answer'), (None, 'Native final answer.')):
+                with self.subTest(model=model or 'current_subscription'):
+                    log = self.home / 'requests.jsonl'
+                    log.unlink(missing_ok=True)
+                    arguments = () if model is None else ('--model', model)
+                    result = self.command('chat', 'route', '--executable', str(self.native),
+                        '--client-home', str(self.home), '--prompt-file', str(self.prompt), *arguments)
+                    self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+                    receipt = json.loads(result.stdout)
+                    self.assertEqual((receipt['status'], receipt['error'], receipt['text']), ('completed', None, expected))
+                    self.assertTrue(receipt['execution']['verified'])
+                    self.assertTrue(receipt['native']['cleanup']['owned_processes_stopped'])
+                    thread = next(json.loads(line)['params'] for line in log.read_text().splitlines()
+                                  if json.loads(line).get('method') == 'thread/start')
+                    if model:
+                        self.assertIs(thread['config']['features.apps'], False)
+                        self.assertEqual([tool['name'] for tool in local_calls[-1]['body']['tools']], ['get_count'])
+                    else:
+                        self.assertNotIn('features.apps', thread['config'])
+                        self.assertEqual(receipt['native']['provider'], 'openai')
+                    self.assertEqual(self.path.read_bytes(), original_router)
+                    self.assertEqual((self.home / 'config.toml').read_bytes(), self.original)
+                    self.assertEqual((self.home / 'auth.json').read_bytes(), original_auth)
+            self.assertEqual(len(local_calls), 1)
+            self.assertEqual(cloud_calls, [])
 
     def test_malformed_native_summaries_remain_controlled_unknown_results(self):
         with workflow.provider('UNUSED') as (local, local_calls), workflow.provider('UNUSED') as (cloud, cloud_calls):

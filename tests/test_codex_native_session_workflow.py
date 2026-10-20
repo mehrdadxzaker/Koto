@@ -500,7 +500,8 @@ class CodexNativeSessionWorkflowTests(unittest.TestCase):
         from hormuz.codex_native_session import run_session
         provider = {'name': 'Koto', 'base_url': 'http://127.0.0.1:4567/v1', 'wire_api': 'responses',
                     'requires_openai_auth': False}
-        controls = {'model_reasoning_effort': 'none', 'model_reasoning_summary': 'none', 'agents.enabled': False,
+        controls = {'model_reasoning_effort': 'none', 'model_reasoning_summary': 'none',
+                    'web_search': 'disabled', 'features.apps': False, 'agents.enabled': False,
                     'features.multi_agent_v2': False, 'features.multi_agent': False}
         original = self.config.read_bytes()
         result = run_session(self.executable, self.home, self.cwd, 'An ordinary user prompt.',
@@ -515,7 +516,9 @@ class CodexNativeSessionWorkflowTests(unittest.TestCase):
         self.assertEqual(self.config.read_bytes(), original)
         for invalid in ({'model_reasoning_effort': 'high'}, {'model_reasoning_summary': 'auto'},
                         {'agents.enabled': True}, {'features.multi_agent_v2': True}, {'features.multi_agent': True},
-                        {'features.multi_agent': 0}, {'features.web_search': False}):
+                        {'features.multi_agent': 0}, {'web_search': 'live'}, {'web_search': 'cached'},
+                        {'web_search': False}, {'web_search': True}, {'features.web_search': False},
+                        {'features.apps': True}, {'features.apps': 0}, {'features.apps': 'false'}):
             with self.subTest(profile_override=invalid):
                 log.unlink()
                 result = run_session(self.executable, self.home, self.cwd, 'An ordinary user prompt.',
