@@ -1,5 +1,8 @@
 # Qwen request-adapter comparison — October 19, 2026
 
+This is the historical pre-fix study. See the [post-fix six-case rerun](post-fix-results.md)
+for the current result and [integration diagnosis](integration-fixes.md) for the two Koto failures.
+
 **No improvement in coding success was observed: baseline 0/6; adapted 0/6.** Neither arm saved a changed implementation. The adapter remains an opt-in experiment and does not qualify automatic coding.
 
 Tested stock Codex CLI 0.160.0, llama.cpp b11617 and the installed Qwen3-14B-Q4_K_M model through the built Koto 2.0.0a8 wheel. This macOS comparison retained Codex’s native base instructions and shell tools. The only treatment was the explicit qwen_code_v1 request adapter: subordinate coding guidance and lossless compact argument replay.

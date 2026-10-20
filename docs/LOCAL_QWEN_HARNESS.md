@@ -65,8 +65,8 @@ adapted receipts for baseline execution or migrate an in-flight conversation.
 
 ## Paired coding comparison
 
-`tools/compare_local_harness.py` runs stock Codex 0.160.0 with its existing shell
-tools against six frozen repairs in `tools/local_harness_cases.json`. Both arms
+`tools/compare_local_harness.py` runs stock Codex 0.160.0 with its existing native
+tools, including `apply_patch`, against six frozen repairs in `tools/local_harness_cases.json`. Both arms
 use the same native instructions, tools, task specifications, checks and sampling.
 The only treatment is the route capability. No compact replacement system prompt
 or custom coding tools are used. Independent checks live outside the project and
@@ -105,7 +105,10 @@ machine pressure limit latency conclusions. It cannot establish Codex desktop
 activation or general local-model coding readiness. Recorded results and the
 separate standards/spec reviews accompany this change.
 
-The [recorded local comparison](local-harness/results.md) found **0/6 successful
-repairs in both arms**. Keep this profile experimental; the result does not
-justify enabling it as a coding-quality improvement. The comparison runner uses
-the native macOS sandbox and is currently a macOS maintainer tool.
+The [post-fix comparison](local-harness/post-fix-results.md) found **4/6 successful
+repairs for baseline and 3/6 for adapted**. All twelve native turns completed and
+saved edits after the [integration fixes](local-harness/integration-fixes.md).
+The [original pre-fix study](local-harness/results.md) found 0/6 in both arms.
+Keep the optional guidance experimental; no coding-quality improvement over the
+corrected baseline was observed. The comparison runner uses the native macOS
+sandbox and is currently a macOS maintainer tool.
