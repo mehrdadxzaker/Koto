@@ -25,7 +25,7 @@ import tomllib
 from hormuz._contract_schemas.local_coding import canonical_digest, coding_input
 from hormuz.coding_qualification import request_profile_digest
 from hormuz.contracts import validate_contract
-from hormuz.local_harness import CAPABILITY, MODEL
+from hormuz.local_harness import MODEL, PROFILES
 from hormuz.work_learning import request_characteristics
 
 DEVELOPER = ('Repair only solution.py in the working directory. Read it before editing, '
@@ -128,8 +128,18 @@ class Comparison:
         if self.profile['schema_version'] != 5 or self.profile['model'] != MODEL:
             raise ValueError('Requires the installed Qwen3-14B setup-v5 profile')
         self.profile['coding_evidence'] = None
-        self.profile['capabilities'] = [cap for cap in self.profile['capabilities'] if cap != CAPABILITY]
+        self.profile['capabilities'] = [cap for cap in self.profile['capabilities'] if cap not in PROFILES]
         self.profile['task_types'] = ['code_change']
+        self.harnesses = {'baseline': None if args.baseline_harness == 'none' else 'qwen-code.' + args.baseline_harness,
+                          'adapted': 'qwen-code.' + args.harness}
+        self.episode_seconds = getattr(args, 'episode_seconds', 90)
+        self.probe_version = 5 if self.episode_seconds == 180 else 4
+        selected = set(args.case or [])
+        if selected - {case['id'] for case in self.cases}:
+            raise ValueError('Unknown diagnostic case')
+        self.selected_cases = [case for case in self.cases if not selected or case['id'] in selected]
+        if self.probe_version == 5 and any(self.harnesses[arm] is None for arm, _ in self.schedule()):
+            raise ValueError('180-second development probes require an explicit harness in every selected arm')
         self.generation = None
         self.ports = []
         self.rows = []
@@ -146,10 +156,8 @@ class Comparison:
 
     def connect(self, arm):
         self.config = self.root / (arm + '-gateway.json')
-        profile = {**self.profile, 'capabilities': list(self.profile['capabilities']),
+        profile = {**self.profile, 'capabilities': self.capabilities(arm),
                    'qualification_id': 'qwen-code-comparison-' + arm}
-        if arm == 'adapted':
-            profile['capabilities'].append(CAPABILITY)
         validate_contract(profile)
         path = self.root / (arm + '-setup.json')
         write(path, profile)
@@ -170,6 +178,16 @@ class Comparison:
             raise RuntimeError('Comparison cannot grant automatic coding')
         write(self.root / (arm + '-readiness.json'), state)
         print('Ready locally: ' + arm + ', model=' + MODEL + ', automatic coding disabled', flush=True)
+
+    def capabilities(self, arm):
+        return self.profile['capabilities'] + [cap for cap, profile in PROFILES.items()
+                                              if profile == self.harnesses[arm]]
+
+    def schedule(self):
+        if self.args.arm != 'both':
+            return [(self.args.arm, self.selected_cases)]
+        return [(arm, cases) for arm, cases in [('baseline', self.selected_cases[:3]),
+            ('adapted', self.selected_cases), ('baseline', self.selected_cases[3:])] if cases]
 
     def disconnect(self):
         if self.config is None:
@@ -228,14 +246,21 @@ class Comparison:
                 pass
         tool_items = [event.get('item', {}) for event in events
                       if event.get('type') == 'item.completed']
+        rejected_patches = [line.split('error=apply_patch verification failed:', 1)[1].strip()[:4096]
+                            for line in (self.root / 'runs' / (label + '.stderr')).read_text().splitlines()
+                            if 'error=apply_patch verification failed:' in line]
         return {'client_exit_code': process.returncode,
                 'termination': 'timeout' if timed_out else 'completed',
                 'elapsed_ms': int((time.monotonic() - started) * 1000),
                 'turn_completed': any(event.get('type') == 'turn.completed' for event in events),
+                'executed_commands': [{'command': item['command'], 'exit_code': item.get('exit_code'),
+                                       'output': item.get('aggregated_output', '')[:8192]}
+                                      for item in tool_items if item.get('type') == 'command_execution'],
+                'rejected_native_patches': rejected_patches,
                 'tool_calls': sum(item.get('type') in {'command_execution', 'mcp_tool_call', 'file_change'}
                                   for item in tool_items),
-                'tool_errors': sum(item.get('status') == 'failed' or item.get('exit_code', 0) not in (None, 0)
-                                   for item in tool_items)}
+                'tool_errors': len(rejected_patches) + sum(item.get('status') == 'failed'
+                    or item.get('exit_code', 0) not in (None, 0) for item in tool_items)}
 
     def check(self, case):
         path = self.root / 'checks' / (case['id'] + '.py')
@@ -266,8 +291,12 @@ class Comparison:
             case['checks_sha256'] = digest_file(path)
         plan = {'schema_version': 1, 'model': MODEL, 'pins': pins, 'artifacts': artifacts,
                 'cases': self.cases, 'developer_instructions': DEVELOPER,
-                'max_episode_seconds': 90, 'max_requests': 16, 'quality_retries': 0,
-                'order': ['baseline:first3', 'adapted:all6', 'baseline:last3'],
+                'max_episode_seconds': self.episode_seconds, 'probe_schema_version': self.probe_version,
+                'max_requests': 16, 'quality_retries': 0,
+                'harnesses': self.harnesses,
+                'study_kind': 'paired_comparison' if self.args.arm == 'both' and not self.args.case else 'diagnostic',
+                'order': [{'arm': arm, 'case_ids': [case['id'] for case in cases]}
+                          for arm, cases in self.schedule()],
                 'automatic_admission_effect': 'none'}
         write(self.root / 'frozen-plan.json', plan)
         return plan
@@ -287,24 +316,24 @@ class Comparison:
             'machine': self.profile['machine'], 'runtime_profile': 'managed-llama.v2',
             'runtime_sha256': self.profile['runtime_sha256'],
             'model_revision': 'sha256:' + self.profile['model_sha256'], 'upstream_model': MODEL,
-            'protocol': 'openai', 'capabilities': self.profile['capabilities'] + ([CAPABILITY] if arm == 'adapted' else []),
+            'protocol': 'openai', 'capabilities': self.capabilities(arm),
             'max_request_bytes': self.profile['max_request_bytes'],
             'max_output_tokens': self.profile['max_output_tokens'],
             'upstream_timeout_seconds': self.profile['upstream_timeout_seconds'],
             'request_profile_sha256': request_profile_digest(captured, schema_version=4)}
-        probe = {'schema_id': 'hormuz.coding-probe-plan', 'schema_version': 4,
-            'campaign_id': 'qwen-code-paired-v1', 'plan_sha256': canonical_digest(plan),
+        probe = {'schema_id': 'hormuz.coding-probe-plan', 'schema_version': self.probe_version,
+            'campaign_id': 'qwen-code-' + self.args.harness, 'plan_sha256': canonical_digest(plan),
             'case_id': case['id'], 'task_sha256': canonical_digest({'goal': case['goal'], 'source': case['source']}),
             'checks_sha256': case['checks_sha256'], 'model': MODEL,
             'first_input_sha256': canonical_digest(coding_input(captured['input'], schema_version=4)),
-            'max_requests': 16, 'max_elapsed_seconds': 90, 'subject': subject}
+            'max_requests': 16, 'max_elapsed_seconds': self.episode_seconds, 'subject': subject}
         validate_contract(probe)
         probe_path = self.root / 'active-probe.json'
         write(probe_path, probe)
         armed = self.cli('client', 'qualify', 'codex', '--client-home', str(self.client_home),
                          '--plan', str(probe_path))
         try:
-            native = self.launch(case, arm + '-' + case['id'], probe=armed['probe_id'])
+            native = self.launch(case, arm + '-' + case['id'], probe=armed['probe_id'], timeout=self.episode_seconds)
             permission = self.cli('client', 'qualify', 'codex', '--client-home', str(self.client_home))
         finally:
             self.cli('client', 'qualify', 'codex', '--client-home', str(self.client_home), '--revoke')
@@ -314,7 +343,7 @@ class Comparison:
         source = path.read_text() if path.is_file() and not path.is_symlink() else None
         changed = source is not None and source != case['source']
         checked = self.check(case)
-        row = {'case_id': case['id'], 'arm': arm, 'model': MODEL, **native,
+        row = {'case_id': case['id'], 'arm': arm, 'harness': self.harnesses[arm], 'model': MODEL, **native,
                'implementation_changed': changed, 'check_exit_code': checked['exit_code'],
                'independent_check': checked, 'baseline_exit_code': case['baseline_check']['exit_code'],
                'checks_unchanged': digest_file(self.root / 'checks' / (case['id'] + '.py')) == case['checks_sha256'],
@@ -349,14 +378,15 @@ class Comparison:
         plan = self.freeze()
         normal = Path.home() / '.codex/config.toml'
         before = digest_file(normal) if normal.exists() else None
-        report = {'frozen_plan_sha256': canonical_digest(plan), 'outcomes': self.rows}
+        report = {'frozen_plan_sha256': canonical_digest(plan), 'harnesses': self.harnesses,
+                  'study_kind': plan['study_kind'], 'outcomes': self.rows}
         self.server = None
         thread = None
         try:
             self.server = HTTPServer(('127.0.0.1', 0), Capture)
             thread = threading.Thread(target=self.server.serve_forever, kwargs={'poll_interval': 0.1})
             thread.start()
-            for arm, cases in [('baseline', self.cases[:3]), ('adapted', self.cases), ('baseline', self.cases[3:])]:
+            for arm, cases in self.schedule():
                 try:
                     self.connect(arm)
                     for case in cases:
@@ -365,11 +395,14 @@ class Comparison:
                     self.disconnect()
             for arm in ('baseline', 'adapted'):
                 rows = [row for row in self.rows if row['arm'] == arm]
+                if not rows:
+                    continue
                 report[arm] = {'passed': sum(row['passed'] for row in rows), 'total': len(rows),
                                'median_elapsed_ms': statistics.median(row['elapsed_ms'] for row in rows),
                                'tool_errors': sum(row['tool_errors'] for row in rows)}
-            report['same_native_profiles'] = all(len({row['request_profile_sha256'] for row in self.rows
-                if row['case_id'] == case['id']}) == 1 for case in self.cases)
+            report['same_native_profiles'] = (all(len({row['request_profile_sha256'] for row in self.rows
+                if row['case_id'] == case['id']}) == 1 for case in self.selected_cases)
+                if self.args.arm == 'both' else None)
         except BaseException as error:
             report['error'] = str(error)
             raise
@@ -390,6 +423,12 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ('output', 'profile', 'client', 'runtime-archive', 'llama', 'model-file'):
         parser.add_argument('--' + name, type=Path, required=True)
+    parser.add_argument('--harness', choices=('v1', 'v2'), default='v1')
+    parser.add_argument('--baseline-harness', choices=('none', 'v1', 'v2'), default='none')
+    parser.add_argument('--case', action='append', help='Limit a diagnostic run; all six cases remain frozen')
+    parser.add_argument('--arm', choices=('both', 'baseline', 'adapted'), default='both')
+    parser.add_argument('--episode-seconds', type=int, choices=(90, 180), default=90,
+                        help='180 selects the explicit development probe; older probes remain capped at 90')
     args = parser.parse_args()
     args.output = args.output.absolute()
     for name in ('profile', 'client', 'runtime_archive', 'llama', 'model_file'):

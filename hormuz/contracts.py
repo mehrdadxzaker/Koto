@@ -577,8 +577,9 @@ def contract_manifest() -> dict[str, object]:
             *[_manifest_schema("hormuz.local-coding-evidence", version, "durable-evidence", "hormuz", sorted(EVIDENCE_FIELDS))
               for version in (1, 2, 3, 4)],
             *[_manifest_schema("hormuz.coding-probe-plan", version, "durable-evidence", "hormuz", sorted(PROBE_PLAN_FIELDS))
-              for version in (1, 2, 3, 4)],
-            _manifest_schema("hormuz.coding-probe-status", 1, "cli-output", "hormuz", sorted(PROBE_STATUS_FIELDS)),
+              for version in (1, 2, 3, 4, 5)],
+            *[_manifest_schema("hormuz.coding-probe-status", version, "cli-output", "hormuz", sorted(PROBE_STATUS_FIELDS))
+              for version in (1, 2)],
             _manifest_schema("hormuz.coding-probe-error", 1, "cli-output", "hormuz", ["schema_id", "schema_version", "error"]),
             _manifest_schema("hormuz.coding-probe-relay", 1, "http-headers", "hormuz",
                 ["X-Hormuz-Contract", "X-Hormuz-Requested-Model", "X-Hormuz-Routed-Model",
@@ -653,7 +654,9 @@ def validate_contract(value: Mapping[str, Any]) -> None:
         ("hormuz.coding-probe-plan", 2): _validate_probe_plan,
         ("hormuz.coding-probe-plan", 3): _validate_probe_plan,
         ("hormuz.coding-probe-plan", 4): _validate_probe_plan,
+        ("hormuz.coding-probe-plan", 5): _validate_probe_plan,
         ("hormuz.coding-probe-status", 1): _validate_probe_status,
+        ("hormuz.coding-probe-status", 2): _validate_probe_status,
         ("hormuz.coding-probe-error", 1): _validate_probe_error,
         ("hormuz.shadow-routing", 1): _validate_shadow,
         ("hormuz.ai-work-attempt-history", 1): _validate_attempt_history,

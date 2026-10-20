@@ -178,10 +178,14 @@ def build_model_route_domain(
                 or any(not isinstance(value, str) or re.fullmatch(r"[a-z][a-z0-9_-]{0,31}", value) is None
                        for value in capabilities) or len(set(capabilities)) != len(capabilities)):
             raise ConfigError(f"model_routes.{alias}.capabilities must be distinct bounded identifiers")
-        from .local_harness import CAPABILITY, MODEL
-        if CAPABILITY in capabilities and (upstream.locality != 'local' or protocol != 'openai'
+        from .local_harness import MODEL, profile_for_capabilities
+        try:
+            harness = profile_for_capabilities(capabilities)
+        except ValueError:
+            raise ConfigError('Qwen route requires one harness capability') from None
+        if harness and (upstream.locality != 'local' or protocol != 'openai'
                 or 'codex_llama_v1' not in capabilities or item.get('upstream_model') != MODEL):
-            raise ConfigError('qwen_code_v1 requires the local Qwen3-14B Codex transport')
+            raise ConfigError('Qwen harness requires the local Qwen3-14B Codex transport')
         model_routes[alias] = ModelRoute(
             alias=alias,
             protocol=protocol,

@@ -10,6 +10,49 @@ from hormuz.contracts import ContractValidationError, validate_contract
 
 
 class LocalHarnessTests(unittest.TestCase):
+    def test_v1_guidance_bytes_remain_bound_to_existing_evidence(self):
+        from hormuz.local_harness import GUIDANCE
+        self.assertEqual(hashlib.sha256(GUIDANCE.encode()).hexdigest(),
+                         'be348aeb7ee30b784d71df3c5272ae94d87af39730d250ceb0ccda303240d0de')
+
+    def test_v2_keeps_native_context_and_requires_execution_of_adversarial_checks(self):
+        request = {'instructions': 'Host permissions and repository rules.',
+            'reasoning': {'effort': 'none'}, 'max_output_tokens': 2048,
+            'tools': [{'type': 'function', 'name': 'exec_command', 'parameters': {
+                'type': 'object', 'properties': {'cmd': {'type': 'string'}}}}],
+            'input': [{'role': 'user', 'content': 'Fix the function using the specification.'},
+                {'type': 'function_call', 'name': 'exec_command', 'call_id': 'read',
+                 'arguments': '{ "cmd": "cat solution.py" }'},
+                {'type': 'function_call_output', 'call_id': 'read', 'output': 'source content'}]}
+        original = deepcopy(request)
+        adapted = CodexLlamaRequest(request, harness='qwen-code.v2').value
+        self.assertTrue(adapted['instructions'].startswith(original['instructions'] + '\n\n'))
+        self.assertIn('Local verification protocol', adapted['instructions'])
+        self.assertIn('python3', adapted['instructions'])
+        self.assertIn('failure', adapted['instructions'])
+        self.assertIn('unhashable', adapted['instructions'])
+        self.assertEqual(adapted['tools'], original['tools'])
+        self.assertEqual(adapted['input'][0], original['input'][0])
+        self.assertEqual(adapted['input'][2], original['input'][2])
+        self.assertEqual(len(adapted['input']), len(original['input']) + 1)
+        reminder = adapted['input'][-1]
+        self.assertEqual(reminder['type'], 'message')
+        self.assertEqual(reminder['role'], 'developer')
+        self.assertIn('Local verification protocol', reminder['content'][0]['text'])
+        self.assertEqual(json.loads(adapted['input'][1]['arguments']),
+                         json.loads(original['input'][1]['arguments']))
+        self.assertEqual(request, original)
+        self.assertEqual(CodexLlamaRequest(request, harness='qwen-code.v2').value, adapted)
+
+    def test_v2_string_input_preserves_user_text_before_one_reminder(self):
+        request = {'instructions': 'Host rules.', 'input': 'Exact original user text.'}
+        adapted = CodexLlamaRequest(request, harness='qwen-code.v2').value
+        self.assertEqual(len(adapted['input']), 2)
+        self.assertEqual(adapted['input'][0], {'type': 'message', 'role': 'user', 'content': [
+            {'type': 'input_text', 'text': request['input']}]})
+        self.assertEqual(adapted['input'][1]['role'], 'developer')
+        self.assertEqual(request['input'], 'Exact original user text.')
+
     def test_qwen_guidance_preserves_host_instructions_tools_and_argument_values(self):
         request = {'instructions': 'Follow repository instructions. Ask before destructive actions.',
             'reasoning': {'effort': 'none'}, 'max_output_tokens': 2048,

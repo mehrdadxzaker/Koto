@@ -9,6 +9,9 @@ import json
 
 CAPABILITY = 'qwen_code_v1'
 PROFILE = 'qwen-code.v1'
+V2_CAPABILITY = 'qwen_code_v2'
+V2_PROFILE = 'qwen-code.v2'
+PROFILES = {CAPABILITY: PROFILE, V2_CAPABILITY: V2_PROFILE}
 MODEL = 'Qwen3-14B-Q4_K_M'
 GUIDANCE = '''Local coding guidance (subordinate to all existing host and repository instructions):
 Read the relevant source and nearby tests before editing. Follow existing project
@@ -21,13 +24,73 @@ failures with the specification before changing code or expectations. Do not rep
 an unchanged failed call. Once the latest edit passes the relevant checks, finish
 with a concise factual status, including checks that could not run.'''
 
+V2_GUIDANCE = '''Local verification protocol (subordinate to all existing host and repository instructions):
+For a requested coding edit, complete it through the existing host tools. For
+other tasks, follow the original request without inventing edits or checks.
+For coding work, do not stop at a plan
+or a claim that the implementation works. Use only declared tools and parameters.
+1. Read the relevant source and specification. Turn every requirement into a short
+executable assertion, including boundaries, ordering, missing inputs and errors.
+2. Check the available interpreter or test runner through a host tool. For Python,
+try python3; do not assume the command python exists. If only the source file may
+be changed, run assertions in an inline script instead of adding test files.
+3. Exercise failure paths before editing. If failure must leave state unchanged,
+save a copy, put a failing operation after a valid operation, and assert the full
+state is unchanged after the exception. Cover repeated operations on the same
+item. Check equality separately from hashing: when unhashable values are allowed,
+include equal list or dictionary values. Distinguish a missing key from a present
+key whose value is None. Use the task specification, not assumptions about types.
+4. Execute those assertions against the current implementation and inspect the
+actual failure. Then make the focused edit and execute the assertions again after
+the last edit. Also run existing relevant tests when available. Repair failures
+in the implementation; do not weaken requirements or existing checks.
+5. A saved edit is not verification. Before a success report, obtain a successful
+host tool result for the final implementation's assertions. If verification is
+blocked or incomplete, say so and report the actual command and failure. Finish
+with the edit and checks that actually ran, not future intentions.'''
 
-def adapt_qwen_request(value, declarations):
+V2_CHECKPOINT = '''Local verification protocol checkpoint (subordinate to all host and repository instructions):
+Apply this checkpoint to requested coding edits; follow other tasks as requested.
+Use the declared tools. If applying a native patch, follow its exact grammar:
+*** Begin Patch, *** Update File: path, then @@ without unified-diff line numbers.
+Every hunk line starts with a space for context, - for removal, or + for addition;
+finish with *** End Patch. Never send an unprefixed source line in a hunk.
+Before reporting success, execute compact assertions against the latest saved
+code through a host tool (python3 for Python). For required atomic behavior, test
+a valid step followed by a failing step and unchanged original state, including
+repeated items. For equality supporting unhashable values, test equal lists and
+dictionaries. Inspect actual failures, repair the code, and rerun the assertions.
+For required no-mutation-on-error behavior, adapt this assertion pattern to the
+task and execute it, including a batch whose repeated operations exceed a limit:
+    before = copy.deepcopy(state)
+    try:
+        function(state, invalid_batch)
+    except RequiredError:
+        pass
+    else:
+        raise AssertionError("expected rejection")
+    assert state == before
+Use the real function, inputs and specified exception; import copy if needed.
+A printout of a normal example is not verification. Use assert to check specified
+results and failure invariants. Perform requested checks within host permissions;
+do not end by offering to test later. Report actual results or a concrete blocker.'''
+
+
+def profile_for_capabilities(capabilities):
+    selected = [profile for capability, profile in PROFILES.items() if capability in capabilities]
+    if len(selected) > 1:
+        raise ValueError('ambiguous_local_harness')
+    return selected[0] if selected else None
+
+
+def adapt_qwen_request(value, declarations, *, profile=PROFILE):
     """Mutate only a private translated copy; preserve every argument value."""
+    if profile not in PROFILES.values():
+        raise ValueError('unsupported_local_harness')
     instructions = value.get('instructions', '')
     if not isinstance(instructions, str):
         raise ValueError('invalid_harness_instructions')
-    value['instructions'] = instructions + '\n\n' + GUIDANCE
+    value['instructions'] = instructions + '\n\n' + (GUIDANCE if profile == PROFILE else V2_GUIDANCE)
     for item in value.get('input', []):
         if not isinstance(item, dict) or item.get('type') != 'function_call':
             continue
@@ -36,3 +99,11 @@ def adapt_qwen_request(value, declarations):
         ordered = {key: arguments[key] for key in properties if key in arguments}
         ordered.update(arguments)
         item['arguments'] = json.dumps(ordered, separators=(',', ':'), ensure_ascii=False, allow_nan=False)
+    if profile == V2_PROFILE and isinstance(value.get('input'), str):
+        value['input'] = [{'type': 'message', 'role': 'user', 'content': [
+            {'type': 'input_text', 'text': value['input']}]}]
+    if profile == V2_PROFILE and isinstance(value.get('input'), list):
+        # A model-facing reminder, never a fabricated user message, tool result,
+        # or extra agent turn. The native transcript remains an exact prefix.
+        value['input'].append({'type': 'message', 'role': 'developer', 'content': [
+            {'type': 'input_text', 'text': V2_CHECKPOINT}]})

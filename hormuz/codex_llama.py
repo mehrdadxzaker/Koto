@@ -4,6 +4,7 @@ import hashlib
 import json
 import re
 from .compaction_formats import strict_json_loads
+from .local_harness import PROFILES, adapt_qwen_request
 
 CAPABILITY = 'codex_llama_v1'
 MAX_FRAME = 2 * 1024 * 1024
@@ -35,7 +36,7 @@ def needs_adapter(value):
 
 class CodexLlamaRequest:
     def __init__(self, value, *, translate=True, harness=None):
-        if harness not in (None, 'qwen-code.v1') or harness and not translate:
+        if harness not in (None, *PROFILES.values()) or harness and not translate:
             raise CodexLlamaError('unsupported_local_harness')
         self.value = copy.deepcopy(value)
         self.translate = translate
@@ -100,8 +101,7 @@ class CodexLlamaRequest:
         if isinstance(self.value.get('input'), list):
             self.value['input'] = [self._input(item) for item in self.value['input']]
         if harness:
-            from .local_harness import adapt_qwen_request
-            adapt_qwen_request(self.value, self.declarations)
+            adapt_qwen_request(self.value, self.declarations, profile=harness)
 
     def _input(self, item):
         if isinstance(item, dict) and item.get('status') not in {None, 'completed'}:

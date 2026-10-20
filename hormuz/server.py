@@ -20,7 +20,7 @@ from urllib.parse import urlsplit
 
 from . import __version__
 from .codex_llama import CAPABILITY as CODEX_LLAMA_CAPABILITY, CodexLlamaError, CodexLlamaRequest
-from .local_harness import CAPABILITY as QWEN_CODE_CAPABILITY, PROFILE as QWEN_CODE_PROFILE
+from .local_harness import profile_for_capabilities as qwen_harness_profile
 from .auth import AuthenticationError, Authenticator
 from .attribution_admission import (
     Admission,
@@ -1172,7 +1172,7 @@ class GatewayRequestHandler(BaseHTTPRequestHandler):
         if (CODEX_LLAMA_CAPABILITY in route.capabilities and destination.locality == 'local'
                 and urlsplit(self.path).path == '/v1/responses'):
             codex_adapter = CodexLlamaRequest(request_value,
-                harness=QWEN_CODE_PROFILE if QWEN_CODE_CAPABILITY in route.capabilities else None)
+                harness=qwen_harness_profile(route.capabilities))
             body = json.dumps(codex_adapter.value, separators=(',', ':')).encode()
         elif (destination.locality == 'local' and 'codex_http_0160' in route.capabilities
                 and urlsplit(self.path).path == '/v1/responses' and request_value.get('tools')):
@@ -1844,7 +1844,7 @@ class GatewayRequestHandler(BaseHTTPRequestHandler):
         routed["model"] = route.upstream_model
         if CODEX_LLAMA_CAPABILITY in route.capabilities:
             routed = CodexLlamaRequest(routed,
-                harness=QWEN_CODE_PROFILE if QWEN_CODE_CAPABILITY in route.capabilities else None).value
+                harness=qwen_harness_profile(route.capabilities)).value
         return json.dumps(routed, separators=(",", ":")).encode("utf-8")
 
     @staticmethod

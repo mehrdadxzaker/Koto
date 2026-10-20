@@ -3,6 +3,7 @@ import re
 
 from .common import ContractValidationError, _exact_keys
 from .local_coding import _digest, validate_identifier, validate_subject
+from ..local_harness import PROFILES
 
 PLAN_FIELDS = {"schema_id", "schema_version", "campaign_id", "plan_sha256", "case_id", "task_sha256",
                "checks_sha256", "model", "first_input_sha256", "max_requests", "max_elapsed_seconds", "subject"}
@@ -14,29 +15,32 @@ ERRORS = {"probe_invalid_plan", "probe_subject_mismatch", "probe_already_active"
 
 def validate_plan(value):
     _exact_keys(value, PLAN_FIELDS)
-    if value["schema_id"] != "hormuz.coding-probe-plan" or type(value["schema_version"]) is not int or value["schema_version"] not in (1, 2, 3, 4):
+    if value["schema_id"] != "hormuz.coding-probe-plan" or type(value["schema_version"]) is not int or value["schema_version"] not in (1, 2, 3, 4, 5):
         raise ContractValidationError("unsupported coding probe plan")
     for key in ("campaign_id", "case_id", "model"):
         validate_identifier(value[key])
     for key in ("plan_sha256", "task_sha256", "checks_sha256", "first_input_sha256"):
         _digest(value[key])
-    for key, maximum in (("max_requests", 32), ("max_elapsed_seconds", 90)):
+    for key, maximum in (("max_requests", 32), ("max_elapsed_seconds", 180 if value["schema_version"] == 5 else 90)):
         if type(value[key]) is not int or not 1 <= value[key] <= maximum:
             raise ContractValidationError("invalid coding probe budget")
     validate_subject(value["subject"], namespaces=value["schema_version"] >= 3,
-                     extended_output=value["schema_version"] == 4)
+                     extended_output=value["schema_version"] in (4, 5))
+    if value["schema_version"] == 5 and len(set(PROFILES).intersection(value["subject"]["capabilities"])) != 1:
+        raise ContractValidationError("extended development probes require one Qwen harness")
 
 
 def validate_status(value):
     _exact_keys(value, STATUS_FIELDS)
-    if value["schema_id"] != "hormuz.coding-probe-status" or type(value["schema_version"]) is not int or value["schema_version"] != 1:
+    if value["schema_id"] != "hormuz.coding-probe-status" or type(value["schema_version"]) is not int or value["schema_version"] not in (1, 2):
         raise ContractValidationError("unsupported coding probe status")
     state = value["state"]
     if type(state) is not str or state not in {"inactive", "armed", "running", "exhausted", "expired", "revoked"}:
         raise ContractValidationError("invalid coding probe state")
     if value["automatic_admission_effect"] != "none":
         raise ContractValidationError("a probe cannot qualify coding")
-    for key, maximum in (("submitted_requests", 32), ("max_requests", 32), ("remaining_ms", 90000)):
+    for key, maximum in (("submitted_requests", 32), ("max_requests", 32),
+                         ("remaining_ms", 180000 if value["schema_version"] == 2 else 90000)):
         if type(value[key]) is not int or not 0 <= value[key] <= maximum:
             raise ContractValidationError("invalid coding probe status budget")
     identities = ("probe_id", "plan_sha256", "case_id", "model", "destination_generation")
