@@ -9,13 +9,10 @@ import time
 import unittest
 
 from tests import test_execution_destination_workflow as workflow
-from hormuz.config import GatewayConfig
 from hormuz.contracts import validate_contract
-from hormuz.local_history import LocalHistory
-from hormuz.native_history import begin_host_attempt
 
 NATIVE = r'''#!PYTHON
-import http.client,json,os,pathlib,sys,tomllib
+import http.client,json,os,pathlib,sys,time,tomllib
 from urllib.parse import urlsplit
 if '--version' in sys.argv:
  print('codex-cli 0.160.0');sys.exit(0)
@@ -67,6 +64,7 @@ for line in sys.stdin:
    failed=response.status!=200
    if not failed: answer=value['output'][0]['content'][0]['text']
   finally: connection.close()
+ elif (home/'cloud-delay').exists(): time.sleep(float((home/'cloud-delay').read_text()))
  if mode=='evidence-error':
   for path in pathlib.Path.cwd().glob('work.sqlite3*'): path.unlink(missing_ok=True)
  emit({'method':'item/completed','params':{'threadId':'thread-one','turnId':'turn-one',
@@ -231,44 +229,53 @@ class PersonalNativeWorkflowTests(unittest.TestCase):
     def test_checked_native_work_history_selects_local_and_unfamiliar_work_stays_commercial(self):
         (self.home / 'fixture-answer').write_text('7')
         available = [True]
-        with workflow.provider('7', health_status=lambda: 200 if available[0] else 503) as (local, local_calls), \
+
+        def slower_local(_body):
+            time.sleep(.35)
+            return '7'
+
+        with workflow.provider(slower_local, health_status=lambda: 200 if available[0] else 503) as (local, local_calls), \
              workflow.provider('UNUSED') as (cloud, cloud_calls):
             self.configure(local, cloud)
             for args in (('history', 'enable'), ('history', 'learning', 'enable')):
                 result = self.command(*args)
                 self.assertEqual(result.returncode, 0, result.stderr)
-            result = self.command('chat', 'route', '--executable', str(self.native),
-                '--client-home', str(self.home), '--prompt-file', str(self.prompt))
-            self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
-            receipt = json.loads(result.stdout)
-            self.assertEqual(receipt['model'], 'cloud-code')
-            self.assertTrue(receipt['execution']['verified'])
-            observed = self.command('history', 'show', receipt['history_entry'])
-            self.assertEqual(observed.returncode, 0, observed.stderr or observed.stdout)
-            profile = json.loads(observed.stdout)['entry']['selection']['profile']
-            config = GatewayConfig.load(self.path, environ=self.environment)
-            history = LocalHistory(self.path, environ=self.environment)
             checks = self.root / 'checks.json'
             checks.write_text(json.dumps([{'metric': 'answer', 'kind': 'text_equals', 'value': '7'}]))
-            # Fixed host observations make the training classes independent of
-            # process scheduling. Actual native capture is exercised above and
-            # in the explicit-local test; selection below still uses the CLI.
+            held_out_savings = []
             for partition, suffix in (('development', ''), ('held_out', ' today')):
                 for text in ('Summarize invoice tally seven boxes', 'Summarize invoice tally seven crates',
                              'Summarize invoice tally seven packages'):
-                    for model, latency in (('cloud-code', 1000), ('local-code', 100)):
-                        attempt = begin_host_attempt(history, config, 'developer', model, text + suffix, profile)
-                        self.assertIsNotNone(attempt)
-                        entry_id = attempt.finish({'outcome': 'succeeded', 'complete': True,
-                            'text': '7', 'latency_ms': latency}, execution_verified=True)
-                        feedback = self.command('history', 'feedback', entry_id,
+                    self.prompt.write_text(text + suffix)
+                    local_latency = None
+                    for model in ('local-code', None):
+                        arguments = () if model is None else ('--model', model)
+                        result = self.command('chat', 'route', '--executable', str(self.native),
+                            '--client-home', str(self.home), '--prompt-file', str(self.prompt), *arguments)
+                        self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+                        receipt = json.loads(result.stdout)
+                        print(json.dumps({'training_partition': partition, 'prompt': text + suffix,
+                            'model': receipt['model'], 'latency_ms': receipt['native']['latency_ms']}), flush=True)
+                        if model == 'local-code':
+                            local_latency = receipt['native']['latency_ms']
+                            # The external stand-in waits longer than the whole paired
+                            # local observation. Real process/network deadlines stay intact.
+                            delay_seconds = (local_latency + 100) / 1000
+                            self.assertLess(delay_seconds, 5, receipt)
+                            (self.home / 'cloud-delay').write_text(str(delay_seconds))
+                        else:
+                            self.assertGreater(receipt['native']['latency_ms'], local_latency, receipt)
+                            if partition == 'held_out':
+                                held_out_savings.append(receipt['native']['latency_ms'] - local_latency)
+                        feedback = self.command('history', 'feedback', receipt['history_entry'],
                             '--checks', str(checks), '--partition', partition)
                         self.assertEqual(feedback.returncode, 0, feedback.stderr or feedback.stdout)
             validation = self.command('history', 'learning', 'validate', '--baseline', 'cloud-code', '--activate')
             self.assertEqual(validation.returncode, 0, validation.stderr or validation.stdout)
             validation_receipt = json.loads(validation.stdout)
             self.assertEqual((validation_receipt['passed'], validation_receipt['held_out_cases'],
-                validation_receipt['local_selections'], validation_receipt['latency_saved_ms']), (True, 3, 3, 2700))
+                validation_receipt['local_selections']), (True, 3, 3))
+            self.assertEqual(validation_receipt['latency_saved_ms'], sum(held_out_savings))
             before = len(local_calls)
             for text, model, locality in (('Summarize invoice tally seven boxes tomorrow', 'local-code', 'local'),
                                            ('Translate bonjour into English', 'cloud-code', 'cloud'),
