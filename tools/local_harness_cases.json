@@ -34,7 +34,7 @@
     {
       "id": "stable-key-unique",
       "goal": "Fix the Python function unique_records(records, key) in solution.py. records is a list of dicts and key is a field name. Return the first record for each distinct field value, in original order, preserving object identity. Missing field raises KeyError. Field values may be unhashable lists or dicts; compare values by equality. Do not mutate input records. Empty input returns [].",
-      "source": "def unique_records(records, key):\n    return list({row[key]: row for row in records}.values())\n",
+      "source": "def unique_records(records, key):\n    return records[:]\n",
       "checks": "a = {'id': [1], 'v': 'first'}\nb = {'id': [2], 'v': 'second'}\nc = {'id': [1], 'v': 'later'}\nx = [a, b, c]\nr = s.unique_records(x, 'id')\nassert r == [a, b] and r[0] is a and r[1] is b\nassert x == [a, b, c] and a == {'id': [1], 'v': 'first'}\nassert s.unique_records([{'id': {'x': 1}}, {'id': {'x': 1}}], 'id') == [{'id': {'x': 1}}]\nassert s.unique_records([], 'id') == []\ntry: s.unique_records([{'other': 1}], 'id')\nexcept KeyError: pass\nelse: raise AssertionError('missing field accepted')\n"
     }
   ]

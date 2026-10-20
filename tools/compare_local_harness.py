@@ -11,10 +11,13 @@ import json
 import os
 from pathlib import Path
 import signal
+import shutil
 import socket
 import statistics
 import subprocess
 import sys
+import tempfile
+import textwrap
 import threading
 import time
 import tomllib
@@ -54,6 +57,45 @@ def stop(process):
         except subprocess.TimeoutExpired:
             continue
     process.wait(timeout=2)
+
+
+def reset_project(project, source):
+    """Each paired episode starts with the same sole frozen source file."""
+    for path in project.iterdir():
+        if path.is_symlink() or not path.is_dir():
+            path.unlink()
+        else:
+            shutil.rmtree(path)
+    (project / 'solution.py').write_text(source)
+
+
+def independent_check(checks, solution, *, python, environment, timeout=4):
+    """Retain checker errors and timeouts; no generated-code failure aborts a study."""
+    if solution.is_symlink() or not solution.is_file():
+        return {'exit_code': 2, 'termination': 'missing_source', 'stdout': '', 'stderr': 'Missing regular source file'}
+    timed_out = False
+    runner = ('import resource,runpy,sys\n'
+              'resource.setrlimit(resource.RLIMIT_CPU,(2,2))\n'
+              'resource.setrlimit(resource.RLIMIT_FSIZE,(65536,65536))\n'
+              'resource.setrlimit(resource.RLIMIT_NOFILE,(64,64))\n'
+              'sys.argv=sys.argv[1:]\nrunpy.run_path(sys.argv[0],run_name="__main__")\n')
+    with tempfile.TemporaryFile() as stdout, tempfile.TemporaryFile() as stderr:
+        process = subprocess.Popen(['/usr/bin/sandbox-exec', '-p',
+            '(version 1)(allow default)(deny network*)(deny file-write*)',
+            str(python), '-I', '-B', '-c', runner, str(checks), str(solution)],
+            cwd=solution.parent, env=environment, stdin=subprocess.DEVNULL,
+            stdout=stdout, stderr=stderr, start_new_session=True)
+        try:
+            process.wait(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            timed_out = True
+        finally:
+            stop(process)
+        stdout.seek(0)
+        stderr.seek(0)
+        return {'exit_code': process.returncode, 'termination': 'timeout' if timed_out else 'completed',
+                'stdout': stdout.read(8192).decode('utf-8', 'replace'),
+                'stderr': stderr.read(8192).decode('utf-8', 'replace')}
 
 
 class Comparison:
@@ -197,11 +239,7 @@ class Comparison:
 
     def check(self, case):
         path = self.root / 'checks' / (case['id'] + '.py')
-        result = subprocess.run(['/usr/bin/sandbox-exec', '-p',
-            '(version 1)(allow default)(deny network*)(deny file-write*)',
-            sys.executable, '-I', '-B', str(path), str(self.project / 'solution.py')],
-            cwd=self.project, env=self.env, capture_output=True, timeout=4)
-        return result.returncode
+        return independent_check(path, self.project / 'solution.py', python=sys.executable, environment=self.env)
 
     def freeze(self):
         pins = {name: {'path': str(path), 'sha256': digest_file(path)} for name, path in (
@@ -214,14 +252,17 @@ class Comparison:
         for case in self.cases:
             if request_characteristics({'input': case['goal']})['task_hint'] != 'code_change':
                 raise ValueError('Case must use the existing explicit coding admission vocabulary')
-            code = ('import importlib.util,sys\n'
-                    'p=importlib.util.spec_from_file_location("solution",sys.argv[1])\n'
+            body = ('p=importlib.util.spec_from_file_location("solution",sys.argv[1])\n'
                     's=importlib.util.module_from_spec(p)\np.loader.exec_module(s)\n' + case['checks'])
+            code = ('import importlib.util,sys,traceback\ntry:\n' + textwrap.indent(body, '    ') +
+                    'except AssertionError:\n    traceback.print_exc()\n    sys.exit(1)\n'
+                    'except BaseException:\n    traceback.print_exc()\n    sys.exit(2)\n')
             path = self.root / 'checks' / (case['id'] + '.py')
             path.write_text(code)
-            (self.project / 'solution.py').write_text(case['source'])
-            if self.check(case) == 0:
-                raise ValueError('Case does not have a failing initial implementation: ' + case['id'])
+            reset_project(self.project, case['source'])
+            case['baseline_check'] = self.check(case)
+            if case['baseline_check']['exit_code'] != 1 or case['baseline_check']['termination'] != 'completed':
+                raise ValueError('Baseline must fail an independent assertion: ' + case['id'])
             case['checks_sha256'] = digest_file(path)
         plan = {'schema_version': 1, 'model': MODEL, 'pins': pins, 'artifacts': artifacts,
                 'cases': self.cases, 'developer_instructions': DEVELOPER,
@@ -232,7 +273,7 @@ class Comparison:
         return plan
 
     def episode(self, case, arm, plan):
-        (self.project / 'solution.py').write_text(case['source'])
+        reset_project(self.project, case['source'])
         self.capture = None
         self.launch(case, arm + '-' + case['id'] + '-capture',
             base_url='http://127.0.0.1:' + str(self.server.server_port) + '/v1', timeout=25)
@@ -269,18 +310,23 @@ class Comparison:
             self.cli('client', 'qualify', 'codex', '--client-home', str(self.client_home), '--revoke')
         if permission['submitted_requests'] == 0:
             raise RuntimeError('Native episode was rejected before any model submission; inspect retained logs')
-        changed = (self.project / 'solution.py').read_text() != case['source']
-        check_exit = self.check(case)
+        path = self.project / 'solution.py'
+        source = path.read_text() if path.is_file() and not path.is_symlink() else None
+        changed = source is not None and source != case['source']
+        checked = self.check(case)
         row = {'case_id': case['id'], 'arm': arm, 'model': MODEL, **native,
-               'implementation_changed': changed, 'check_exit_code': check_exit,
+               'implementation_changed': changed, 'check_exit_code': checked['exit_code'],
+               'independent_check': checked, 'baseline_exit_code': case['baseline_check']['exit_code'],
                'checks_unchanged': digest_file(self.root / 'checks' / (case['id'] + '.py')) == case['checks_sha256'],
                'request_profile_sha256': subject['request_profile_sha256'],
                'submitted_requests': permission['submitted_requests']}
-        row['passed'] = (changed and check_exit == 0 and row['checks_unchanged'] and native['turn_completed']
+        row['passed'] = (changed and checked['exit_code'] == 0 and checked['termination'] == 'completed'
+                         and row['checks_unchanged'] and native['turn_completed']
                          and native['client_exit_code'] == 0 and native['termination'] == 'completed')
         self.rows.append(row)
-        (self.root / 'runs' / (arm + '-' + case['id'] + '-solution.py')).write_text(
-            (self.project / 'solution.py').read_text())
+        if source is not None:
+            (self.root / 'runs' / (arm + '-' + case['id'] + '-solution.py')).write_text(source)
+        shutil.copytree(self.project, self.root / 'runs' / (arm + '-' + case['id'] + '-workspace'), symlinks=True)
         write(self.root / 'outcomes.json', self.rows)
         print(arm + ' / ' + case['id'] + ': ' + ('PASS' if row['passed'] else 'FAIL') +
               ', ' + str(native['elapsed_ms']) + ' ms, requests=' + str(row['submitted_requests']), flush=True)
@@ -301,13 +347,15 @@ class Comparison:
                 comparison.capture = json.loads(self.rfile.read(size))
                 self.send_error(400, 'Intentional zero-inference native request capture')
         plan = self.freeze()
-        self.server = HTTPServer(('127.0.0.1', 0), Capture)
-        thread = threading.Thread(target=self.server.serve_forever, kwargs={'poll_interval': 0.1})
-        thread.start()
         normal = Path.home() / '.codex/config.toml'
         before = digest_file(normal) if normal.exists() else None
         report = {'frozen_plan_sha256': canonical_digest(plan), 'outcomes': self.rows}
+        self.server = None
+        thread = None
         try:
+            self.server = HTTPServer(('127.0.0.1', 0), Capture)
+            thread = threading.Thread(target=self.server.serve_forever, kwargs={'poll_interval': 0.1})
+            thread.start()
             for arm, cases in [('baseline', self.cases[:3]), ('adapted', self.cases), ('baseline', self.cases[3:])]:
                 try:
                     self.connect(arm)
@@ -326,9 +374,11 @@ class Comparison:
             report['error'] = str(error)
             raise
         finally:
-            self.server.shutdown()
-            thread.join(timeout=3)
-            self.server.server_close()
+            if self.server is not None:
+                if thread is not None and thread.ident is not None:
+                    self.server.shutdown()
+                    thread.join(timeout=3)
+                self.server.server_close()
             report['cleanup'] = self.cleanup
             report['normal_settings_unchanged'] = (digest_file(normal) if normal.exists() else None) == before
             report['frozen_artifacts_unchanged'] = all(digest_file(path) == expected
