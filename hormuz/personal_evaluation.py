@@ -12,15 +12,21 @@ def evaluate(config, history, args):
     state, records = history.learning_snapshot()
     if not state["enabled"]:
         raise LocalHistoryError("personal_selection_consent_required")
-    if (not 1 <= len(args.models) <= 8 or len(set(args.models)) != len(args.models)
+    models = args.models if args.models is not None else sorted(
+        alias for alias in dict(config.route_admission.local_routes)
+        if config.model_routes[alias].protocol == "openai"
+        and config.upstreams[config.model_routes[alias].destination_id].locality == "local")
+    if args.models is None and not models:
+        raise LocalHistoryError("personal_selection_local_evaluation_unavailable")
+    if (not 1 <= len(models) <= 8 or len(set(models)) != len(models)
             or not 1 <= len(args.entry_ids) <= 16 or len(set(args.entry_ids)) != len(args.entry_ids)
             or type(args.max_requests) is not int or not 1 <= args.max_requests <= 128
-            or len(args.entry_ids) * len(args.models) > args.max_requests
+            or args.models is not None and len(args.entry_ids) * len(models) > args.max_requests
             or not number(args.timeout_seconds, .05, 120) or not number(args.deadline_seconds, .05, 1800)
             or not 1 <= args.max_output_tokens <= 4096):
         raise LocalHistoryError("personal_selection_evaluation_budget_invalid")
     routes = []
-    for alias in args.models:
+    for alias in models:
         route = config.model_routes.get(alias)
         if (route is None or config.upstreams[route.destination_id].locality != "local" or route.protocol != "openai"
                 or alias not in dict(config.route_admission.local_routes)):
@@ -42,7 +48,13 @@ def evaluate(config, history, args):
     observations = []
     stopped, failures, submitted = None, 0, 0
     try:
-        bindings = client.bindings(routes, timeout=min(args.timeout_seconds, args.deadline_seconds))
+        bindings = client.bindings(routes, timeout=min(args.timeout_seconds, args.deadline_seconds),
+                                   discover=args.models is None)
+        routes = [route for route in routes if route.alias in bindings]
+        if not routes:
+            raise LocalHistoryError("personal_selection_local_evaluation_unavailable")
+        if len(sources) * len(routes) > args.max_requests:
+            raise LocalHistoryError("personal_selection_evaluation_budget_invalid")
         for source, payload in sources:
             for route in routes:
                 row = {"source_entry": source["id"], "model": route.alias, "quality": "unknown", "error": None}

@@ -36,7 +36,7 @@ def add_history_commands(subparsers: argparse._SubParsersAction) -> None:
     validate.add_argument("--activate", action="store_true", help="Enable selection only if held-out validation passes")
     evaluate = operations.add_parser("evaluate", help="Explicit bounded local replay using existing independent history checks")
     evaluate.add_argument("--id", action="append", dest="entry_ids", required=True)
-    evaluate.add_argument("--models", nargs="+", required=True)
+    evaluate.add_argument("--models", nargs="+", help="Advanced: replay selected local aliases instead of discovering qualified locals")
     evaluate.add_argument("--max-requests", type=int, default=8)
     evaluate.add_argument("--max-output-tokens", type=int, default=512)
     evaluate.add_argument("--timeout-seconds", type=float, default=30)

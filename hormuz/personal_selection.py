@@ -153,10 +153,11 @@ def predict(examples, text, eligible_models):
     return next(iter(models)), round(best, 6), sorted(example["task"] for example in closest)[:3]
 
 
-def recommend(config, state, records, value, eligible_models, baseline):
-    training = examples(config, records, baseline, "development", benchmark_profile_digest(value))
+def recommend(config, state, records, value, eligible_models, baseline, *, profile_digest=None):
+    profile = profile_digest or benchmark_profile_digest(value)
+    training = examples(config, records, baseline, "development", profile)
     alias, similarity, support = predict(training, prompt_text(value), eligible_models)
-    validated = validation_current(config, state, records, baseline, benchmark_profile_digest(value))
+    validated = validation_current(config, state, records, baseline, profile)
     return {"schema_id": "koto.model-selection", "schema_version": 1,
             "mode": state["mode"], "status": "classified" if alias else "insufficient_evidence",
             "baseline": baseline, "selected_model": alias or baseline,

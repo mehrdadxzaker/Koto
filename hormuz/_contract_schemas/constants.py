@@ -212,6 +212,8 @@ PUBLIC_ERROR_CODES = frozenset({*PUBLIC_ERROR_CODES_V2, "hormuz_custody_restrict
                               *ROUTE_ADMISSION_ERROR_CODES, *CONNECTED_CLIENT_ERROR_ACTIONS})
 
 _CURRENT_SCHEMA_VERSIONS = {
+    "koto.native-task": 1,
+    "koto.native-task-error": 1,
     "koto.personal-selection-status": 1, "koto.personal-scorecard": 1,
     "koto.personal-selection-feedback": 1, "koto.personal-selection-validation": 1,
     "koto.personal-selection-evaluation": 1, "koto.model-selection": 1,
