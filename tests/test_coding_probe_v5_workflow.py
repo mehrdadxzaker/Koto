@@ -10,7 +10,7 @@ from tests import test_connected_client_lifetime_workflow as lifetime
 
 
 class CodingProbeV5WorkflowTests(unittest.TestCase):
-    def test_explicit_long_probe_restores_settings_and_never_admits_ordinary_coding(self):
+    def exercise(self, max_request_bytes, *, allowed):
         fixture = coding.CodingOutputWorkflowTests()
         fixture.setUp()
         self.addCleanup(fixture.doCleanups)
@@ -20,6 +20,10 @@ class CodingProbeV5WorkflowTests(unittest.TestCase):
             route = value['model_routes']['local-code']
             route['upstream_model'] = 'Qwen3-14B-Q4_K_M'
             route['capabilities'].append('qwen_code_v2')
+            # The complete model-facing request includes the selected guidance.
+            # The actual setup-v5 experiment declares 65536; the inherited
+            # synthetic fixture's 4096 bytes deliberately tests rejection.
+            value['route_admission']['local_routes']['local-code']['max_request_bytes'] = max_request_bytes
             evidence = fixture.evidence(value, request)
             plan = {'schema_id': 'hormuz.coding-probe-plan', 'schema_version': 5,
                 'campaign_id': 'synthetic-development-probe-v5', 'plan_sha256': evidence['plan_sha256'],
@@ -41,7 +45,11 @@ class CodingProbeV5WorkflowTests(unittest.TestCase):
             self.assertEqual((armed['schema_version'], armed['automatic_admission_effect']), (2, 'none'))
             self.assertGreater(armed['remaining_ms'], 90000)
             self.assertLessEqual(armed['remaining_ms'], 180000)
-            self.assertEqual(f.client(*options, 'qualification-probe', armed['probe_id'])['status'], 200)
+            result = f.client(*options, 'qualification-probe', armed['probe_id'])
+            self.assertEqual(result['status'], 200 if allowed else 403,
+                             {'status': result['status'], 'body': result.get('body')})
+            if not allowed:
+                self.assertEqual(result['body']['error']['code'], 'hormuz_route_probe_request_mismatch')
             self.assertEqual(f.client(*options)['status'], 503)
             state = json.loads(f.command('status', '--routing').stdout)['routes'][0]
             self.assertEqual((state['coding_readiness'], state['automatic_task_types']), ('unknown', []))
@@ -49,10 +57,19 @@ class CodingProbeV5WorkflowTests(unittest.TestCase):
             validate_contract(revoked)
             self.assertEqual((revoked['schema_version'], revoked['state'], revoked['remaining_ms']), (2, 'revoked', 0))
             self.assertNotEqual(f.client(*options, 'qualification-probe', armed['probe_id'])['status'], 200)
-            self.assertEqual((engine / 'inference-count').read_text().splitlines(), ['1'])
+            if allowed:
+                self.assertEqual((engine / 'inference-count').read_text().splitlines(), ['1'])
+            else:
+                self.assertFalse((engine / 'inference-count').exists())
             self.assertEqual(cloud_requests, [])
             f.command('disconnect')
             self.assertEqual(f.client('inspect')['model'], 'original-model')
+
+    def test_explicit_long_probe_restores_settings_and_never_admits_ordinary_coding(self):
+        self.exercise(65536, allowed=True)
+
+    def test_long_probe_still_rejects_a_shaped_request_larger_than_its_byte_limit(self):
+        self.exercise(4096, allowed=False)
 
 
 if __name__ == '__main__':
