@@ -11,6 +11,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+import time
 
 PROFILE = 'repair-feedback.v1'
 MAX_BYTES = 32768
@@ -189,7 +190,7 @@ class FileProject:
             raise ValueError('Project must be below the private root; checker Python must be outside it')
 
     def open_source(self, flags):
-        descriptor = os.open(self.project / 'solution.py', flags | os.O_NOFOLLOW)
+        descriptor = os.open(self.project / 'solution.py', flags | os.O_NOFOLLOW | os.O_NONBLOCK)
         try:
             info = os.fstat(descriptor)
             if not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid() or info.st_nlink != 1:
@@ -236,18 +237,8 @@ class FileProject:
             except subprocess.TimeoutExpired:
                 timed_out = True
             finally:
-                for action in (signal.SIGTERM, signal.SIGKILL):
-                    try:
-                        os.killpg(process.pid, action)
-                    except ProcessLookupError:
-                        break
-                    try:
-                        process.wait(timeout=1)
-                        break
-                    except subprocess.TimeoutExpired:
-                        continue
                 try:
-                    process.wait(timeout=1)
+                    stop_owned(process)
                 finally:
                     if process.stdin is not None:
                         try:
@@ -259,6 +250,26 @@ class FileProject:
             return {'check_exit_code': process.returncode, 'timed_out': timed_out,
                     'stdout': stdout.read(8192).decode('utf-8', 'replace'),
                     'stderr': stderr.read(8192).decode('utf-8', 'replace')}
+
+
+def stop_owned(process):
+    # Only the start_new_session child above supplies this group identity.
+    # Leader exit does not establish that its descendants have exited.
+    for action in (signal.SIGTERM, signal.SIGKILL):
+        try:
+            os.killpg(process.pid, action)
+        except ProcessLookupError:
+            process.wait(timeout=1)
+            return
+        for _ in range(20):
+            process.poll()
+            try:
+                os.killpg(process.pid, 0)
+            except ProcessLookupError:
+                process.wait(timeout=1)
+                return
+            time.sleep(0.05)
+    raise OSError('Owned checker process group did not exit within the cleanup budget')
 
 
 def serve(tools, incoming, outgoing):

@@ -120,16 +120,23 @@ class RepairFeedbackWorkflowTests(unittest.TestCase):
         project = repair.FileProject(self.project_path, self.root, Path(sys.executable))
         process = Mock(pid=987654, returncode=-9)
         process.communicate.side_effect = subprocess.TimeoutExpired('mock checker', 4)
-        process.wait.side_effect = [subprocess.TimeoutExpired('mock checker', 1), 0, 0]
+        signals = []
+
+        def group(pid, action):
+            self.assertEqual(pid, 987654)
+            if action:
+                signals.append(action)
+            elif repair.signal.SIGKILL in signals:
+                raise ProcessLookupError()
+
         with patch.object(repair.sys, 'platform', 'darwin'), \
                 patch.object(repair.subprocess, 'Popen', return_value=process) as launch, \
-                patch.object(repair.os, 'killpg') as kill:
+                patch.object(repair.os, 'killpg', side_effect=group), \
+                patch.object(repair.time, 'sleep'):
             result = project.check('assert True')
         self.assertTrue(result['timed_out'])
         self.assertEqual(result['check_exit_code'], -9)
-        self.assertEqual([c.args[0] for c in kill.call_args_list], [987654, 987654])
-        self.assertEqual([c.args[1] for c in kill.call_args_list],
-                         [repair.signal.SIGTERM, repair.signal.SIGKILL])
+        self.assertEqual(signals, [repair.signal.SIGTERM, repair.signal.SIGKILL])
         self.assertEqual(process.communicate.call_args.kwargs['timeout'], 4)
         process.stdin.close.assert_called_once()
         self.assertTrue(launch.call_args.kwargs['start_new_session'])
@@ -137,6 +144,56 @@ class RepairFeedbackWorkflowTests(unittest.TestCase):
         self.assertIn('(deny network*)', arguments[2])
         self.assertIn('(deny file-write*)', arguments[2])
         self.assertIn(str(self.root), arguments[2])
+
+    def test_completed_leader_does_not_hide_surviving_descendants(self):
+        project = repair.FileProject(self.project_path, self.root, Path(sys.executable))
+        process = Mock(pid=987654, returncode=0)
+        process.poll.return_value = 0
+        signals = []
+
+        def group(pid, action):
+            self.assertEqual(pid, 987654)
+            if action:
+                signals.append(action)
+            elif repair.signal.SIGKILL in signals:
+                raise ProcessLookupError()
+
+        with patch.object(repair.sys, 'platform', 'darwin'), \
+                patch.object(repair.subprocess, 'Popen', return_value=process), \
+                patch.object(repair.os, 'killpg', side_effect=group), \
+                patch.object(repair.time, 'sleep') as pause:
+            result = project.check('assert True')
+        self.assertEqual(result['check_exit_code'], 0)
+        self.assertEqual(signals, [repair.signal.SIGTERM, repair.signal.SIGKILL])
+        self.assertEqual(pause.call_count, 20)
+        process.stdin.close.assert_called_once()
+
+    def test_group_cleanup_failure_is_bounded_and_cannot_report_success(self):
+        project = repair.FileProject(self.project_path, self.root, Path(sys.executable))
+        process = Mock(pid=987654, returncode=0)
+        with patch.object(repair.sys, 'platform', 'darwin'), \
+                patch.object(repair.subprocess, 'Popen', return_value=process), \
+                patch.object(repair.os, 'killpg') as group, \
+                patch.object(repair.time, 'sleep') as pause:
+            with self.assertRaisesRegex(OSError, 'cleanup budget'):
+                project.check('assert True')
+        self.assertEqual(pause.call_count, 40)
+        self.assertEqual(group.call_count, 42)
+        process.stdin.close.assert_called_once()
+
+    @unittest.skipUnless(hasattr(os, 'mkfifo'), 'POSIX file boundary')
+    def test_nonregular_source_is_opened_nonblocking_then_rejected(self):
+        self.source.unlink()
+        os.mkfifo(self.source)
+        original_open = os.open
+
+        def bounded_open(path, flags):
+            self.assertTrue(flags & os.O_NONBLOCK, 'Reject blocking open before entering the OS')
+            return original_open(path, flags)
+
+        with patch.object(repair.os, 'open', side_effect=bounded_open):
+            with self.assertRaisesRegex(ValueError, 'Unsafe solution.py'):
+                self.project.read()
 
 
 if __name__ == '__main__':
