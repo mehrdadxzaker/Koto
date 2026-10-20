@@ -1,0 +1,475 @@
+{
+  "frozen_plan_sha256": "e9d67008876c0b8551af25503e0cf22a6ee4fd201bf510c13ed1b45dc12e1b7e",
+  "harnesses": {
+    "baseline": "qwen-code.v3",
+    "adapted": "qwen-code.v6"
+  },
+  "study_kind": "paired_comparison",
+  "outcomes": [
+    {
+      "case_id": "signed-ceiling",
+      "arm": "baseline",
+      "harness": "qwen-code.v3",
+      "model": "Qwen3-14B-Q4_K_M",
+      "client_exit_code": 0,
+      "termination": "completed",
+      "elapsed_ms": 53639,
+      "turn_completed": true,
+      "executed_commands": [
+        {
+          "command": "/bin/zsh -lc 'cat solution.py'",
+          "exit_code": 0,
+          "output": "def ceil_div(n, d):\n    return n // d\n"
+        }
+      ],
+      "rejected_native_patches": [],
+      "tool_calls": 2,
+      "tool_errors": 0,
+      "implementation_changed": true,
+      "check_exit_code": 0,
+      "independent_check": {
+        "exit_code": 0,
+        "termination": "completed",
+        "stdout": "",
+        "stderr": ""
+      },
+      "baseline_exit_code": 1,
+      "checks_unchanged": true,
+      "request_profile_sha256": "acfa22cf3552e01435731fa561f2c24a22fd90ca1d6b1cb3e9f1a939e3e74e5f",
+      "submitted_requests": 3,
+      "passed": true
+    },
+    {
+      "case_id": "literal-first",
+      "arm": "baseline",
+      "harness": "qwen-code.v3",
+      "model": "Qwen3-14B-Q4_K_M",
+      "client_exit_code": 0,
+      "termination": "completed",
+      "elapsed_ms": 32676,
+      "turn_completed": true,
+      "executed_commands": [
+        {
+          "command": "/bin/zsh -lc 'cat solution.py'",
+          "exit_code": 0,
+          "output": "def replace_first(text, needle, replacement):\n    return text.replace(needle, replacement)\n"
+        }
+      ],
+      "rejected_native_patches": [],
+      "tool_calls": 2,
+      "tool_errors": 0,
+      "implementation_changed": true,
+      "check_exit_code": 0,
+      "independent_check": {
+        "exit_code": 0,
+        "termination": "completed",
+        "stdout": "",
+        "stderr": ""
+      },
+      "baseline_exit_code": 1,
+      "checks_unchanged": true,
+      "request_profile_sha256": "acfa22cf3552e01435731fa561f2c24a22fd90ca1d6b1cb3e9f1a939e3e74e5f",
+      "submitted_requests": 3,
+      "passed": true
+    },
+    {
+      "case_id": "adjacent-groups",
+      "arm": "baseline",
+      "harness": "qwen-code.v3",
+      "model": "Qwen3-14B-Q4_K_M",
+      "client_exit_code": 0,
+      "termination": "completed",
+      "elapsed_ms": 64726,
+      "turn_completed": true,
+      "executed_commands": [
+        {
+          "command": "/bin/zsh -lc 'cat solution.py'",
+          "exit_code": 0,
+          "output": "def group_runs(values):\n    return [values] if values else []\n"
+        },
+        {
+          "command": "/bin/zsh -lc 'python3 -c \"import solution; assert solution.group_runs([1, 1, 2, 2, 2, 3]) == [[1, 1], [2, 2, 2], [3]]\", \"import solution; assert solution.group_runs([]) == []\", \"import solution; assert solution.group_runs([5]) == [[5]]\"'",
+          "exit_code": 1,
+          "output": "python3: warning: confstr() failed with code 5: couldn't get path of DARWIN_USER_TEMP_DIR; using /tmp instead\n  File \"<string>\", line 1\n    import solution; assert solution.group_runs([1, 1, 2, 2, 2, 3]) == [[1, 1], [2, 2, 2], [3]],\n                                                                                                ^\nSyntaxError: invalid syntax\n"
+        },
+        {
+          "command": "/bin/zsh -lc 'python3 -c \"import solution; assert solution.group_runs([1, 1, 2, 2, 2, 3]) == [[1, 1], [2, 2, 2], [3]]\"; \"import solution; assert solution.group_runs([]) == []\"; \"import solution; assert solution.group_runs([5]) == [[5]]\"'",
+          "exit_code": 127,
+          "output": "python3: warning: confstr() failed with code 5: couldn't get path of DARWIN_USER_TEMP_DIR; using /tmp instead\nzsh:1: command not found: import solution; assert solution.group_runs([]) == []\nzsh:1: command not found: import solution; assert solution.group_runs([5]) == [[5]]\n"
+        },
+        {
+          "command": "/bin/zsh -lc 'python3 -c \"import solution; print(solution.group_runs([1, 1, 2, 2, 2, 3]))\"'",
+          "exit_code": 0,
+          "output": "python3: warning: confstr() failed with code 5: couldn't get path of DARWIN_USER_TEMP_DIR; using /tmp instead\n[[1, 1], [2, 2, 2], [3]]\n"
+        }
+      ],
+      "rejected_native_patches": [],
+      "tool_calls": 5,
+      "tool_errors": 2,
+      "implementation_changed": true,
+      "check_exit_code": 0,
+      "independent_check": {
+        "exit_code": 0,
+        "termination": "completed",
+        "stdout": "",
+        "stderr": ""
+      },
+      "baseline_exit_code": 1,
+      "checks_unchanged": true,
+      "request_profile_sha256": "acfa22cf3552e01435731fa561f2c24a22fd90ca1d6b1cb3e9f1a939e3e74e5f",
+      "submitted_requests": 6,
+      "passed": true
+    },
+    {
+      "case_id": "signed-ceiling",
+      "arm": "adapted",
+      "harness": "qwen-code.v6",
+      "model": "Qwen3-14B-Q4_K_M",
+      "client_exit_code": 1,
+      "termination": "completed",
+      "elapsed_ms": 169690,
+      "turn_completed": false,
+      "executed_commands": [
+        {
+          "command": "/bin/zsh -lc 'cat solution.py'",
+          "exit_code": 0,
+          "output": "def ceil_div(n, d):\n    return n // d\n"
+        },
+        {
+          "command": "/bin/zsh -lc \"python3 -c 'import builtins, copy, hashlib, json, pathlib, sys, types, unittest\n_spec = json.loads('\\\"'\\\"'{\\\"module_path\\\":\\\"solution.py\\\",\\\"function\\\":\\\"ceil_div\\\",\\\"cases\\\":[{\\\"args\\\":[4,3],\\\"expected\\\":2},{\\\"args\\\":[6,3],\\\"expected\\\":2},{\\\"args\\\":[7,3],\\\"expected\\\":3},{\\\"args\\\":[1,1],\\\"expected\\\":1},{\\\"args\\\":[-4,3],\\\"expected\\\":-2},{\\\"args\\\":[-7,3],\\\"expected\\\":-3},{\\\"args\\\":[0,1],\\\"expected\\\":0},{\\\"args\\\":[5,0],\\\"raises\\\":\\\"ValueError\\\"}]}'\\\"'\\\"')\n_root = pathlib.Path.cwd().resolve()\n_file = (_root / _spec[\\\"module_path\\\"]).resolve(strict=True)\nif not _file.is_file() or not _file.is_relative_to(_root):\n    raise AssertionError(\\\"target module is outside the host working directory\\\")\n_source_bytes = _file.read_bytes()\n_source_sha256 = hashlib.sha256(_source_bytes).hexdigest()\n_module = types.ModuleType(\\\"_typed_check_saved_target\\\")\n_module.__file__ = str(_file)\nsys.modules[_module.__name__] = _module\nsys.dont_write_bytecode = True\nexec(compile(_source_bytes, str(_file), \\\"exec\\\"), _module.__dict__)\n_target = getattr(_module, _spec[\\\"function\\\"])\nif not callable(_target):\n    raise AssertionError(\\\"target is not callable\\\")\n_errors = {name: getattr(builtins, name) for name in ('\\\"'\\\"'AssertionError'\\\"'\\\"', '\\\"'\\\"'IndexError'\\\"'\\\"', '\\\"'\\\"'KeyError'\\\"'\\\"', '\\\"'\\\"'OverflowError'\\\"'\\\"', '\\\"'\\\"'RuntimeError'\\\"'\\\"', '\\\"'\\\"'TypeError'\\\"'\\\"', '\\\"'\\\"'ValueError'\\\"'\\\"', '\\\"'\\\"'ZeroDivisionError'\\\"'\\\"')}\n_check = unittest.TestCase()\n_case_count = 0\nfor _number, _case in enumerate(_spec[\\\"cases\\\"], 1):\n    _args = copy.deepcopy(_case[\\\"args\\\"])\n    _kwargs = copy.deepcopy(_case.get(\\\"kwargs\\\", {}))\n    _before = {index: copy.deepcopy(_args[index]) for index in _case.get(\\\"unchanged_args\\\", [])}\n    if \\\"raises\\\" in _case:\n        _expected_error = _errors[_case[\\\"raises\\\"]]\n        try:\n            _target(*_args, **_kwargs)\n        except _expected_error:\n            pass\n        else:\n            raise AssertionError(\\\"case %d: expected exception was not raised\\\" % _number)\n    else:\n        _result = _target(*_args, **_kwargs)\n        _expected = copy.deepcopy(_case[\\\"expected\\\"])\n        for _path in sorted(_case.get(\\\"expected_tuple_paths\\\", []), key=len, reverse=True):\n            if not _path:\n                _expected = tuple(_expected)\n            else:\n                _parent = _expected\n                for _part in _path[:-1]:\n                    _parent = _parent[_part]\n                _parent[_path[-1]] = tuple(_parent[_path[-1]])\n        _check.assertEqual(_result, _expected, \\\"case %d: result mismatch\\\" % _number)\n        if \\\"same_as_arg\\\" in _case:\n            _check.assertIs(_result, _args[_case[\\\"same_as_arg\\\"]], \\\"case %d: identity mismatch\\\" % _number)\n    for _index, _saved in _before.items():\n        _check.assertEqual(_args[_index], _saved, \\\"case %d: argument %d changed\\\" % (_number, _index))\n    _case_count += 1\n_probes = []\n_probe_count = 0\n_meaningful_late_failures = 0\nif \\\"atomic_batch\\\" in _spec:\n    _atomic = _spec[\\\"atomic_batch\\\"]\n    _argument = _atomic[\\\"argument\\\"]\n    _indices = _atomic[\\\"unchanged_args\\\"]\n    for _sequence in _probes:\n        _initial = _spec[\\\"cases\\\"][_sequence[0]]\n        _initial_args = _initial[\\\"args\\\"]\n        _state = {index: copy.deepcopy(_initial_args[index]) for index in _indices}\n        _sequential_rejected = False\n        _late = False\n        _successes = 0\n        for _case_index in _sequence:\n            _step_args = copy.deepcopy(_initial_args)\n            for _index in _indices:\n                _step_args[_index] = _state[_index]\n            _step_args[_argument] = copy.deepcopy(_spec[\\\"cases\\\"][_case_index][\\\"args\\\"][_argument])\n            _prefix_changed = _successes > 0 and any(_state[index] \"'!= _initial_args[index] for index in _indices)\n            try:\n                _target(*_step_args, **copy.deepcopy(_initial.get(\"kwargs\", {})))\n            except Exception:\n                _sequential_rejected = True\n                _late = _prefix_changed\n                break\n            else:\n                _successes += 1\n                for _index in _indices:\n                    _state[_index] = _step_args[_index]\n        _combined_args = copy.deepcopy(_initial_args)\n        _combined_args[_argument] = [copy.deepcopy(item) for case_index in _sequence\n            for item in _spec[\"cases\"][case_index][\"args\"][_argument]]\n        _before_combined = {index: copy.deepcopy(_combined_args[index]) for index in _indices}\n        _combined_rejected = False\n        try:\n            _target(*_combined_args, **copy.deepcopy(_initial.get(\"kwargs\", {})))\n        except Exception:\n            _combined_rejected = True\n            for _index in _indices:\n                _check.assertEqual(_combined_args[_index], _before_combined[_index], \"atomic batch changed state on error\")\n        if _sequential_rejected and _late:\n            _meaningful_late_failures += 1\n            if not _combined_rejected:\n                raise AssertionError(\"atomic batch accepted after sequential late rejection\")\n        _probe_count += 1\n    if not _meaningful_late_failures:\n        raise AssertionError(\"atomic late-failure coverage missing: provide better cases with a state-changing valid prefix and later rejection\")\nprint(\"KOTO_PYTHON_CHECKS_PASSED source_sha256=%s cases=%d probes=%d\" % (_source_sha256, _case_count, _probe_count))\n'\"'\"",
+          "exit_code": 1,
+          "output": "python3: warning: confstr() failed with code 5: couldn't get path of DARWIN_USER_TEMP_DIR; using /tmp instead\nTraceback (most recent call last):\n  File \"<string>\", line 43, in <module>\n  File \"/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/case.py\", line 831, in assertEqual\n    assertion_func(first, second, msg=msg)\n  File \"/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/case.py\", line 824, in _baseAssertEqual\n    raise self.failureException(msg)\nAssertionError: -1 != -2 : case 5: result mismatch\n"
+        }
+      ],
+      "rejected_native_patches": [],
+      "tool_calls": 4,
+      "tool_errors": 1,
+      "implementation_changed": true,
+      "check_exit_code": 1,
+      "independent_check": {
+        "exit_code": 1,
+        "termination": "completed",
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"/Users/mehrdadz/Downloads/memoWiki/koto-harness-v6-a21-comparison-20261020/checks/signed-ceiling.py\", line 7, in <module>\n    assert s.ceil_div(-7, 3) == -2\n           ^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError\n"
+      },
+      "baseline_exit_code": 1,
+      "checks_unchanged": true,
+      "request_profile_sha256": "acfa22cf3552e01435731fa561f2c24a22fd90ca1d6b1cb3e9f1a939e3e74e5f",
+      "submitted_requests": 5,
+      "passed": false
+    },
+    {
+      "case_id": "literal-first",
+      "arm": "adapted",
+      "harness": "qwen-code.v6",
+      "model": "Qwen3-14B-Q4_K_M",
+      "client_exit_code": 0,
+      "termination": "completed",
+      "elapsed_ms": 56442,
+      "turn_completed": true,
+      "executed_commands": [
+        {
+          "command": "/bin/zsh -lc 'cat solution.py'",
+          "exit_code": 0,
+          "output": "def replace_first(text, needle, replacement):\n    return text.replace(needle, replacement)\n"
+        },
+        {
+          "command": "/bin/zsh -lc \"python3 -c 'import builtins, copy, hashlib, json, pathlib, sys, types, unittest\n_spec = json.loads('\\\"'\\\"'{\\\"module_path\\\":\\\"solution.py\\\",\\\"function\\\":\\\"replace_first\\\",\\\"cases\\\":[{\\\"args\\\":[\\\"abc\\\",\\\"a\\\",\\\"x\\\"],\\\"expected\\\":\\\"xbc\\\"},{\\\"args\\\":[\\\"abc\\\",\\\"b\\\",\\\"x\\\"],\\\"expected\\\":\\\"axc\\\"},{\\\"args\\\":[\\\"abc\\\",\\\"c\\\",\\\"x\\\"],\\\"expected\\\":\\\"abx\\\"},{\\\"args\\\":[\\\"abc\\\",\\\"d\\\",\\\"x\\\"],\\\"expected\\\":\\\"abc\\\"},{\\\"args\\\":[\\\"\\\",\\\"a\\\",\\\"x\\\"],\\\"expected\\\":\\\"\\\"},{\\\"args\\\":[\\\"abc\\\",\\\"\\\",\\\"x\\\"],\\\"raises\\\":\\\"ValueError\\\"}]}'\\\"'\\\"')\n_root = pathlib.Path.cwd().resolve()\n_file = (_root / _spec[\\\"module_path\\\"]).resolve(strict=True)\nif not _file.is_file() or not _file.is_relative_to(_root):\n    raise AssertionError(\\\"target module is outside the host working directory\\\")\n_source_bytes = _file.read_bytes()\n_source_sha256 = hashlib.sha256(_source_bytes).hexdigest()\n_module = types.ModuleType(\\\"_typed_check_saved_target\\\")\n_module.__file__ = str(_file)\nsys.modules[_module.__name__] = _module\nsys.dont_write_bytecode = True\nexec(compile(_source_bytes, str(_file), \\\"exec\\\"), _module.__dict__)\n_target = getattr(_module, _spec[\\\"function\\\"])\nif not callable(_target):\n    raise AssertionError(\\\"target is not callable\\\")\n_errors = {name: getattr(builtins, name) for name in ('\\\"'\\\"'AssertionError'\\\"'\\\"', '\\\"'\\\"'IndexError'\\\"'\\\"', '\\\"'\\\"'KeyError'\\\"'\\\"', '\\\"'\\\"'OverflowError'\\\"'\\\"', '\\\"'\\\"'RuntimeError'\\\"'\\\"', '\\\"'\\\"'TypeError'\\\"'\\\"', '\\\"'\\\"'ValueError'\\\"'\\\"', '\\\"'\\\"'ZeroDivisionError'\\\"'\\\"')}\n_check = unittest.TestCase()\n_case_count = 0\nfor _number, _case in enumerate(_spec[\\\"cases\\\"], 1):\n    _args = copy.deepcopy(_case[\\\"args\\\"])\n    _kwargs = copy.deepcopy(_case.get(\\\"kwargs\\\", {}))\n    _before = {index: copy.deepcopy(_args[index]) for index in _case.get(\\\"unchanged_args\\\", [])}\n    if \\\"raises\\\" in _case:\n        _expected_error = _errors[_case[\\\"raises\\\"]]\n        try:\n            _target(*_args, **_kwargs)\n        except _expected_error:\n            pass\n        else:\n            raise AssertionError(\\\"case %d: expected exception was not raised\\\" % _number)\n    else:\n        _result = _target(*_args, **_kwargs)\n        _expected = copy.deepcopy(_case[\\\"expected\\\"])\n        for _path in sorted(_case.get(\\\"expected_tuple_paths\\\", []), key=len, reverse=True):\n            if not _path:\n                _expected = tuple(_expected)\n            else:\n                _parent = _expected\n                for _part in _path[:-1]:\n                    _parent = _parent[_part]\n                _parent[_path[-1]] = tuple(_parent[_path[-1]])\n        _check.assertEqual(_result, _expected, \\\"case %d: result mismatch\\\" % _number)\n        if \\\"same_as_arg\\\" in _case:\n            _check.assertIs(_result, _args[_case[\\\"same_as_arg\\\"]], \\\"case %d: identity mismatch\\\" % _number)\n    for _index, _saved in _before.items():\n        _check.assertEqual(_args[_index], _saved, \\\"case %d: argument %d changed\\\" % (_number, _index))\n    _case_count += 1\n_probes = []\n_probe_count = 0\n_meaningful_late_failures = 0\nif \\\"atomic_batch\\\" in _spec:\n    _atomic = _spec[\\\"atomic_batch\\\"]\n    _argument = _atomic[\\\"argument\\\"]\n    _indices = _atomic[\\\"unchanged_args\\\"]\n    for _sequence in _probes:\n        _initial = _spec[\\\"cases\\\"][_sequence[0]]\n        _initial_args = _initial[\\\"args\\\"]\n        _state = {index: copy.deepcopy(_initial_args[index]) for index in _indices}\n        _sequential_rejected = False\n        _late = False\n        _successes = 0\n        for _case_index in _sequence:\n            _step_args = copy.deepcopy(_initial_args)\n            for _index in _indices:\n                _step_args[_index] = _state[_index]\n            _step_args[_argument] = copy.deepcopy(_spec[\\\"cases\\\"][_case_index][\\\"args\\\"][_argument])\n            _prefix_changed = _successes > 0 and any(_state[index] \"'!= _initial_args[index] for index in _indices)\n            try:\n                _target(*_step_args, **copy.deepcopy(_initial.get(\"kwargs\", {})))\n            except Exception:\n                _sequential_rejected = True\n                _late = _prefix_changed\n                break\n            else:\n                _successes += 1\n                for _index in _indices:\n                    _state[_index] = _step_args[_index]\n        _combined_args = copy.deepcopy(_initial_args)\n        _combined_args[_argument] = [copy.deepcopy(item) for case_index in _sequence\n            for item in _spec[\"cases\"][case_index][\"args\"][_argument]]\n        _before_combined = {index: copy.deepcopy(_combined_args[index]) for index in _indices}\n        _combined_rejected = False\n        try:\n            _target(*_combined_args, **copy.deepcopy(_initial.get(\"kwargs\", {})))\n        except Exception:\n            _combined_rejected = True\n            for _index in _indices:\n                _check.assertEqual(_combined_args[_index], _before_combined[_index], \"atomic batch changed state on error\")\n        if _sequential_rejected and _late:\n            _meaningful_late_failures += 1\n            if not _combined_rejected:\n                raise AssertionError(\"atomic batch accepted after sequential late rejection\")\n        _probe_count += 1\n    if not _meaningful_late_failures:\n        raise AssertionError(\"atomic late-failure coverage missing: provide better cases with a state-changing valid prefix and later rejection\")\nprint(\"KOTO_PYTHON_CHECKS_PASSED source_sha256=%s cases=%d probes=%d\" % (_source_sha256, _case_count, _probe_count))\n'\"'\"",
+          "exit_code": 0,
+          "output": "python3: warning: confstr() failed with code 5: couldn't get path of DARWIN_USER_TEMP_DIR; using /tmp instead\nKOTO_PYTHON_CHECKS_PASSED source_sha256=e6f88e5535d60dbacc58b60695ee72a5a13073058893c1c25738bf2eb9a075be cases=6 probes=0\n"
+        }
+      ],
+      "rejected_native_patches": [],
+      "tool_calls": 3,
+      "tool_errors": 0,
+      "implementation_changed": true,
+      "check_exit_code": 0,
+      "independent_check": {
+        "exit_code": 0,
+        "termination": "completed",
+        "stdout": "",
+        "stderr": ""
+      },
+      "baseline_exit_code": 1,
+      "checks_unchanged": true,
+      "request_profile_sha256": "acfa22cf3552e01435731fa561f2c24a22fd90ca1d6b1cb3e9f1a939e3e74e5f",
+      "submitted_requests": 4,
+      "passed": true
+    },
+    {
+      "case_id": "adjacent-groups",
+      "arm": "adapted",
+      "harness": "qwen-code.v6",
+      "model": "Qwen3-14B-Q4_K_M",
+      "client_exit_code": 0,
+      "termination": "completed",
+      "elapsed_ms": 85188,
+      "turn_completed": true,
+      "executed_commands": [
+        {
+          "command": "/bin/zsh -lc 'cat solution.py'",
+          "exit_code": 0,
+          "output": "def group_runs(values):\n    return [values] if values else []\n"
+        },
+        {
+          "command": "/bin/zsh -lc \"python3 -c 'import builtins, copy, hashlib, json, pathlib, sys, types, unittest\n_spec = json.loads('\\\"'\\\"'{\\\"module_path\\\":\\\"solution.py\\\",\\\"function\\\":\\\"group_runs\\\",\\\"cases\\\":[{\\\"args\\\":[[],{}],\\\"expected\\\":[]},{\\\"args\\\":[[1],{}],\\\"expected\\\":[[1]],\\\"unchanged_args\\\":[0]},{\\\"args\\\":[[1,1],{}],\\\"expected\\\":[[1,1]],\\\"unchanged_args\\\":[0]},{\\\"args\\\":[[1,1,2],{}],\\\"expected\\\":[[1,1],[2]],\\\"unchanged_args\\\":[0]},{\\\"args\\\":[[1,2,2,3],{}],\\\"expected\\\":[[1],[2,2],[3]],\\\"unchanged_args\\\":[0]},{\\\"args\\\":[[1,1,2,2,2,3],{}],\\\"expected\\\":[[1,1],[2,2,2],[3]],\\\"unchanged_args\\\":[0]}]}'\\\"'\\\"')\n_root = pathlib.Path.cwd().resolve()\n_file = (_root / _spec[\\\"module_path\\\"]).resolve(strict=True)\nif not _file.is_file() or not _file.is_relative_to(_root):\n    raise AssertionError(\\\"target module is outside the host working directory\\\")\n_source_bytes = _file.read_bytes()\n_source_sha256 = hashlib.sha256(_source_bytes).hexdigest()\n_module = types.ModuleType(\\\"_typed_check_saved_target\\\")\n_module.__file__ = str(_file)\nsys.modules[_module.__name__] = _module\nsys.dont_write_bytecode = True\nexec(compile(_source_bytes, str(_file), \\\"exec\\\"), _module.__dict__)\n_target = getattr(_module, _spec[\\\"function\\\"])\nif not callable(_target):\n    raise AssertionError(\\\"target is not callable\\\")\n_errors = {name: getattr(builtins, name) for name in ('\\\"'\\\"'AssertionError'\\\"'\\\"', '\\\"'\\\"'IndexError'\\\"'\\\"', '\\\"'\\\"'KeyError'\\\"'\\\"', '\\\"'\\\"'OverflowError'\\\"'\\\"', '\\\"'\\\"'RuntimeError'\\\"'\\\"', '\\\"'\\\"'TypeError'\\\"'\\\"', '\\\"'\\\"'ValueError'\\\"'\\\"', '\\\"'\\\"'ZeroDivisionError'\\\"'\\\"')}\n_check = unittest.TestCase()\n_case_count = 0\nfor _number, _case in enumerate(_spec[\\\"cases\\\"], 1):\n    _args = copy.deepcopy(_case[\\\"args\\\"])\n    _kwargs = copy.deepcopy(_case.get(\\\"kwargs\\\", {}))\n    _before = {index: copy.deepcopy(_args[index]) for index in _case.get(\\\"unchanged_args\\\", [])}\n    if \\\"raises\\\" in _case:\n        _expected_error = _errors[_case[\\\"raises\\\"]]\n        try:\n            _target(*_args, **_kwargs)\n        except _expected_error:\n            pass\n        else:\n            raise AssertionError(\\\"case %d: expected exception was not raised\\\" % _number)\n    else:\n        _result = _target(*_args, **_kwargs)\n        _expected = copy.deepcopy(_case[\\\"expected\\\"])\n        for _path in sorted(_case.get(\\\"expected_tuple_paths\\\", []), key=len, reverse=True):\n            if not _path:\n                _expected = tuple(_expected)\n            else:\n                _parent = _expected\n                for _part in _path[:-1]:\n                    _parent = _parent[_part]\n                _parent[_path[-1]] = tuple(_parent[_path[-1]])\n        _check.assertEqual(_result, _expected, \\\"case %d: result mismatch\\\" % _number)\n        if \\\"same_as_arg\\\" in _case:\n            _check.assertIs(_result, _args[_case[\\\"same_as_arg\\\"]], \\\"case %d: identity mismatch\\\" % _number)\n    for _index, _saved in _before.items():\n        _check.assertEqual(_args[_index], _saved, \\\"case %d: argument %d changed\\\" % (_number, _index))\n    _case_count += 1\n_probes = []\n_probe_count = 0\n_meaningful_late_failures = 0\nif \\\"atomic_batch\\\" in _spec:\n    _atomic = _spec[\\\"atomic_batch\\\"]\n    _argument = _atomic[\\\"argument\\\"]\n    _indices = _atomic[\\\"unchanged_args\\\"]\n    for _sequence in _probes:\n        _initial = _spec[\\\"cases\\\"][_sequence[0]]\n        _initial_args = _initial[\\\"args\\\"]\n        _state = {index: copy.deepcopy(_initial_args[index]) for index in _indices}\n        _sequential_rejected = False\n        _late = False\n        _successes = 0\n        for _case_index in _sequence:\n            _step_args = copy.deepcopy(_initial_args)\n            for _index in _indices:\n                _step_args[_index] = _state[_index]\n            _step_args[_argument] = copy.deepcopy(_spec[\\\"cases\\\"][_case_index][\\\"args\\\"][_argument])\n            _prefix_changed = _successes > 0 and any(_state[index] \"'!= _initial_args[index] for index in _indices)\n            try:\n                _target(*_step_args, **copy.deepcopy(_initial.get(\"kwargs\", {})))\n            except Exception:\n                _sequential_rejected = True\n                _late = _prefix_changed\n                break\n            else:\n                _successes += 1\n                for _index in _indices:\n                    _state[_index] = _step_args[_index]\n        _combined_args = copy.deepcopy(_initial_args)\n        _combined_args[_argument] = [copy.deepcopy(item) for case_index in _sequence\n            for item in _spec[\"cases\"][case_index][\"args\"][_argument]]\n        _before_combined = {index: copy.deepcopy(_combined_args[index]) for index in _indices}\n        _combined_rejected = False\n        try:\n            _target(*_combined_args, **copy.deepcopy(_initial.get(\"kwargs\", {})))\n        except Exception:\n            _combined_rejected = True\n            for _index in _indices:\n                _check.assertEqual(_combined_args[_index], _before_combined[_index], \"atomic batch changed state on error\")\n        if _sequential_rejected and _late:\n            _meaningful_late_failures += 1\n            if not _combined_rejected:\n                raise AssertionError(\"atomic batch accepted after sequential late rejection\")\n        _probe_count += 1\n    if not _meaningful_late_failures:\n        raise AssertionError(\"atomic late-failure coverage missing: provide better cases with a state-changing valid prefix and later rejection\")\nprint(\"KOTO_PYTHON_CHECKS_PASSED source_sha256=%s cases=%d probes=%d\" % (_source_sha256, _case_count, _probe_count))\n'\"'\"",
+          "exit_code": 1,
+          "output": "python3: warning: confstr() failed with code 5: couldn't get path of DARWIN_USER_TEMP_DIR; using /tmp instead\nTraceback (most recent call last):\n  File \"<string>\", line 33, in <module>\nTypeError: group_runs() takes 1 positional argument but 2 were given\n"
+        },
+        {
+          "command": "/bin/zsh -lc \"python3 -c 'import sys; print(sys.executable)'\"",
+          "exit_code": 0,
+          "output": "python3: warning: confstr() failed with code 5: couldn't get path of DARWIN_USER_TEMP_DIR; using /tmp instead\n/Library/Developer/CommandLineTools/usr/bin/python3\n"
+        }
+      ],
+      "rejected_native_patches": [],
+      "tool_calls": 4,
+      "tool_errors": 1,
+      "implementation_changed": true,
+      "check_exit_code": 0,
+      "independent_check": {
+        "exit_code": 0,
+        "termination": "completed",
+        "stdout": "",
+        "stderr": ""
+      },
+      "baseline_exit_code": 1,
+      "checks_unchanged": true,
+      "request_profile_sha256": "acfa22cf3552e01435731fa561f2c24a22fd90ca1d6b1cb3e9f1a939e3e74e5f",
+      "submitted_requests": 5,
+      "passed": true
+    },
+    {
+      "case_id": "interval-union",
+      "arm": "adapted",
+      "harness": "qwen-code.v6",
+      "model": "Qwen3-14B-Q4_K_M",
+      "client_exit_code": 1,
+      "termination": "completed",
+      "elapsed_ms": 180010,
+      "turn_completed": false,
+      "executed_commands": [
+        {
+          "command": "/bin/zsh -lc 'cat solution.py'",
+          "exit_code": 0,
+          "output": "def merge_intervals(intervals):\n    intervals.sort()\n    return intervals\n"
+        },
+        {
+          "command": "/bin/zsh -lc \"python3 -c 'import builtins, copy, hashlib, json, pathlib, sys, types, unittest\n_spec = json.loads('\\\"'\\\"'{\\\"module_path\\\":\\\"solution.py\\\",\\\"function\\\":\\\"merge_intervals\\\",\\\"cases\\\":[{\\\"args\\\":[[],{}],\\\"expected\\\":[]},{\\\"args\\\":[[[1,3],[2,6],[8,10],[15,18]],{}],\\\"expected\\\":[[1,6],[8,10],[15,18]]},{\\\"args\\\":[[[1,4],[0,4]],{}],\\\"expected\\\":[[0,4]],\\\"unchanged_args\\\":[0]},{\\\"args\\\":[[[1,4],[2,3]],{}],\\\"expected\\\":[[1,4]],\\\"unchanged_args\\\":[0]},{\\\"args\\\":[[[1,4],[0,5]],{}],\\\"expected\\\":[[0,5]],\\\"unchanged_args\\\":[0]},{\\\"args\\\":[[[1,4],[2,5]],{}],\\\"expected\\\":[[1,5]],\\\"unchanged_args\\\":[0]},{\\\"args\\\":[[[1,4],[5,6]],{}],\\\"expected\\\":[[1,4],[5,6]],\\\"unchanged_args\\\":[0]},{\\\"args\\\":[[[1,4],[4,6]],{}],\\\"expected\\\":[[1,6]],\\\"unchanged_args\\\":[0]},{\\\"args\\\":[[[1,4],[3,5]],{}],\\\"expected\\\":[[1,5]],\\\"unchanged_args\\\":[0]},{\\\"args\\\":[[[1,4],[2,5],[6,8]],{}],\\\"expected\\\":[[1,5],[6,8]],\\\"unchanged_args\\\":[0]},{\\\"args\\\":[[[1,4],[2,3],[4,7]],{}],\\\"expected\\\":[[1,7]],\\\"unchanged_args\\\":[0]},{\\\"args\\\":[[[1,4],[2,5],[6,8],[7,9]],{}],\\\"expected\\\":[[1,5],[6,9]],\\\"unchanged_args\\\":[0]},{\\\"args\\\":[[[1,4],[2,5],[6,8],[7,9],[10,12]],{}],\\\"expected\\\":[[1,5],[6,9],[10,12]],\\\"unchanged_args\\\":[0]},{\\\"args\\\":[[[1,4],[2,5],[6,8],[7,9],[10,12],[13,14]],{}],\\\"expected\\\":[[1,5],[6,9],[10,12],[13,14]],\\\"unchanged_args\\\":[0]},{\\\"args\\\":[[[1,4],[2,5],[6,8],[7,9],[10,12],[13,14],[15,16]],{}],\\\"expected\\\":[[1,5],[6,9],[10,12],[13,14],[15,16]],\\\"unchanged_args\\\":[0]},{\\\"args\\\":[[[1,4],[2,5],[6,8],[7,9],[10,12],[13,14],[15,16],[17,18]],{}],\\\"expected\\\":[[1,5],[6,9],[10,12],[13,14],[15,16],[17,18]],\\\"unchanged_args\\\":[0]}]}'\\\"'\\\"')\n_root = pathlib.Path.cwd().resolve()\n_file = (_root / _spec[\\\"module_path\\\"]).resolve(strict=True)\nif not _file.is_file() or not _file.is_relative_to(_root):\n    raise AssertionError(\\\"target module is outside the host working directory\\\")\n_source_bytes = _file.read_bytes()\n_source_sha256 = hashlib.sha256(_source_bytes).hexdigest()\n_module = types.ModuleType(\\\"_typed_check_saved_target\\\")\n_module.__file__ = str(_file)\nsys.modules[_module.__name__] = _module\nsys.dont_write_bytecode = True\nexec(compile(_source_bytes, str(_file), \\\"exec\\\"), _module.__dict__)\n_target = getattr(_module, _spec[\\\"function\\\"])\nif not callable(_target):\n    raise AssertionError(\\\"target is not callable\\\")\n_errors = {name: getattr(builtins, name) for name in ('\\\"'\\\"'AssertionError'\\\"'\\\"', '\\\"'\\\"'IndexError'\\\"'\\\"', '\\\"'\\\"'KeyError'\\\"'\\\"', '\\\"'\\\"'OverflowError'\\\"'\\\"', '\\\"'\\\"'RuntimeError'\\\"'\\\"', '\\\"'\\\"'TypeError'\\\"'\\\"', '\\\"'\\\"'ValueError'\\\"'\\\"', '\\\"'\\\"'ZeroDivisionError'\\\"'\\\"')}\n_check = unittest.TestCase()\n_case_count = 0\nfor _number, _case in enumerate(_spec[\\\"cases\\\"], 1):\n    _args = copy.deepcopy(_case[\\\"args\\\"])\n    _kwargs = copy.deepcopy(_case.get(\\\"kwargs\\\", {}))\n    _before = {index: copy.deepcopy(_args[index]) for index in _case.get(\\\"unchanged_args\\\", [])}\n    if \\\"raises\\\" in _case:\n        _expected_error = _errors[_case[\\\"raises\\\"]]\n        try:\n            _target(*_args, **_kwargs)\n        except _expected_error:\n            pass\n        else:\n            raise AssertionError(\\\"case %d: expected exception was not raised\\\" % _number)\n    else:\n        _result = _target(*_args, **_kwargs)\n        _expected = copy.deepcopy(_case[\\\"expected\\\"])\n        for _path in sorted(_case.get(\\\"expected_tuple_paths\\\", []), key=len, reverse=True):\n            if not _path:\n                _expected = tuple(_expected)\n            else:\n                _parent = _expected\n                for _part in _path[:-1]:\n                    _parent = _parent[_part]\n                _parent[_path[-1]] = tuple(_parent[_path[-1]])\n        _check.assertEqual(_result, _expected, \\\"case %d: result mismatch\\\" % _number)\n        if \\\"same_as_arg\\\" in _case:\n            _check.assertIs(_result, _args[_case[\\\"same_as_arg\\\"]], \\\"case %d: identity mismatch\\\" % _number)\n    for _index, _saved in _before.items():\n        _check.assertEqual(_args[_index], _saved, \\\"case %d: argument %d changed\\\" % (_number, _index))\n    _case_count += 1\n_probes = []\n_probe_count = 0\n_meaningful_late_failures = 0\nif \\\"atomic_batch\\\" in _spec:\n    _atomic = _spec[\\\"atomic_batch\\\"]\n    _argument = _atomic[\\\"argument\\\"]\n    _indices = _atomic[\\\"unchanged_args\\\"]\n    for _sequence in _probes:\n        _initial = _spec[\\\"cases\\\"][_sequence[0]]\n        _initial_args = _initial[\\\"args\\\"]\n        _state = {index: copy.deepcopy(_initial_args[index]) for index in _indices}\n        _sequential_rejected = False\n        _late = False\n        _successes = 0\n        for _case_index in _sequence:\n            _step_args = copy.deepcopy(_initial_args)\n            for _index in _indices:\n                _step_args[_index] = _state[_index]\n            _step_args[_argument] = copy.deepcopy(_spec[\\\"cases\\\"][_case_index][\\\"args\\\"][_argument])\n            _prefix_changed = _successes > 0 and any(_state[index] \"'!= _initial_args[index] for index in _indices)\n            try:\n                _target(*_step_args, **copy.deepcopy(_initial.get(\"kwargs\", {})))\n            except Exception:\n                _sequential_rejected = True\n                _late = _prefix_changed\n                break\n            else:\n                _successes += 1\n                for _index in _indices:\n                    _state[_index] = _step_args[_index]\n        _combined_args = copy.deepcopy(_initial_args)\n        _combined_args[_argument] = [copy.deepcopy(item) for case_index in _sequence\n            for item in _spec[\"cases\"][case_index][\"args\"][_argument]]\n        _before_combined = {index: copy.deepcopy(_combined_args[index]) for index in _indices}\n        _combined_rejected = False\n        try:\n            _target(*_combined_args, **copy.deepcopy(_initial.get(\"kwargs\", {})))\n        except Exception:\n            _combined_rejected = True\n            for _index in _indices:\n                _check.assertEqual(_combined_args[_index], _before_combined[_index], \"atomic batch changed state on error\")\n        if _sequential_rejected and _late:\n            _meaningful_late_failures += 1\n            if not _combined_rejected:\n                raise AssertionError(\"atomic batch accepted after sequential late rejection\")\n        _probe_count += 1\n    if not _meaningful_late_failures:\n        raise AssertionError(\"atomic late-failure coverage missing: provide better cases with a state-changing valid prefix and later rejection\")\nprint(\"KOTO_PYTHON_CHECKS_PASSED source_sha256=%s cases=%d probes=%d\" % (_source_sha256, _case_count, _probe_count))\n'\"'\"",
+          "exit_code": 1,
+          "output": "python3: warning: confstr() failed with code 5: couldn't get path of DARWIN_USER_TEMP_DIR; using /tmp instead\nTraceback (most recent call last):\n  File \"<string>\", line 33, in <module>\nTypeError: merge_intervals() takes 1 positional argument but 2 were given\n"
+        }
+      ],
+      "rejected_native_patches": [],
+      "tool_calls": 3,
+      "tool_errors": 1,
+      "implementation_changed": true,
+      "check_exit_code": 0,
+      "independent_check": {
+        "exit_code": 0,
+        "termination": "completed",
+        "stdout": "",
+        "stderr": ""
+      },
+      "baseline_exit_code": 1,
+      "checks_unchanged": true,
+      "request_profile_sha256": "acfa22cf3552e01435731fa561f2c24a22fd90ca1d6b1cb3e9f1a939e3e74e5f",
+      "submitted_requests": 4,
+      "passed": false
+    },
+    {
+      "case_id": "atomic-stock",
+      "arm": "adapted",
+      "harness": "qwen-code.v6",
+      "model": "Qwen3-14B-Q4_K_M",
+      "client_exit_code": 1,
+      "termination": "completed",
+      "elapsed_ms": 60391,
+      "turn_completed": false,
+      "executed_commands": [
+        {
+          "command": "/bin/zsh -lc 'cat solution.py'",
+          "exit_code": 0,
+          "output": "def consume_stock(stock, requests):\n    for item, quantity in requests:\n        stock[item] -= quantity\n    return stock\n"
+        }
+      ],
+      "rejected_native_patches": [],
+      "tool_calls": 2,
+      "tool_errors": 0,
+      "implementation_changed": true,
+      "check_exit_code": 1,
+      "independent_check": {
+        "exit_code": 1,
+        "termination": "completed",
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"/Users/mehrdadz/Downloads/memoWiki/koto-harness-v6-a21-comparison-20261020/checks/atomic-stock.py\", line 13, in <module>\n    else: raise AssertionError('invalid batch accepted')\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: invalid batch accepted\n"
+      },
+      "baseline_exit_code": 1,
+      "checks_unchanged": true,
+      "request_profile_sha256": "acfa22cf3552e01435731fa561f2c24a22fd90ca1d6b1cb3e9f1a939e3e74e5f",
+      "submitted_requests": 3,
+      "passed": false
+    },
+    {
+      "case_id": "stable-key-unique",
+      "arm": "adapted",
+      "harness": "qwen-code.v6",
+      "model": "Qwen3-14B-Q4_K_M",
+      "client_exit_code": 1,
+      "termination": "completed",
+      "elapsed_ms": 51111,
+      "turn_completed": false,
+      "executed_commands": [
+        {
+          "command": "/bin/zsh -lc 'cat solution.py'",
+          "exit_code": 0,
+          "output": "def unique_records(records, key):\n    return records[:]\n"
+        }
+      ],
+      "rejected_native_patches": [],
+      "tool_calls": 2,
+      "tool_errors": 0,
+      "implementation_changed": true,
+      "check_exit_code": 2,
+      "independent_check": {
+        "exit_code": 2,
+        "termination": "completed",
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"/Users/mehrdadz/Downloads/memoWiki/koto-harness-v6-a21-comparison-20261020/checks/stable-key-unique.py\", line 10, in <module>\n    r = s.unique_records(x, 'id')\n        ^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/mehrdadz/Downloads/memoWiki/koto-harness-v6-a21-comparison-20261020/project/solution.py\", line 8, in unique_records\n    if val not in seen:\n       ^^^^^^^^^^^^^^^\nTypeError: unhashable type: 'list'\n"
+      },
+      "baseline_exit_code": 1,
+      "checks_unchanged": true,
+      "request_profile_sha256": "acfa22cf3552e01435731fa561f2c24a22fd90ca1d6b1cb3e9f1a939e3e74e5f",
+      "submitted_requests": 3,
+      "passed": false
+    },
+    {
+      "case_id": "interval-union",
+      "arm": "baseline",
+      "harness": "qwen-code.v3",
+      "model": "Qwen3-14B-Q4_K_M",
+      "client_exit_code": 0,
+      "termination": "completed",
+      "elapsed_ms": 75338,
+      "turn_completed": true,
+      "executed_commands": [
+        {
+          "command": "/bin/zsh -lc 'cat solution.py'",
+          "exit_code": 0,
+          "output": "def merge_intervals(intervals):\n    intervals.sort()\n    return intervals\n"
+        }
+      ],
+      "rejected_native_patches": [],
+      "tool_calls": 2,
+      "tool_errors": 0,
+      "implementation_changed": true,
+      "check_exit_code": 0,
+      "independent_check": {
+        "exit_code": 0,
+        "termination": "completed",
+        "stdout": "",
+        "stderr": ""
+      },
+      "baseline_exit_code": 1,
+      "checks_unchanged": true,
+      "request_profile_sha256": "acfa22cf3552e01435731fa561f2c24a22fd90ca1d6b1cb3e9f1a939e3e74e5f",
+      "submitted_requests": 3,
+      "passed": true
+    },
+    {
+      "case_id": "atomic-stock",
+      "arm": "baseline",
+      "harness": "qwen-code.v3",
+      "model": "Qwen3-14B-Q4_K_M",
+      "client_exit_code": 0,
+      "termination": "completed",
+      "elapsed_ms": 39078,
+      "turn_completed": true,
+      "executed_commands": [
+        {
+          "command": "/bin/zsh -lc 'cat solution.py'",
+          "exit_code": 0,
+          "output": "def consume_stock(stock, requests):\n    for item, quantity in requests:\n        stock[item] -= quantity\n    return stock\n"
+        }
+      ],
+      "rejected_native_patches": [],
+      "tool_calls": 2,
+      "tool_errors": 0,
+      "implementation_changed": true,
+      "check_exit_code": 1,
+      "independent_check": {
+        "exit_code": 1,
+        "termination": "completed",
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"/Users/mehrdadz/Downloads/memoWiki/koto-harness-v6-a21-comparison-20261020/checks/atomic-stock.py\", line 14, in <module>\n    assert x == {'a': 5, 'b': 2}\n           ^^^^^^^^^^^^^^^^^^^^^\nAssertionError\n"
+      },
+      "baseline_exit_code": 1,
+      "checks_unchanged": true,
+      "request_profile_sha256": "acfa22cf3552e01435731fa561f2c24a22fd90ca1d6b1cb3e9f1a939e3e74e5f",
+      "submitted_requests": 3,
+      "passed": false
+    },
+    {
+      "case_id": "stable-key-unique",
+      "arm": "baseline",
+      "harness": "qwen-code.v3",
+      "model": "Qwen3-14B-Q4_K_M",
+      "client_exit_code": 0,
+      "termination": "completed",
+      "elapsed_ms": 42976,
+      "turn_completed": true,
+      "executed_commands": [
+        {
+          "command": "/bin/zsh -lc 'cat solution.py'",
+          "exit_code": 0,
+          "output": "def unique_records(records, key):\n    return records[:]\n"
+        }
+      ],
+      "rejected_native_patches": [],
+      "tool_calls": 2,
+      "tool_errors": 0,
+      "implementation_changed": true,
+      "check_exit_code": 2,
+      "independent_check": {
+        "exit_code": 2,
+        "termination": "completed",
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"/Users/mehrdadz/Downloads/memoWiki/koto-harness-v6-a21-comparison-20261020/checks/stable-key-unique.py\", line 10, in <module>\n    r = s.unique_records(x, 'id')\n        ^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/mehrdadz/Downloads/memoWiki/koto-harness-v6-a21-comparison-20261020/project/solution.py\", line 6, in unique_records\n    if value not in seen:\n       ^^^^^^^^^^^^^^^^^\nTypeError: unhashable type: 'list'\n"
+      },
+      "baseline_exit_code": 1,
+      "checks_unchanged": true,
+      "request_profile_sha256": "acfa22cf3552e01435731fa561f2c24a22fd90ca1d6b1cb3e9f1a939e3e74e5f",
+      "submitted_requests": 3,
+      "passed": false
+    }
+  ],
+  "baseline": {
+    "passed": 4,
+    "total": 6,
+    "median_elapsed_ms": 48307.5,
+    "tool_errors": 2
+  },
+  "adapted": {
+    "passed": 2,
+    "total": 6,
+    "median_elapsed_ms": 72789.5,
+    "tool_errors": 3
+  },
+  "same_native_profiles": true,
+  "cleanup": [
+    {
+      "settings_restored": true,
+      "owned_listeners_closed": true
+    },
+    {
+      "settings_restored": true,
+      "owned_listeners_closed": true
+    },
+    {
+      "settings_restored": true,
+      "owned_listeners_closed": true
+    }
+  ],
+  "normal_settings_unchanged": true,
+  "frozen_artifacts_unchanged": true
+}

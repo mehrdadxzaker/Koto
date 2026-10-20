@@ -1,0 +1,21 @@
+{
+  "kind": "allowlisted_validation_summary",
+  "candidate_status": "current_final_candidate",
+  "runtime": "2.0.0a21",
+  "source_commit": "55785ac544b92206f7c49182ad8ed1e7ad77f8c1",
+  "focused_fast_tests_passed": 162,
+  "focused_workflow_tests_passed": 13,
+  "focused_tests_outside_source_checkout": true,
+  "focused_test_log_sha256": "55450ac20138c07da14cd449dcd0fc529b5053e908a41abdeecd2273eac89ac9",
+  "runtime_configuration_file_count": 173,
+  "runtime_source_wheel_install_sdist_equal": true,
+  "test_fixture_file_count": 138,
+  "tests_source_sdist_equal": true,
+  "wheel_sha256": "18c3c85b5853d4683682ead72d1587e1aad6854c052e7aa5abeb043078775ac2",
+  "source_distribution_sha256": "e38ef819efcb8bd9e04ecf8cfde92bffaf65216c46503711cbff4a05823c7237",
+  "case_sha256": "ef495f026747e5f4a52703665240883832cc18f8f75eb209ae75dfa682da55b9",
+  "source_parity_receipt_sha256": "66ede28bf02b1862e4857b6e56e79ec9396d8a07986c903d911fe02d61f31e3f",
+  "source_candidate_receipt_sha256": "24b64d64d4a058257331a329ea3a2a8c34a1eca2fc14d1c2693762ee53840484",
+  "full_installed_wheel_suite": "pending",
+  "v6_coding_comparison": "pending"
+}

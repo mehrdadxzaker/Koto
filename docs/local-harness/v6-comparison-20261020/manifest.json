@@ -1,0 +1,260 @@
+{
+  "schema_version": 1,
+  "source_study": "koto-harness-v6-a21-comparison-20261020",
+  "frozen_plan_sha256": "e9d67008876c0b8551af25503e0cf22a6ee4fd201bf510c13ed1b45dc12e1b7e",
+  "episodes": 12,
+  "cases": 6,
+  "harnesses": {
+    "baseline": "qwen-code.v3",
+    "adapted": "qwen-code.v6"
+  },
+  "files": {
+    "checks/adjacent-groups.py": {
+      "sha256": "b7068821a1667b3d787f4e2ba16f9af1132752e0c14db574811ae5003aad31a4",
+      "bytes": 597
+    },
+    "checks/atomic-stock.py": {
+      "sha256": "ba6c4c2725d0f7da513cbf153dbe5006b6fe75ec08054cbe5b3d8dda072d6ca3",
+      "bytes": 821
+    },
+    "checks/interval-union.py": {
+      "sha256": "3c6fe54e7c7ba8fbc2562a689f484071f2945aeb00a2a952c49e6091def9f7b9",
+      "bytes": 694
+    },
+    "checks/literal-first.py": {
+      "sha256": "4958f109e9cb650ef86ed1bf44129ef8660ab047eed0791bebc4047904e8e727",
+      "bytes": 649
+    },
+    "checks/signed-ceiling.py": {
+      "sha256": "cc3be5ed471dfb78cccb32ba7b902ea1c29394ed0fcf04c0dd5c99331aef6922",
+      "bytes": 608
+    },
+    "checks/stable-key-unique.py": {
+      "sha256": "ee1f06be069c966c982c93b9a8ec3d4c5dc447e9f9ae70ece25a35f38e57ae19",
+      "bytes": 844
+    },
+    "comparison.json": {
+      "sha256": "4735a61e3ab0758368340f40e7eff9fc33eee201fa98f98bad084e023bb2ec07",
+      "bytes": 43033
+    },
+    "frozen-plan.json": {
+      "sha256": "3a73a6a29dc082e80f36a1b6c5d55cdad2957b13667a8630ca119498d09c12e2",
+      "bytes": 34874
+    },
+    "runs/adapted-adjacent-groups-solution.py": {
+      "sha256": "1394be8625c1db14f257ca43970e8faf0f7d94e36263f49048c62138f2b8bb51",
+      "bytes": 339
+    },
+    "runs/adapted-adjacent-groups.jsonl": {
+      "sha256": "2b6af2fad078d67b77930366874a04338ddf1a498c8f91d59d44ee9c7cd335e0",
+      "bytes": 15160
+    },
+    "runs/adapted-adjacent-groups.stderr": {
+      "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+      "bytes": 39
+    },
+    "runs/adapted-atomic-stock-solution.py": {
+      "sha256": "c35a2a89eaf490ca636fb5fc46f20ce356959fae83115ab25420d024e1e8f88d",
+      "bytes": 553
+    },
+    "runs/adapted-atomic-stock.jsonl": {
+      "sha256": "e8e5fb57059a090f7ec732b3ea885f8d8935a8b25230276ad8b6381d73396666",
+      "bytes": 1265
+    },
+    "runs/adapted-atomic-stock.stderr": {
+      "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+      "bytes": 39
+    },
+    "runs/adapted-interval-union-solution.py": {
+      "sha256": "4ed250730252ed8130fb593c20a18377dac66990391637625bd82828584a432d",
+      "bytes": 914
+    },
+    "runs/adapted-interval-union.jsonl": {
+      "sha256": "261d77e32b4af670b5c264829b17b8bfbce98b6df4dd848cb13cf1c999ccf56f",
+      "bytes": 15876
+    },
+    "runs/adapted-interval-union.stderr": {
+      "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+      "bytes": 39
+    },
+    "runs/adapted-literal-first-solution.py": {
+      "sha256": "e6f88e5535d60dbacc58b60695ee72a5a13073058893c1c25738bf2eb9a075be",
+      "bytes": 164
+    },
+    "runs/adapted-literal-first.jsonl": {
+      "sha256": "77521ffc80fd418f65989242574c79882fbbad46d459374d4477cd92e90e835f",
+      "bytes": 14191
+    },
+    "runs/adapted-literal-first.stderr": {
+      "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+      "bytes": 39
+    },
+    "runs/adapted-signed-ceiling-solution.py": {
+      "sha256": "c7740fb415b11273e006948e7e015cb959a8bb70bb6f84b352c280e26bc3b274",
+      "bytes": 142
+    },
+    "runs/adapted-signed-ceiling.jsonl": {
+      "sha256": "e6662d751849188e8f40a87b8cbe6da083ae122203bef4fdd69753f28f5a4a08",
+      "bytes": 14107
+    },
+    "runs/adapted-signed-ceiling.stderr": {
+      "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+      "bytes": 39
+    },
+    "runs/adapted-stable-key-unique-solution.py": {
+      "sha256": "8cd30ba89c4f196cabaa71dd8531c7ddb26d58508b6445e4a867dcc06963198d",
+      "bytes": 317
+    },
+    "runs/adapted-stable-key-unique.jsonl": {
+      "sha256": "3fc14d25a266f6e48ce80bbd1132cf05cdb8a8f3af23e25b56a838ad64482fe7",
+      "bytes": 1198
+    },
+    "runs/adapted-stable-key-unique.stderr": {
+      "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+      "bytes": 39
+    },
+    "runs/baseline-adjacent-groups-solution.py": {
+      "sha256": "1394be8625c1db14f257ca43970e8faf0f7d94e36263f49048c62138f2b8bb51",
+      "bytes": 339
+    },
+    "runs/baseline-adjacent-groups.jsonl": {
+      "sha256": "2721b4b0c9f953f2771d19436e2cc79529093c5f786d44f8ea309c9e0e21aeb9",
+      "bytes": 4499
+    },
+    "runs/baseline-adjacent-groups.stderr": {
+      "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+      "bytes": 39
+    },
+    "runs/baseline-atomic-stock-solution.py": {
+      "sha256": "74e52e4a4e4fe024a2690e32b2935b83fe17f92f10d9709aa9e9d7acda5f3a7b",
+      "bytes": 452
+    },
+    "runs/baseline-atomic-stock.jsonl": {
+      "sha256": "4f1eaf2536f2d5c6f45089fda605865754ea426e06807193eabcbdf8e77950f3",
+      "bytes": 1755
+    },
+    "runs/baseline-atomic-stock.stderr": {
+      "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+      "bytes": 39
+    },
+    "runs/baseline-interval-union-solution.py": {
+      "sha256": "a6e483436f43e23758524edbc562370e0f886fe91fa1f4e18176b2fe4f64b1dd",
+      "bytes": 901
+    },
+    "runs/baseline-interval-union.jsonl": {
+      "sha256": "61f4df47a91d1bf346f444003ff7db23ce036897c3a81f3113f194d4607ca491",
+      "bytes": 1690
+    },
+    "runs/baseline-interval-union.stderr": {
+      "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+      "bytes": 39
+    },
+    "runs/baseline-literal-first-solution.py": {
+      "sha256": "4427228ec80695dde07c761dd8aa1997c6b8e56f0a28ec99aaa42ac080c0822e",
+      "bytes": 253
+    },
+    "runs/baseline-literal-first.jsonl": {
+      "sha256": "888e909075bdfcccf48f8961db665e10b7a9e9171c67167afa11e492e5496f76",
+      "bytes": 1744
+    },
+    "runs/baseline-literal-first.stderr": {
+      "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+      "bytes": 39
+    },
+    "runs/baseline-signed-ceiling-solution.py": {
+      "sha256": "79258439b234407f0d9a2db2162ee99cbe9d1ad57c8aa656bf34f5a3e18b20cc",
+      "bytes": 110
+    },
+    "runs/baseline-signed-ceiling.jsonl": {
+      "sha256": "2aca084aa2e451c3076f5951f5bf495e136d328235e2e7756beb6d69b1e833fe",
+      "bytes": 1712
+    },
+    "runs/baseline-signed-ceiling.stderr": {
+      "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+      "bytes": 39
+    },
+    "runs/baseline-stable-key-unique-solution.py": {
+      "sha256": "3049ec363ae2eb40285fd79c33ed03a9e15aaa73f8ad807ef42715f8e3c3a28f",
+      "bytes": 232
+    },
+    "runs/baseline-stable-key-unique.jsonl": {
+      "sha256": "48b1a2c8479b317bc8b3130037eba8c5bab8e9091ef2952f84bcdf36285fcc48",
+      "bytes": 2231
+    },
+    "runs/baseline-stable-key-unique.stderr": {
+      "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+      "bytes": 39
+    }
+  },
+  "native_request_capture_hashes_only": {
+    "runs/baseline-signed-ceiling-request.json": "77b6d6dfb4352b6ceb30e68c582254dd192696a8d9c0b38022c85d44564777d0",
+    "runs/baseline-literal-first-request.json": "18190effd62411da5a712c3b690ce56df625c90e1ce962d8e57f0341953f02bc",
+    "runs/baseline-adjacent-groups-request.json": "5a74902c82ea0b552d060840757c6850f2ed566ee14e5b3a79e6575fbef1794e",
+    "runs/adapted-signed-ceiling-request.json": "eb97fcd12e6765d22b9afe9a09ab3b205dab60da1c43fb267f402d0cd5e9077b",
+    "runs/adapted-literal-first-request.json": "5405e12b2469ae509cd54ef8778bb9cda41a075f942e7abc9da0a9c5ea0653cf",
+    "runs/adapted-adjacent-groups-request.json": "47979615d66878231aedd60fbd4656b07e56c5cb3844d5764bbdb49f8bc8a951",
+    "runs/adapted-interval-union-request.json": "cd097c999b5fade101a3868f7f43bc5af386c145e185cc91466e1275b031715f",
+    "runs/adapted-atomic-stock-request.json": "3b45c7d7f765c47f394d42e4b84e6673731bbd74f19170624dcba9de672e9523",
+    "runs/adapted-stable-key-unique-request.json": "835cea474128ca77383a35e12ffea5de18eeddfccd0158ba9e051cc08de56fba",
+    "runs/baseline-interval-union-request.json": "bdd5022e9951044bb43173495b6746b85c84a0cc48f703713ce54848a17eb898",
+    "runs/baseline-atomic-stock-request.json": "2295a45a5b53bf25fd57e1c588c9b008fe1613b466c2f91f8bdcb6dec0b7a905",
+    "runs/baseline-stable-key-unique-request.json": "e011964148c1fcc89e85d48e948891f084bb26bcd873cbb8b5653880f7326083"
+  },
+  "missing_saved_implementations": [],
+  "credential_scan": {
+    "passed": true,
+    "pattern_names": [
+      "assigned_secret",
+      "authorization_header",
+      "aws_access_key",
+      "github_token",
+      "jwt",
+      "openai_or_anthropic_key",
+      "private_key",
+      "qualification_probe",
+      "session_cookie"
+    ]
+  },
+  "authored_check_audit": "separate; not copied by this publisher",
+  "excluded": [
+    "configuration",
+    "probe-control files and tokens",
+    "databases",
+    "native request bodies",
+    "workspace directories",
+    "zero-inference capture logs"
+  ],
+  "additional_files": {
+    "independent-audit.json": {
+      "sha256": "f2fbf7c7bd2a9f5b4ee5c1bd35aaadae6d8283f4af85c1d4f88c25ac99bff2b7",
+      "bytes": 63132
+    },
+    "frozen-integrity.json": {
+      "sha256": "8f2dfd6d8472d552d8888df31f80560b2e9cdb1c62f4fa6215f6d3898fa9ad4d",
+      "bytes": 31683
+    },
+    "adapted-signed-stream-diagnosis-a21.json": {
+      "sha256": "76168aedd96d594eb657a1ed5f94301124e1b4ce1fa58554e0213385da4d9209",
+      "bytes": 5294
+    },
+    "adapted-stock-stream-diagnosis-a21.json": {
+      "sha256": "2031fb35a59b9938253e6dd34160bd227d4825eba8fe9b1ce0195a23abff927a",
+      "bytes": 4501
+    }
+  },
+  "additional_credential_scan": {
+    "passed": true,
+    "pattern_names": [
+      "assigned_secret",
+      "authorization_header",
+      "aws_access_key",
+      "github_token",
+      "jwt",
+      "openai_or_anthropic_key",
+      "private_key",
+      "qualification_probe",
+      "session_cookie"
+    ],
+    "files": 4
+  }
+}

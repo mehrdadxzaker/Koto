@@ -1,0 +1,228 @@
+{
+  "schema_version": 2,
+  "run": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v4-pilot-20261020",
+  "case_id": "adjacent-groups",
+  "arm": "adapted",
+  "mode": "sandboxed_replay",
+  "raw_jsonl_sha256": "68aa0cc24f68cae66696ba004f7c21195862d7dfd41046960c02473aa956480a",
+  "commands": [
+    {
+      "trace_line_1based": 5,
+      "captured_command": "/bin/zsh -lc 'cat solution.py'",
+      "captured_exit_code": 0,
+      "captured_output": "def group_runs(values):\n    return [values] if values else []\n",
+      "captured_command_status": "succeeded",
+      "extraction": {
+        "kind": "unsupported_shell_command"
+      },
+      "results": []
+    },
+    {
+      "trace_line_1based": 9,
+      "captured_command": "/bin/zsh -lc \"python3 -c 'import solution; assert solution.group_runs([1, 1, 2, 2, 2, 3]) == [[1, 1], [2, 2, 2], [3]]'\"",
+      "captured_exit_code": 0,
+      "captured_output": "python3: warning: confstr() failed with code 5: couldn't get path of DARWIN_USER_TEMP_DIR; using /tmp instead\n",
+      "captured_command_status": "succeeded",
+      "extraction": {
+        "kind": "python_payload",
+        "python": "import solution; assert solution.group_runs([1, 1, 2, 2, 2, 3]) == [[1, 1], [2, 2, 2], [3]]",
+        "assertion_count": 1,
+        "assertion_lines": [
+          1
+        ],
+        "imports": [
+          "solution"
+        ],
+        "imports_solution": true,
+        "defined_functions": [],
+        "syntactic_calls_outside_function_definitions": [],
+        "syntactic_test_definition_calls": [],
+        "try_handler_patterns": [],
+        "unsafe_imports_not_replayed": [],
+        "unsafe_calls_not_replayed": []
+      },
+      "results": [
+        {
+          "source_kind": "frozen_initial",
+          "source": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v4-diagnosis-20261020/pilot-a16-group-authored-audit/frozen-initial.py",
+          "source_sha256": "0d004e68c2e804b697729a9d26a2c9ee2e7e42b12710b950ee9429ca11a3ae5c",
+          "exit_code": 1,
+          "termination": "completed",
+          "stdout": "KOTO_AUTHORED_CHECK_AUDIT_V1 {\"assertion_line_events\": 1, \"assertion_lines_reached\": [1], \"function_calls\": [], \"exception_type\": \"AssertionError\"}\n",
+          "stderr": "Traceback (most recent call last):\n  File \"<string>\", line 6, in <module>\n    runpy.run_path(sys.argv[0],run_name=\"__main__\")\n    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<frozen runpy>\", line 287, in run_path\n  File \"<frozen runpy>\", line 98, in _run_module_code\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/Users/mehrdadz/Downloads/memoWiki/koto-harness-v4-diagnosis-20261020/pilot-a16-group-authored-audit/wrapper-8.py\", line 20, in <module>\n    runpy.run_path(payload,run_name=\"__main__\")\n    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<frozen runpy>\", line 287, in run_path\n  File \"<frozen runpy>\", line 98, in _run_module_code\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/Users/mehrdadz/Downloads/memoWiki/koto-harness-v4-diagnosis-20261020/pilot-a16-group-authored-audit/authored-8.py\", line 1, in <module>\n    import solution; assert solution.group_runs([1, 1, 2, 2, 2, 3]) == [[1, 1], [2, 2, 2], [3]]\n                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError\n",
+          "execution_class": "assertion_failure",
+          "observed": {
+            "assertion_line_events": 1,
+            "assertion_lines_reached": [
+              1
+            ],
+            "function_calls": [],
+            "exception_type": "AssertionError"
+          }
+        },
+        {
+          "source_kind": "old_0",
+          "source": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v3-comparison-20261020/runs/adapted-adjacent-groups-solution.py",
+          "source_sha256": "0d004e68c2e804b697729a9d26a2c9ee2e7e42b12710b950ee9429ca11a3ae5c",
+          "exit_code": 1,
+          "termination": "completed",
+          "stdout": "KOTO_AUTHORED_CHECK_AUDIT_V1 {\"assertion_line_events\": 1, \"assertion_lines_reached\": [1], \"function_calls\": [], \"exception_type\": \"AssertionError\"}\n",
+          "stderr": "Traceback (most recent call last):\n  File \"<string>\", line 6, in <module>\n    runpy.run_path(sys.argv[0],run_name=\"__main__\")\n    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<frozen runpy>\", line 287, in run_path\n  File \"<frozen runpy>\", line 98, in _run_module_code\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/Users/mehrdadz/Downloads/memoWiki/koto-harness-v4-diagnosis-20261020/pilot-a16-group-authored-audit/wrapper-8.py\", line 20, in <module>\n    runpy.run_path(payload,run_name=\"__main__\")\n    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<frozen runpy>\", line 287, in run_path\n  File \"<frozen runpy>\", line 98, in _run_module_code\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/Users/mehrdadz/Downloads/memoWiki/koto-harness-v4-diagnosis-20261020/pilot-a16-group-authored-audit/authored-8.py\", line 1, in <module>\n    import solution; assert solution.group_runs([1, 1, 2, 2, 2, 3]) == [[1, 1], [2, 2, 2], [3]]\n                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError\n",
+          "execution_class": "assertion_failure",
+          "observed": {
+            "assertion_line_events": 1,
+            "assertion_lines_reached": [
+              1
+            ],
+            "function_calls": [],
+            "exception_type": "AssertionError"
+          }
+        },
+        {
+          "source_kind": "saved_new",
+          "source": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v4-pilot-20261020/runs/adapted-adjacent-groups-solution.py",
+          "source_sha256": "f6df84f0d95cc5101704f1b053f811c03a5b361cf209f3191e8182eea2f65f09",
+          "exit_code": 0,
+          "termination": "completed",
+          "stdout": "KOTO_AUTHORED_CHECK_AUDIT_V1 {\"assertion_line_events\": 1, \"assertion_lines_reached\": [1], \"function_calls\": [], \"exception_type\": null}\n",
+          "stderr": "",
+          "execution_class": "completed_with_executed_assertions",
+          "observed": {
+            "assertion_line_events": 1,
+            "assertion_lines_reached": [
+              1
+            ],
+            "function_calls": [],
+            "exception_type": null
+          }
+        }
+      ],
+      "authored_python_sha256": "b2e9dc32a4dff8abb0a8b0ad04d62eb40a87547992a2411a5b5907a48cf0641e",
+      "payload": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v4-diagnosis-20261020/pilot-a16-group-authored-audit/authored-8.py",
+      "eligible_for_safe_replay": true,
+      "assertion_sensitive_to_all_old_sources_and_passes_new": true,
+      "any_failure_on_all_old_sources_and_assertions_pass_new": true,
+      "payload_bytes_unchanged_after_replay": true
+    },
+    {
+      "trace_line_1based": 11,
+      "captured_command": "/bin/zsh -lc \"python3 -c 'import solution; assert solution.group_runs([1, 1, 2, 2, 2, 3]) == [[1, 1], [2, 2, 2], [3]]'\"",
+      "captured_exit_code": 0,
+      "captured_output": "python3: warning: confstr() failed with code 5: couldn't get path of DARWIN_USER_TEMP_DIR; using /tmp instead\n",
+      "captured_command_status": "succeeded",
+      "extraction": {
+        "kind": "python_payload",
+        "python": "import solution; assert solution.group_runs([1, 1, 2, 2, 2, 3]) == [[1, 1], [2, 2, 2], [3]]",
+        "assertion_count": 1,
+        "assertion_lines": [
+          1
+        ],
+        "imports": [
+          "solution"
+        ],
+        "imports_solution": true,
+        "defined_functions": [],
+        "syntactic_calls_outside_function_definitions": [],
+        "syntactic_test_definition_calls": [],
+        "try_handler_patterns": [],
+        "unsafe_imports_not_replayed": [],
+        "unsafe_calls_not_replayed": []
+      },
+      "results": [
+        {
+          "source_kind": "frozen_initial",
+          "source": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v4-diagnosis-20261020/pilot-a16-group-authored-audit/frozen-initial.py",
+          "source_sha256": "0d004e68c2e804b697729a9d26a2c9ee2e7e42b12710b950ee9429ca11a3ae5c",
+          "exit_code": 1,
+          "termination": "completed",
+          "stdout": "KOTO_AUTHORED_CHECK_AUDIT_V1 {\"assertion_line_events\": 1, \"assertion_lines_reached\": [1], \"function_calls\": [], \"exception_type\": \"AssertionError\"}\n",
+          "stderr": "Traceback (most recent call last):\n  File \"<string>\", line 6, in <module>\n    runpy.run_path(sys.argv[0],run_name=\"__main__\")\n    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<frozen runpy>\", line 287, in run_path\n  File \"<frozen runpy>\", line 98, in _run_module_code\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/Users/mehrdadz/Downloads/memoWiki/koto-harness-v4-diagnosis-20261020/pilot-a16-group-authored-audit/wrapper-10.py\", line 20, in <module>\n    runpy.run_path(payload,run_name=\"__main__\")\n    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<frozen runpy>\", line 287, in run_path\n  File \"<frozen runpy>\", line 98, in _run_module_code\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/Users/mehrdadz/Downloads/memoWiki/koto-harness-v4-diagnosis-20261020/pilot-a16-group-authored-audit/authored-10.py\", line 1, in <module>\n    import solution; assert solution.group_runs([1, 1, 2, 2, 2, 3]) == [[1, 1], [2, 2, 2], [3]]\n                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError\n",
+          "execution_class": "assertion_failure",
+          "observed": {
+            "assertion_line_events": 1,
+            "assertion_lines_reached": [
+              1
+            ],
+            "function_calls": [],
+            "exception_type": "AssertionError"
+          }
+        },
+        {
+          "source_kind": "old_0",
+          "source": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v3-comparison-20261020/runs/adapted-adjacent-groups-solution.py",
+          "source_sha256": "0d004e68c2e804b697729a9d26a2c9ee2e7e42b12710b950ee9429ca11a3ae5c",
+          "exit_code": 1,
+          "termination": "completed",
+          "stdout": "KOTO_AUTHORED_CHECK_AUDIT_V1 {\"assertion_line_events\": 1, \"assertion_lines_reached\": [1], \"function_calls\": [], \"exception_type\": \"AssertionError\"}\n",
+          "stderr": "Traceback (most recent call last):\n  File \"<string>\", line 6, in <module>\n    runpy.run_path(sys.argv[0],run_name=\"__main__\")\n    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<frozen runpy>\", line 287, in run_path\n  File \"<frozen runpy>\", line 98, in _run_module_code\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/Users/mehrdadz/Downloads/memoWiki/koto-harness-v4-diagnosis-20261020/pilot-a16-group-authored-audit/wrapper-10.py\", line 20, in <module>\n    runpy.run_path(payload,run_name=\"__main__\")\n    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<frozen runpy>\", line 287, in run_path\n  File \"<frozen runpy>\", line 98, in _run_module_code\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/Users/mehrdadz/Downloads/memoWiki/koto-harness-v4-diagnosis-20261020/pilot-a16-group-authored-audit/authored-10.py\", line 1, in <module>\n    import solution; assert solution.group_runs([1, 1, 2, 2, 2, 3]) == [[1, 1], [2, 2, 2], [3]]\n                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError\n",
+          "execution_class": "assertion_failure",
+          "observed": {
+            "assertion_line_events": 1,
+            "assertion_lines_reached": [
+              1
+            ],
+            "function_calls": [],
+            "exception_type": "AssertionError"
+          }
+        },
+        {
+          "source_kind": "saved_new",
+          "source": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v4-pilot-20261020/runs/adapted-adjacent-groups-solution.py",
+          "source_sha256": "f6df84f0d95cc5101704f1b053f811c03a5b361cf209f3191e8182eea2f65f09",
+          "exit_code": 0,
+          "termination": "completed",
+          "stdout": "KOTO_AUTHORED_CHECK_AUDIT_V1 {\"assertion_line_events\": 1, \"assertion_lines_reached\": [1], \"function_calls\": [], \"exception_type\": null}\n",
+          "stderr": "",
+          "execution_class": "completed_with_executed_assertions",
+          "observed": {
+            "assertion_line_events": 1,
+            "assertion_lines_reached": [
+              1
+            ],
+            "function_calls": [],
+            "exception_type": null
+          }
+        }
+      ],
+      "authored_python_sha256": "b2e9dc32a4dff8abb0a8b0ad04d62eb40a87547992a2411a5b5907a48cf0641e",
+      "payload": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v4-diagnosis-20261020/pilot-a16-group-authored-audit/authored-10.py",
+      "eligible_for_safe_replay": true,
+      "assertion_sensitive_to_all_old_sources_and_passes_new": true,
+      "any_failure_on_all_old_sources_and_assertions_pass_new": true,
+      "payload_bytes_unchanged_after_replay": true
+    }
+  ],
+  "model_inference_submissions": 0,
+  "captured_shell_executed": false,
+  "python_executable": "/opt/homebrew/opt/python@3.14/bin/python3.14",
+  "environment": {
+    "PATH": "/opt/homebrew/bin:/usr/bin:/bin",
+    "LANG": "en_US.UTF-8",
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "sources": [
+    {
+      "kind": "frozen_initial",
+      "path": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v4-diagnosis-20261020/pilot-a16-group-authored-audit/frozen-initial.py",
+      "sha256": "0d004e68c2e804b697729a9d26a2c9ee2e7e42b12710b950ee9429ca11a3ae5c"
+    },
+    {
+      "kind": "old_0",
+      "path": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v3-comparison-20261020/runs/adapted-adjacent-groups-solution.py",
+      "sha256": "0d004e68c2e804b697729a9d26a2c9ee2e7e42b12710b950ee9429ca11a3ae5c"
+    },
+    {
+      "kind": "saved_new",
+      "path": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v4-pilot-20261020/runs/adapted-adjacent-groups-solution.py",
+      "sha256": "f6df84f0d95cc5101704f1b053f811c03a5b361cf209f3191e8182eea2f65f09"
+    }
+  ],
+  "limitations": [
+    "These are preserved authored checks, not new model generations or rewritten assertions.",
+    "Only direct literal python3 -c payloads importing solution are replayed; shell expansions and other commands are classified without execution.",
+    "Static try/handler and call summaries describe syntax; trace observations establish actual assertion lines and function invocations during replay.",
+    "Replay preloads the supplied source as solution; it does not grant model-authored verification credit to a failed captured command.",
+    "A check that detects one old failure does not establish full specification coverage or qualification.",
+    "Malformed, unsupported, missing instrumentation or truncated outcomes remain unknown; they are not converted into passing checks."
+  ]
+}

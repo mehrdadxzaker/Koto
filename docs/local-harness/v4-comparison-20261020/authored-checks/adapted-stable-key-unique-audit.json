@@ -1,0 +1,143 @@
+{
+  "schema_version": 2,
+  "run": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v4-comparison-20261020",
+  "case_id": "stable-key-unique",
+  "arm": "adapted",
+  "mode": "sandboxed_replay",
+  "raw_jsonl_sha256": "7182ce176dcd04c29a0d5fff2820493ea1a094433449dd267a707456c4dcebc4",
+  "commands": [
+    {
+      "trace_line_1based": 4,
+      "captured_command": "/bin/zsh -lc 'cat solution.py'",
+      "captured_exit_code": 0,
+      "captured_output": "def unique_records(records, key):\n    return records[:]\n",
+      "captured_command_status": "succeeded",
+      "extraction": {
+        "kind": "unsupported_shell_command"
+      },
+      "results": []
+    },
+    {
+      "trace_line_1based": 8,
+      "captured_command": "/bin/zsh -lc \"python3 -c 'from solution import unique_records\nassert unique_records([], \\\"key\\\") == []\nassert unique_records([{\\\"key\\\": 1}, {\\\"key\\\": 1}], \\\"key\\\") == [{\\\"key\\\": 1}]\nassert unique_records([{\\\"key\\\": 1}, {\\\"key\\\": 2}], \\\"key\\\") == [{\\\"key\\\": 1}, {\\\"key\\\": 2}]\ntry:\n    unique_records([{\\\"key\\\": 1}], \\\"missing_key\\\")\nexcept KeyError:\n    pass\nelse:\n    raise AssertionError(\\\"Expected KeyError\\\")\nprint(\\\"All assertions passed.\\\")'\"",
+      "captured_exit_code": 0,
+      "captured_output": "python3: warning: confstr() failed with code 5: couldn't get path of DARWIN_USER_TEMP_DIR; using /tmp instead\nAll assertions passed.\n",
+      "captured_command_status": "succeeded",
+      "extraction": {
+        "kind": "python_payload",
+        "python": "from solution import unique_records\nassert unique_records([], \"key\") == []\nassert unique_records([{\"key\": 1}, {\"key\": 1}], \"key\") == [{\"key\": 1}]\nassert unique_records([{\"key\": 1}, {\"key\": 2}], \"key\") == [{\"key\": 1}, {\"key\": 2}]\ntry:\n    unique_records([{\"key\": 1}], \"missing_key\")\nexcept KeyError:\n    pass\nelse:\n    raise AssertionError(\"Expected KeyError\")\nprint(\"All assertions passed.\")",
+        "assertion_count": 3,
+        "assertion_lines": [
+          2,
+          3,
+          4
+        ],
+        "imports": [
+          "solution"
+        ],
+        "imports_solution": true,
+        "defined_functions": [],
+        "syntactic_calls_outside_function_definitions": [
+          "unique_records",
+          "unique_records",
+          "unique_records",
+          "unique_records",
+          "AssertionError",
+          "print"
+        ],
+        "syntactic_test_definition_calls": [],
+        "try_handler_patterns": [
+          {
+            "line": 5,
+            "handlers": [
+              "KeyError"
+            ],
+            "assertion_lines_inside_handlers": [],
+            "assertion_lines_in_else": [],
+            "assertion_lines_after_try_in_same_block": [],
+            "else_present": true,
+            "finally_present": false
+          }
+        ],
+        "unused_plain_sys_import_allowed": false,
+        "unsafe_imports_not_replayed": [],
+        "unsafe_calls_not_replayed": []
+      },
+      "results": [
+        {
+          "source_kind": "frozen_initial",
+          "source": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v4-diagnosis-20261020/a18-all12-authored-replay-host-permitted-20261020/a18-adapted-stable-key-unique/frozen-initial.py",
+          "source_sha256": "7278ce0a8cf57f75eb18ffcffb4d7407be643e9effdf2eae342e6628e57132c1",
+          "exit_code": 1,
+          "termination": "completed",
+          "stdout": "KOTO_AUTHORED_CHECK_AUDIT_V1 {\"assertion_line_events\": 2, \"assertion_lines_reached\": [2, 3], \"function_calls\": [], \"exception_type\": \"AssertionError\"}\n",
+          "stderr": "Traceback (most recent call last):\n  File \"<string>\", line 6, in <module>\n    runpy.run_path(sys.argv[0],run_name=\"__main__\")\n    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<frozen runpy>\", line 287, in run_path\n  File \"<frozen runpy>\", line 98, in _run_module_code\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/Users/mehrdadz/Downloads/memoWiki/koto-harness-v4-diagnosis-20261020/a18-all12-authored-replay-host-permitted-20261020/a18-adapted-stable-key-unique/wrapper-7.py\", line 20, in <module>\n    runpy.run_path(payload,run_name=\"__main__\")\n    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<frozen runpy>\", line 287, in run_path\n  File \"<frozen runpy>\", line 98, in _run_module_code\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/Users/mehrdadz/Downloads/memoWiki/koto-harness-v4-diagnosis-20261020/a18-all12-authored-replay-host-permitted-20261020/a18-adapted-stable-key-unique/authored-7.py\", line 3, in <module>\n    assert unique_records([{\"key\": 1}, {\"key\": 1}], \"key\") == [{\"key\": 1}]\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError\n",
+          "execution_class": "assertion_failure",
+          "observed": {
+            "assertion_line_events": 2,
+            "assertion_lines_reached": [
+              2,
+              3
+            ],
+            "function_calls": [],
+            "exception_type": "AssertionError"
+          }
+        },
+        {
+          "source_kind": "saved_new",
+          "source": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v4-comparison-20261020/runs/adapted-stable-key-unique-solution.py",
+          "source_sha256": "3049ec363ae2eb40285fd79c33ed03a9e15aaa73f8ad807ef42715f8e3c3a28f",
+          "exit_code": 0,
+          "termination": "completed",
+          "stdout": "All assertions passed.\nKOTO_AUTHORED_CHECK_AUDIT_V1 {\"assertion_line_events\": 3, \"assertion_lines_reached\": [2, 3, 4], \"function_calls\": [], \"exception_type\": null}\n",
+          "stderr": "",
+          "execution_class": "completed_with_executed_assertions",
+          "observed": {
+            "assertion_line_events": 3,
+            "assertion_lines_reached": [
+              2,
+              3,
+              4
+            ],
+            "function_calls": [],
+            "exception_type": null
+          }
+        }
+      ],
+      "authored_python_sha256": "9681708d66c7d358f34c6327d54189693273e72712cf33d4f61bf8adedd9cb1f",
+      "payload": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v4-diagnosis-20261020/a18-all12-authored-replay-host-permitted-20261020/a18-adapted-stable-key-unique/authored-7.py",
+      "eligible_for_safe_replay": true,
+      "assertion_sensitive_to_all_old_sources_and_passes_new": true,
+      "any_failure_on_all_old_sources_and_assertions_pass_new": true,
+      "payload_bytes_unchanged_after_replay": true
+    }
+  ],
+  "model_inference_submissions": 0,
+  "captured_shell_executed": false,
+  "python_executable": "/opt/homebrew/opt/python@3.14/bin/python3.14",
+  "environment": {
+    "PATH": "/opt/homebrew/bin:/usr/bin:/bin",
+    "LANG": "en_US.UTF-8",
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "sources": [
+    {
+      "kind": "frozen_initial",
+      "path": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v4-diagnosis-20261020/a18-all12-authored-replay-host-permitted-20261020/a18-adapted-stable-key-unique/frozen-initial.py",
+      "sha256": "7278ce0a8cf57f75eb18ffcffb4d7407be643e9effdf2eae342e6628e57132c1"
+    },
+    {
+      "kind": "saved_new",
+      "path": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v4-comparison-20261020/runs/adapted-stable-key-unique-solution.py",
+      "sha256": "3049ec363ae2eb40285fd79c33ed03a9e15aaa73f8ad807ef42715f8e3c3a28f"
+    }
+  ],
+  "limitations": [
+    "These are preserved authored checks, not new model generations or rewritten assertions.",
+    "Only direct literal python3 -c payloads importing solution are replayed; shell expansions and other commands are classified without execution.",
+    "Static try/handler and call summaries describe syntax; trace observations establish actual assertion lines and function invocations during replay.",
+    "Replay preloads the supplied source as solution; it does not grant model-authored verification credit to a failed captured command.",
+    "A check that detects one old failure does not establish full specification coverage or qualification.",
+    "Malformed, unsupported, missing instrumentation or truncated outcomes remain unknown; they are not converted into passing checks."
+  ]
+}

@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "kind": "allowlisted_small_derived_diagnosis_summaries",
+  "files": [
+    {
+      "path": "a18-authored-check-sensitivity.json",
+      "sha256": "392246f7a901d08d716b8be98a7b8f6cd31e021b1452828ec93205ebfa2911a3",
+      "bytes": 2189
+    },
+    {
+      "path": "aborted-a20-study.json",
+      "sha256": "c4c6d37c157dce769b1cec0cfa647f963da8234cc9a378404f05a09f7dd441d5",
+      "bytes": 2105
+    },
+    {
+      "path": "native-semantic-control-a20.json",
+      "sha256": "065995e8069cce28bac622ea8d0c59a1707ae3279ddc0a28ea5e954885c02ed5",
+      "bytes": 1595
+    },
+    {
+      "path": "native-semantic-control-a21.json",
+      "sha256": "0f47a31d80d51d1d17bd508cfb01c19e54d144a3d317149d091ec3d496b859f5",
+      "bytes": 2005
+    },
+    {
+      "path": "previous-profile-wire-a20.json",
+      "sha256": "aaaea9234b4955d6ffc409ff521c6b3a39f090682626ba2fdfc1fcbe8ce57bfe",
+      "bytes": 623
+    },
+    {
+      "path": "previous-profile-wire-a21.json",
+      "sha256": "7a9522697e2654f2680d0b8d60364ae6a73788633d8769672b448c1aebfe3a2f",
+      "bytes": 623
+    },
+    {
+      "path": "v5-aborted-grouping.json",
+      "sha256": "0994e8a26b5b8842db10b5c77df9cb87c5494dc056b8f1873ed07a064c4f2f62",
+      "bytes": 1105
+    },
+    {
+      "path": "v5-stock-diagnostic.json",
+      "sha256": "0cdd03a4bbfd8223b53e1ec948dc02180192aab613a28fb3ac11e7159305a7c7",
+      "bytes": 1184
+    },
+    {
+      "path": "validation-a20.json",
+      "sha256": "4862a831ede8b981dbf04f729b5f465647ed8d3ea8cc9d364f472c291d499534",
+      "bytes": 1018
+    },
+    {
+      "path": "validation-a21.json",
+      "sha256": "a0f157d3a38be66bb347efb5e079a7670fdad646ce473c5cba1ed9b9e262ceaa",
+      "bytes": 1128
+    }
+  ],
+  "excluded": [
+    "credentials",
+    "configuration contents",
+    "raw requests",
+    "raw SSE",
+    "databases",
+    "probe-control records",
+    "independent checker source"
+  ],
+  "note": "Summaries select explicit fields from retained local receipts. Source receipt hashes identify originals; no model or helper was executed by publication."
+}

@@ -1,0 +1,38 @@
+{
+  "passed": true,
+  "model_inference_submissions": 0,
+  "synthetic_provider_only": true,
+  "scope": "scripted native mechanism and sensitivity control; not model-authored checks or coding quality",
+  "client_version": "codex-cli 0.160.0",
+  "client_exit_code": 0,
+  "requests": 7,
+  "command_exit_codes": [
+    0,
+    1,
+    1,
+    0
+  ],
+  "compiled_command_sha256": [
+    "3dcb956c75c41b0b87b2084d7e935f870184d87e5b86e3ed4257f1b8e78fb67c",
+    "3dcb956c75c41b0b87b2084d7e935f870184d87e5b86e3ed4257f1b8e78fb67c",
+    "3dcb956c75c41b0b87b2084d7e935f870184d87e5b86e3ed4257f1b8e78fb67c"
+  ],
+  "same_checks_sha256": "ebbc4ac421ed52f2d71ab91d031ab2fe4cc4f7d9af1f9fdb26b0191b4f435a67",
+  "pinned_flat_exec_sha256": "7ecb0f4f51b3982e36be43a9d08daa05348d7dd5f70646231b1f0f9823f40ec3",
+  "namespace_synthesized": false,
+  "native_tool_output_preserved": true,
+  "sandbox_flags": [
+    "sandbox_workspace_write.network_access=false",
+    "sandbox_workspace_write.exclude_slash_tmp=true",
+    "sandbox_workspace_write.exclude_tmpdir_env_var=true"
+  ],
+  "normal_settings_unchanged": true,
+  "disposable_settings_unchanged": true,
+  "owned_process_reaped": true,
+  "owned_listener_closed": true,
+  "provider_thread_stopped": true,
+  "runtime": "2.0.0a20",
+  "source_receipt_sha256": "5ae0defe842752c4d74ba175f7d8387f7cb1e6aef5b5df1483c5fd35c765a61b",
+  "sse_mechanism": "Raw helper argument delta/done suppressed; empty native added event followed by compiled native item.done and terminal snapshot.",
+  "limitation": "Scripted host compatibility and check sensitivity, not autonomous model quality."
+}

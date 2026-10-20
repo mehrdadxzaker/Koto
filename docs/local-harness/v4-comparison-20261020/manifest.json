@@ -1,0 +1,297 @@
+{
+  "schema_version": 1,
+  "source_study": "koto-harness-v4-comparison-20261020",
+  "frozen_plan_sha256": "48c13ed1f58f7632a0ed800ccbbcb1debf70968ba49452ccd9c128bc11d9f2ba",
+  "episodes": 12,
+  "cases": 6,
+  "harnesses": {
+    "baseline": "qwen-code.v3",
+    "adapted": "qwen-code.v4"
+  },
+  "files": {
+    "checks/adjacent-groups.py": {
+      "sha256": "b7068821a1667b3d787f4e2ba16f9af1132752e0c14db574811ae5003aad31a4",
+      "bytes": 597
+    },
+    "checks/atomic-stock.py": {
+      "sha256": "ba6c4c2725d0f7da513cbf153dbe5006b6fe75ec08054cbe5b3d8dda072d6ca3",
+      "bytes": 821
+    },
+    "checks/interval-union.py": {
+      "sha256": "3c6fe54e7c7ba8fbc2562a689f484071f2945aeb00a2a952c49e6091def9f7b9",
+      "bytes": 694
+    },
+    "checks/literal-first.py": {
+      "sha256": "4958f109e9cb650ef86ed1bf44129ef8660ab047eed0791bebc4047904e8e727",
+      "bytes": 649
+    },
+    "checks/signed-ceiling.py": {
+      "sha256": "cc3be5ed471dfb78cccb32ba7b902ea1c29394ed0fcf04c0dd5c99331aef6922",
+      "bytes": 608
+    },
+    "checks/stable-key-unique.py": {
+      "sha256": "ee1f06be069c966c982c93b9a8ec3d4c5dc447e9f9ae70ece25a35f38e57ae19",
+      "bytes": 844
+    },
+    "comparison.json": {
+      "sha256": "5a856effcdac03b1ea24aa148fc97bc027606b44fc1a3fc3f9c1eb063ae93ce5",
+      "bytes": 54945
+    },
+    "frozen-plan.json": {
+      "sha256": "8a796a0408ab654a87bd43c03cdb2e1ba2ab69b5a5f797462a06c6d6ea2a85a2",
+      "bytes": 34693
+    },
+    "runs/adapted-adjacent-groups-solution.py": {
+      "sha256": "1394be8625c1db14f257ca43970e8faf0f7d94e36263f49048c62138f2b8bb51",
+      "bytes": 339
+    },
+    "runs/adapted-adjacent-groups.jsonl": {
+      "sha256": "1cff1b001f3b94638f4ce8de2c4d6921aa48b56327475ebca1bfd45ee092c241",
+      "bytes": 6892
+    },
+    "runs/adapted-adjacent-groups.stderr": {
+      "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+      "bytes": 39
+    },
+    "runs/adapted-atomic-stock-solution.py": {
+      "sha256": "177840859689205884344266cd3a7c2ca1e24ef5e73808b3edb284e60532f04f",
+      "bytes": 121
+    },
+    "runs/adapted-atomic-stock.jsonl": {
+      "sha256": "b6bf5a145e24a375af045cdfee063ded512d37606eda7cbad9edd25d17348be1",
+      "bytes": 21499
+    },
+    "runs/adapted-atomic-stock.stderr": {
+      "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+      "bytes": 39
+    },
+    "runs/adapted-interval-union-solution.py": {
+      "sha256": "76c8b3dd0d0f41e4d27b7fef8607533350fb20c5f56143c9d3806cddcf294130",
+      "bytes": 910
+    },
+    "runs/adapted-interval-union.jsonl": {
+      "sha256": "43f870b125a276ffd8717a4aa4c9db54a98f18c9ad77c2fb444b5638ed8af5d4",
+      "bytes": 3279
+    },
+    "runs/adapted-interval-union.stderr": {
+      "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+      "bytes": 39
+    },
+    "runs/adapted-literal-first-solution.py": {
+      "sha256": "d6cf8f6a6d1b5aa901ebcd19f996e108b039bf82b7c72249c056d1faf2f1bc20",
+      "bytes": 91
+    },
+    "runs/adapted-literal-first.jsonl": {
+      "sha256": "28fe51656b258509cee206b17b4a51e868fa8f181b0a635b3cc42a1df0ef32e1",
+      "bytes": 14445
+    },
+    "runs/adapted-literal-first.stderr": {
+      "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+      "bytes": 39
+    },
+    "runs/adapted-signed-ceiling-solution.py": {
+      "sha256": "79258439b234407f0d9a2db2162ee99cbe9d1ad57c8aa656bf34f5a3e18b20cc",
+      "bytes": 110
+    },
+    "runs/adapted-signed-ceiling.jsonl": {
+      "sha256": "fb5f91cbaf5811cfe864e021653767bb66f1e34e8a852bbc4771308cd5e07540",
+      "bytes": 7217
+    },
+    "runs/adapted-signed-ceiling.stderr": {
+      "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+      "bytes": 39
+    },
+    "runs/adapted-stable-key-unique-solution.py": {
+      "sha256": "3049ec363ae2eb40285fd79c33ed03a9e15aaa73f8ad807ef42715f8e3c3a28f",
+      "bytes": 232
+    },
+    "runs/adapted-stable-key-unique.jsonl": {
+      "sha256": "7182ce176dcd04c29a0d5fff2820493ea1a094433449dd267a707456c4dcebc4",
+      "bytes": 2962
+    },
+    "runs/adapted-stable-key-unique.stderr": {
+      "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+      "bytes": 39
+    },
+    "runs/baseline-adjacent-groups-solution.py": {
+      "sha256": "1394be8625c1db14f257ca43970e8faf0f7d94e36263f49048c62138f2b8bb51",
+      "bytes": 339
+    },
+    "runs/baseline-adjacent-groups.jsonl": {
+      "sha256": "3e9a3c635968ca47f3a3b77e6b4ba04d443a03d9f972e18ec7dbc9c7b6934ed6",
+      "bytes": 1196
+    },
+    "runs/baseline-adjacent-groups.stderr": {
+      "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+      "bytes": 39
+    },
+    "runs/baseline-atomic-stock-solution.py": {
+      "sha256": "74e52e4a4e4fe024a2690e32b2935b83fe17f92f10d9709aa9e9d7acda5f3a7b",
+      "bytes": 452
+    },
+    "runs/baseline-atomic-stock.jsonl": {
+      "sha256": "c3a422727092c9ed2305dce101649fe9b91e9c641be235da359ffe8171862787",
+      "bytes": 2064
+    },
+    "runs/baseline-atomic-stock.stderr": {
+      "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+      "bytes": 39
+    },
+    "runs/baseline-interval-union-solution.py": {
+      "sha256": "76c8b3dd0d0f41e4d27b7fef8607533350fb20c5f56143c9d3806cddcf294130",
+      "bytes": 910
+    },
+    "runs/baseline-interval-union.jsonl": {
+      "sha256": "bfd1421bdf65cffec00a31e89869ff90aff4dc8a25e8d1fef25827464e657aec",
+      "bytes": 1816
+    },
+    "runs/baseline-interval-union.stderr": {
+      "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+      "bytes": 39
+    },
+    "runs/baseline-literal-first-solution.py": {
+      "sha256": "e6f88e5535d60dbacc58b60695ee72a5a13073058893c1c25738bf2eb9a075be",
+      "bytes": 164
+    },
+    "runs/baseline-literal-first.jsonl": {
+      "sha256": "80ddda985dfcd25ed2b6358909bf1e3ee8cc995305c81918cef6e0bd2429862e",
+      "bytes": 6358
+    },
+    "runs/baseline-literal-first.stderr": {
+      "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+      "bytes": 39
+    },
+    "runs/baseline-signed-ceiling-solution.py": {
+      "sha256": "79258439b234407f0d9a2db2162ee99cbe9d1ad57c8aa656bf34f5a3e18b20cc",
+      "bytes": 110
+    },
+    "runs/baseline-signed-ceiling.jsonl": {
+      "sha256": "b2a06e48c236586523b3ee6c6dea9a967a24d053bd3bf6227e3f8feb845ee0f2",
+      "bytes": 1682
+    },
+    "runs/baseline-signed-ceiling.stderr": {
+      "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+      "bytes": 39
+    },
+    "runs/baseline-stable-key-unique-solution.py": {
+      "sha256": "46b8ce1168eb96e8d1db11ac35ffc1aa1c78b6fe444af13f30ce98b0a6f4fd72",
+      "bytes": 294
+    },
+    "runs/baseline-stable-key-unique.jsonl": {
+      "sha256": "90f8243e40ec066e9639faa9d7b3d70c2482b703a4f2513f28ca96fb25aef65a",
+      "bytes": 10448
+    },
+    "runs/baseline-stable-key-unique.stderr": {
+      "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+      "bytes": 39
+    }
+  },
+  "native_request_capture_hashes_only": {
+    "runs/baseline-signed-ceiling-request.json": "baefcc7fd7e474dee281e481b1fb2a71297c8fd33770847f138daa316f799f58",
+    "runs/baseline-literal-first-request.json": "d674f319e6ac40bfb1dd1f37b3ede7d53b362c7fa1a809162d5d3f415ab0f2fd",
+    "runs/baseline-adjacent-groups-request.json": "ff0a6de38fcf10f57a8e37a2be9bd850b01eac6b2efd7638f4f7ce78980e2873",
+    "runs/adapted-signed-ceiling-request.json": "8ade5d7accbb73cea2a540db50fb0f84a7acf9bebec06ad4d2b2301775089354",
+    "runs/adapted-literal-first-request.json": "bd9d59b58456f531fae456d0b2f2941c338f9e34ee3faf13d4b84931f2cde786",
+    "runs/adapted-adjacent-groups-request.json": "9f42065e7e786ce8290ff36aa1ff22b52bd11d0a108351733ec871aec7877c12",
+    "runs/adapted-interval-union-request.json": "9d96835fc7238776a1b1402ccc21ad7cf33ef1540b150e1814f5508ec2e79bbf",
+    "runs/adapted-atomic-stock-request.json": "7a1481615c51fb8c4f978d189318f11fbc83f918552e699f69eaa94e77a66831",
+    "runs/adapted-stable-key-unique-request.json": "78f46efd10c9c06f15fd063babf153dcb1679ff2c5975429c9f846a208dbcb8d",
+    "runs/baseline-interval-union-request.json": "cfbe2e4ee88dc142f2cb22fa98d0d48ef2ccd0d44f2ef8f736e22c9b52f6a231",
+    "runs/baseline-atomic-stock-request.json": "278077ca2e7b0ff3c892eeff55029ab26537fed4f6dea7b63ea989e86b3d64ae",
+    "runs/baseline-stable-key-unique-request.json": "ec612933562d82581e0999a9611759e052031fb09d02b1e7595d9eb5993fbb30"
+  },
+  "missing_saved_implementations": [],
+  "credential_scan": {
+    "passed": true,
+    "pattern_names": [
+      "assigned_secret",
+      "authorization_header",
+      "aws_access_key",
+      "github_token",
+      "jwt",
+      "openai_or_anthropic_key",
+      "private_key",
+      "qualification_probe",
+      "session_cookie"
+    ]
+  },
+  "authored_check_audit": "Completed separate authored-check replay; see authored-checks/replay-summary.json and the two exact eligible payload audits.",
+  "excluded": [
+    "configuration",
+    "probe-control files and tokens",
+    "databases",
+    "native request bodies",
+    "workspace directories",
+    "zero-inference capture logs"
+  ],
+  "publication_manifest_before_audit_sha256": "383cd74f24d79f7d8542ef0ab122832678382df371c99c6e61889fb53fea852e",
+  "additional_files": {
+    "independent-audit.json": {
+      "sha256": "9a4aed77e8037f33788cfeea3f70e402907e28747c32e399b42b231081fc9e6c",
+      "bytes": 39378,
+      "local_source": "koto-harness-v4-diagnosis-20261020/independent-audit.json"
+    },
+    "frozen-integrity.json": {
+      "sha256": "3bdaea60c5c2afa6d86c660c45a51b5587e64562af86dd6f5c53fb442fa2ce48",
+      "bytes": 31484,
+      "local_source": "koto-harness-v4-diagnosis-20261020/frozen-integrity.json"
+    },
+    "a18-focused-validation.json": {
+      "sha256": "eac0c6db57d1e35de1349e255abd277485d38c176920ba987b6233434d1134d1",
+      "bytes": 588,
+      "local_source": "koto-harness-v4-diagnosis-20261020/a18-focused-validation.json"
+    },
+    "authored-checks/replay-summary.json": {
+      "sha256": "65ae178f8795e90a1b0effc38e3dc69dfe517e1f818b6b52de9f9b59befe6f9c",
+      "bytes": 8380,
+      "local_source": "koto-harness-v4-diagnosis-20261020/a18-all12-authored-replay-host-permitted-20261020/replay-summary.json"
+    },
+    "authored-checks/adapted-interval-union-audit.json": {
+      "sha256": "e85ab0dd1ce303806cea281fe1f00050922e64298b1755189485326befc1877e",
+      "bytes": 8724,
+      "local_source": "koto-harness-v4-diagnosis-20261020/a18-all12-authored-replay-host-permitted-20261020/a18-adapted-interval-union/a18-adapted-interval-union-authored-check-audit.json"
+    },
+    "authored-checks/adapted-stable-key-unique-audit.json": {
+      "sha256": "bba73c4432f333f37ad5b6ea64c2037ad1072a5248ce4ed618f8c2484f9d781f",
+      "bytes": 8223,
+      "local_source": "koto-harness-v4-diagnosis-20261020/a18-all12-authored-replay-host-permitted-20261020/a18-adapted-stable-key-unique/a18-adapted-stable-key-unique-authored-check-audit.json"
+    },
+    "authored-checks/denied-attempt-summary.json": {
+      "sha256": "2015fdcd87c8fef706c014b89d6b174e96f5af58d2502d9337718ca15eb93b2b",
+      "bytes": 7212,
+      "local_source": "koto-harness-v4-diagnosis-20261020/a18-all12-authored-replay-20261020/replay-summary.json"
+    }
+  },
+  "additional_file_credential_scan": {
+    "passed": true,
+    "pattern_names": [
+      "assigned_secret",
+      "authorization_header",
+      "aws_access_key",
+      "github_token",
+      "jwt",
+      "openai_or_anthropic_key",
+      "private_key",
+      "qualification_probe",
+      "session_cookie"
+    ],
+    "native_request_objects_absent": true,
+    "sensitive_credential_control_fields_absent": true
+  },
+  "independent_audit_scope": "Twelve frozen independent checker replays and frozen artifact integrity; model-authored check sensitivity remains a separate audit.",
+  "authored_check_replay": {
+    "completed": true,
+    "episodes_classified": 12,
+    "sandbox_executions": 4,
+    "model_inference_submissions": 0,
+    "sensitive_completed_payloads": {
+      "baseline": 0,
+      "adapted": 2
+    },
+    "limits": [
+      "Sensitivity is to frozen initial source; it does not establish complete specification coverage.",
+      "The uniqueness payload omits unhashable values and its saved implementation still fails the independent checker.",
+      "The prior exit-71 sandbox-denied attempt is retained as infrastructure history with no assertion credit."
+    ]
+  }
+}

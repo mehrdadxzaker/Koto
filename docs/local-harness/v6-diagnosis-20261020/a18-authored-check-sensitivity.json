@@ -1,0 +1,72 @@
+{
+  "mode": "serial_read_only_no_network_sandbox_replay",
+  "model_requests": 0,
+  "sandbox_replays": 4,
+  "max_replay_concurrency": 1,
+  "captured_shell_executed": false,
+  "checks": [
+    {
+      "profile": "qwen-code.v4",
+      "case_id": "interval-union",
+      "captured_native_exit_code": 0,
+      "authored_python_sha256": "f26327381a77cbc3507184dfaf511de80b39958716feeebc5b782054251093b4",
+      "payload_bytes_unchanged": true,
+      "sensitive_to_frozen_initial_and_passes_saved_new": true,
+      "results": [
+        {
+          "source_kind": "frozen_initial",
+          "execution_class": "assertion_failure",
+          "assertion_lines_reached": [
+            5,
+            8,
+            11
+          ]
+        },
+        {
+          "source_kind": "saved_new",
+          "execution_class": "completed_with_executed_assertions",
+          "assertion_lines_reached": [
+            5,
+            8,
+            11,
+            14,
+            17
+          ]
+        }
+      ]
+    },
+    {
+      "profile": "qwen-code.v4",
+      "case_id": "stable-key-unique",
+      "captured_native_exit_code": 0,
+      "authored_python_sha256": "9681708d66c7d358f34c6327d54189693273e72712cf33d4f61bf8adedd9cb1f",
+      "payload_bytes_unchanged": true,
+      "sensitive_to_frozen_initial_and_passes_saved_new": true,
+      "results": [
+        {
+          "source_kind": "frozen_initial",
+          "execution_class": "assertion_failure",
+          "assertion_lines_reached": [
+            2,
+            3
+          ]
+        },
+        {
+          "source_kind": "saved_new",
+          "execution_class": "completed_with_executed_assertions",
+          "assertion_lines_reached": [
+            2,
+            3,
+            4
+          ]
+        }
+      ]
+    }
+  ],
+  "source_receipt_sha256": "65ae178f8795e90a1b0effc38e3dc69dfe517e1f818b6b52de9f9b59befe6f9c",
+  "limits": [
+    "Only two completed assertion payloads were eligible for replay across the twelve episodes.",
+    "The uniqueness payload checks scalar keys and missing keys; it does not cover list-valued keys.",
+    "Sensitivity to frozen initial code is not complete-specification coverage or coding qualification."
+  ]
+}

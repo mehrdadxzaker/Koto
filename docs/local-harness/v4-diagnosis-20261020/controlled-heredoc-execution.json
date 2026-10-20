@@ -1,0 +1,28 @@
+{
+  "results": [
+    {
+      "fixture": "bad",
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "Traceback (most recent call last):\n  File \"<stdin>\", line 8, in <module>\nAssertionError: successor must add one\n"
+    },
+    {
+      "fixture": "good",
+      "exit_code": 0,
+      "stdout": "controlled assertion passed\n",
+      "stderr": ""
+    }
+  ],
+  "profile": "(version 1)(allow default)(deny network*)(deny file-write*)(allow file-write* (subpath \"/Users/mehrdadz/Downloads/memoWiki/koto-harness-v4-diagnosis-20261020/quote-control-tmp\"))",
+  "environment": {
+    "PATH": "/opt/homebrew/bin:/usr/bin:/bin",
+    "HOME": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v4-diagnosis-20261020",
+    "ZDOTDIR": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v4-diagnosis-20261020",
+    "LANG": "en_US.UTF-8",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "TMPDIR": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v4-diagnosis-20261020/quote-control-tmp/",
+    "TMPPREFIX": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v4-diagnosis-20261020/quote-control-tmp/zsh"
+  },
+  "debug_temp_cleanup_confirmed": true,
+  "scope": "Controlled non-task fixture only. The captured stock test body was never executed."
+}

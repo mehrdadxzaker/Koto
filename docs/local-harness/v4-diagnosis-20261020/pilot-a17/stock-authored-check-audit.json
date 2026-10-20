@@ -1,0 +1,402 @@
+{
+  "schema_version": 2,
+  "run": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v4-a17-stock-pilot-20261020",
+  "case_id": "atomic-stock",
+  "arm": "adapted",
+  "mode": "sandboxed_replay",
+  "raw_jsonl_sha256": "926128c52d421b81edc2b7e8061c6ca7e4e2dc2a51bbf7451d969f37a26d58b8",
+  "commands": [
+    {
+      "trace_line_1based": 4,
+      "captured_command": "/bin/zsh -lc 'cat solution.py'",
+      "captured_exit_code": 0,
+      "captured_output": "def consume_stock(stock, requests):\n    for item, quantity in requests:\n        stock[item] -= quantity\n    return stock\n",
+      "captured_command_status": "succeeded",
+      "extraction": {
+        "kind": "unsupported_shell_command"
+      },
+      "results": []
+    },
+    {
+      "trace_line_1based": 8,
+      "captured_command": "/bin/zsh -lc \"python3 -c 'import solution; stock = {\\\"apple\\\": 5, \\\"banana\\\": 3}; requests = [(\\\"apple\\\", 2), (\\\"banana\\\", 1)]; solution.consume_stock(stock, requests); assert stock[\\\"apple\\\"] == 3 and stock[\\\"banana\\\"] == 2'\"",
+      "captured_exit_code": 0,
+      "captured_output": "python3: warning: confstr() failed with code 5: couldn't get path of DARWIN_USER_TEMP_DIR; using /tmp instead\n",
+      "captured_command_status": "succeeded",
+      "extraction": {
+        "kind": "python_payload",
+        "python": "import solution; stock = {\"apple\": 5, \"banana\": 3}; requests = [(\"apple\", 2), (\"banana\", 1)]; solution.consume_stock(stock, requests); assert stock[\"apple\"] == 3 and stock[\"banana\"] == 2",
+        "assertion_count": 1,
+        "assertion_lines": [
+          1
+        ],
+        "imports": [
+          "solution"
+        ],
+        "imports_solution": true,
+        "defined_functions": [],
+        "syntactic_calls_outside_function_definitions": [],
+        "syntactic_test_definition_calls": [],
+        "try_handler_patterns": [],
+        "unsafe_imports_not_replayed": [],
+        "unsafe_calls_not_replayed": []
+      },
+      "results": [
+        {
+          "source_kind": "frozen_initial",
+          "source": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v4-diagnosis-20261020/pilot-a17-stock-authored-audit/frozen-initial.py",
+          "source_sha256": "177840859689205884344266cd3a7c2ca1e24ef5e73808b3edb284e60532f04f",
+          "exit_code": 0,
+          "termination": "completed",
+          "stdout": "KOTO_AUTHORED_CHECK_AUDIT_V1 {\"assertion_line_events\": 1, \"assertion_lines_reached\": [1], \"function_calls\": [], \"exception_type\": null}\n",
+          "stderr": "",
+          "execution_class": "completed_with_executed_assertions",
+          "observed": {
+            "assertion_line_events": 1,
+            "assertion_lines_reached": [
+              1
+            ],
+            "function_calls": [],
+            "exception_type": null
+          }
+        },
+        {
+          "source_kind": "old_0",
+          "source": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v3-comparison-20261020/runs/adapted-atomic-stock-solution.py",
+          "source_sha256": "74e52e4a4e4fe024a2690e32b2935b83fe17f92f10d9709aa9e9d7acda5f3a7b",
+          "exit_code": 0,
+          "termination": "completed",
+          "stdout": "KOTO_AUTHORED_CHECK_AUDIT_V1 {\"assertion_line_events\": 1, \"assertion_lines_reached\": [1], \"function_calls\": [], \"exception_type\": null}\n",
+          "stderr": "",
+          "execution_class": "completed_with_executed_assertions",
+          "observed": {
+            "assertion_line_events": 1,
+            "assertion_lines_reached": [
+              1
+            ],
+            "function_calls": [],
+            "exception_type": null
+          }
+        },
+        {
+          "source_kind": "saved_new",
+          "source": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v4-a17-stock-pilot-20261020/runs/adapted-atomic-stock-solution.py",
+          "source_sha256": "61749bd23a51c050a359ad6d3a8260795abd3268f1311228796809640563548a",
+          "exit_code": 0,
+          "termination": "completed",
+          "stdout": "KOTO_AUTHORED_CHECK_AUDIT_V1 {\"assertion_line_events\": 1, \"assertion_lines_reached\": [1], \"function_calls\": [], \"exception_type\": null}\n",
+          "stderr": "",
+          "execution_class": "completed_with_executed_assertions",
+          "observed": {
+            "assertion_line_events": 1,
+            "assertion_lines_reached": [
+              1
+            ],
+            "function_calls": [],
+            "exception_type": null
+          }
+        }
+      ],
+      "authored_python_sha256": "947979a1441afa5fb10e31ff283d43615da5c240bd2b8266a4c0477d42a92edc",
+      "payload": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v4-diagnosis-20261020/pilot-a17-stock-authored-audit/authored-7.py",
+      "eligible_for_safe_replay": true,
+      "assertion_sensitive_to_all_old_sources_and_passes_new": false,
+      "any_failure_on_all_old_sources_and_assertions_pass_new": false,
+      "payload_bytes_unchanged_after_replay": true
+    },
+    {
+      "trace_line_1based": 10,
+      "captured_command": "/bin/zsh -lc \"python3 -c 'import solution; stock = {\\\"apple\\\": 5, \\\"banana\\\": 3}; requests = [(\\\"apple\\\", 2), (\\\"banana\\\", 1)]; solution.consume_stock(stock, requests); assert stock[\\\"apple\\\"] == 3 and stock[\\\"banana\\\"] == 2'\"",
+      "captured_exit_code": 0,
+      "captured_output": "python3: warning: confstr() failed with code 5: couldn't get path of DARWIN_USER_TEMP_DIR; using /tmp instead\n",
+      "captured_command_status": "succeeded",
+      "extraction": {
+        "kind": "python_payload",
+        "python": "import solution; stock = {\"apple\": 5, \"banana\": 3}; requests = [(\"apple\", 2), (\"banana\", 1)]; solution.consume_stock(stock, requests); assert stock[\"apple\"] == 3 and stock[\"banana\"] == 2",
+        "assertion_count": 1,
+        "assertion_lines": [
+          1
+        ],
+        "imports": [
+          "solution"
+        ],
+        "imports_solution": true,
+        "defined_functions": [],
+        "syntactic_calls_outside_function_definitions": [],
+        "syntactic_test_definition_calls": [],
+        "try_handler_patterns": [],
+        "unsafe_imports_not_replayed": [],
+        "unsafe_calls_not_replayed": []
+      },
+      "results": [
+        {
+          "source_kind": "frozen_initial",
+          "source": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v4-diagnosis-20261020/pilot-a17-stock-authored-audit/frozen-initial.py",
+          "source_sha256": "177840859689205884344266cd3a7c2ca1e24ef5e73808b3edb284e60532f04f",
+          "exit_code": 0,
+          "termination": "completed",
+          "stdout": "KOTO_AUTHORED_CHECK_AUDIT_V1 {\"assertion_line_events\": 1, \"assertion_lines_reached\": [1], \"function_calls\": [], \"exception_type\": null}\n",
+          "stderr": "",
+          "execution_class": "completed_with_executed_assertions",
+          "observed": {
+            "assertion_line_events": 1,
+            "assertion_lines_reached": [
+              1
+            ],
+            "function_calls": [],
+            "exception_type": null
+          }
+        },
+        {
+          "source_kind": "old_0",
+          "source": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v3-comparison-20261020/runs/adapted-atomic-stock-solution.py",
+          "source_sha256": "74e52e4a4e4fe024a2690e32b2935b83fe17f92f10d9709aa9e9d7acda5f3a7b",
+          "exit_code": 0,
+          "termination": "completed",
+          "stdout": "KOTO_AUTHORED_CHECK_AUDIT_V1 {\"assertion_line_events\": 1, \"assertion_lines_reached\": [1], \"function_calls\": [], \"exception_type\": null}\n",
+          "stderr": "",
+          "execution_class": "completed_with_executed_assertions",
+          "observed": {
+            "assertion_line_events": 1,
+            "assertion_lines_reached": [
+              1
+            ],
+            "function_calls": [],
+            "exception_type": null
+          }
+        },
+        {
+          "source_kind": "saved_new",
+          "source": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v4-a17-stock-pilot-20261020/runs/adapted-atomic-stock-solution.py",
+          "source_sha256": "61749bd23a51c050a359ad6d3a8260795abd3268f1311228796809640563548a",
+          "exit_code": 0,
+          "termination": "completed",
+          "stdout": "KOTO_AUTHORED_CHECK_AUDIT_V1 {\"assertion_line_events\": 1, \"assertion_lines_reached\": [1], \"function_calls\": [], \"exception_type\": null}\n",
+          "stderr": "",
+          "execution_class": "completed_with_executed_assertions",
+          "observed": {
+            "assertion_line_events": 1,
+            "assertion_lines_reached": [
+              1
+            ],
+            "function_calls": [],
+            "exception_type": null
+          }
+        }
+      ],
+      "authored_python_sha256": "947979a1441afa5fb10e31ff283d43615da5c240bd2b8266a4c0477d42a92edc",
+      "payload": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v4-diagnosis-20261020/pilot-a17-stock-authored-audit/authored-9.py",
+      "eligible_for_safe_replay": true,
+      "assertion_sensitive_to_all_old_sources_and_passes_new": false,
+      "any_failure_on_all_old_sources_and_assertions_pass_new": false,
+      "payload_bytes_unchanged_after_replay": true
+    },
+    {
+      "trace_line_1based": 12,
+      "captured_command": "/bin/zsh -lc \"python3 -c 'import solution; stock = {\\\"apple\\\": 5, \\\"banana\\\": 3}; requests = [(\\\"apple\\\", 2), (\\\"banana\\\", 1)]; solution.consume_stock(stock, requests); assert stock[\\\"apple\\\"] == 3 and stock[\\\"banana\\\"] == 2'\"",
+      "captured_exit_code": 0,
+      "captured_output": "python3: warning: confstr() failed with code 5: couldn't get path of DARWIN_USER_TEMP_DIR; using /tmp instead\n",
+      "captured_command_status": "succeeded",
+      "extraction": {
+        "kind": "python_payload",
+        "python": "import solution; stock = {\"apple\": 5, \"banana\": 3}; requests = [(\"apple\", 2), (\"banana\", 1)]; solution.consume_stock(stock, requests); assert stock[\"apple\"] == 3 and stock[\"banana\"] == 2",
+        "assertion_count": 1,
+        "assertion_lines": [
+          1
+        ],
+        "imports": [
+          "solution"
+        ],
+        "imports_solution": true,
+        "defined_functions": [],
+        "syntactic_calls_outside_function_definitions": [],
+        "syntactic_test_definition_calls": [],
+        "try_handler_patterns": [],
+        "unsafe_imports_not_replayed": [],
+        "unsafe_calls_not_replayed": []
+      },
+      "results": [
+        {
+          "source_kind": "frozen_initial",
+          "source": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v4-diagnosis-20261020/pilot-a17-stock-authored-audit/frozen-initial.py",
+          "source_sha256": "177840859689205884344266cd3a7c2ca1e24ef5e73808b3edb284e60532f04f",
+          "exit_code": 0,
+          "termination": "completed",
+          "stdout": "KOTO_AUTHORED_CHECK_AUDIT_V1 {\"assertion_line_events\": 1, \"assertion_lines_reached\": [1], \"function_calls\": [], \"exception_type\": null}\n",
+          "stderr": "",
+          "execution_class": "completed_with_executed_assertions",
+          "observed": {
+            "assertion_line_events": 1,
+            "assertion_lines_reached": [
+              1
+            ],
+            "function_calls": [],
+            "exception_type": null
+          }
+        },
+        {
+          "source_kind": "old_0",
+          "source": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v3-comparison-20261020/runs/adapted-atomic-stock-solution.py",
+          "source_sha256": "74e52e4a4e4fe024a2690e32b2935b83fe17f92f10d9709aa9e9d7acda5f3a7b",
+          "exit_code": 0,
+          "termination": "completed",
+          "stdout": "KOTO_AUTHORED_CHECK_AUDIT_V1 {\"assertion_line_events\": 1, \"assertion_lines_reached\": [1], \"function_calls\": [], \"exception_type\": null}\n",
+          "stderr": "",
+          "execution_class": "completed_with_executed_assertions",
+          "observed": {
+            "assertion_line_events": 1,
+            "assertion_lines_reached": [
+              1
+            ],
+            "function_calls": [],
+            "exception_type": null
+          }
+        },
+        {
+          "source_kind": "saved_new",
+          "source": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v4-a17-stock-pilot-20261020/runs/adapted-atomic-stock-solution.py",
+          "source_sha256": "61749bd23a51c050a359ad6d3a8260795abd3268f1311228796809640563548a",
+          "exit_code": 0,
+          "termination": "completed",
+          "stdout": "KOTO_AUTHORED_CHECK_AUDIT_V1 {\"assertion_line_events\": 1, \"assertion_lines_reached\": [1], \"function_calls\": [], \"exception_type\": null}\n",
+          "stderr": "",
+          "execution_class": "completed_with_executed_assertions",
+          "observed": {
+            "assertion_line_events": 1,
+            "assertion_lines_reached": [
+              1
+            ],
+            "function_calls": [],
+            "exception_type": null
+          }
+        }
+      ],
+      "authored_python_sha256": "947979a1441afa5fb10e31ff283d43615da5c240bd2b8266a4c0477d42a92edc",
+      "payload": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v4-diagnosis-20261020/pilot-a17-stock-authored-audit/authored-11.py",
+      "eligible_for_safe_replay": true,
+      "assertion_sensitive_to_all_old_sources_and_passes_new": false,
+      "any_failure_on_all_old_sources_and_assertions_pass_new": false,
+      "payload_bytes_unchanged_after_replay": true
+    },
+    {
+      "trace_line_1based": 14,
+      "captured_command": "/bin/zsh -lc \"python3 -c 'import solution; stock = {\\\"apple\\\": 5, \\\"banana\\\": 3}; requests = [(\\\"apple\\\", 2), (\\\"banana\\\", 1)]; solution.consume_stock(stock, requests); assert stock[\\\"apple\\\"] == 3 and stock[\\\"banana\\\"] == 2'\"",
+      "captured_exit_code": 0,
+      "captured_output": "python3: warning: confstr() failed with code 5: couldn't get path of DARWIN_USER_TEMP_DIR; using /tmp instead\n",
+      "captured_command_status": "succeeded",
+      "extraction": {
+        "kind": "python_payload",
+        "python": "import solution; stock = {\"apple\": 5, \"banana\": 3}; requests = [(\"apple\", 2), (\"banana\", 1)]; solution.consume_stock(stock, requests); assert stock[\"apple\"] == 3 and stock[\"banana\"] == 2",
+        "assertion_count": 1,
+        "assertion_lines": [
+          1
+        ],
+        "imports": [
+          "solution"
+        ],
+        "imports_solution": true,
+        "defined_functions": [],
+        "syntactic_calls_outside_function_definitions": [],
+        "syntactic_test_definition_calls": [],
+        "try_handler_patterns": [],
+        "unsafe_imports_not_replayed": [],
+        "unsafe_calls_not_replayed": []
+      },
+      "results": [
+        {
+          "source_kind": "frozen_initial",
+          "source": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v4-diagnosis-20261020/pilot-a17-stock-authored-audit/frozen-initial.py",
+          "source_sha256": "177840859689205884344266cd3a7c2ca1e24ef5e73808b3edb284e60532f04f",
+          "exit_code": 0,
+          "termination": "completed",
+          "stdout": "KOTO_AUTHORED_CHECK_AUDIT_V1 {\"assertion_line_events\": 1, \"assertion_lines_reached\": [1], \"function_calls\": [], \"exception_type\": null}\n",
+          "stderr": "",
+          "execution_class": "completed_with_executed_assertions",
+          "observed": {
+            "assertion_line_events": 1,
+            "assertion_lines_reached": [
+              1
+            ],
+            "function_calls": [],
+            "exception_type": null
+          }
+        },
+        {
+          "source_kind": "old_0",
+          "source": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v3-comparison-20261020/runs/adapted-atomic-stock-solution.py",
+          "source_sha256": "74e52e4a4e4fe024a2690e32b2935b83fe17f92f10d9709aa9e9d7acda5f3a7b",
+          "exit_code": 0,
+          "termination": "completed",
+          "stdout": "KOTO_AUTHORED_CHECK_AUDIT_V1 {\"assertion_line_events\": 1, \"assertion_lines_reached\": [1], \"function_calls\": [], \"exception_type\": null}\n",
+          "stderr": "",
+          "execution_class": "completed_with_executed_assertions",
+          "observed": {
+            "assertion_line_events": 1,
+            "assertion_lines_reached": [
+              1
+            ],
+            "function_calls": [],
+            "exception_type": null
+          }
+        },
+        {
+          "source_kind": "saved_new",
+          "source": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v4-a17-stock-pilot-20261020/runs/adapted-atomic-stock-solution.py",
+          "source_sha256": "61749bd23a51c050a359ad6d3a8260795abd3268f1311228796809640563548a",
+          "exit_code": 0,
+          "termination": "completed",
+          "stdout": "KOTO_AUTHORED_CHECK_AUDIT_V1 {\"assertion_line_events\": 1, \"assertion_lines_reached\": [1], \"function_calls\": [], \"exception_type\": null}\n",
+          "stderr": "",
+          "execution_class": "completed_with_executed_assertions",
+          "observed": {
+            "assertion_line_events": 1,
+            "assertion_lines_reached": [
+              1
+            ],
+            "function_calls": [],
+            "exception_type": null
+          }
+        }
+      ],
+      "authored_python_sha256": "947979a1441afa5fb10e31ff283d43615da5c240bd2b8266a4c0477d42a92edc",
+      "payload": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v4-diagnosis-20261020/pilot-a17-stock-authored-audit/authored-13.py",
+      "eligible_for_safe_replay": true,
+      "assertion_sensitive_to_all_old_sources_and_passes_new": false,
+      "any_failure_on_all_old_sources_and_assertions_pass_new": false,
+      "payload_bytes_unchanged_after_replay": true
+    }
+  ],
+  "model_inference_submissions": 0,
+  "captured_shell_executed": false,
+  "python_executable": "/opt/homebrew/opt/python@3.14/bin/python3.14",
+  "environment": {
+    "PATH": "/opt/homebrew/bin:/usr/bin:/bin",
+    "LANG": "en_US.UTF-8",
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "sources": [
+    {
+      "kind": "frozen_initial",
+      "path": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v4-diagnosis-20261020/pilot-a17-stock-authored-audit/frozen-initial.py",
+      "sha256": "177840859689205884344266cd3a7c2ca1e24ef5e73808b3edb284e60532f04f"
+    },
+    {
+      "kind": "old_0",
+      "path": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v3-comparison-20261020/runs/adapted-atomic-stock-solution.py",
+      "sha256": "74e52e4a4e4fe024a2690e32b2935b83fe17f92f10d9709aa9e9d7acda5f3a7b"
+    },
+    {
+      "kind": "saved_new",
+      "path": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v4-a17-stock-pilot-20261020/runs/adapted-atomic-stock-solution.py",
+      "sha256": "61749bd23a51c050a359ad6d3a8260795abd3268f1311228796809640563548a"
+    }
+  ],
+  "limitations": [
+    "These are preserved authored checks, not new model generations or rewritten assertions.",
+    "Only direct literal python3 -c payloads importing solution are replayed; shell expansions and other commands are classified without execution.",
+    "Static try/handler and call summaries describe syntax; trace observations establish actual assertion lines and function invocations during replay.",
+    "Replay preloads the supplied source as solution; it does not grant model-authored verification credit to a failed captured command.",
+    "A check that detects one old failure does not establish full specification coverage or qualification.",
+    "Malformed, unsupported, missing instrumentation or truncated outcomes remain unknown; they are not converted into passing checks."
+  ]
+}
