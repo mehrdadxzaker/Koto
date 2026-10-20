@@ -15,7 +15,10 @@ For ordered outputs, exercise several boundaries and values recurring later.
 For no-mutation-on-error requirements, copy state before a valid-then-invalid
 batch, require the specified exception, and assert unchanged state AFTER the
 exception handler. Include repeated operations on one item. Catching an exception
-and printing it does not check rollback. Cover supported unhashable values and
+and printing it does not check rollback. For atomic multi-step updates, validate
+the entire operation against private proposed state, then commit only after all
+validation succeeds. Validating and mutating one step at a time can leave partial
+changes on a later failure. Cover supported unhashable values and
 missing-versus-None distinctions when required by the task.
 After the latest edit, rerun assertions and inspect their actual results. Repair
 the implementation without weakening the specification or existing checks.
@@ -44,8 +47,10 @@ def progress_snapshot(items, declarations):
     """Count correlated host envelopes, ignoring program text as status metadata."""
     state = {'native_patches_saved': 0, 'native_patches_rejected': 0,
              'completed_commands_since_last_native_patch': 0, 'last_command_exit': None,
-             'pending_sessions': 0, 'shell_parse_failure': False, 'python_syntax_failure': False}
+             'pending_sessions': 0, 'shell_parse_failure': False, 'python_syntax_failure': False,
+             'repeated_command_completions': 0}
     calls, consumed, pending = {}, set(), set()
+    commands = {}
     for item in items:
         if not isinstance(item, dict) or not isinstance(item.get('call_id'), str) or not item['call_id']:
             continue
@@ -74,6 +79,8 @@ def progress_snapshot(items, declarations):
                     state['completed_commands_since_last_native_patch'] = 0
                     state['last_command_exit'], state['shell_parse_failure'] = None, False
                     state['python_syntax_failure'] = False
+                    state['repeated_command_completions'] = 0
+                    commands.clear()
                 elif isinstance(output, str) and output.startswith('apply_patch verification failed:'):
                     state['native_patches_rejected'] += 1
                 continue
@@ -85,6 +92,7 @@ def progress_snapshot(items, declarations):
             if match is None:
                 state['last_command_exit'], state['shell_parse_failure'] = None, False
                 state['python_syntax_failure'] = False
+                state['repeated_command_completions'] = 0
                 continue
             if name == 'write_stdin':
                 if match['session'] is not None and match['session'] != str(session):
@@ -93,6 +101,7 @@ def progress_snapshot(items, declarations):
                 pending.add(match['session'])
                 state['last_command_exit'], state['shell_parse_failure'] = None, False
                 state['python_syntax_failure'] = False
+                state['repeated_command_completions'] = 0
             else:
                 if name == 'write_stdin':
                     pending.remove(str(session))
@@ -101,6 +110,11 @@ def progress_snapshot(items, declarations):
                 state['last_command_exit'] = code
                 state['shell_parse_failure'] = code != 0 and bool(_SHELL_PARSE.search(output[match.end():]))
                 state['python_syntax_failure'] = code != 0 and bool(_PYTHON_SYNTAX.search(output[match.end():]))
+                command = arguments.get('cmd') if name == 'exec_command' else None
+                state['repeated_command_completions'] = 0
+                if isinstance(command, str):
+                    commands[command] = commands.get(command, 0) + 1
+                    state['repeated_command_completions'] = commands[command]
     state['pending_sessions'] = len(pending)
     return state
 
@@ -128,6 +142,10 @@ def progress_checkpoint(items, declarations):
     elif state['last_command_exit'] not in (None, 0):
         message += ('Inspect the actual command error. Fix command/permission problems first; '
                     'a real assertion failure guides a focused code repair and another check.\n')
+    elif state['repeated_command_completions'] > 1:
+        message += (f"The latest identical command has completed {state['repeated_command_completions']} times since the last native patch. "
+                    'Do not repeat the unchanged successful example. Check untested failure paths and every original requirement; '
+                    'if already covered, finish with actual results. Repetition adds no new coverage.\n')
     elif state['native_patches_saved'] and not state['completed_commands_since_last_native_patch']:
         message += 'The saved native patch has no completed command after it. Run assertions before another edit or final answer.\n'
     elif not state['native_patches_saved']:
@@ -141,6 +159,19 @@ YOUR_REAL_IMPORTS_AND_EXECUTABLE_ASSERTIONS
 '
 Do not wrap that command in another shell or put literal backslash-n text in it.
 Do not use a shell here-document when the host excludes temporary directories.
+For no-mutation-on-error tasks, adapt and execute this pattern with real imports,
+inputs, function and specified exception. Keep compound statements on new lines:
+    before = copy.deepcopy(state)
+    try:
+        function(state, invalid_batch)
+    except RequiredError:
+        pass
+    else:
+        raise AssertionError("expected rejection")
+    assert state == before
+The invalid batch must have a valid step before failure and repeated operations
+exceeding a limit when relevant. Import copy. A normal success example cannot
+establish these failure invariants.
 An exit-zero print example is not proof. Confirm assertions cover the latest saved
 edit and the original task. If they pass, finish with actual results; if they fail,
 repair and rerun. Complete the repair now instead of offering future next steps.'''

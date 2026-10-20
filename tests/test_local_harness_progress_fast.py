@@ -138,6 +138,39 @@ class LocalHarnessProgressTests(unittest.TestCase):
         state = self.snapshot(pair + [deepcopy(pair[-1])])
         self.assertEqual(state['completed_commands_since_last_native_patch'], 1)
 
+    def repeated_success(self):
+        first, second = self.pair('exec_success'), self.pair('exec_success')
+        for item in second:
+            item['call_id'] = 'repeat-command'
+        return first + second
+
+    def test_repeated_identical_successful_command_gets_failure_path_advice(self):
+        items = self.repeated_success()
+        state = self.snapshot(items)
+        self.assertEqual(state['last_command_exit'], 0)
+        self.assertEqual(state['repeated_command_completions'], 2)
+        checkpoint = self.module().progress_checkpoint(items, self.declarations).lower()
+        self.assertIn('do not repeat', checkpoint)
+        self.assertIn('failure paths', checkpoint)
+
+    def test_new_patch_resets_repeated_command_count_and_new_completion_starts_at_one(self):
+        items = self.repeated_success() + self.pair('patch_success')
+        self.assertEqual(self.snapshot(items)['repeated_command_completions'], 0)
+        after = self.pair('exec_success')
+        for item in after:
+            item['call_id'] = 'after-edit'
+        self.assertEqual(self.snapshot(items + after)['repeated_command_completions'], 1)
+
+    def test_unknown_linked_command_does_not_extend_repeat_and_unlinked_result_cannot_change_it(self):
+        items = self.repeated_success()
+        unlinked = {'type': 'function_call_output', 'call_id': 'not-issued', 'output': 'unknown'}
+        self.assertEqual(self.snapshot(items + [unlinked])['repeated_command_completions'], 2)
+        unknown = self.pair('exec_success')
+        for item in unknown:
+            item['call_id'] = 'unknown-command'
+        unknown[-1]['output'] = 'unknown'
+        self.assertEqual(self.snapshot(items + unknown)['repeated_command_completions'], 0)
+
     def running(self):
         pair = self.pair('exec_success')
         pair[-1]['output'] = ('Chunk ID: 123abc\nWall time: 1.0000 seconds\n'
@@ -160,6 +193,7 @@ class LocalHarnessProgressTests(unittest.TestCase):
         self.assertEqual(state['pending_sessions'], 0)
         self.assertEqual(state['completed_commands_since_last_native_patch'], 1)
         self.assertEqual(state['last_command_exit'], 0)
+        self.assertEqual(state['repeated_command_completions'], 0)
 
     def test_unrelated_poll_cannot_finish_a_known_pending_session(self):
         state = self.snapshot(self.running() + self.poll(session=999))
