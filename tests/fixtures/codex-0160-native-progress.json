@@ -178,6 +178,23 @@
         "call_id": "command-good",
         "output": "Chunk ID: f1a26a\nWall time: 0.0000 seconds\nProcess exited with code 1\nOriginal token count: 19\nOutput:\nzsh:1: can't create temp file for here document: operation not permitted\n"
       }
+    },
+    "python_syntax_failure": {
+      "capture_kind": "derived: captured native status envelope prefix plus actual pilot command/output body; full continuation request not captured",
+      "trace_path": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v4-pilot-20261020/runs/adapted-atomic-stock.jsonl",
+      "trace_line_1based": 8,
+      "captured_body_sha256": "a7b7c57d36844c06131af71b40fafbb61722318da4f2d997fc83923308cef664",
+      "call": {
+        "type": "function_call",
+        "name": "exec_command",
+        "call_id": "derived-python-syntax",
+        "arguments": "{\"cmd\": \"python3 -c 'import solution; stock = {\\\"apples\\\": 10, \\\"bananas\\\": 5}; requests = [(\\\"apples\\\", 3), (\\\"bananas\\\", 2)]; try:\\n    solution.consume_stock(stock, requests)\\n    assert stock[\\\"apples\\\"] == 7 and stock[\\\"bananas\\\"] == 3, \\\"Stock not updated correctly\\\"\\nexcept Exception as e:\\n    print(f\\\"Error: {e}\\\")'\"}"
+      },
+      "result": {
+        "type": "function_call_output",
+        "call_id": "derived-python-syntax",
+        "output": "Chunk ID: af55ab\nWall time: 0.0000 seconds\nProcess exited with code 1\nOriginal token count: 7\nOutput:\npython3: warning: confstr() failed with code 5: couldn't get path of DARWIN_USER_TEMP_DIR; using /tmp instead\n  File \"<string>\", line 1\n    import solution; stock = {\"apples\": 10, \"bananas\": 5}; requests = [(\"apples\", 3), (\"bananas\", 2)]; try:\n                                                                                                       ^\nSyntaxError: invalid syntax\n"
+      }
     }
   },
   "sandbox_flags": [

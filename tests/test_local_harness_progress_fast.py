@@ -45,6 +45,18 @@ class LocalHarnessProgressTests(unittest.TestCase):
         self.assertEqual(state['completed_commands_since_last_native_patch'], 1)
         self.assertFalse(state['shell_parse_failure'])
 
+    def test_captured_python_syntax_error_advises_compound_statements_on_own_lines(self):
+        items = self.pair('python_syntax_failure')
+        state = self.snapshot(items)
+        self.assertEqual(state['last_command_exit'], 1)
+        self.assertFalse(state['shell_parse_failure'])
+        checkpoint = self.module().progress_checkpoint(items, self.declarations).lower()
+        self.assertIn('compound statement', checkpoint)
+        self.assertIn('own lines', checkpoint)
+        self.assertIn('semicolon', checkpoint)
+        self.assertIn('do not repeat', checkpoint)
+        self.assertNotIn('stock not updated correctly', checkpoint)
+
     def test_later_accepted_native_patch_invalidates_earlier_command_observation(self):
         state = self.snapshot(self.pair('exec_success') + self.pair('patch_success'))
         self.assertEqual(state['native_patches_saved'], 1)

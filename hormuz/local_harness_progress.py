@@ -30,6 +30,7 @@ _COMMAND = re.compile(
     r'(?:Original token count: \d{1,12}\n)?(?:Output|Final output):\n')
 _PATCH = re.compile(r'\AExit code: 0\nWall time: \d+(?:\.\d+)? seconds\nOutput:\n')
 _SHELL_PARSE = re.compile(r'(?m)^(?:/bin/)?(?:zsh|bash|sh):[^\n]*(?:parse error|syntax error|unmatched)')
+_PYTHON_SYNTAX = re.compile(r'(?m)^SyntaxError:')
 
 REPEATED_PATCH_ADVICE = '''The identical malformed patch has failed more than once.
 Change approach through another declared host editing tool only if host instructions
@@ -43,7 +44,7 @@ def progress_snapshot(items, declarations):
     """Count correlated host envelopes, ignoring program text as status metadata."""
     state = {'native_patches_saved': 0, 'native_patches_rejected': 0,
              'completed_commands_since_last_native_patch': 0, 'last_command_exit': None,
-             'pending_sessions': 0, 'shell_parse_failure': False}
+             'pending_sessions': 0, 'shell_parse_failure': False, 'python_syntax_failure': False}
     calls, consumed, pending = {}, set(), set()
     for item in items:
         if not isinstance(item, dict) or not isinstance(item.get('call_id'), str) or not item['call_id']:
@@ -72,6 +73,7 @@ def progress_snapshot(items, declarations):
                     state['native_patches_saved'] += 1
                     state['completed_commands_since_last_native_patch'] = 0
                     state['last_command_exit'], state['shell_parse_failure'] = None, False
+                    state['python_syntax_failure'] = False
                 elif isinstance(output, str) and output.startswith('apply_patch verification failed:'):
                     state['native_patches_rejected'] += 1
                 continue
@@ -82,6 +84,7 @@ def progress_snapshot(items, declarations):
             match = _COMMAND.match(output) if isinstance(output, str) else None
             if match is None:
                 state['last_command_exit'], state['shell_parse_failure'] = None, False
+                state['python_syntax_failure'] = False
                 continue
             if name == 'write_stdin':
                 if match['session'] is not None and match['session'] != str(session):
@@ -89,6 +92,7 @@ def progress_snapshot(items, declarations):
             if match['session'] is not None:
                 pending.add(match['session'])
                 state['last_command_exit'], state['shell_parse_failure'] = None, False
+                state['python_syntax_failure'] = False
             else:
                 if name == 'write_stdin':
                     pending.remove(str(session))
@@ -96,6 +100,7 @@ def progress_snapshot(items, declarations):
                 state['completed_commands_since_last_native_patch'] += 1
                 state['last_command_exit'] = code
                 state['shell_parse_failure'] = code != 0 and bool(_SHELL_PARSE.search(output[match.end():]))
+                state['python_syntax_failure'] = code != 0 and bool(_PYTHON_SYNTAX.search(output[match.end():]))
     state['pending_sessions'] = len(pending)
     return state
 
@@ -115,6 +120,11 @@ def progress_checkpoint(items, declarations):
     elif state['shell_parse_failure']:
         message += ('The latest nonzero command result reports a shell parse error; intended Python checks are not established. '
                     'Fix the command format; do not repeat the unchanged failed command.\n')
+    elif state['python_syntax_failure']:
+        message += ('The latest nonzero command reports a Python SyntaxError; intended assertions did not run. '
+                    'Python compound statements (try/except/else, for, if, def) must start on their own lines '
+                    'with indented bodies. Never put try after a semicolon. Use actual newlines. '
+                    'Do not repeat the unchanged failed command.\n')
     elif state['last_command_exit'] not in (None, 0):
         message += ('Inspect the actual command error. Fix command/permission problems first; '
                     'a real assertion failure guides a focused code repair and another check.\n')
