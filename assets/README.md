@@ -23,6 +23,33 @@ Keep the mark square. Preserve the wood, strings, lighting and dark background.
 Place adjacent text outside the image and use the spelling **Koto**. Include
 the alternative text “Koto wooden K logo” when the image provides the name.
 
-There is no configured public product domain. Future hosting under Neuralint
-will be configured separately. Repository URLs remain the existing working
-addresses until a repository rename is completed.
+## Social preview
+
+`koto-social-preview.png` is the 1280 × 640 repository sharing card. It uses
+the existing icon master, exact text and a simple selection diagram. It is
+generated locally with Pillow; it does not make a model or provider request.
+It labels Koto experimental, keeps Codex as the first connection and retains
+the separate consent and local coding qualification boundaries.
+
+Rebuild just the card with a regular and bold TrueType font available on your
+machine (the committed export uses Arial):
+
+```sh
+python tools/build_brand_assets.py --social-preview \
+  --font /path/to/Arial.ttf --bold-font /path/to/Arial-Bold.ttf
+```
+
+This leaves the source images and existing plugin icons untouched. Fonts are
+authoring inputs and are not redistributed. The card has an opaque background
+and must remain under GitHub's 1 MB upload limit. Upload it in the repository's
+Settings → General → Social preview; committing an image alone does not set
+GitHub's sharing image.
+
+The intended GitHub description, documentation link, topics, social-preview
+path and component labels are tracked in the existing
+[repository metadata manifest](../.github/repository-governance-v1.json).
+Changing that manifest does not automatically apply live repository settings.
+
+There is no configured public product domain. The canonical source is
+[mehrdadxzaker/Koto](https://github.com/mehrdadxzaker/Koto); the repository's
+About website points to its maintained documentation index.

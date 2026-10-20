@@ -1,6 +1,6 @@
 {
   "name": "Feature request",
-  "description": "Propose a bounded Koto gateway, policy, evidence, or operator outcome.",
+  "description": "Propose a bounded improvement to Koto's history, model selection, routing or contributor workflow.",
   "title": "[Feature]: ",
   "labels": [
     "enhancement"
