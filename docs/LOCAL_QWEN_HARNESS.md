@@ -54,6 +54,10 @@ qualification probes; it never installs passing evidence. A comparison, even a
 successful one, does not satisfy the full coding qualification campaign or make
 automatic routing eligible. Local history retains its separate opt-in.
 
+Treat `qwen-code.v1` as a fixed request-shape contract. A change to its guidance
+or replay semantics requires a new capability/profile version and fresh outcome
+evidence; existing receipts must not silently authorize a different treatment.
+
 Rollback: revoke any active probe, disconnect the owned generation, and select
 the retained baseline configuration/declaration through the same public setup
 workflow. Remove the capability only on a new disconnected setup. Do not reuse
@@ -100,3 +104,8 @@ general benchmark. Fixed block order, stochastic generation, cache state and
 machine pressure limit latency conclusions. It cannot establish Codex desktop
 activation or general local-model coding readiness. Recorded results and the
 separate standards/spec reviews accompany this change.
+
+The [recorded local comparison](local-harness/results.md) found **0/6 successful
+repairs in both arms**. Keep this profile experimental; the result does not
+justify enabling it as a coding-quality improvement. The comparison runner uses
+the native macOS sandbox and is currently a macOS maintainer tool.
