@@ -1,0 +1,724 @@
+{
+  "schema_version": 1,
+  "audit_date": "2026-10-20",
+  "kind": "independent_saved_run_and_trace_audit",
+  "run_root": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v3-comparison-20261020",
+  "no_inference_submitted_by_audit": true,
+  "summary": {
+    "baseline_harness": "qwen-code.v1",
+    "adapted_harness": "qwen-code.v3",
+    "baseline_successes": 5,
+    "adapted_successes": 4,
+    "episodes": 12,
+    "actual_checker_exit_codes_matching_recorded": 12,
+    "replay_seconds": 0.325,
+    "episodes_with_accepted_native_patch": 12,
+    "accepted_native_patch_events": 15,
+    "final_implementations_changed": 11,
+    "normal_native_turn_completions": 11,
+    "successfully_executed_model_authored_assertion_commands": 0
+  },
+  "frozen_integrity_receipt": {
+    "path": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v3-diagnosis-20261020/final-study-frozen-integrity.json",
+    "sha256": "8f23c25d9514901c12c9c7353c3779d5d9c8e9f0335ef96bae94ee0dac2a7a45",
+    "all_154_source_runtime_artifacts_and_four_physical_assets_matched": true,
+    "canonical_plan_sha256": "6b43ed7b003d5650ac87ef7790b56208b0c07603c3c56a371b27fa5300567c02"
+  },
+  "checker_replay_receipt": {
+    "path": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v3-diagnosis-20261020/checker-replay.json",
+    "sha256": "e46068308504115c3cd2414b432fdd6e77f9b5aa2e2f1b42df7851c67ed79837",
+    "actual_exit_codes_and_bounded_output_retained": true
+  },
+  "controls": {
+    "cases": [
+      {
+        "case_id": "signed-ceiling",
+        "spec_source_checks_equal_to_previous_studies": true,
+        "checker_sha256": "cc3be5ed471dfb78cccb32ba7b902ea1c29394ed0fcf04c0dd5c99331aef6922",
+        "actual_native_profiles_equal_between_arms": true
+      },
+      {
+        "case_id": "literal-first",
+        "spec_source_checks_equal_to_previous_studies": true,
+        "checker_sha256": "4958f109e9cb650ef86ed1bf44129ef8660ab047eed0791bebc4047904e8e727",
+        "actual_native_profiles_equal_between_arms": true
+      },
+      {
+        "case_id": "adjacent-groups",
+        "spec_source_checks_equal_to_previous_studies": true,
+        "checker_sha256": "b7068821a1667b3d787f4e2ba16f9af1132752e0c14db574811ae5003aad31a4",
+        "actual_native_profiles_equal_between_arms": true
+      },
+      {
+        "case_id": "interval-union",
+        "spec_source_checks_equal_to_previous_studies": true,
+        "checker_sha256": "3c6fe54e7c7ba8fbc2562a689f484071f2945aeb00a2a952c49e6091def9f7b9",
+        "actual_native_profiles_equal_between_arms": true
+      },
+      {
+        "case_id": "atomic-stock",
+        "spec_source_checks_equal_to_previous_studies": true,
+        "checker_sha256": "ba6c4c2725d0f7da513cbf153dbe5006b6fe75ec08054cbe5b3d8dda072d6ca3",
+        "actual_native_profiles_equal_between_arms": true
+      },
+      {
+        "case_id": "stable-key-unique",
+        "spec_source_checks_equal_to_previous_studies": true,
+        "checker_sha256": "ee1f06be069c966c982c93b9a8ec3d4c5dc447e9f9ae70ece25a35f38e57ae19",
+        "actual_native_profiles_equal_between_arms": true
+      }
+    ],
+    "four_asset_pins_equal_prior_fresh_and_v2": true,
+    "base_developer_instructions_equal_prior_studies": true,
+    "episode_seconds_both_arms": 180,
+    "probe_schema_version": 5,
+    "max_requests": 16,
+    "quality_retries": 0,
+    "readiness": [
+      {
+        "arm": "baseline",
+        "capabilities": [
+          "responses",
+          "text",
+          "streaming",
+          "tools",
+          "codex_http",
+          "codex_http_0160",
+          "codex_llama_v1",
+          "qwen_code_v1"
+        ],
+        "max_output_tokens": 2048,
+        "automatic_coding_declared": false
+      },
+      {
+        "arm": "adapted",
+        "capabilities": [
+          "responses",
+          "text",
+          "streaming",
+          "tools",
+          "codex_http",
+          "codex_http_0160",
+          "codex_llama_v1",
+          "qwen_code_v3"
+        ],
+        "max_output_tokens": 2048,
+        "automatic_coding_declared": false
+      }
+    ]
+  },
+  "episodes": [
+    {
+      "arm": "baseline",
+      "case_id": "signed-ceiling",
+      "harness": "qwen-code.v1",
+      "independent_replayed_exit_code": 0,
+      "matches_recorded_exit_code": true,
+      "signal": "checks passed",
+      "passed": true,
+      "final_source_changed": true,
+      "source_sha256": "79258439b234407f0d9a2db2162ee99cbe9d1ad57c8aa656bf34f5a3e18b20cc",
+      "raw_jsonl_sha256": "a2aed726ec5b800c8fc8a833755442eea7ee14eda5dd96f4faf2c2e49e591df0",
+      "raw_stderr_sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+      "raw_request_capture_sha256": "b96dfc172dce3da9d0bbcb5ec76a03679b23ee855300920bb036799be0d46421",
+      "actual_native_profile_sha256": "d8c9338d35c57f777a3036fe2be0240a0e663f5ec28fff52b23856dc71770ff1",
+      "accepted_native_patch_events": 1,
+      "native_turn_completed_events": 1,
+      "native_errors": [],
+      "rejected_native_patch_count": 0,
+      "python_command_attempts": [],
+      "client_exit_code": 0,
+      "elapsed_ms": 43625,
+      "submitted_requests": 3
+    },
+    {
+      "arm": "baseline",
+      "case_id": "literal-first",
+      "harness": "qwen-code.v1",
+      "independent_replayed_exit_code": 0,
+      "matches_recorded_exit_code": true,
+      "signal": "checks passed",
+      "passed": true,
+      "final_source_changed": true,
+      "source_sha256": "6eb84bc5b7ca4debd65aa4bcc6680863d8d98d0078c94f50bb7a90d0b2f69bb7",
+      "raw_jsonl_sha256": "b0b730c5ff11682e7c3e85018cc7f51514aa285b497f9211ed9cb8dda5982aa2",
+      "raw_stderr_sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+      "raw_request_capture_sha256": "6a09fa5d0bc426d698be45755e3a3e85712cde8b927f17d8716debe32476b7ec",
+      "actual_native_profile_sha256": "d8c9338d35c57f777a3036fe2be0240a0e663f5ec28fff52b23856dc71770ff1",
+      "accepted_native_patch_events": 1,
+      "native_turn_completed_events": 1,
+      "native_errors": [],
+      "rejected_native_patch_count": 0,
+      "python_command_attempts": [],
+      "client_exit_code": 0,
+      "elapsed_ms": 33051,
+      "submitted_requests": 3
+    },
+    {
+      "arm": "baseline",
+      "case_id": "adjacent-groups",
+      "harness": "qwen-code.v1",
+      "independent_replayed_exit_code": 0,
+      "matches_recorded_exit_code": true,
+      "signal": "checks passed",
+      "passed": true,
+      "final_source_changed": true,
+      "source_sha256": "f6df84f0d95cc5101704f1b053f811c03a5b361cf209f3191e8182eea2f65f09",
+      "raw_jsonl_sha256": "8d1f350ff23233a94a1f2bcf995282e577a6e2f6c497b3ac81449e7d32211b70",
+      "raw_stderr_sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+      "raw_request_capture_sha256": "ceabac04f17966a7cb37534a811d4e9339d193616809cf750e6db52eb69cb5c1",
+      "actual_native_profile_sha256": "d8c9338d35c57f777a3036fe2be0240a0e663f5ec28fff52b23856dc71770ff1",
+      "accepted_native_patch_events": 1,
+      "native_turn_completed_events": 1,
+      "native_errors": [],
+      "rejected_native_patch_count": 0,
+      "python_command_attempts": [],
+      "client_exit_code": 0,
+      "elapsed_ms": 30840,
+      "submitted_requests": 3
+    },
+    {
+      "arm": "adapted",
+      "case_id": "signed-ceiling",
+      "harness": "qwen-code.v3",
+      "independent_replayed_exit_code": 0,
+      "matches_recorded_exit_code": true,
+      "signal": "checks passed",
+      "passed": true,
+      "final_source_changed": true,
+      "source_sha256": "79258439b234407f0d9a2db2162ee99cbe9d1ad57c8aa656bf34f5a3e18b20cc",
+      "raw_jsonl_sha256": "11aae6e489af3757a8d8c5adfccd7ca7e91d242882842923b95b1507cabbb542",
+      "raw_stderr_sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+      "raw_request_capture_sha256": "94961f335807b0a8ac4eab7102b97d3489d01ac80c215135f3ef13d17a23ffb0",
+      "actual_native_profile_sha256": "d8c9338d35c57f777a3036fe2be0240a0e663f5ec28fff52b23856dc71770ff1",
+      "accepted_native_patch_events": 1,
+      "native_turn_completed_events": 1,
+      "native_errors": [],
+      "rejected_native_patch_count": 0,
+      "python_command_attempts": [],
+      "client_exit_code": 0,
+      "elapsed_ms": 53891,
+      "submitted_requests": 3
+    },
+    {
+      "arm": "adapted",
+      "case_id": "literal-first",
+      "harness": "qwen-code.v3",
+      "independent_replayed_exit_code": 0,
+      "matches_recorded_exit_code": true,
+      "signal": "checks passed",
+      "passed": true,
+      "final_source_changed": true,
+      "source_sha256": "9796fe7167bb4cdff48169f3e1465faedaa5a235988ecffa1c15969e7e863f50",
+      "raw_jsonl_sha256": "0a57ca845115bf62e4cb0ed5c1bcf6ac231ff704d751381cb9f6eb6b318cb919",
+      "raw_stderr_sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+      "raw_request_capture_sha256": "4d2aa391adcf6a8a62eadd61bbcfea2e65be75ba0df2eba050c2a69237970d74",
+      "actual_native_profile_sha256": "d8c9338d35c57f777a3036fe2be0240a0e663f5ec28fff52b23856dc71770ff1",
+      "accepted_native_patch_events": 1,
+      "native_turn_completed_events": 1,
+      "native_errors": [],
+      "rejected_native_patch_count": 0,
+      "python_command_attempts": [],
+      "client_exit_code": 0,
+      "elapsed_ms": 30360,
+      "submitted_requests": 3
+    },
+    {
+      "arm": "adapted",
+      "case_id": "adjacent-groups",
+      "harness": "qwen-code.v3",
+      "independent_replayed_exit_code": 1,
+      "matches_recorded_exit_code": true,
+      "signal": "AssertionError",
+      "passed": false,
+      "final_source_changed": false,
+      "source_sha256": "0d004e68c2e804b697729a9d26a2c9ee2e7e42b12710b950ee9429ca11a3ae5c",
+      "raw_jsonl_sha256": "79d29d924d094030cc41ce79def7b2706d989cc1bcd7c7b58f8015a6b8d6c931",
+      "raw_stderr_sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+      "raw_request_capture_sha256": "0cf20130013844e61e1dd5945c328e192f8ec4c2d92f82f86e7c1acf33723577",
+      "actual_native_profile_sha256": "d8c9338d35c57f777a3036fe2be0240a0e663f5ec28fff52b23856dc71770ff1",
+      "accepted_native_patch_events": 4,
+      "native_turn_completed_events": 1,
+      "native_errors": [],
+      "rejected_native_patch_count": 0,
+      "python_command_attempts": [
+        {
+          "trace_line_1based": 14,
+          "command_sha256": "eebaa7e365d19eed7d7941a5409e611591dd1cb7b1e2f692a16d53c8355c3eb0",
+          "captured_exit_code": 0,
+          "after_last_accepted_native_edit": true,
+          "contains_assertion_text": false,
+          "output_signal": "[[1, 1, 2, 2, 2, 3]]",
+          "payload_parseable": true,
+          "assertion_AST_count": 0,
+          "classification": "print_only_or_no_assertions"
+        }
+      ],
+      "client_exit_code": 0,
+      "elapsed_ms": 127394,
+      "submitted_requests": 11
+    },
+    {
+      "arm": "adapted",
+      "case_id": "interval-union",
+      "harness": "qwen-code.v3",
+      "independent_replayed_exit_code": 0,
+      "matches_recorded_exit_code": true,
+      "signal": "checks passed",
+      "passed": true,
+      "final_source_changed": true,
+      "source_sha256": "e6d4010dc0a07c9faac699ff31db2727bf046f9623fe1f4d1635fb43599bdb21",
+      "raw_jsonl_sha256": "95065e1296ed66c3f8815a91f60f77550e6bdb5a42665c9bc98cd45d0f73bc23",
+      "raw_stderr_sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+      "raw_request_capture_sha256": "e6788ab63bc6f41a7619a7708644f6ee6628ca27ebcca319165eec40ae8e111d",
+      "actual_native_profile_sha256": "d8c9338d35c57f777a3036fe2be0240a0e663f5ec28fff52b23856dc71770ff1",
+      "accepted_native_patch_events": 1,
+      "native_turn_completed_events": 1,
+      "native_errors": [],
+      "rejected_native_patch_count": 0,
+      "python_command_attempts": [],
+      "client_exit_code": 0,
+      "elapsed_ms": 45336,
+      "submitted_requests": 3
+    },
+    {
+      "arm": "adapted",
+      "case_id": "atomic-stock",
+      "harness": "qwen-code.v3",
+      "independent_replayed_exit_code": 1,
+      "matches_recorded_exit_code": true,
+      "signal": "AssertionError",
+      "passed": false,
+      "final_source_changed": true,
+      "source_sha256": "74e52e4a4e4fe024a2690e32b2935b83fe17f92f10d9709aa9e9d7acda5f3a7b",
+      "raw_jsonl_sha256": "d7ad24c75abc111c0f6a7056f030d91a3ab81894890a05c180631d478e6ac805",
+      "raw_stderr_sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+      "raw_request_capture_sha256": "204a454e4b62bd36b5427383a272a71466247e8b69415b38c3a9f748dd880e6c",
+      "actual_native_profile_sha256": "d8c9338d35c57f777a3036fe2be0240a0e663f5ec28fff52b23856dc71770ff1",
+      "accepted_native_patch_events": 1,
+      "native_turn_completed_events": 0,
+      "native_errors": [
+        {
+          "type": "error",
+          "message": "stream disconnected before completion: stream closed before response.completed"
+        },
+        {
+          "type": "turn.failed",
+          "error": {
+            "message": "stream disconnected before completion: stream closed before response.completed"
+          }
+        }
+      ],
+      "rejected_native_patch_count": 0,
+      "python_command_attempts": [
+        {
+          "trace_line_1based": 8,
+          "command_sha256": "d7078f1736d736bd966ffb70b4d0a3cd5d53559dd1c71f51fe65ed2a4283dd2e",
+          "captured_exit_code": 1,
+          "after_last_accepted_native_edit": true,
+          "contains_assertion_text": true,
+          "classification": "failed_shell_quoting_no_python_assertions_executed",
+          "output_signal": "zsh:1: parse error near `)'"
+        },
+        {
+          "trace_line_1based": 10,
+          "command_sha256": "d7078f1736d736bd966ffb70b4d0a3cd5d53559dd1c71f51fe65ed2a4283dd2e",
+          "captured_exit_code": 1,
+          "after_last_accepted_native_edit": true,
+          "contains_assertion_text": true,
+          "classification": "failed_shell_quoting_no_python_assertions_executed",
+          "output_signal": "zsh:1: parse error near `)'"
+        }
+      ],
+      "client_exit_code": 1,
+      "elapsed_ms": 180009,
+      "submitted_requests": 5
+    },
+    {
+      "arm": "adapted",
+      "case_id": "stable-key-unique",
+      "harness": "qwen-code.v3",
+      "independent_replayed_exit_code": 0,
+      "matches_recorded_exit_code": true,
+      "signal": "checks passed",
+      "passed": true,
+      "final_source_changed": true,
+      "source_sha256": "ddfc059fa81787a46d3ea1fd2d92315ab16d8a3abbe7d0d4ba0ccdc55647766a",
+      "raw_jsonl_sha256": "ca437f6840a9b14caff80dc5ff88749b3021947cfed41d9b1a75da4d18fa8a5d",
+      "raw_stderr_sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+      "raw_request_capture_sha256": "24976f43d6b3a7bea5427b43028e1e40cdea506b0df5fc420426afe21049744e",
+      "actual_native_profile_sha256": "d8c9338d35c57f777a3036fe2be0240a0e663f5ec28fff52b23856dc71770ff1",
+      "accepted_native_patch_events": 1,
+      "native_turn_completed_events": 1,
+      "native_errors": [],
+      "rejected_native_patch_count": 0,
+      "python_command_attempts": [],
+      "client_exit_code": 0,
+      "elapsed_ms": 43485,
+      "submitted_requests": 3
+    },
+    {
+      "arm": "baseline",
+      "case_id": "interval-union",
+      "harness": "qwen-code.v1",
+      "independent_replayed_exit_code": 0,
+      "matches_recorded_exit_code": true,
+      "signal": "checks passed",
+      "passed": true,
+      "final_source_changed": true,
+      "source_sha256": "846240027b8cc7111089d3399293c4e2970c30cbd7f3c2c675a8f4ae56f008f1",
+      "raw_jsonl_sha256": "05b075ed1629db8a213e6129d60c46c78aeb77ba023d52efed8f7009435ddb80",
+      "raw_stderr_sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+      "raw_request_capture_sha256": "c53781cf1eed178584f3979003b0b0b6ca30c3ddf3133400e449c149777706f9",
+      "actual_native_profile_sha256": "d8c9338d35c57f777a3036fe2be0240a0e663f5ec28fff52b23856dc71770ff1",
+      "accepted_native_patch_events": 1,
+      "native_turn_completed_events": 1,
+      "native_errors": [],
+      "rejected_native_patch_count": 0,
+      "python_command_attempts": [],
+      "client_exit_code": 0,
+      "elapsed_ms": 63933,
+      "submitted_requests": 3
+    },
+    {
+      "arm": "baseline",
+      "case_id": "atomic-stock",
+      "harness": "qwen-code.v1",
+      "independent_replayed_exit_code": 1,
+      "matches_recorded_exit_code": true,
+      "signal": "AssertionError",
+      "passed": false,
+      "final_source_changed": true,
+      "source_sha256": "58c6c37df766227823a8e42b2dc0934dac1cbb62965b4380ec12261a8174d40f",
+      "raw_jsonl_sha256": "8c007ec3006b6c0ab183db52392c8fffdefe4cd2422d9342b52531a1f461ac77",
+      "raw_stderr_sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+      "raw_request_capture_sha256": "8f20f0a6f1ef8dbe92204370b180a9e9b19c2c7379ab733de8b15c75b6c253db",
+      "actual_native_profile_sha256": "d8c9338d35c57f777a3036fe2be0240a0e663f5ec28fff52b23856dc71770ff1",
+      "accepted_native_patch_events": 1,
+      "native_turn_completed_events": 1,
+      "native_errors": [],
+      "rejected_native_patch_count": 0,
+      "python_command_attempts": [],
+      "client_exit_code": 0,
+      "elapsed_ms": 30774,
+      "submitted_requests": 3
+    },
+    {
+      "arm": "baseline",
+      "case_id": "stable-key-unique",
+      "harness": "qwen-code.v1",
+      "independent_replayed_exit_code": 0,
+      "matches_recorded_exit_code": true,
+      "signal": "checks passed",
+      "passed": true,
+      "final_source_changed": true,
+      "source_sha256": "ddfc059fa81787a46d3ea1fd2d92315ab16d8a3abbe7d0d4ba0ccdc55647766a",
+      "raw_jsonl_sha256": "ef8754b72db1564727a91055a40712d8bfa62b43f80994883dc40e0986c6a87a",
+      "raw_stderr_sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+      "raw_request_capture_sha256": "af03742cb99fc86290d659067bc269c4c6523e93352c4b30a6f34edcffe29c75",
+      "actual_native_profile_sha256": "d8c9338d35c57f777a3036fe2be0240a0e663f5ec28fff52b23856dc71770ff1",
+      "accepted_native_patch_events": 1,
+      "native_turn_completed_events": 1,
+      "native_errors": [],
+      "rejected_native_patch_count": 0,
+      "python_command_attempts": [],
+      "client_exit_code": 0,
+      "elapsed_ms": 33956,
+      "submitted_requests": 3
+    }
+  ],
+  "failures": [
+    {
+      "arm": "baseline",
+      "case_id": "atomic-stock",
+      "kind": "batch_rollback_violation",
+      "evidence": "Raises ValueError on later overdraw after earlier stock deduction; unchanged oracle and minimal rollback probe fail."
+    },
+    {
+      "arm": "adapted",
+      "case_id": "adjacent-groups",
+      "kind": "accepted_edits_reverted_to_original_and_print_only_check",
+      "evidence": "Four native patches completed, final saved implementation equals frozen original. Python print emitted one unsplit run; no expected-result assertion. Turn completed normally at127.394s using11requests."
+    },
+    {
+      "arm": "adapted",
+      "case_id": "atomic-stock",
+      "kind": "batch_rollback_violation_and_failed_shell_tests_then_deadline",
+      "evidence": "Saved implementation interleaves validation/deduction. Two identical quoted Python test attempts failed in zsh parsing before assertions could execute. Stream ended near180s, client1, no turn.completed. Independent rollback oracle and minimal probe fail."
+    }
+  ],
+  "self_verification": {
+    "successful_assertion_commands": 0,
+    "stock_attempts_contain_assertion_text_but_never_executed_python": true,
+    "grouping_check_was_print_only": true,
+    "credit_for_verification_protocol_compliance": false,
+    "captured_shell_replayed": false,
+    "authored_check_sensitivity_not_claimed": "No actual successful assertion command to replay; broken shell quoting was not repaired and credited as model verification."
+  },
+  "adaptive_patch_recovery": {
+    "observed_native_patch_rejections_in_v3": 0,
+    "activation_evidence": false,
+    "inferred_condition_activation": false,
+    "scope": "Frozen implementation requires correlated native range-header patch rejection. None appears in adapted stderr/native events. Full translated continuation request bodies were not retained, so this reports absence of observed triggering conditions, not a direct prompt-byte capture.",
+    "causal_claim": "This run does not exercise the adaptive recovery branch; successful uniqueness repair cannot establish its benefit."
+  },
+  "independent_minimal_probes": [
+    {
+      "arm": "baseline",
+      "case_id": "atomic-stock",
+      "checker_path": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v2-diagnosis-20261020/rollback.py",
+      "checker_sha256": "f93539913d42e67a8fb3e758a15155af075b9299914ccd5dddd4760b4677d66b",
+      "result": {
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"<string>\", line 6, in <module>\n    runpy.run_path(sys.argv[0],run_name=\"__main__\")\n    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<frozen runpy>\", line 287, in run_path\n  File \"<frozen runpy>\", line 98, in _run_module_code\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/Users/mehrdadz/Downloads/memoWiki/koto-harness-v2-diagnosis-20261020/rollback.py\", line 7, in <module>\n    assert stock == {'a':1}, 'failed batch changed original stock'\n           ^^^^^^^^^^^^^^^^\nAssertionError: failed batch changed original stock\n"
+      }
+    },
+    {
+      "arm": "adapted",
+      "case_id": "atomic-stock",
+      "checker_path": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v2-diagnosis-20261020/rollback.py",
+      "checker_sha256": "f93539913d42e67a8fb3e758a15155af075b9299914ccd5dddd4760b4677d66b",
+      "result": {
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"<string>\", line 6, in <module>\n    runpy.run_path(sys.argv[0],run_name=\"__main__\")\n    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<frozen runpy>\", line 287, in run_path\n  File \"<frozen runpy>\", line 98, in _run_module_code\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/Users/mehrdadz/Downloads/memoWiki/koto-harness-v2-diagnosis-20261020/rollback.py\", line 7, in <module>\n    assert stock == {'a':1}, 'failed batch changed original stock'\n           ^^^^^^^^^^^^^^^^\nAssertionError: failed batch changed original stock\n"
+      }
+    },
+    {
+      "arm": "baseline",
+      "case_id": "stable-key-unique",
+      "checker_path": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v2-diagnosis-20261020/list-key.py",
+      "checker_sha256": "632ace075f15e0aec19f6d28ba526f5d92eb320262a2c253c5af13a1c63b164e",
+      "result": {
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": ""
+      }
+    },
+    {
+      "arm": "adapted",
+      "case_id": "stable-key-unique",
+      "checker_path": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v2-diagnosis-20261020/list-key.py",
+      "checker_sha256": "632ace075f15e0aec19f6d28ba526f5d92eb320262a2c253c5af13a1c63b164e",
+      "result": {
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": ""
+      }
+    }
+  ],
+  "minimal_probe_scope": "Rollback probe fails both stock sources; single-record unhashable-list probe passes both uniqueness sources but does not alone establish deduplication. Full frozen oracle passes both uniqueness sources in this V3 study.",
+  "publication_integrity": {
+    "manifest_sha256": "f8f592b68ea43ee98106e55be01c93429ffd9e563fa5aa8368152c200f2037b1",
+    "all_manifested_bytes_match_raw": true,
+    "manifest_file_count": 44,
+    "all_raw_request_capture_hashes_match": true,
+    "verified_files": [
+      {
+        "path": "checks/adjacent-groups.py",
+        "sha256": "b7068821a1667b3d787f4e2ba16f9af1132752e0c14db574811ae5003aad31a4"
+      },
+      {
+        "path": "checks/atomic-stock.py",
+        "sha256": "ba6c4c2725d0f7da513cbf153dbe5006b6fe75ec08054cbe5b3d8dda072d6ca3"
+      },
+      {
+        "path": "checks/interval-union.py",
+        "sha256": "3c6fe54e7c7ba8fbc2562a689f484071f2945aeb00a2a952c49e6091def9f7b9"
+      },
+      {
+        "path": "checks/literal-first.py",
+        "sha256": "4958f109e9cb650ef86ed1bf44129ef8660ab047eed0791bebc4047904e8e727"
+      },
+      {
+        "path": "checks/signed-ceiling.py",
+        "sha256": "cc3be5ed471dfb78cccb32ba7b902ea1c29394ed0fcf04c0dd5c99331aef6922"
+      },
+      {
+        "path": "checks/stable-key-unique.py",
+        "sha256": "ee1f06be069c966c982c93b9a8ec3d4c5dc447e9f9ae70ece25a35f38e57ae19"
+      },
+      {
+        "path": "comparison.json",
+        "sha256": "8c2337ffc1bebc92b7c422379f23b615086cd5144ffceccbd7e09d96f4f90d27"
+      },
+      {
+        "path": "frozen-plan.json",
+        "sha256": "e6561d517c98e36b535f03984e82d2df829c40799f54705fbd1d4b2e8155b603"
+      },
+      {
+        "path": "runs/adapted-adjacent-groups-solution.py",
+        "sha256": "0d004e68c2e804b697729a9d26a2c9ee2e7e42b12710b950ee9429ca11a3ae5c"
+      },
+      {
+        "path": "runs/adapted-adjacent-groups.jsonl",
+        "sha256": "79d29d924d094030cc41ce79def7b2706d989cc1bcd7c7b58f8015a6b8d6c931"
+      },
+      {
+        "path": "runs/adapted-adjacent-groups.stderr",
+        "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+      },
+      {
+        "path": "runs/adapted-atomic-stock-solution.py",
+        "sha256": "74e52e4a4e4fe024a2690e32b2935b83fe17f92f10d9709aa9e9d7acda5f3a7b"
+      },
+      {
+        "path": "runs/adapted-atomic-stock.jsonl",
+        "sha256": "d7ad24c75abc111c0f6a7056f030d91a3ab81894890a05c180631d478e6ac805"
+      },
+      {
+        "path": "runs/adapted-atomic-stock.stderr",
+        "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+      },
+      {
+        "path": "runs/adapted-interval-union-solution.py",
+        "sha256": "e6d4010dc0a07c9faac699ff31db2727bf046f9623fe1f4d1635fb43599bdb21"
+      },
+      {
+        "path": "runs/adapted-interval-union.jsonl",
+        "sha256": "95065e1296ed66c3f8815a91f60f77550e6bdb5a42665c9bc98cd45d0f73bc23"
+      },
+      {
+        "path": "runs/adapted-interval-union.stderr",
+        "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+      },
+      {
+        "path": "runs/adapted-literal-first-solution.py",
+        "sha256": "9796fe7167bb4cdff48169f3e1465faedaa5a235988ecffa1c15969e7e863f50"
+      },
+      {
+        "path": "runs/adapted-literal-first.jsonl",
+        "sha256": "0a57ca845115bf62e4cb0ed5c1bcf6ac231ff704d751381cb9f6eb6b318cb919"
+      },
+      {
+        "path": "runs/adapted-literal-first.stderr",
+        "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+      },
+      {
+        "path": "runs/adapted-signed-ceiling-solution.py",
+        "sha256": "79258439b234407f0d9a2db2162ee99cbe9d1ad57c8aa656bf34f5a3e18b20cc"
+      },
+      {
+        "path": "runs/adapted-signed-ceiling.jsonl",
+        "sha256": "11aae6e489af3757a8d8c5adfccd7ca7e91d242882842923b95b1507cabbb542"
+      },
+      {
+        "path": "runs/adapted-signed-ceiling.stderr",
+        "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+      },
+      {
+        "path": "runs/adapted-stable-key-unique-solution.py",
+        "sha256": "ddfc059fa81787a46d3ea1fd2d92315ab16d8a3abbe7d0d4ba0ccdc55647766a"
+      },
+      {
+        "path": "runs/adapted-stable-key-unique.jsonl",
+        "sha256": "ca437f6840a9b14caff80dc5ff88749b3021947cfed41d9b1a75da4d18fa8a5d"
+      },
+      {
+        "path": "runs/adapted-stable-key-unique.stderr",
+        "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+      },
+      {
+        "path": "runs/baseline-adjacent-groups-solution.py",
+        "sha256": "f6df84f0d95cc5101704f1b053f811c03a5b361cf209f3191e8182eea2f65f09"
+      },
+      {
+        "path": "runs/baseline-adjacent-groups.jsonl",
+        "sha256": "8d1f350ff23233a94a1f2bcf995282e577a6e2f6c497b3ac81449e7d32211b70"
+      },
+      {
+        "path": "runs/baseline-adjacent-groups.stderr",
+        "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+      },
+      {
+        "path": "runs/baseline-atomic-stock-solution.py",
+        "sha256": "58c6c37df766227823a8e42b2dc0934dac1cbb62965b4380ec12261a8174d40f"
+      },
+      {
+        "path": "runs/baseline-atomic-stock.jsonl",
+        "sha256": "8c007ec3006b6c0ab183db52392c8fffdefe4cd2422d9342b52531a1f461ac77"
+      },
+      {
+        "path": "runs/baseline-atomic-stock.stderr",
+        "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+      },
+      {
+        "path": "runs/baseline-interval-union-solution.py",
+        "sha256": "846240027b8cc7111089d3399293c4e2970c30cbd7f3c2c675a8f4ae56f008f1"
+      },
+      {
+        "path": "runs/baseline-interval-union.jsonl",
+        "sha256": "05b075ed1629db8a213e6129d60c46c78aeb77ba023d52efed8f7009435ddb80"
+      },
+      {
+        "path": "runs/baseline-interval-union.stderr",
+        "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+      },
+      {
+        "path": "runs/baseline-literal-first-solution.py",
+        "sha256": "6eb84bc5b7ca4debd65aa4bcc6680863d8d98d0078c94f50bb7a90d0b2f69bb7"
+      },
+      {
+        "path": "runs/baseline-literal-first.jsonl",
+        "sha256": "b0b730c5ff11682e7c3e85018cc7f51514aa285b497f9211ed9cb8dda5982aa2"
+      },
+      {
+        "path": "runs/baseline-literal-first.stderr",
+        "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+      },
+      {
+        "path": "runs/baseline-signed-ceiling-solution.py",
+        "sha256": "79258439b234407f0d9a2db2162ee99cbe9d1ad57c8aa656bf34f5a3e18b20cc"
+      },
+      {
+        "path": "runs/baseline-signed-ceiling.jsonl",
+        "sha256": "a2aed726ec5b800c8fc8a833755442eea7ee14eda5dd96f4faf2c2e49e591df0"
+      },
+      {
+        "path": "runs/baseline-signed-ceiling.stderr",
+        "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+      },
+      {
+        "path": "runs/baseline-stable-key-unique-solution.py",
+        "sha256": "ddfc059fa81787a46d3ea1fd2d92315ab16d8a3abbe7d0d4ba0ccdc55647766a"
+      },
+      {
+        "path": "runs/baseline-stable-key-unique.jsonl",
+        "sha256": "ef8754b72db1564727a91055a40712d8bfa62b43f80994883dc40e0986c6a87a"
+      },
+      {
+        "path": "runs/baseline-stable-key-unique.stderr",
+        "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+      }
+    ],
+    "scope": "Independent audit added after publication manifest; it is not included in that earlier manifest."
+  },
+  "cleanup": {
+    "recorded_lifetimes": [
+      {
+        "settings_restored": true,
+        "owned_listeners_closed": true
+      },
+      {
+        "settings_restored": true,
+        "owned_listeners_closed": true
+      },
+      {
+        "settings_restored": true,
+        "owned_listeners_closed": true
+      }
+    ],
+    "actual_disposable_settings_byte_match_original": true,
+    "actual_disposable_settings_sha256": "6bfff675e953a1ba9a59bccf3e760fec567db22eb13daf0b1f217f00d4cc65aa",
+    "normal_settings_unchanged_reported": true,
+    "scope": "Disposable settings independently read back; lifetime listener closure and normal-settings pre/post equality are runner receipts. No connections or settings operations were initiated by audit."
+  },
+  "limitations": [
+    "This replays saved outputs, not new model generations.",
+    "Known development tasks, prior tuning/pilots, one stochastic sample per task/arm and fixed blocks limit generalization.",
+    "V1 passed5/6 and V3 passed4/6. No coding-quality improvement was established.",
+    "Malformed quoted test payloads were not rewritten into synthetic passing model-authored tests.",
+    "No automatic coding qualification was installed."
+  ]
+}

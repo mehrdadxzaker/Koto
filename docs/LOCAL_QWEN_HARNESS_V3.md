@@ -50,3 +50,9 @@ workspace. The tasks were already observed during development; successful edits
 do not prove general quality or compliance with the requested self-verification
 protocol. Actual model-authored checks and native completion must be reported
 separately. These results cannot satisfy existing 90-second coding qualification.
+
+The [completed comparison](local-harness/v3-comparison-20261020.md) scored v1
+5/6 and v3 4/6. V3 passed list-key equality but still failed rollback and grouping.
+No episode triggered its conditional patch recovery, so its real-model benefit
+remains unmeasured. The requested reliability improvement was not achieved; keep
+the profile experimental and automatic coding disabled.

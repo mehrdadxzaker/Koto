@@ -4,7 +4,7 @@
 transport. It is explicit and default off. Select exactly one Qwen harness
 capability; declaring v1 and v2 together is rejected.
 
-V2 addresses observed missing verification, partial mutation on failure, and
+V2 targets observed missing verification, partial mutation on failure, and
 hashability assumptions. It adds a subordinate verification protocol to the
 existing instructions and one developer checkpoint after the native input.
 The checkpoint asks the model to execute compact assertions against its saved
@@ -82,3 +82,9 @@ widen ordinary coding admission. Their outcomes cannot establish the existing
 Each full comparison freezes one episode per case and arm. Development pilots,
 prompt changes before the freeze, and all failures must be disclosed separately.
 These known development tasks cannot establish general qualification.
+
+The [completed v1/v2 comparison](local-harness/v2-comparison-20261020.md) tied at
+5/6: v2 repaired rollback but failed to save the list-key edit after repeated
+native patch rejections. The [subsequent v3 study](local-harness/v3-comparison-20261020.md)
+also failed to demonstrate a coding benefit. The protocol is advisory; neither
+study established reliable model-authored verification.

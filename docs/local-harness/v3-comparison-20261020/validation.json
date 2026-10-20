@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "source_commit": "5627b24d3740d18c8118c4c296d9c63d0f069b2c",
+  "runtime": "2.0.0a15",
+  "wheel_sha256": "5d70e0089373a41cd1dbcf290eba1d063ef68a586cb9baabdf7ea2f32d78bc35",
+  "packaged_files_equal_source_and_install": 171,
+  "fast_passed": 73,
+  "affected_installed_workflows_passed": 10,
+  "full_suite_pending": false,
+  "model_study_pending": false,
+  "full_installed_wheel_suite": {
+    "fast": 73,
+    "fast_seconds": 0.014,
+    "workflows": 595,
+    "workflow_seconds": 558.296,
+    "total": 668,
+    "passed": true,
+    "outside_source_checkout": true,
+    "log": "/private/tmp/koto-harness-v3-final-wheel-tests-20261020.log",
+    "log_sha256": "bcd273d5756bd1f3d023d6b2d4f839ef6bb5d97fd5771a97b21c9550f94e5ad2"
+  },
+  "coding_comparison": {
+    "v1": {
+      "passed": 5,
+      "total": 6
+    },
+    "v3": {
+      "passed": 4,
+      "total": 6
+    },
+    "goal_achieved": false,
+    "automatic_admission_effect": "none"
+  },
+  "prior_validation_attempts": "../v2-comparison-20261020/validation.json",
+  "review": {
+    "implementation": "no actionable issues",
+    "report": "no actionable contradictions",
+    "scope": "independent read-only reviews"
+  },
+  "sdist": {
+    "filename": "koto_router-2.0.0a15.tar.gz",
+    "sha256": "be3a970eb40dbdb797dee14301992cd4415b4e8f2024bb27cafc48e5903ecb01",
+    "packaged_files_equal_wheel": 171,
+    "new_tests_and_native_fixture_included": true
+  }
+}

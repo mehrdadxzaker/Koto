@@ -114,3 +114,11 @@ after the [integration fixes](local-harness/integration-fixes.md). The [original
 pre-fix study](local-harness/results.md) found 0/6 in both arms. Keep the optional
 guidance experimental. The comparison runner uses the native macOS sandbox and
 is currently a macOS maintainer tool.
+
+The later [v2 verification protocol](LOCAL_QWEN_HARNESS_V2.md) and
+[v3 native patch recovery](LOCAL_QWEN_HARNESS_V3.md) remain separately selected
+experiments. With matched 180-second development limits, [v1/v2 tied at 5/6](local-harness/v2-comparison-20261020.md)
+and [v1 scored 5/6 versus v3's 4/6](local-harness/v3-comparison-20261020.md).
+The requested reliable rollback/list-key improvement was not achieved. These
+known-task studies do not establish a benefit or grant automatic coding, and
+their results must not be pooled with the earlier 90-second comparisons.

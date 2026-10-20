@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "kind": "native_patch_recovery_development_diagnosis",
+  "activation_effect": "none",
+  "automatic_coding_permission_changed": false,
+  "native_replay": {
+    "client_version": "codex-cli 0.160.0",
+    "requests": 3,
+    "model_inference_submissions": 0,
+    "passed": true,
+    "client_exit_code": 0,
+    "normal_settings_unchanged": true,
+    "replay_error_count": 0
+  },
+  "transport_regression": {
+    "native_captured_failure_triggers_recovery": true,
+    "native_captured_success_clears_recovery": true,
+    "unchanged_v1_v2_transforms": 24,
+    "no_inference": true
+  },
+  "artifact_sha256": {
+    "replay_patch_feedback.py": "26fcc5f83057461c128e66022f121d55f2e35952a4ff9fa29ecc85d56cbd988c",
+    "v3-transport-regression.json": "623820b9eab43cebeb4c8d9f7f9827752bfcef9c3f4cdbf54339b7a831f4078e",
+    "native-feedback-1/native.jsonl": "d70861af7c2f88a7d00d912efed85f3cf5c628d2f831e2f3d1555c24bdea0fc6",
+    "native-feedback-1/native.stderr": "04b2d722ba5b1d6811bcd612ca64a674b39a1a8c6ff5972d7892c38e37f6a34e",
+    "native-feedback-1/requests.json": "b7b017c44cdcd9329ea32529a4136f39f21b39c9cdd01c908acfefb3dc38b01c",
+    "native-feedback-1/feedback.json": "73a5abc357d54bcc438fc2f0e82dda299f6fcbfc8f0b22f69e5971e36b2a7015",
+    "native-feedback-1/errors.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "native-feedback-1/result.json": "b8421b6476aecf05bc2a255e696d0b0381906aed99ec65261ee2fc4ae892003b"
+  },
+  "limits": [
+    "Synthetic native replay and saved-request adaptation, not evidence of model recovery.",
+    "Request bodies and tool payloads are retained locally but are not copied into this receipt.",
+    "Full v3 task outcomes and model-authored-check audit remain separate."
+  ]
+}
