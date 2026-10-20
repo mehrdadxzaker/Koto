@@ -19,8 +19,10 @@ V4_CAPABILITY = 'qwen_code_v4'
 V4_PROFILE = 'qwen-code.v4'
 V5_CAPABILITY = 'qwen_code_v5'
 V5_PROFILE = 'qwen-code.v5'
+V6_CAPABILITY = 'qwen_code_v6'
+V6_PROFILE = 'qwen-code.v6'
 PROFILES = {CAPABILITY: PROFILE, V2_CAPABILITY: V2_PROFILE, V3_CAPABILITY: V3_PROFILE,
-            V4_CAPABILITY: V4_PROFILE, V5_CAPABILITY: V5_PROFILE}
+            V4_CAPABILITY: V4_PROFILE, V5_CAPABILITY: V5_PROFILE, V6_CAPABILITY: V6_PROFILE}
 MODEL = 'Qwen3-14B-Q4_K_M'
 GUIDANCE = '''Local coding guidance (subordinate to all existing host and repository instructions):
 Read the relevant source and nearby tests before editing. Follow existing project
@@ -108,6 +110,12 @@ any failure before reporting success. If a later host tool already saved and
 verified the edit, report those actual results. If no allowed approach exists,
 report it.'''
 
+V6_REPEATED_PATCH = '''The identical malformed patch has failed more than once.
+Use a correctly formed native patch or another declared host editing tool within
+host permissions. Do not repeat the rejected patch or relax the sandbox. Check
+the saved function with the declared Python check helper when available; follow
+the actual result before reporting completion.'''
+
 
 def _patch_recovery(items, declarations, *, repeated_advice=V3_REPEATED_PATCH):
     """Derive advice from correlated native feedback; never repair tool arguments."""
@@ -153,7 +161,7 @@ def adapt_qwen_request(value, declarations, *, profile=PROFILE):
     instructions = value.get('instructions', '')
     if not isinstance(instructions, str):
         raise ValueError('invalid_harness_instructions')
-    guidance = V4_GUIDANCE if profile in {V4_PROFILE, V5_PROFILE} else GUIDANCE if profile == PROFILE else V2_GUIDANCE
+    guidance = V4_GUIDANCE if profile in {V4_PROFILE, V5_PROFILE, V6_PROFILE} else GUIDANCE if profile == PROFILE else V2_GUIDANCE
     value['instructions'] = instructions + '\n\n' + guidance
     for item in value.get('input', []):
         if not isinstance(item, dict) or item.get('type') != 'function_call':
@@ -163,16 +171,18 @@ def adapt_qwen_request(value, declarations, *, profile=PROFILE):
         ordered = {key: arguments[key] for key in properties if key in arguments}
         ordered.update(arguments)
         item['arguments'] = json.dumps(ordered, separators=(',', ':'), ensure_ascii=False, allow_nan=False)
-    if profile in {V2_PROFILE, V3_PROFILE, V4_PROFILE, V5_PROFILE} and isinstance(value.get('input'), str):
+    if profile in {V2_PROFILE, V3_PROFILE, V4_PROFILE, V5_PROFILE, V6_PROFILE} and isinstance(value.get('input'), str):
         value['input'] = [{'type': 'message', 'role': 'user', 'content': [
             {'type': 'input_text', 'text': value['input']}]}]
-    if profile in {V2_PROFILE, V3_PROFILE, V4_PROFILE, V5_PROFILE} and isinstance(value.get('input'), list):
+    if profile in {V2_PROFILE, V3_PROFILE, V4_PROFILE, V5_PROFILE, V6_PROFILE} and isinstance(value.get('input'), list):
         # A model-facing reminder, never a fabricated user message, tool result,
         # or extra agent turn. The native transcript remains an exact prefix.
-        checkpoint = (progress_checkpoint(value['input'], declarations, single_line=profile == V5_PROFILE)
-                      if profile in {V4_PROFILE, V5_PROFILE} else V2_CHECKPOINT)
-        if profile in {V4_PROFILE, V5_PROFILE}:
-            checkpoint += _patch_recovery(value['input'], declarations, repeated_advice=V4_REPEATED_PATCH)
+        checkpoint = (progress_checkpoint(value['input'], declarations, single_line=profile == V5_PROFILE,
+                                          typed_checks=profile == V6_PROFILE)
+                      if profile in {V4_PROFILE, V5_PROFILE, V6_PROFILE} else V2_CHECKPOINT)
+        if profile in {V4_PROFILE, V5_PROFILE, V6_PROFILE}:
+            checkpoint += _patch_recovery(value['input'], declarations,
+                repeated_advice=V6_REPEATED_PATCH if profile == V6_PROFILE else V4_REPEATED_PATCH)
         elif profile == V3_PROFILE:
             checkpoint += _patch_recovery(value['input'], declarations)
         value['input'].append({'type': 'message', 'role': 'developer', 'content': [

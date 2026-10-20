@@ -119,7 +119,7 @@ def progress_snapshot(items, declarations):
     return state
 
 
-def progress_checkpoint(items, declarations, *, single_line=False):
+def progress_checkpoint(items, declarations, *, single_line=False, typed_checks=False):
     """Static advice plus bounded numbers, never copied program output or authority."""
     state = progress_snapshot(items, declarations)
     last = 'unknown' if state['last_command_exit'] is None else str(state['last_command_exit'])
@@ -136,6 +136,10 @@ def progress_checkpoint(items, declarations, *, single_line=False):
                     'Fix the command format; do not repeat the unchanged failed command.\n')
     elif state['python_syntax_failure']:
         message += (('The latest nonzero command reports a Python SyntaxError; intended assertions did not run. '
+                    'Inspect the saved module and repair its syntax when needed. Use the declared Python check helper '
+                    'for cases against the saved function when available. Do not redefine the function in an inline check '
+                    'or repeat the unchanged failed command.\n') if typed_checks else
+                    ('The latest nonzero command reports a Python SyntaxError; intended assertions did not run. '
                     'Inspect whether the error is in the saved module or the inline check and fix that source. '
                     'For inline exception checks, use single-line callable unittest assertions below instead of compound statements. '
                     'Do not repeat the unchanged failed command.\n') if single_line else
@@ -154,6 +158,31 @@ def progress_checkpoint(items, declarations, *, single_line=False):
         message += 'The saved native patch has no completed command after it. Run assertions before another edit or final answer.\n'
     elif not state['native_patches_saved']:
         message += 'Read the source, then derive and execute assertions before editing; cover the complete original specification.\n'
+    if typed_checks:
+        message += '''When the declared Python check helper is available, give it structured cases for
+the actual saved module_path and function. The helper compiles your cases to an
+ordinary host command; the host retains execution, sandboxing and approval.
+Provide args, optional kwargs, and either expected or raises for every case.
+Use unchanged_args for required state preservation and same_as_arg for required
+return identity. For an atomic batch of ordered operations whose concatenation
+must preserve sequential rejection, also declare atomic_batch with
+the batch argument index and state argument indices in unchanged_args. Supply
+matching initial state with a state-changing success and a rejection; the helper
+tests bounded combinations and repetitions of your supplied batches for late
+failure. A missing late-failure case is incomplete coverage; improve the cases.
+When repeated operations can exceed a cumulative limit, include a valid batch
+large enough that repeating it twice or three times must reject. Also supply an
+explicit valid-then-invalid repeated-item batch and require unchanged state.
+For ordered outputs, include adjacent boundaries, empty input and values recurring
+later. For equality over unhashable values, include equal lists and dictionaries
+when supported. Derive all examples from the original specification.
+Do not redefine the implementation inside a check or weaken requirements after
+failure. Read the actual result, repair the saved implementation, and run the same
+checks after the last edit. A saved patch or a normal printout is not verification.
+If the helper is absent, use the available native tools within host permissions.
+Once all original requirements are covered, finish with the actual results or
+the concrete blocker. Do not repeat successful checks or offer to test later.'''
+        return message
     if single_line:
         message += '''Use python3 for Python. Prefer short single-line commands with semicolon-separated
 simple statements. Avoid multiline scripts, backslash-n encoding and compound
