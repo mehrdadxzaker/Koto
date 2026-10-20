@@ -101,6 +101,10 @@ def independent_check(checks, solution, *, python, environment, timeout=4):
 class Comparison:
     def __init__(self, args):
         self.args = args
+        self.harnesses = {'baseline': None if args.baseline_harness == 'none' else 'qwen-code.' + args.baseline_harness,
+                          'adapted': 'qwen-code.' + args.harness}
+        if any(profile is not None and profile not in PROFILES.values() for profile in self.harnesses.values()):
+            raise ValueError('unsupported harness for the installed runtime')
         self.root = args.output.resolve()
         self.root.mkdir(mode=0o700, parents=False, exist_ok=False)
         self.project = self.root / 'project'
@@ -130,8 +134,6 @@ class Comparison:
         self.profile['coding_evidence'] = None
         self.profile['capabilities'] = [cap for cap in self.profile['capabilities'] if cap not in PROFILES]
         self.profile['task_types'] = ['code_change']
-        self.harnesses = {'baseline': None if args.baseline_harness == 'none' else 'qwen-code.' + args.baseline_harness,
-                          'adapted': 'qwen-code.' + args.harness}
         self.episode_seconds = getattr(args, 'episode_seconds', 90)
         self.probe_version = 5 if self.episode_seconds == 180 else 4
         selected = set(args.case or [])
@@ -423,8 +425,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ('output', 'profile', 'client', 'runtime-archive', 'llama', 'model-file'):
         parser.add_argument('--' + name, type=Path, required=True)
-    parser.add_argument('--harness', choices=('v1', 'v2'), default='v1')
-    parser.add_argument('--baseline-harness', choices=('none', 'v1', 'v2'), default='none')
+    parser.add_argument('--harness', choices=('v1', 'v2', 'v3'), default='v1')
+    parser.add_argument('--baseline-harness', choices=('none', 'v1', 'v2', 'v3'), default='none')
     parser.add_argument('--case', action='append', help='Limit a diagnostic run; all six cases remain frozen')
     parser.add_argument('--arm', choices=('both', 'baseline', 'adapted'), default='both')
     parser.add_argument('--episode-seconds', type=int, choices=(90, 180), default=90,

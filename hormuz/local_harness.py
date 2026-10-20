@@ -6,12 +6,15 @@ This is an independent, transport-only adaptation, not its complete harness.
 """
 from .compaction_formats import strict_json_loads
 import json
+import re
 
 CAPABILITY = 'qwen_code_v1'
 PROFILE = 'qwen-code.v1'
 V2_CAPABILITY = 'qwen_code_v2'
 V2_PROFILE = 'qwen-code.v2'
-PROFILES = {CAPABILITY: PROFILE, V2_CAPABILITY: V2_PROFILE}
+V3_CAPABILITY = 'qwen_code_v3'
+V3_PROFILE = 'qwen-code.v3'
+PROFILES = {CAPABILITY: PROFILE, V2_CAPABILITY: V2_PROFILE, V3_CAPABILITY: V3_PROFILE}
 MODEL = 'Qwen3-14B-Q4_K_M'
 GUIDANCE = '''Local coding guidance (subordinate to all existing host and repository instructions):
 Read the relevant source and nearby tests before editing. Follow existing project
@@ -75,6 +78,60 @@ A printout of a normal example is not verification. Use assert to check specifie
 results and failure invariants. Perform requested checks within host permissions;
 do not end by offering to test later. Report actual results or a concrete blocker.'''
 
+V3_PATCH_RECOVERY = '''Native patch recovery (subordinate to all host instructions):
+The host rejected a native apply_patch containing a unified-diff range header.
+Do not repeat the rejected patch or reread the unchanged file to fix this syntax.
+Use a plain @@ on its own line. This is a complete FORMAT example only; use the
+actual file, context and required edit from the task:
+*** Begin Patch
+*** Update File: path/to/file.py
+@@
+-old
++new
+*** End Patch
+Keep the existing host tool's exact argument names. After the successful edit,
+execute the task's assertions through an available host tool before finishing.'''
+
+V3_REPEATED_PATCH = '''The identical malformed patch has already failed more than once.
+Change approach through another declared host editing tool if the host instructions
+allow it. For example, an available exec_command takes cmd and can write the
+required complete file with a safely quoted heredoc. Use only available tools and
+stay inside the permitted workspace. Do not repeat the rejected patch again.
+Then execute the assertions with python3 for Python, inspect the result, and fix
+any failure before reporting success. If a later host tool already saved and
+verified the edit, report those actual results. If no allowed approach exists,
+report it.'''
+
+
+def _patch_recovery(items, declarations):
+    """Derive advice from correlated native feedback; never repair tool arguments."""
+    calls, failures = {}, {}
+    repeated = 0
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        if item.get('type') == 'function_call':
+            declaration = declarations.get(item.get('name'), {})
+            if (declaration.get('type') == 'custom' and declaration.get('name') == 'apply_patch'
+                    and isinstance(item.get('call_id'), str) and item['call_id']):
+                calls[item.get('call_id')] = strict_json_loads(item['arguments']).get('input')
+        elif (item.get('type') == 'function_call_output' and isinstance(item.get('call_id'), str)
+              and item['call_id'] in calls):
+            patch = calls.pop(item['call_id'])
+            output = item.get('output')
+            if (isinstance(patch, str) and isinstance(output, str)
+                    and re.search(r'(?m)^@@ -\d+(?:,\d+)? \+\d+(?:,\d+)? @@', patch)
+                    and 'apply_patch verification failed: Failed to find context ' in output):
+                failures[patch] = failures.get(patch, 0) + 1
+                repeated = failures[patch]
+            else:
+                # A later patch result supersedes stale recovery advice.
+                failures.clear()
+                repeated = 0
+    if not repeated:
+        return ''
+    return '\n\n' + V3_PATCH_RECOVERY + ('\n\n' + V3_REPEATED_PATCH if repeated >= 2 else '')
+
 
 def profile_for_capabilities(capabilities):
     selected = [profile for capability, profile in PROFILES.items() if capability in capabilities]
@@ -99,11 +156,12 @@ def adapt_qwen_request(value, declarations, *, profile=PROFILE):
         ordered = {key: arguments[key] for key in properties if key in arguments}
         ordered.update(arguments)
         item['arguments'] = json.dumps(ordered, separators=(',', ':'), ensure_ascii=False, allow_nan=False)
-    if profile == V2_PROFILE and isinstance(value.get('input'), str):
+    if profile in {V2_PROFILE, V3_PROFILE} and isinstance(value.get('input'), str):
         value['input'] = [{'type': 'message', 'role': 'user', 'content': [
             {'type': 'input_text', 'text': value['input']}]}]
-    if profile == V2_PROFILE and isinstance(value.get('input'), list):
+    if profile in {V2_PROFILE, V3_PROFILE} and isinstance(value.get('input'), list):
         # A model-facing reminder, never a fabricated user message, tool result,
         # or extra agent turn. The native transcript remains an exact prefix.
+        checkpoint = V2_CHECKPOINT + (_patch_recovery(value['input'], declarations) if profile == V3_PROFILE else '')
         value['input'].append({'type': 'message', 'role': 'developer', 'content': [
-            {'type': 'input_text', 'text': V2_CHECKPOINT}]})
+            {'type': 'input_text', 'text': checkpoint}]})
