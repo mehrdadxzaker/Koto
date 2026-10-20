@@ -61,10 +61,15 @@ def validate_subject(subject, *, namespaces=False, extended_output=False):
     allowed = {"responses", "text", "streaming", "tools", "codex_http", "codex_http_0160", "structured_output"}
     if namespaces:
         allowed.add("codex_llama_v1")
+    if extended_output:
+        allowed.add('qwen_code_v1')
     if (type(caps) is not list
             or any(type(cap) is not str or cap not in allowed for cap in caps)
             or not {"responses", "text"}.issubset(caps) or len(caps) != len(set(caps))):
         raise ContractValidationError("invalid coding capabilities")
+    if 'qwen_code_v1' in caps and ('codex_llama_v1' not in caps
+            or subject['upstream_model'] != 'Qwen3-14B-Q4_K_M'):
+        raise ContractValidationError('invalid Qwen harness subject')
     for key, maximum in (("max_request_bytes", 65536), ("max_output_tokens", 2048 if extended_output else 512), ("upstream_timeout_seconds", 90)):
         if type(subject[key]) is not int or not 1 <= subject[key] <= maximum:
             raise ContractValidationError("invalid coding evidence limit")

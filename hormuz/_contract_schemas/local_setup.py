@@ -32,7 +32,8 @@ def validate_profile(value, *, extended=False, namespaces=False, output_limit=51
             raise ContractValidationError("invalid local setup limit")
     choices = {
         "capabilities": {"responses", "text", "streaming", "tools", "codex_http", "codex_http_0160", "structured_output"}
-                        | ({"codex_llama_v1"} if extended or namespaces else set()),
+                        | ({"codex_llama_v1"} if extended or namespaces else set())
+                        | ({'qwen_code_v1'} if output_limit == 2048 else set()),
         "task_types": {"summarization", "translation", "structured_extraction", "code_change", "code_review"}
                       | ({"interactive"} if extended else set()),
     }
@@ -44,6 +45,9 @@ def validate_profile(value, *, extended=False, namespaces=False, output_limit=51
             raise ContractValidationError("invalid local setup capabilities")
     if not {"responses", "text"} <= set(value["capabilities"]):
         raise ContractValidationError("local setup requires text Responses")
+    if 'qwen_code_v1' in value['capabilities'] and ('codex_llama_v1' not in value['capabilities']
+            or value['model'] != 'Qwen3-14B-Q4_K_M'):
+        raise ContractValidationError('invalid Qwen harness setup')
 
 
 def validate_profile_v3(value):

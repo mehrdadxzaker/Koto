@@ -34,7 +34,9 @@ def needs_adapter(value):
 
 
 class CodexLlamaRequest:
-    def __init__(self, value, *, translate=True):
+    def __init__(self, value, *, translate=True, harness=None):
+        if harness not in (None, 'qwen-code.v1') or harness and not translate:
+            raise CodexLlamaError('unsupported_local_harness')
         self.value = copy.deepcopy(value)
         self.translate = translate
         self.identities = {}
@@ -97,6 +99,9 @@ class CodexLlamaRequest:
             self.value['tools'] = flattened
         if isinstance(self.value.get('input'), list):
             self.value['input'] = [self._input(item) for item in self.value['input']]
+        if harness:
+            from .local_harness import adapt_qwen_request
+            adapt_qwen_request(self.value, self.declarations)
 
     def _input(self, item):
         if isinstance(item, dict) and item.get('status') not in {None, 'completed'}:
