@@ -199,6 +199,51 @@ class LocalPythonChecksTransportTests(unittest.TestCase):
         self.assertNotIn(self.helper(adapter), json.dumps(output))
         self.compiler.assert_called_once_with(self.spec)
 
+    def test_empty_stream_deltas_retain_no_fragments_and_allow_valid_completed_arguments(self):
+        adapter = self.adapter()
+        call = self.call(self.helper(adapter))
+        self.feed_events(adapter, [self.added(call)] + [
+            {'type': 'response.function_call_arguments.delta', 'item_id': call['id'], 'delta': ''}
+            for _ in range(512)])
+        self.assertEqual(adapter.derived_streams[call['id']]['fragments'], [])
+        self.assertEqual(adapter.derived_streams[call['id']]['fragment_bytes'], 0)
+        self.assertEqual(adapter.derived_buffer_bytes, 0)
+        output = self.feed_events(adapter, [
+            {'type': 'response.function_call_arguments.done', 'item_id': call['id'], 'arguments': call['arguments']},
+            {'type': 'response.output_item.done', 'item': call},
+            {'type': 'response.completed', 'response': self.response(call)}], final=True)
+        self.assertEqual([event['type'] for event in output], ['response.output_item.done', 'response.completed'])
+        self.assertEqual(json.loads(output[0]['item']['arguments']), {'cmd': self.cmd})
+        self.assertEqual(adapter.derived_buffer_bytes, 0)
+
+    def test_empty_deltas_between_nonempty_chunks_preserve_the_exact_byte_budget(self):
+        adapter = self.adapter()
+        call = self.call(self.helper(adapter))
+        part = call['arguments'][:12]
+        self.feed_events(adapter, [self.added(call),
+            {'type': 'response.function_call_arguments.delta', 'item_id': call['id'], 'delta': part},
+            {'type': 'response.function_call_arguments.delta', 'item_id': call['id'], 'delta': ''}])
+        self.assertEqual(adapter.derived_streams[call['id']]['fragments'], [part])
+        self.assertEqual(adapter.derived_buffer_bytes, len(part.encode('utf-8')))
+        output = self.feed_events(adapter, [
+            {'type': 'response.function_call_arguments.delta', 'item_id': call['id'], 'delta': call['arguments'][12:]},
+            {'type': 'response.function_call_arguments.done', 'item_id': call['id'], 'arguments': call['arguments']},
+            {'type': 'response.output_item.done', 'item': call}], final=True)
+        self.assertEqual(json.loads(output[0]['item']['arguments']), {'cmd': self.cmd})
+        self.assertEqual(adapter.derived_buffer_bytes, 0)
+
+    def test_empty_delta_still_requires_a_bound_unfinished_call(self):
+        adapter = self.adapter()
+        call = self.call(self.helper(adapter))
+        with self.assertRaises(CodexLlamaError):
+            self.feed_events(adapter, [{'type': 'response.function_call_arguments.delta', 'item_id': call['id'], 'delta': ''}])
+        adapter = self.adapter()
+        call = self.call(self.helper(adapter))
+        self.feed_events(adapter, [self.added(call),
+            {'type': 'response.function_call_arguments.done', 'item_id': call['id'], 'arguments': call['arguments']}])
+        with self.assertRaises(CodexLlamaError):
+            self.feed_events(adapter, [{'type': 'response.function_call_arguments.delta', 'item_id': call['id'], 'delta': ''}])
+
     def test_argument_done_alone_cannot_make_an_unemitted_call_complete(self):
         adapter = self.adapter()
         call = self.call(self.helper(adapter))

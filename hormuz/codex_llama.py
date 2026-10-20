@@ -452,6 +452,8 @@ class CodexLlamaRequest:
                     delta = value.get('delta')
                     if not isinstance(delta, str) or record['signature'] is not None:
                         raise CodexLlamaError('invalid_check_argument_delta')
+                    if not delta:
+                        return None
                     size = len(delta.encode('utf-8'))
                     if self.derived_buffer_bytes + size > MAX_CHECK_ARGUMENTS:
                         raise CodexLlamaError('check_arguments_exceeded')
