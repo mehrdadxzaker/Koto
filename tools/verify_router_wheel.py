@@ -37,7 +37,8 @@ def main():
         shutil.copytree(ROOT / 'tests', temporary / 'tests', ignore=shutil.ignore_patterns('__pycache__'))
         # Maintainer CLIs are tested as source tools, never shipped in the wheel.
         (temporary / 'tools').mkdir()
-        for name in ('version.py', 'verify_router_scope.py', 'compare_local_harness.py', 'local_harness_cases.json'):
+        for name in ('version.py', 'verify_router_scope.py', 'compare_local_harness.py',
+                     'local_harness_cases.json', 'local_repair_mcp.py'):
             shutil.copy2(ROOT / 'tools' / name, temporary / 'tools' / name)
         subprocess.run([sys.executable, '-c',
                         'from pathlib import Path; import koto, hormuz; '

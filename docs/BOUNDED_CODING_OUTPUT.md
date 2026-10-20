@@ -74,3 +74,7 @@ has its own complete passing evidence. There is no work-ledger migration.
 See [coding qualification](LOCAL_CODING_QUALIFICATION.md),
 [bounded probes](BOUNDED_CODING_PROBES.md), and
 [native namespaces](BOUNDED_NAMESPACE_CODING.md).
+
+The opt-in [repair feedback candidate](REPAIR_FEEDBACK.md) adds specification-led
+test guidance and finite repeat suppression for a future campaign. It changes no
+qualification outcomes, admission settings or historical evidence.
