@@ -119,7 +119,7 @@ def progress_snapshot(items, declarations):
     return state
 
 
-def progress_checkpoint(items, declarations):
+def progress_checkpoint(items, declarations, *, single_line=False):
     """Static advice plus bounded numbers, never copied program output or authority."""
     state = progress_snapshot(items, declarations)
     last = 'unknown' if state['last_command_exit'] is None else str(state['last_command_exit'])
@@ -135,10 +135,14 @@ def progress_checkpoint(items, declarations):
         message += ('The latest nonzero command result reports a shell parse error; intended Python checks are not established. '
                     'Fix the command format; do not repeat the unchanged failed command.\n')
     elif state['python_syntax_failure']:
-        message += ('The latest nonzero command reports a Python SyntaxError; intended assertions did not run. '
+        message += (('The latest nonzero command reports a Python SyntaxError; intended assertions did not run. '
+                    'Inspect whether the error is in the saved module or the inline check and fix that source. '
+                    'For inline exception checks, use single-line callable unittest assertions below instead of compound statements. '
+                    'Do not repeat the unchanged failed command.\n') if single_line else
+                    ('The latest nonzero command reports a Python SyntaxError; intended assertions did not run. '
                     'Python compound statements (try/except/else, for, if, def) must start on their own lines '
                     'with indented bodies. Never put try after a semicolon. Use actual newlines. '
-                    'Do not repeat the unchanged failed command.\n')
+                    'Do not repeat the unchanged failed command.\n'))
     elif state['last_command_exit'] not in (None, 0):
         message += ('Inspect the actual command error. Fix command/permission problems first; '
                     'a real assertion failure guides a focused code repair and another check.\n')
@@ -150,6 +154,24 @@ def progress_checkpoint(items, declarations):
         message += 'The saved native patch has no completed command after it. Run assertions before another edit or final answer.\n'
     elif not state['native_patches_saved']:
         message += 'Read the source, then derive and execute assertions before editing; cover the complete original specification.\n'
+    if single_line:
+        message += '''Use python3 for Python. Prefer short single-line commands with semicolon-separated
+simple statements. Avoid multiline scripts, backslash-n encoding and compound
+statements in inline checks. Use the standard-library callable assertRaises for
+expected exceptions; it invokes the real function and fails if the error is absent.
+For atomic behavior, assert the entire state after assertRaises returns. FORMAT
+ONLY: replace every placeholder, import the actual saved function and define the
+real state and invalid batch from the original specification:
+python3 -c 'import copy, unittest; from YOUR_MODULE import function; state = YOUR_STATE; invalid_batch = YOUR_INVALID_BATCH; before = copy.deepcopy(state); unittest.TestCase().assertRaises(RequiredError, function, state, invalid_batch); assert state == before'
+Cover a valid step before failure and repeated operations exceeding a limit when
+required. Use the specified exception. Also check successful results, boundaries,
+ordering and supported value types. Several short focused commands are fine.
+Pass cmd directly to the declared host tool; do not add another shell wrapper or
+temporary-file construction. A print or one normal example is not verification.
+Repair actual assertion failures and rerun checks on the latest saved code. Once
+all requirements are covered, finish with actual results instead of repeating
+the same command or offering future next steps.'''
+        return message
     message += '''Use python3 for Python. Import the actual saved function, execute compact
 assertions, and check failure invariants after catching the expected exception.
 For inline checks, use literal newlines in a single-quoted Python command, with
