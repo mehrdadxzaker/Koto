@@ -256,6 +256,10 @@ class _Child:
                     except ProcessLookupError:
                         stopped = True
                         break
+                    except PermissionError:
+                        # macOS can deny probes of an exiting zombie group.
+                        # Keep waiting for disappearance; denial is not proof.
+                        pass
                     time.sleep(.02)
             except ProcessLookupError:
                 stopped = True
