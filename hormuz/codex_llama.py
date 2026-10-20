@@ -116,10 +116,10 @@ class CodexLlamaRequest:
             self.value['input'] = [self._input(item) for item in self.value['input']]
         if harness:
             adapt_qwen_request(self.value, self.declarations, profile=harness)
-        if harness == 'qwen-code.v6':
-            self._add_python_checks()
+        if harness in {'qwen-code.v6', 'qwen-code.v7'}:
+            self._add_python_checks(feedback=harness == 'qwen-code.v7')
 
-    def _add_python_checks(self):
+    def _add_python_checks(self, *, feedback=False):
         """Offer a private compiler only for an existing, identified host command."""
         if self.value.get('tool_choice', 'auto') != 'auto' or len(self.value.get('tools', [])) >= 1024:
             return
@@ -140,10 +140,13 @@ class CodexLlamaRequest:
                 targets.append(alias)
         if len(targets) != 1:
             return
-        from .local_python_checks import CHECKS_SCHEMA, compile_checks
+        if feedback:
+            from .local_python_checks import FEEDBACK_CHECKS_SCHEMA as checks_schema, compile_feedback_checks as compiler
+        else:
+            from .local_python_checks import CHECKS_SCHEMA as checks_schema, compile_checks as compiler
         target = targets[0]
         properties = self.declarations[target]['parameters']['properties']
-        parameters = {'checks': copy.deepcopy(CHECKS_SCHEMA)}
+        parameters = {'checks': copy.deepcopy(checks_schema)}
         if isinstance(properties.get('workdir'), dict) and properties['workdir'].get('type') == 'string':
             parameters['workdir'] = copy.deepcopy(properties['workdir'])
         alias = 'koto_python_checks'
@@ -154,7 +157,7 @@ class CodexLlamaRequest:
         else:
             raise CodexLlamaError('ambiguous_check_tool')
         self.derived_checks[alias] = {'target': target, 'workdir': 'workdir' in parameters}
-        self.compile_checks = compile_checks
+        self.compile_checks = compiler
         self.value['tools'].append({'type': 'function', 'name': alias, 'strict': True,
             'description': 'Check supplied cases against a saved local Python function through the existing host command tool. Supply real expected results from the task; these checks are not independent qualification.',
             'parameters': {'type': 'object', 'properties': parameters, 'required': ['checks'],

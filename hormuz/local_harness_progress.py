@@ -119,7 +119,7 @@ def progress_snapshot(items, declarations):
     return state
 
 
-def progress_checkpoint(items, declarations, *, single_line=False, typed_checks=False):
+def progress_checkpoint(items, declarations, *, single_line=False, typed_checks=False, feedback_checks=False):
     """Static advice plus bounded numbers, never copied program output or authority."""
     state = progress_snapshot(items, declarations)
     last = 'unknown' if state['last_command_exit'] is None else str(state['last_command_exit'])
@@ -182,6 +182,19 @@ checks after the last edit. A saved patch or a normal printout is not verificati
 If the helper is absent, use the available native tools within host permissions.
 Once all original requirements are covered, finish with the actual results or
 the concrete blocker. Do not repeat successful checks or offer to test later.'''
+        if feedback_checks:
+            message += '''
+Check input format carefully: args contains one value per positional parameter.
+For f(items), passing a list needs args=[["x", "y"]], not args=["x", "y"].
+For f(state, batch), args has two entries. Alternatively use args=[] and kwargs
+with the exact parameter names. Use only applicable optional fields and a small
+set of focused cases; sixteen is a maximum, not a target.
+A check-input error means repair the case data while preserving the requested
+function signature. An expectation mismatch requires checking the expected value
+against the original specification before editing code. Do not make a correct
+implementation match an incorrect example. Selected invalid case data produce
+an actual failing host command without loading the target; repair the input and
+run the checks again. This feedback is not correctness or qualification proof.'''
         return message
     if single_line:
         message += '''Use python3 for Python. Prefer short single-line commands with semicolon-separated

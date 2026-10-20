@@ -326,3 +326,91 @@ def compile_checks(spec):
     command = 'python3 -c ' + shlex.quote(program)
     require(len(command.encode('utf-8')) <= MAX_COMMAND_BYTES, 'command_too_large')
     return command
+
+
+# The opt-in feedback profile owns independent descriptions and a separate
+# driver. Keep the original schema, program and compiler unchanged for v6.
+from copy import deepcopy as _deepcopy
+
+FEEDBACK_CHECKS_SCHEMA = _deepcopy(CHECKS_SCHEMA)
+FEEDBACK_CHECKS_SCHEMA['description'] = (
+    'JSON only: use small focused cases, not the maximum case count. At most '
+    '32 KiB, depth eight (root zero), sixteen cases. No code or function definitions.')
+_feedback_case_schema = FEEDBACK_CHECKS_SCHEMA['properties']['cases']['items']
+_feedback_case_schema['description'] = (
+    'Call the actual saved function without changing its task signature. Provide exactly one '
+    'of expected or raises; expected:null explicitly expects None. Include optional fields '
+    'only when applicable; omit unused optional fields. No replacement function or code.')
+_feedback_case_schema['properties']['args']['description'] = (
+    'Use one item per positional parameter: f(state, changes) uses args:[state,changes]. '
+    'A single list input needs a nested list: f(values) uses args:[[1,2]]. '
+    'Use args:[] when supplying all arguments by name in kwargs.')
+_feedback_case_schema['properties']['kwargs']['description'] = (
+    'Optional arguments by their actual parameter names; use args:[] when all arguments '
+    'are supplied here. Do not put an object of named arguments inside args.')
+
+# Only these semantic check-data mistakes become real, error-only host commands.
+# JSON, encoding, size/depth/count, path/function and unknown future failures stay
+# hard errors. The tuple shape codes are also hard because they include limits.
+_FEEDBACK_ACTIONS = {
+    'invalid_spec_fields': 'Use only module_path, function, cases, and optional atomic_batch; include the required fields.',
+    'case_must_be_object': 'Each case must be a JSON object with args and exactly one of expected or raises.',
+    'invalid_case_fields': 'Each case needs args; remove unknown fields and include only applicable optional fields.',
+    'invalid_arguments': 'Use an args array with one item per positional parameter and an optional kwargs object by parameter name.',
+    'expected_xor_raises_required': 'Provide exactly one of expected or raises in each case; omit the other field rather than setting it to null.',
+    'unsupported_exception': 'Use one of the listed builtin exception names for raises; omit raises for a success case.',
+    'identity_requires_success': 'Use same_as_arg only for an expected success case; omit it from exception cases.',
+    'tuple_paths_require_expected': 'Use expected_tuple_paths only with expected; omit it from exception cases.',
+    'invalid_unchanged_arg_indices': 'unchanged_args must list existing zero-based positional argument indices.',
+    'duplicate_unchanged_arg_index': 'List each unchanged_args index only once.',
+    'invalid_identity_arg_index': 'same_as_arg must be an existing zero-based positional argument index.',
+    'duplicate_tuple_path': 'List each expected_tuple_paths path only once.',
+    'tuple_path_out_of_range': 'Each expected_tuple_paths index must select an existing list within expected.',
+    'tuple_path_target_not_list': 'Each expected_tuple_paths path must select a JSON list to convert to a tuple.',
+    'invalid_atomic_batch': 'atomic_batch needs exactly argument and unchanged_args; omit atomic_batch when it does not apply.',
+    'invalid_atomic_batch_argument': 'atomic_batch.argument must be a zero-based positional batch argument index.',
+    'invalid_atomic_state_indices': 'Atomic unchanged_args must be distinct existing state argument indices, separate from the batch argument.',
+    'atomic_batch_requires_list_argument': 'Every atomic case must supply a list at the chosen positional batch argument.',
+    'atomic_batch_requires_success_and_error_cases': 'Atomic composition requires both a valid success case and an expected error case using compatible initial state.',
+}
+
+_FEEDBACK_PREFLIGHT = '''_signature = inspect.signature(_target)
+for _case in _spec["cases"]:
+    try:
+        _signature.bind(*_case["args"], **_case.get("kwargs", {}))
+    except TypeError:
+        sys.stderr.write("KOTO_CHECK_INPUT_ERROR case_argument_binding: Fix case args/kwargs: use one item per positional parameter, a nested list for one list parameter, or kwargs by name with args:[]; keep the task function signature.\\n")
+        sys.exit(2)
+'''
+
+FEEDBACK_PROGRAM = PROGRAM.replace(
+    'import builtins, copy, hashlib, json,', 'import builtins, copy, hashlib, inspect, json,', 1).replace(
+    '_errors = ', _FEEDBACK_PREFLIGHT + '_errors = ', 1).replace(
+    'case %d: result mismatch',
+    'case %d: result mismatch; recheck the expected value against the original task specification before editing code').replace(
+    'case %d: expected exception was not raised',
+    'case %d: expected exception was not raised; recheck the expected exception against the original task specification before editing code')
+
+
+def compile_feedback_checks(spec):
+    """Compile opt-in check feedback without executing code or reading files.
+
+    Selected semantic mistakes yield a static command that the ordinary host
+    executes for actionable stderr and exit 2. It never imports a target or
+    embeds submitted data. All other validation failures preserve fail-closed
+    behavior. Valid cases retain exact values, atomic probes and existing bounds.
+    """
+    try:
+        encoded = _normalize(spec)
+    except CheckSpecError as error:
+        action = _FEEDBACK_ACTIONS.get(str(error))
+        if action is None:
+            raise
+        message = 'KOTO_CHECK_INPUT_ERROR ' + str(error) + ': ' + action + '\n'
+        program = 'import sys\nsys.stderr.write(' + repr(message) + ')\nsys.exit(2)\n'
+    else:
+        program = FEEDBACK_PROGRAM.replace('ERROR_NAMES_LITERAL', repr(tuple(sorted(ERROR_NAMES)))).replace(
+            'PROBE_PLAN_LITERAL', repr(_probe_plan(json.loads(encoded)))).replace('SPEC_LITERAL', repr(encoded))
+    command = 'python3 -c ' + shlex.quote(program)
+    require(len(command.encode('utf-8')) <= MAX_COMMAND_BYTES, 'command_too_large')
+    return command
