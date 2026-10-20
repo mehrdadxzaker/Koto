@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "kind": "separate_a21_shadow_diagnostics_not_paired_quality_credit",
+  "runtime": "2.0.0a21",
+  "historical_full_study": {
+    "baseline_profile": "qwen-code.v3",
+    "adapted_profile": "qwen-code.v6",
+    "baseline_successful_repairs": 4,
+    "adapted_successful_repairs": 2,
+    "cases_per_arm": 6,
+    "original_stock_and_unique_exact_early_failure_causes": "unassigned"
+  },
+  "stock_diagnostic": {
+    "result": {
+      "client_exit_code": 1,
+      "elapsed_ms": 169495,
+      "independent_check_reexecuted_by_this_audit": false,
+      "native_turn_completed": false,
+      "native_turn_failed": true,
+      "passed": false,
+      "recorded_independent_check_exit_code": 1,
+      "submitted_requests": 4
+    },
+    "terminal_observation": {
+      "consistent_with_90_second_provider_deadline": true,
+      "exact_terminal_exception_unobserved": true,
+      "final_request_status": 200,
+      "final_request_total_us": 90001310,
+      "original_early_stock_failure_cause_established": false,
+      "original_early_stock_failure_reproduced": false,
+      "recorded_reason": "provider_stream_interrupted"
+    },
+    "host_check_exit": 1,
+    "host_check_error_class": "TypeError",
+    "assertions_completed": false,
+    "classification": "model_supplied_positional_argument_shape_error",
+    "source_receipt_sha256": "ba64fb7c54db2969b85def7d8471d758a7b50e984d8256e195b615e7ef886881"
+  },
+  "unique_diagnostic": {
+    "result": {
+      "elapsed_ms": 113695,
+      "submitted_requests": 3,
+      "client_exit_code": 1,
+      "turn_completed": false,
+      "passed": false,
+      "check_exit_code": 2,
+      "termination": "completed"
+    },
+    "confirmed_observation": "Semantic CheckSpec validation raised expected_xor_raises_required; feed re-raised invalid_provider_frame with that exact cause.",
+    "exception_chain": [
+      {
+        "class": "CodexLlamaError",
+        "code": "invalid_provider_frame"
+      },
+      {
+        "class": "CheckSpecError",
+        "code": "expected_xor_raises_required"
+      }
+    ],
+    "historical_limit": "This confirms the separate instrumented episode. It does not establish the exact cause of original full-study stock/unique stream failures.",
+    "submitted_case_shape": "both expected/raises present or both absent; which shape unknown because raw cases were not logged",
+    "source_receipt_sha256": "e0a3f599dcca9db7c6be2bda77d6a80bd4964b1290fd14ee07d033797333d4cf"
+  },
+  "instrumentation": {
+    "core_files_independently_compared": 173,
+    "all_core_shadow_bytes_equal_a21_wheel": true,
+    "strict_metadata_allowlist_validated": true,
+    "raw_arguments_frames_prompts_spec_data_or_messages_logged": false
+  },
+  "limits": [
+    "Two separate diagnostic repetitions; excluded from the completed a21 paired score.",
+    "The confirmed unique exception chain cannot assign the original frozen stock or unique cause.",
+    "This documentation preparation performs no model, native client, generated check or oracle execution."
+  ]
+}

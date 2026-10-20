@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "kind": "scripted_native_feedback_and_sensitivity_control",
+  "runtime": "2.0.0a22",
+  "passed": true,
+  "model_inference_submissions": 0,
+  "synthetic_provider_only": true,
+  "scope": "scripted native mechanism and sensitivity control; not model-authored checks or coding quality",
+  "client_version": "codex-cli 0.160.0",
+  "client_exit_code": 0,
+  "requests": 6,
+  "command_exit_codes": [
+    0,
+    2,
+    1,
+    0
+  ],
+  "compiled_command_sha256": [
+    "f7a8901fec0e0a17a81f848a25248c5701f5d455959fee2951ea4190134640c5",
+    "f7a8901fec0e0a17a81f848a25248c5701f5d455959fee2951ea4190134640c5"
+  ],
+  "semantic_error_command_sha256": "17434b3d3e49cde9c3d317e5396e03afd608889c70e4dfb38584881c31a2768b",
+  "semantic_input_error_returned_before_target_import": true,
+  "same_checks_sha256": "ebbc4ac421ed52f2d71ab91d031ab2fe4cc4f7d9af1f9fdb26b0191b4f435a67",
+  "pinned_flat_exec_sha256": "7ecb0f4f51b3982e36be43a9d08daa05348d7dd5f70646231b1f0f9823f40ec3",
+  "namespace_synthesized": false,
+  "native_tool_output_preserved": true,
+  "sandbox_flags": [
+    "sandbox_workspace_write.network_access=false",
+    "sandbox_workspace_write.exclude_slash_tmp=true",
+    "sandbox_workspace_write.exclude_tmpdir_env_var=true"
+  ],
+  "normal_settings_unchanged": true,
+  "disposable_settings_unchanged": true,
+  "owned_process_reaped": true,
+  "owned_listener_closed": true,
+  "provider_thread_stopped": true,
+  "runtime_component_sha256": {
+    "hormuz.codex_llama": "e5b9d697250740b2c4f8fc49590937c8c2a4cb5659e402fe05c5069670cf65e1",
+    "hormuz.local_python_checks": "ef8254a57aa6a4e22dbc55b396baed25c24f9d39000462a656c7b48481eb370a"
+  },
+  "native_feedback_observed_in_next_request": true,
+  "source_receipt_sha256": "45e6cfe01e60c8b6abfbc678775052d0097c28e7379a0812638bf73349d16437",
+  "limits": [
+    "Scripted cases and repairs; zero model inference and no coding-quality credit.",
+    "Only semantic compile-time feedback avoids target import; valid-driver arity inspection loads the saved module."
+  ]
+}

@@ -62,5 +62,34 @@
     "probe-control records",
     "independent checker source"
   ],
-  "note": "Summaries select explicit fields from retained local receipts. Source receipt hashes identify originals; no model or helper was executed by publication."
+  "note": "Summaries select explicit fields from retained local receipts. Source receipt hashes identify originals; no model or helper was executed by publication.",
+  "additional_files": {
+    "shadow-unique-diagnosis-a21.json": {
+      "sha256": "e0a3f599dcca9db7c6be2bda77d6a80bd4964b1290fd14ee07d033797333d4cf",
+      "bytes": 4771
+    },
+    "shadow-stock-diagnosis-a21.json": {
+      "sha256": "ba64fb7c54db2969b85def7d8471d758a7b50e984d8256e195b615e7ef886881",
+      "bytes": 5483
+    },
+    "shadow-instrumentation-proof-a21.json": {
+      "sha256": "c272fad8d594a55c0b1043bb11dd8fb6a773f290bad89aba5667253477e44257",
+      "bytes": 1548
+    }
+  },
+  "additional_credential_scan": {
+    "passed": true,
+    "pattern_names": [
+      "assigned_secret",
+      "authorization_header",
+      "aws_access_key",
+      "github_token",
+      "jwt",
+      "openai_or_anthropic_key",
+      "private_key",
+      "qualification_probe",
+      "session_cookie"
+    ],
+    "files": 3
+  }
 }

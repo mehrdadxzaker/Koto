@@ -1,0 +1,163 @@
+{
+  "kind": "bounded_read_only_completed_episode_feedback_diagnosis",
+  "recorded_at_utc": "2026-10-20T17:56:36.208528+00:00",
+  "run_root": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v7-a22-comparison-20261020",
+  "episode": "adapted/atomic-stock",
+  "study_still_active_at_receipt": true,
+  "mechanism_observation": "Selected semantic errors recovered through actual native exit2 and continued model requests; no valid target checks executed.",
+  "static_feedback_commands": [
+    {
+      "trace_line_1based": 6,
+      "native_item_id": "item_1",
+      "command_sha256": "e7ed14b62aaba7cbdb0e5d23bb1433948b29d0118f099818c95f6f0f5ff7bdb1",
+      "exit_code": 2,
+      "after_last_native_patch": false,
+      "output_sha256": "5c982f3b0da300d2bbc44acfbcf3b2b59e16619823385601feb07540af22b605",
+      "classification": "static_semantic_input_error_feedback",
+      "assertion_AST_count": 0,
+      "compiler_command_exact": true,
+      "input_error_code": "identity_requires_success",
+      "recovered_semantic_feedback": true,
+      "target_import_or_function_execution_in_error_program": false,
+      "submitted_spec_not_recoverable_from_static_command": true,
+      "task_correctness_credit": false,
+      "execution_outcome": "error_only_native_feedback_no_target_check"
+    },
+    {
+      "trace_line_1based": 12,
+      "native_item_id": "item_4",
+      "command_sha256": "f0209329626441cc0f38b70b61084347082c86ef22f089ae5a956b9172df5a3a",
+      "exit_code": 2,
+      "after_last_native_patch": true,
+      "output_sha256": "61117f7fac1baabde523d48ccb9f20773a0dd22892add6117bf7a9894576848b",
+      "classification": "static_semantic_input_error_feedback",
+      "assertion_AST_count": 0,
+      "compiler_command_exact": true,
+      "input_error_code": "invalid_atomic_state_indices",
+      "recovered_semantic_feedback": true,
+      "target_import_or_function_execution_in_error_program": false,
+      "submitted_spec_not_recoverable_from_static_command": true,
+      "task_correctness_credit": false,
+      "execution_outcome": "error_only_native_feedback_no_target_check"
+    },
+    {
+      "trace_line_1based": 13,
+      "native_item_id": "item_3",
+      "command_sha256": "f0209329626441cc0f38b70b61084347082c86ef22f089ae5a956b9172df5a3a",
+      "exit_code": 2,
+      "after_last_native_patch": true,
+      "output_sha256": "61117f7fac1baabde523d48ccb9f20773a0dd22892add6117bf7a9894576848b",
+      "classification": "static_semantic_input_error_feedback",
+      "assertion_AST_count": 0,
+      "compiler_command_exact": true,
+      "input_error_code": "invalid_atomic_state_indices",
+      "recovered_semantic_feedback": true,
+      "target_import_or_function_execution_in_error_program": false,
+      "submitted_spec_not_recoverable_from_static_command": true,
+      "task_correctness_credit": false,
+      "execution_outcome": "error_only_native_feedback_no_target_check"
+    },
+    {
+      "trace_line_1based": 14,
+      "native_item_id": "item_5",
+      "command_sha256": "f0209329626441cc0f38b70b61084347082c86ef22f089ae5a956b9172df5a3a",
+      "exit_code": 2,
+      "after_last_native_patch": true,
+      "output_sha256": "61117f7fac1baabde523d48ccb9f20773a0dd22892add6117bf7a9894576848b",
+      "classification": "static_semantic_input_error_feedback",
+      "assertion_AST_count": 0,
+      "compiler_command_exact": true,
+      "input_error_code": "invalid_atomic_state_indices",
+      "recovered_semantic_feedback": true,
+      "target_import_or_function_execution_in_error_program": false,
+      "submitted_spec_not_recoverable_from_static_command": true,
+      "task_correctness_credit": false,
+      "execution_outcome": "error_only_native_feedback_no_target_check"
+    }
+  ],
+  "valid_compiled_target_checks": 0,
+  "provider_metrics": [
+    {
+      "created_at": "2026-10-20T17:50:53.906928+00:00",
+      "state": "succeeded",
+      "reason_code": null,
+      "provider_status": 200,
+      "total_us": 14496195,
+      "provider_bytes_read": 12363,
+      "downstream_bytes_sent": 12363
+    },
+    {
+      "created_at": "2026-10-20T17:51:08.474111+00:00",
+      "state": "succeeded",
+      "reason_code": null,
+      "provider_status": 200,
+      "total_us": 78303312,
+      "provider_bytes_read": 98640,
+      "downstream_bytes_sent": 4025
+    },
+    {
+      "created_at": "2026-10-20T17:52:26.883522+00:00",
+      "state": "succeeded",
+      "reason_code": null,
+      "provider_status": 200,
+      "total_us": 66490184,
+      "provider_bytes_read": 105323,
+      "downstream_bytes_sent": 4598
+    },
+    {
+      "created_at": "2026-10-20T17:53:33.459342+00:00",
+      "state": "outcome_unknown",
+      "reason_code": "provider_stream_interrupted",
+      "provider_status": 200,
+      "total_us": 20148519,
+      "provider_bytes_read": 24179,
+      "downstream_bytes_sent": 24179
+    }
+  ],
+  "recorded_outcome": {
+    "elapsed_ms": 180004,
+    "submitted_requests": 4,
+    "client_exit_code": 1,
+    "turn_completed": false,
+    "passed": false,
+    "check_exit_code": 1,
+    "termination": "completed"
+  },
+  "terminal_timing": {
+    "classification": "Consistent with remaining180-second probe-budget expiry; exact thrown class unavailable.",
+    "per_request_limit_seconds": 90,
+    "episode_limit_seconds": 180,
+    "final_request_start_elapsed_seconds": 159.552414,
+    "last_request_total_us": 20148519,
+    "last_provider_bytes_equal_downstream": true,
+    "native_hard_guard_error_observed": false
+  },
+  "target_correctness_credit_from_static_feedback": false,
+  "final_source_sha256": "58c6c37df766227823a8e42b2dc0934dac1cbb62965b4380ec12261a8174d40f",
+  "native_trace_sha256": "2e6e5950ba53f84a905ac2e6fcc400d03f91cf8fca89a254bc2fb584e3f1dd58",
+  "native_errors": [
+    {
+      "type": "error",
+      "message": "stream disconnected before completion: stream closed before response.completed"
+    },
+    {
+      "type": "turn.failed",
+      "error": {
+        "message": "stream disconnected before completion: stream closed before response.completed"
+      }
+    }
+  ],
+  "audit_activity": {
+    "models": 0,
+    "native_clients": 0,
+    "generated_checks": 0,
+    "oracles": 0,
+    "network_connections": 0
+  },
+  "limitations": [
+    "Static semantic commands contain no submitted spec; precise malformed field values cannot be reconstructed.",
+    "The saved implementation independent verdict is a recorded result, not reexecuted during this live read-only audit.",
+    "The terminal deadline classification uses timing and fixed lease code; router stderr and final exception class are not retained.",
+    "Study-wide cleanup is audited after all episodes finish."
+  ]
+}

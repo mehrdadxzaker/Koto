@@ -34,15 +34,15 @@ used Codex's existing tools and execution loop. They installed no coding
 qualification, enabled no automatic local coding, and did not alter Koto history
 consent.
 
-The complete local pilot records remain available:
+The complete pilot records remain local-only on the experiment machine; they
+are not published with this repository:
 
-- [A comparison](/Users/mehrdadz/Downloads/memoWiki/koto-harness-v2-pilot-20261020/comparison.json)
-- [B comparison](/Users/mehrdadz/Downloads/memoWiki/koto-harness-v2b-pilot-20261020/comparison.json)
-- [C comparison](/Users/mehrdadz/Downloads/memoWiki/koto-harness-v2c-pilot-20261020/comparison.json)
-- [D comparison](/Users/mehrdadz/Downloads/memoWiki/koto-harness-v2d-pilot-20261020/comparison.json)
+- A: `/Users/mehrdadz/Downloads/memoWiki/koto-harness-v2-pilot-20261020/comparison.json`
+- B: `/Users/mehrdadz/Downloads/memoWiki/koto-harness-v2b-pilot-20261020/comparison.json`
+- C: `/Users/mehrdadz/Downloads/memoWiki/koto-harness-v2c-pilot-20261020/comparison.json`
+- D: `/Users/mehrdadz/Downloads/memoWiki/koto-harness-v2d-pilot-20261020/comparison.json`
 
-These absolute links refer to retained local artifacts, not repository-hosted
-copies. Each directory also retains its frozen plan, native episode logs,
+Each local directory also retains its frozen plan, native episode logs,
 implementation snapshots and unchanged checks.
 
 Installed-wheel provenance records the following candidate SHA-256 values:
@@ -72,11 +72,13 @@ Responses input counts were baseline **27**, developer **360**, and system
 The installed template SHA-256 was
 `57f1fd00f0013a2be96aa79b857391f27e23df5b5f847072b524c897e24d0361`.
 
-The saved-capture assertion
-[`assert_native_roles_preserved.py`](/Users/mehrdadz/Downloads/memoWiki/koto-harness-v2-diagnosis-20261020/assert_native_roles_preserved.py)
+The local-only saved-capture assertion
+`/Users/mehrdadz/Downloads/memoWiki/koto-harness-v2-diagnosis-20261020/assert_native_roles_preserved.py`
 passes and fails if the marker or native developer token increase disappears.
-The [metadata verdict](/Users/mehrdadz/Downloads/memoWiki/koto-harness-v2-diagnosis-20261020/metadata-role-verdict.json)
-records successful owned cleanup and unchanged normal settings. Retention does
+The local-only metadata verdict
+`/Users/mehrdadz/Downloads/memoWiki/koto-harness-v2-diagnosis-20261020/metadata-role-verdict.json`
+records successful owned cleanup and unchanged normal settings. Neither artifact
+is published with this repository. Retention does
 not establish that the model obeys the instruction; it rules out discarded
 developer content as the explanation for these failures.
 

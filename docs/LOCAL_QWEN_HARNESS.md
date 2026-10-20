@@ -122,3 +122,13 @@ and [v1 scored 5/6 versus v3's 4/6](local-harness/v3-comparison-20261020.md).
 The requested reliable rollback/list-key improvement was not achieved. These
 known-task studies do not establish a benefit or grant automatic coding, and
 their results must not be pooled with the earlier 90-second comparisons.
+
+Later [v4 progress observations](LOCAL_QWEN_HARNESS_V4.md) scored
+[v3 3/6 versus v4 1/6](local-harness/v4-comparison-20261020.md), and
+[v6 typed Python checks](LOCAL_QWEN_HARNESS_V6.md) scored
+[v3 4/6 versus v6 2/6](local-harness/v6-comparison-20261020.md). Neither improved
+the measured outcome. The separately selected
+[v7 feedback profile](LOCAL_QWEN_HARNESS_V7.md) retains semantic check-input
+errors as actual native command failures so Codex can continue correcting them.
+It keeps the existing host execution loop and remains subject to ordinary
+qualification. Read its own comparison before drawing a quality conclusion.

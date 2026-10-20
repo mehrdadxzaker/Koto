@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "kind": "small_allowlisted_v7_diagnosis_publication",
+  "files": [
+    {
+      "path": "full-installed-suite-a22.json",
+      "sha256": "d43426f78723f3a660e89d027e5235b7a8b96abf635022ce7df6f9f5e858a78b",
+      "bytes": 808
+    },
+    {
+      "path": "native-feedback-control-a22.json",
+      "sha256": "011db8b2a486502ab0bfe1b84993cff00fa5ce31a2cd0ce09f0686422bedacec",
+      "bytes": 2029
+    },
+    {
+      "path": "previous-profile-wire-a22.json",
+      "sha256": "72b17edaaa15ec65f6a73da8765d9d68acf5f25e2774355f197b98a881ab67be",
+      "bytes": 666
+    },
+    {
+      "path": "semantic-feedback-diagnosis-a21.json",
+      "sha256": "906a6d743e9a7ec929e6275fc361fac0722be1f251f699915b38eb8cadfec273",
+      "bytes": 3015
+    },
+    {
+      "path": "validation-a22.json",
+      "sha256": "58c85adf8344d3d27b59d4661582a651cd35c9fc0cfec7f23c64830993d2e8af",
+      "bytes": 1556
+    }
+  ],
+  "credential_scan": {
+    "passed": true,
+    "pattern_names": [
+      "assigned_secret",
+      "authorization_header",
+      "aws_access_key",
+      "github_token",
+      "jwt",
+      "openai_or_anthropic_key",
+      "private_key",
+      "qualification_probe",
+      "session_cookie"
+    ],
+    "files": 5
+  },
+  "excluded": [
+    "configuration contents",
+    "credentials",
+    "databases",
+    "raw requests and frames",
+    "submitted cases",
+    "probe controls",
+    "hidden checker source"
+  ],
+  "publication_activity": {
+    "models": 0,
+    "native_clients": 0,
+    "servers": 0,
+    "generated_checks": 0,
+    "oracles": 0,
+    "network_connections": 0
+  }
+}

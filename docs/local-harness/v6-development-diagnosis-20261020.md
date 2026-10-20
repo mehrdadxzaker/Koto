@@ -168,6 +168,20 @@ authored-check execution and latency remain separate. A21 received focused
 validation; it has no full-suite claim. Stock and uniqueness stream failures
 require further diagnosis before a repair can be claimed.
 
+Two separate instrumented diagnostics followed this frozen comparison. The
+[stock diagnostic](v6-diagnosis-20261020/shadow-stock-diagnosis-a21.json)
+executed a malformed one-positional-argument check, then met a 90-second request
+limit; it did not reproduce the earlier early interruption. The
+[uniqueness diagnostic](v6-diagnosis-20261020/shadow-unique-diagnosis-a21.json)
+captured `CheckSpecError(expected_xor_raises_required)` being wrapped as
+`CodexLlamaError(invalid_provider_frame)`, ending the stream before host feedback.
+The [instrumentation proof](v6-diagnosis-20261020/shadow-instrumentation-proof-a21.json)
+retains byte-identical package code and bounded metadata-only logging. These are
+additional failed diagnostics, not replacements for any final episode or proof
+of the historical interruptions' exact causes. The explicit
+[v7 recovery profile](../LOCAL_QWEN_HARNESS_V7.md) addresses this confirmed
+semantic-feedback seam and improves check-input descriptions.
+
 The experiment retains the same six task specifications and independent checks,
 matched 180-second development episodes, sixteen requests, 2,048 output tokens
 per request, serial execution and no quality retries. These known development

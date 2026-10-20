@@ -1,0 +1,1389 @@
+{
+  "schema_version": 1,
+  "kind": "completed_comparison_independent_audit",
+  "run_root": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v7-a22-comparison-20261020",
+  "harnesses": {
+    "baseline": "qwen-code.v3",
+    "adapted": "qwen-code.v7"
+  },
+  "controls": [
+    {
+      "case_id": "signed-ceiling",
+      "spec_source_checks_unchanged": true,
+      "checker_sha256": "cc3be5ed471dfb78cccb32ba7b902ea1c29394ed0fcf04c0dd5c99331aef6922",
+      "actual_native_profiles_match_between_arms": true
+    },
+    {
+      "case_id": "literal-first",
+      "spec_source_checks_unchanged": true,
+      "checker_sha256": "4958f109e9cb650ef86ed1bf44129ef8660ab047eed0791bebc4047904e8e727",
+      "actual_native_profiles_match_between_arms": true
+    },
+    {
+      "case_id": "adjacent-groups",
+      "spec_source_checks_unchanged": true,
+      "checker_sha256": "b7068821a1667b3d787f4e2ba16f9af1132752e0c14db574811ae5003aad31a4",
+      "actual_native_profiles_match_between_arms": true
+    },
+    {
+      "case_id": "interval-union",
+      "spec_source_checks_unchanged": true,
+      "checker_sha256": "3c6fe54e7c7ba8fbc2562a689f484071f2945aeb00a2a952c49e6091def9f7b9",
+      "actual_native_profiles_match_between_arms": true
+    },
+    {
+      "case_id": "atomic-stock",
+      "spec_source_checks_unchanged": true,
+      "checker_sha256": "ba6c4c2725d0f7da513cbf153dbe5006b6fe75ec08054cbe5b3d8dda072d6ca3",
+      "actual_native_profiles_match_between_arms": true
+    },
+    {
+      "case_id": "stable-key-unique",
+      "spec_source_checks_unchanged": true,
+      "checker_sha256": "ee1f06be069c966c982c93b9a8ec3d4c5dc447e9f9ae70ece25a35f38e57ae19",
+      "actual_native_profiles_match_between_arms": true
+    }
+  ],
+  "frozen_integrity_receipt": {
+    "path": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v7-diagnosis-20261020/frozen-integrity.json",
+    "sha256": "6e4c6f8737d5dfc7f1682c38064e4801b44b00527399b57a381b3792464c4678"
+  },
+  "episodes": [
+    {
+      "arm": "baseline",
+      "case_id": "signed-ceiling",
+      "harness": "qwen-code.v3",
+      "actual_independent_check": {
+        "exit_code": 0,
+        "termination": "completed",
+        "stdout": "",
+        "stderr": ""
+      },
+      "matches_recorded_check": true,
+      "passed": true,
+      "final_source_changed": true,
+      "source_sha256": "79258439b234407f0d9a2db2162ee99cbe9d1ad57c8aa656bf34f5a3e18b20cc",
+      "native_jsonl_sha256": "a62ec1685e540ed52fffc5733b248dc33e769218aeb6735bed9c4dcbc43fc91f",
+      "native_request_capture_sha256": "69ef68d4c28443658b12f8e00b09d658ef738675181a0a18b02ffd9e0dfe1363",
+      "native_profile_sha256": "cc130de01cc5dcc8f8e43c5eb95a95b801e06a785ee9f5edaec8b1d1a3f6ae83",
+      "actual_flat_exec_descriptor_sha256": "7ecb0f4f51b3982e36be43a9d08daa05348d7dd5f70646231b1f0f9823f40ec3",
+      "accepted_native_patch_events": 1,
+      "turn_completed_events": 1,
+      "client_exit_code": 0,
+      "elapsed_ms": 76706,
+      "submitted_requests": 3,
+      "commands": [
+        {
+          "trace_line_1based": 4,
+          "native_item_id": "item_0",
+          "command_sha256": "9aedba266b0f67d98640958ca6956e7b9651d1bde1c9b0cc3447e67dc49dfe29",
+          "exit_code": 0,
+          "after_last_native_patch": false,
+          "output_sha256": "175eaf74caaf7f5263a43b209137da038a739b4b1b127660dea10592ac0e755d",
+          "classification": "unclassified_host_command"
+        }
+      ],
+      "native_errors": [],
+      "rejected_native_patches": []
+    },
+    {
+      "arm": "baseline",
+      "case_id": "literal-first",
+      "harness": "qwen-code.v3",
+      "actual_independent_check": {
+        "exit_code": 0,
+        "termination": "completed",
+        "stdout": "",
+        "stderr": ""
+      },
+      "matches_recorded_check": true,
+      "passed": true,
+      "final_source_changed": true,
+      "source_sha256": "9796fe7167bb4cdff48169f3e1465faedaa5a235988ecffa1c15969e7e863f50",
+      "native_jsonl_sha256": "464c4ab44cd0f77df9665ff1dedf4d88b0de9c7c6df7376872b4433496018bf6",
+      "native_request_capture_sha256": "90f704d40937e2021547d3e0c568f94c998fae015ddd87f5e28dd52f9123dda5",
+      "native_profile_sha256": "cc130de01cc5dcc8f8e43c5eb95a95b801e06a785ee9f5edaec8b1d1a3f6ae83",
+      "actual_flat_exec_descriptor_sha256": "7ecb0f4f51b3982e36be43a9d08daa05348d7dd5f70646231b1f0f9823f40ec3",
+      "accepted_native_patch_events": 1,
+      "turn_completed_events": 1,
+      "client_exit_code": 0,
+      "elapsed_ms": 64656,
+      "submitted_requests": 3,
+      "commands": [
+        {
+          "trace_line_1based": 4,
+          "native_item_id": "item_0",
+          "command_sha256": "9aedba266b0f67d98640958ca6956e7b9651d1bde1c9b0cc3447e67dc49dfe29",
+          "exit_code": 0,
+          "after_last_native_patch": false,
+          "output_sha256": "d6cf8f6a6d1b5aa901ebcd19f996e108b039bf82b7c72249c056d1faf2f1bc20",
+          "classification": "unclassified_host_command"
+        }
+      ],
+      "native_errors": [],
+      "rejected_native_patches": []
+    },
+    {
+      "arm": "baseline",
+      "case_id": "adjacent-groups",
+      "harness": "qwen-code.v3",
+      "actual_independent_check": {
+        "exit_code": 1,
+        "termination": "completed",
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"/Users/mehrdadz/Downloads/memoWiki/koto-harness-v7-a22-comparison-20261020/checks/adjacent-groups.py\", line 8, in <module>\n    assert r == [[1, 1], [2], [1, 1], [3]]\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError\n"
+      },
+      "matches_recorded_check": true,
+      "passed": false,
+      "final_source_changed": false,
+      "source_sha256": "0d004e68c2e804b697729a9d26a2c9ee2e7e42b12710b950ee9429ca11a3ae5c",
+      "native_jsonl_sha256": "f4ab9350e36ba7bb88bd1cc7e91fb64817d89532837c06694650560ac4a79eaf",
+      "native_request_capture_sha256": "0fb05536908c6ec101f1f2667670a8316ef19a04825470a0b34e4e17796c6e12",
+      "native_profile_sha256": "cc130de01cc5dcc8f8e43c5eb95a95b801e06a785ee9f5edaec8b1d1a3f6ae83",
+      "actual_flat_exec_descriptor_sha256": "7ecb0f4f51b3982e36be43a9d08daa05348d7dd5f70646231b1f0f9823f40ec3",
+      "accepted_native_patch_events": 2,
+      "turn_completed_events": 0,
+      "client_exit_code": 1,
+      "elapsed_ms": 180008,
+      "submitted_requests": 7,
+      "commands": [
+        {
+          "trace_line_1based": 4,
+          "native_item_id": "item_0",
+          "command_sha256": "9aedba266b0f67d98640958ca6956e7b9651d1bde1c9b0cc3447e67dc49dfe29",
+          "exit_code": 0,
+          "after_last_native_patch": false,
+          "output_sha256": "0d004e68c2e804b697729a9d26a2c9ee2e7e42b12710b950ee9429ca11a3ae5c",
+          "classification": "unclassified_host_command"
+        },
+        {
+          "trace_line_1based": 8,
+          "native_item_id": "item_2",
+          "command_sha256": "630613787b09cfe3d6bcc95b21b5e7eb47dbe6405a232f6cda9f6ad9eac19cbf",
+          "exit_code": 1,
+          "after_last_native_patch": false,
+          "output_sha256": "a0bd83afc0e1ac93e6f6d8c690cc5ee36afdc7bf2c5939d613d3e8cbee32df16",
+          "classification": "unparseable_shell_display_or_python_payload",
+          "parse_error_type": "ValueError"
+        },
+        {
+          "trace_line_1based": 10,
+          "native_item_id": "item_3",
+          "command_sha256": "5cd0c9b0ad753812738199980e6f415b61e6f15960adddb0d94bcd7b856dcd27",
+          "exit_code": 127,
+          "after_last_native_patch": false,
+          "output_sha256": "65da52a6ebf4e434af777f486a739b2f0f946104c9acb4ea5b6cc3d85dc2f931",
+          "classification": "unclassified_host_command"
+        },
+        {
+          "trace_line_1based": 12,
+          "native_item_id": "item_4",
+          "command_sha256": "922c7663cb932dbf0c3cf22347551b9e76fb018378580cdd4c3180ff21a72ba4",
+          "exit_code": 1,
+          "after_last_native_patch": false,
+          "output_sha256": "c2f4f07ebda3122a3d7c5164673ae8b76f0f15c93337874297f7ba28d2e50ace",
+          "classification": "unclassified_host_command"
+        }
+      ],
+      "native_errors": [
+        {
+          "type": "error",
+          "message": "stream disconnected before completion: stream closed before response.completed"
+        },
+        {
+          "type": "turn.failed",
+          "error": {
+            "message": "stream disconnected before completion: stream closed before response.completed"
+          }
+        }
+      ],
+      "rejected_native_patches": []
+    },
+    {
+      "arm": "adapted",
+      "case_id": "signed-ceiling",
+      "harness": "qwen-code.v7",
+      "actual_independent_check": {
+        "exit_code": 0,
+        "termination": "completed",
+        "stdout": "",
+        "stderr": ""
+      },
+      "matches_recorded_check": true,
+      "passed": true,
+      "final_source_changed": true,
+      "source_sha256": "79258439b234407f0d9a2db2162ee99cbe9d1ad57c8aa656bf34f5a3e18b20cc",
+      "native_jsonl_sha256": "a7aa69280772332d1e1e24b4a53d8cc6be341ac21037b190f714e95c56be837e",
+      "native_request_capture_sha256": "aa634dc5f2c64f32087926f67b164d7f953b0bd8f6e0711bf4321508df31a8d2",
+      "native_profile_sha256": "cc130de01cc5dcc8f8e43c5eb95a95b801e06a785ee9f5edaec8b1d1a3f6ae83",
+      "actual_flat_exec_descriptor_sha256": "7ecb0f4f51b3982e36be43a9d08daa05348d7dd5f70646231b1f0f9823f40ec3",
+      "accepted_native_patch_events": 1,
+      "turn_completed_events": 1,
+      "client_exit_code": 0,
+      "elapsed_ms": 79845,
+      "submitted_requests": 3,
+      "commands": [
+        {
+          "trace_line_1based": 4,
+          "native_item_id": "item_0",
+          "command_sha256": "9aedba266b0f67d98640958ca6956e7b9651d1bde1c9b0cc3447e67dc49dfe29",
+          "exit_code": 0,
+          "after_last_native_patch": false,
+          "output_sha256": "175eaf74caaf7f5263a43b209137da038a739b4b1b127660dea10592ac0e755d",
+          "classification": "unclassified_host_command"
+        }
+      ],
+      "native_errors": [],
+      "rejected_native_patches": []
+    },
+    {
+      "arm": "adapted",
+      "case_id": "literal-first",
+      "harness": "qwen-code.v7",
+      "actual_independent_check": {
+        "exit_code": 0,
+        "termination": "completed",
+        "stdout": "",
+        "stderr": ""
+      },
+      "matches_recorded_check": true,
+      "passed": true,
+      "final_source_changed": true,
+      "source_sha256": "e6f88e5535d60dbacc58b60695ee72a5a13073058893c1c25738bf2eb9a075be",
+      "native_jsonl_sha256": "74cd742dfdd062646cdea425802d8a05e83bbcb1921bcec17d7ef628aff9d8c4",
+      "native_request_capture_sha256": "7372614b9064cb380a02e6bd9555faa606c31f99db2707b8ddc409817c83fe47",
+      "native_profile_sha256": "cc130de01cc5dcc8f8e43c5eb95a95b801e06a785ee9f5edaec8b1d1a3f6ae83",
+      "actual_flat_exec_descriptor_sha256": "7ecb0f4f51b3982e36be43a9d08daa05348d7dd5f70646231b1f0f9823f40ec3",
+      "accepted_native_patch_events": 1,
+      "turn_completed_events": 1,
+      "client_exit_code": 0,
+      "elapsed_ms": 90625,
+      "submitted_requests": 4,
+      "commands": [
+        {
+          "trace_line_1based": 4,
+          "native_item_id": "item_0",
+          "command_sha256": "9aedba266b0f67d98640958ca6956e7b9651d1bde1c9b0cc3447e67dc49dfe29",
+          "exit_code": 0,
+          "after_last_native_patch": false,
+          "output_sha256": "d6cf8f6a6d1b5aa901ebcd19f996e108b039bf82b7c72249c056d1faf2f1bc20",
+          "classification": "unclassified_host_command"
+        },
+        {
+          "trace_line_1based": 8,
+          "native_item_id": "item_2",
+          "command_sha256": "9dc2d87ba54c954e4c81d8006bcb234d06a861999bac130816b758a0b7a25306",
+          "exit_code": 0,
+          "after_last_native_patch": true,
+          "output_sha256": "c47340c551e2534ae5f2c3fed2dabff147d357245b3d1fac327a1c0901d7110d",
+          "classification": "frozen_compiler_typed_checks",
+          "assertion_AST_count": 0,
+          "compiler_command_exact": true,
+          "typed_cases_basis": "Data recovered from actual native command; not the hidden independent oracle.",
+          "typed_spec": {
+            "module_path": "solution.py",
+            "function": "replace_first",
+            "cases": [
+              {
+                "args": [
+                  "abc",
+                  "a",
+                  "X"
+                ],
+                "expected": "Xbc"
+              },
+              {
+                "args": [
+                  "abc",
+                  "b",
+                  "Y"
+                ],
+                "expected": "aYc"
+              },
+              {
+                "args": [
+                  "abc",
+                  "c",
+                  "Z"
+                ],
+                "expected": "abZ"
+              },
+              {
+                "args": [
+                  "abc",
+                  "d",
+                  "W"
+                ],
+                "expected": "abc"
+              },
+              {
+                "args": [
+                  "",
+                  "",
+                  ""
+                ],
+                "raises": "ValueError"
+              },
+              {
+                "args": [
+                  "abc",
+                  "ab",
+                  "X"
+                ],
+                "expected": "Xc"
+              },
+              {
+                "args": [
+                  "abc",
+                  "bc",
+                  "X"
+                ],
+                "expected": "aX"
+              },
+              {
+                "args": [
+                  "abc",
+                  "abc",
+                  "X"
+                ],
+                "expected": "X"
+              }
+            ]
+          },
+          "typed_spec_sha256": "d8c8776c4e3c047833153f6ff6a345fde22258de70590cbc22c5742839454689",
+          "typed_case_count": 8,
+          "native_check_success_marker": [
+            {
+              "source_sha256": "e6f88e5535d60dbacc58b60695ee72a5a13073058893c1c25738bf2eb9a075be",
+              "cases": 8,
+              "probes": 0
+            }
+          ],
+          "checked_source_equals_saved_final": true,
+          "successful_compiled_checks_on_saved_final": true,
+          "actual_python_failure_messages": [],
+          "case_binding_error_feedback_observed": false,
+          "target_function_not_called_on_binding_error": false,
+          "execution_outcome": "success_marker_and_zero_exit",
+          "model_expectations_are_not_independent_oracles": true,
+          "preserved_signature": {
+            "positional_names": [
+              "text",
+              "needle",
+              "replacement"
+            ],
+            "maximum_positional": 3,
+            "required_positional_names": [
+              "text",
+              "needle",
+              "replacement"
+            ]
+          },
+          "supplied_case_shape_facts": [
+            {
+              "case_1based": 1,
+              "supplied_positional_count": 3,
+              "too_many_positional_for_preserved_signature": false,
+              "missing_required_positional_names": [],
+              "input_shape_conflicts_with_preserved_signature": false
+            },
+            {
+              "case_1based": 2,
+              "supplied_positional_count": 3,
+              "too_many_positional_for_preserved_signature": false,
+              "missing_required_positional_names": [],
+              "input_shape_conflicts_with_preserved_signature": false
+            },
+            {
+              "case_1based": 3,
+              "supplied_positional_count": 3,
+              "too_many_positional_for_preserved_signature": false,
+              "missing_required_positional_names": [],
+              "input_shape_conflicts_with_preserved_signature": false
+            },
+            {
+              "case_1based": 4,
+              "supplied_positional_count": 3,
+              "too_many_positional_for_preserved_signature": false,
+              "missing_required_positional_names": [],
+              "input_shape_conflicts_with_preserved_signature": false
+            },
+            {
+              "case_1based": 5,
+              "supplied_positional_count": 3,
+              "too_many_positional_for_preserved_signature": false,
+              "missing_required_positional_names": [],
+              "input_shape_conflicts_with_preserved_signature": false
+            },
+            {
+              "case_1based": 6,
+              "supplied_positional_count": 3,
+              "too_many_positional_for_preserved_signature": false,
+              "missing_required_positional_names": [],
+              "input_shape_conflicts_with_preserved_signature": false
+            },
+            {
+              "case_1based": 7,
+              "supplied_positional_count": 3,
+              "too_many_positional_for_preserved_signature": false,
+              "missing_required_positional_names": [],
+              "input_shape_conflicts_with_preserved_signature": false
+            },
+            {
+              "case_1based": 8,
+              "supplied_positional_count": 3,
+              "too_many_positional_for_preserved_signature": false,
+              "missing_required_positional_names": [],
+              "input_shape_conflicts_with_preserved_signature": false
+            }
+          ],
+          "model_input_shape_error_observed": false
+        }
+      ],
+      "native_errors": [],
+      "rejected_native_patches": []
+    },
+    {
+      "arm": "adapted",
+      "case_id": "adjacent-groups",
+      "harness": "qwen-code.v7",
+      "actual_independent_check": {
+        "exit_code": 0,
+        "termination": "completed",
+        "stdout": "",
+        "stderr": ""
+      },
+      "matches_recorded_check": true,
+      "passed": true,
+      "final_source_changed": true,
+      "source_sha256": "d30774fa37c3656bfadc48d3acb95b513b9bda69321d4375ff294e4b0a556b5d",
+      "native_jsonl_sha256": "07707a60f534de75d67bcf9fef19db9b3b6d30550f025707e0667b54cf655f54",
+      "native_request_capture_sha256": "400cdf50c5ed07b0a11f49a7c81270a88cd60b1463c01d189b3eb68dfadbebf9",
+      "native_profile_sha256": "cc130de01cc5dcc8f8e43c5eb95a95b801e06a785ee9f5edaec8b1d1a3f6ae83",
+      "actual_flat_exec_descriptor_sha256": "7ecb0f4f51b3982e36be43a9d08daa05348d7dd5f70646231b1f0f9823f40ec3",
+      "accepted_native_patch_events": 1,
+      "turn_completed_events": 1,
+      "client_exit_code": 0,
+      "elapsed_ms": 154988,
+      "submitted_requests": 5,
+      "commands": [
+        {
+          "trace_line_1based": 4,
+          "native_item_id": "item_0",
+          "command_sha256": "9aedba266b0f67d98640958ca6956e7b9651d1bde1c9b0cc3447e67dc49dfe29",
+          "exit_code": 0,
+          "after_last_native_patch": false,
+          "output_sha256": "0d004e68c2e804b697729a9d26a2c9ee2e7e42b12710b950ee9429ca11a3ae5c",
+          "classification": "unclassified_host_command"
+        },
+        {
+          "trace_line_1based": 6,
+          "native_item_id": "item_1",
+          "command_sha256": "f0209329626441cc0f38b70b61084347082c86ef22f089ae5a956b9172df5a3a",
+          "exit_code": 2,
+          "after_last_native_patch": false,
+          "output_sha256": "61117f7fac1baabde523d48ccb9f20773a0dd22892add6117bf7a9894576848b",
+          "classification": "static_semantic_input_error_feedback",
+          "assertion_AST_count": 0,
+          "compiler_command_exact": true,
+          "input_error_code": "invalid_atomic_state_indices",
+          "recovered_semantic_feedback": true,
+          "target_import_or_function_execution_in_error_program": false,
+          "submitted_spec_not_recoverable_from_static_command": true,
+          "task_correctness_credit": false,
+          "execution_outcome": "error_only_native_feedback_no_target_check"
+        },
+        {
+          "trace_line_1based": 10,
+          "native_item_id": "item_3",
+          "command_sha256": "428e400fbb9139a02aa8475e22005cc422bf83e7826bec2ecb918e6bfff5e6fc",
+          "exit_code": 2,
+          "after_last_native_patch": true,
+          "output_sha256": "fd9a2c2983e12632e167fe8f1c4436966a3f63d91ccaed4636d00d41d4920278",
+          "classification": "frozen_compiler_typed_checks",
+          "assertion_AST_count": 0,
+          "compiler_command_exact": true,
+          "typed_cases_basis": "Data recovered from actual native command; not the hidden independent oracle.",
+          "typed_spec": {
+            "module_path": "solution.py",
+            "function": "group_runs",
+            "cases": [
+              {
+                "args": [
+                  [],
+                  []
+                ],
+                "expected": []
+              },
+              {
+                "args": [
+                  [
+                    "a"
+                  ],
+                  []
+                ],
+                "expected": [
+                  [
+                    "a"
+                  ]
+                ],
+                "unchanged_args": [
+                  0
+                ]
+              },
+              {
+                "args": [
+                  [
+                    "a",
+                    "a"
+                  ],
+                  []
+                ],
+                "expected": [
+                  [
+                    "a",
+                    "a"
+                  ]
+                ],
+                "unchanged_args": [
+                  0
+                ]
+              },
+              {
+                "args": [
+                  [
+                    "a",
+                    "a",
+                    "b"
+                  ],
+                  []
+                ],
+                "expected": [
+                  [
+                    "a",
+                    "a"
+                  ],
+                  [
+                    "b"
+                  ]
+                ],
+                "unchanged_args": [
+                  0
+                ]
+              },
+              {
+                "args": [
+                  [
+                    "a",
+                    "b",
+                    "a"
+                  ],
+                  []
+                ],
+                "expected": [
+                  [
+                    "a"
+                  ],
+                  [
+                    "b"
+                  ],
+                  [
+                    "a"
+                  ]
+                ],
+                "unchanged_args": [
+                  0
+                ]
+              },
+              {
+                "args": [
+                  [
+                    "a",
+                    "a",
+                    "b",
+                    "b",
+                    "b"
+                  ],
+                  []
+                ],
+                "expected": [
+                  [
+                    "a",
+                    "a"
+                  ],
+                  [
+                    "b",
+                    "b",
+                    "b"
+                  ]
+                ],
+                "unchanged_args": [
+                  0
+                ]
+              },
+              {
+                "args": [
+                  [
+                    "a",
+                    "a",
+                    "a"
+                  ],
+                  []
+                ],
+                "expected": [
+                  [
+                    "a",
+                    "a",
+                    "a"
+                  ]
+                ],
+                "unchanged_args": [
+                  0
+                ]
+              }
+            ]
+          },
+          "typed_spec_sha256": "d3b0c9ecb4936740f2b68d070357adadbbd0e067130c9d83efd346520bca4c4e",
+          "typed_case_count": 7,
+          "native_check_success_marker": [],
+          "checked_source_equals_saved_final": false,
+          "successful_compiled_checks_on_saved_final": false,
+          "actual_python_failure_messages": [],
+          "case_binding_error_feedback_observed": true,
+          "target_function_not_called_on_binding_error": true,
+          "execution_outcome": "case_binding_error_native_feedback",
+          "model_expectations_are_not_independent_oracles": true,
+          "preserved_signature": {
+            "positional_names": [
+              "values"
+            ],
+            "maximum_positional": 1,
+            "required_positional_names": [
+              "values"
+            ]
+          },
+          "supplied_case_shape_facts": [
+            {
+              "case_1based": 1,
+              "supplied_positional_count": 2,
+              "too_many_positional_for_preserved_signature": true,
+              "missing_required_positional_names": [],
+              "input_shape_conflicts_with_preserved_signature": true
+            },
+            {
+              "case_1based": 2,
+              "supplied_positional_count": 2,
+              "too_many_positional_for_preserved_signature": true,
+              "missing_required_positional_names": [],
+              "input_shape_conflicts_with_preserved_signature": true
+            },
+            {
+              "case_1based": 3,
+              "supplied_positional_count": 2,
+              "too_many_positional_for_preserved_signature": true,
+              "missing_required_positional_names": [],
+              "input_shape_conflicts_with_preserved_signature": true
+            },
+            {
+              "case_1based": 4,
+              "supplied_positional_count": 2,
+              "too_many_positional_for_preserved_signature": true,
+              "missing_required_positional_names": [],
+              "input_shape_conflicts_with_preserved_signature": true
+            },
+            {
+              "case_1based": 5,
+              "supplied_positional_count": 2,
+              "too_many_positional_for_preserved_signature": true,
+              "missing_required_positional_names": [],
+              "input_shape_conflicts_with_preserved_signature": true
+            },
+            {
+              "case_1based": 6,
+              "supplied_positional_count": 2,
+              "too_many_positional_for_preserved_signature": true,
+              "missing_required_positional_names": [],
+              "input_shape_conflicts_with_preserved_signature": true
+            },
+            {
+              "case_1based": 7,
+              "supplied_positional_count": 2,
+              "too_many_positional_for_preserved_signature": true,
+              "missing_required_positional_names": [],
+              "input_shape_conflicts_with_preserved_signature": true
+            }
+          ],
+          "model_input_shape_error_observed": true
+        }
+      ],
+      "native_errors": [],
+      "rejected_native_patches": []
+    },
+    {
+      "arm": "adapted",
+      "case_id": "interval-union",
+      "harness": "qwen-code.v7",
+      "actual_independent_check": {
+        "exit_code": 0,
+        "termination": "completed",
+        "stdout": "",
+        "stderr": ""
+      },
+      "matches_recorded_check": true,
+      "passed": false,
+      "final_source_changed": true,
+      "source_sha256": "e6d4010dc0a07c9faac699ff31db2727bf046f9623fe1f4d1635fb43599bdb21",
+      "native_jsonl_sha256": "a882d35b2dc403560810e6a2729bd8dd2088f0aca62cbd9b87d95226b2930e67",
+      "native_request_capture_sha256": "90888c9e1f71826050759978e47dc62e63fa759aedc9e2487294c0410a81fcbf",
+      "native_profile_sha256": "cc130de01cc5dcc8f8e43c5eb95a95b801e06a785ee9f5edaec8b1d1a3f6ae83",
+      "actual_flat_exec_descriptor_sha256": "7ecb0f4f51b3982e36be43a9d08daa05348d7dd5f70646231b1f0f9823f40ec3",
+      "accepted_native_patch_events": 1,
+      "turn_completed_events": 0,
+      "client_exit_code": 1,
+      "elapsed_ms": 146890,
+      "submitted_requests": 3,
+      "commands": [
+        {
+          "trace_line_1based": 4,
+          "native_item_id": "item_0",
+          "command_sha256": "9aedba266b0f67d98640958ca6956e7b9651d1bde1c9b0cc3447e67dc49dfe29",
+          "exit_code": 0,
+          "after_last_native_patch": false,
+          "output_sha256": "496fa97cdbbf05e64ff89dd22dd742c7b1531da9e1bcf7c75edd1e428e743fa5",
+          "classification": "unclassified_host_command"
+        }
+      ],
+      "native_errors": [
+        {
+          "type": "error",
+          "message": "stream disconnected before completion: stream closed before response.completed"
+        },
+        {
+          "type": "turn.failed",
+          "error": {
+            "message": "stream disconnected before completion: stream closed before response.completed"
+          }
+        }
+      ],
+      "rejected_native_patches": []
+    },
+    {
+      "arm": "adapted",
+      "case_id": "atomic-stock",
+      "harness": "qwen-code.v7",
+      "actual_independent_check": {
+        "exit_code": 1,
+        "termination": "completed",
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"/Users/mehrdadz/Downloads/memoWiki/koto-harness-v7-a22-comparison-20261020/checks/atomic-stock.py\", line 14, in <module>\n    assert x == {'a': 5, 'b': 2}\n           ^^^^^^^^^^^^^^^^^^^^^\nAssertionError\n"
+      },
+      "matches_recorded_check": true,
+      "passed": false,
+      "final_source_changed": true,
+      "source_sha256": "58c6c37df766227823a8e42b2dc0934dac1cbb62965b4380ec12261a8174d40f",
+      "native_jsonl_sha256": "2e6e5950ba53f84a905ac2e6fcc400d03f91cf8fca89a254bc2fb584e3f1dd58",
+      "native_request_capture_sha256": "6ee3deeee8d0c2999e39ee5b3219e22a48c77db600c8655ec304936b8bf79429",
+      "native_profile_sha256": "cc130de01cc5dcc8f8e43c5eb95a95b801e06a785ee9f5edaec8b1d1a3f6ae83",
+      "actual_flat_exec_descriptor_sha256": "7ecb0f4f51b3982e36be43a9d08daa05348d7dd5f70646231b1f0f9823f40ec3",
+      "accepted_native_patch_events": 1,
+      "turn_completed_events": 0,
+      "client_exit_code": 1,
+      "elapsed_ms": 180004,
+      "submitted_requests": 4,
+      "commands": [
+        {
+          "trace_line_1based": 4,
+          "native_item_id": "item_0",
+          "command_sha256": "9aedba266b0f67d98640958ca6956e7b9651d1bde1c9b0cc3447e67dc49dfe29",
+          "exit_code": 0,
+          "after_last_native_patch": false,
+          "output_sha256": "177840859689205884344266cd3a7c2ca1e24ef5e73808b3edb284e60532f04f",
+          "classification": "unclassified_host_command"
+        },
+        {
+          "trace_line_1based": 6,
+          "native_item_id": "item_1",
+          "command_sha256": "e7ed14b62aaba7cbdb0e5d23bb1433948b29d0118f099818c95f6f0f5ff7bdb1",
+          "exit_code": 2,
+          "after_last_native_patch": false,
+          "output_sha256": "5c982f3b0da300d2bbc44acfbcf3b2b59e16619823385601feb07540af22b605",
+          "classification": "static_semantic_input_error_feedback",
+          "assertion_AST_count": 0,
+          "compiler_command_exact": true,
+          "input_error_code": "identity_requires_success",
+          "recovered_semantic_feedback": true,
+          "target_import_or_function_execution_in_error_program": false,
+          "submitted_spec_not_recoverable_from_static_command": true,
+          "task_correctness_credit": false,
+          "execution_outcome": "error_only_native_feedback_no_target_check"
+        },
+        {
+          "trace_line_1based": 12,
+          "native_item_id": "item_4",
+          "command_sha256": "f0209329626441cc0f38b70b61084347082c86ef22f089ae5a956b9172df5a3a",
+          "exit_code": 2,
+          "after_last_native_patch": true,
+          "output_sha256": "61117f7fac1baabde523d48ccb9f20773a0dd22892add6117bf7a9894576848b",
+          "classification": "static_semantic_input_error_feedback",
+          "assertion_AST_count": 0,
+          "compiler_command_exact": true,
+          "input_error_code": "invalid_atomic_state_indices",
+          "recovered_semantic_feedback": true,
+          "target_import_or_function_execution_in_error_program": false,
+          "submitted_spec_not_recoverable_from_static_command": true,
+          "task_correctness_credit": false,
+          "execution_outcome": "error_only_native_feedback_no_target_check"
+        },
+        {
+          "trace_line_1based": 13,
+          "native_item_id": "item_3",
+          "command_sha256": "f0209329626441cc0f38b70b61084347082c86ef22f089ae5a956b9172df5a3a",
+          "exit_code": 2,
+          "after_last_native_patch": true,
+          "output_sha256": "61117f7fac1baabde523d48ccb9f20773a0dd22892add6117bf7a9894576848b",
+          "classification": "static_semantic_input_error_feedback",
+          "assertion_AST_count": 0,
+          "compiler_command_exact": true,
+          "input_error_code": "invalid_atomic_state_indices",
+          "recovered_semantic_feedback": true,
+          "target_import_or_function_execution_in_error_program": false,
+          "submitted_spec_not_recoverable_from_static_command": true,
+          "task_correctness_credit": false,
+          "execution_outcome": "error_only_native_feedback_no_target_check"
+        },
+        {
+          "trace_line_1based": 14,
+          "native_item_id": "item_5",
+          "command_sha256": "f0209329626441cc0f38b70b61084347082c86ef22f089ae5a956b9172df5a3a",
+          "exit_code": 2,
+          "after_last_native_patch": true,
+          "output_sha256": "61117f7fac1baabde523d48ccb9f20773a0dd22892add6117bf7a9894576848b",
+          "classification": "static_semantic_input_error_feedback",
+          "assertion_AST_count": 0,
+          "compiler_command_exact": true,
+          "input_error_code": "invalid_atomic_state_indices",
+          "recovered_semantic_feedback": true,
+          "target_import_or_function_execution_in_error_program": false,
+          "submitted_spec_not_recoverable_from_static_command": true,
+          "task_correctness_credit": false,
+          "execution_outcome": "error_only_native_feedback_no_target_check"
+        }
+      ],
+      "native_errors": [
+        {
+          "type": "error",
+          "message": "stream disconnected before completion: stream closed before response.completed"
+        },
+        {
+          "type": "turn.failed",
+          "error": {
+            "message": "stream disconnected before completion: stream closed before response.completed"
+          }
+        }
+      ],
+      "rejected_native_patches": []
+    },
+    {
+      "arm": "adapted",
+      "case_id": "stable-key-unique",
+      "harness": "qwen-code.v7",
+      "actual_independent_check": {
+        "exit_code": 2,
+        "termination": "completed",
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"/Users/mehrdadz/Downloads/memoWiki/koto-harness-v7-a22-comparison-20261020/checks/stable-key-unique.py\", line 10, in <module>\n    r = s.unique_records(x, 'id')\n        ^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/mehrdadz/Downloads/memoWiki/koto-harness-v7-a22-comparison-20261020/runs/adapted-stable-key-unique-solution.py\", line 8, in unique_records\n    if val not in seen:\n       ^^^^^^^^^^^^^^^\nTypeError: unhashable type: 'list'\n"
+      },
+      "matches_recorded_check": true,
+      "passed": false,
+      "final_source_changed": true,
+      "source_sha256": "69f5008134c7787300f504d2feb0b783a002f224bd6622f8c6e671a362ef1aed",
+      "native_jsonl_sha256": "82349f343fed47210daf7703ef0b489295c3b5d56b89726f9b0243d053a29340",
+      "native_request_capture_sha256": "c886d756aae7034cba64823a838dac540b920fc050987c5f1e1340b5f5bc2c62",
+      "native_profile_sha256": "cc130de01cc5dcc8f8e43c5eb95a95b801e06a785ee9f5edaec8b1d1a3f6ae83",
+      "actual_flat_exec_descriptor_sha256": "7ecb0f4f51b3982e36be43a9d08daa05348d7dd5f70646231b1f0f9823f40ec3",
+      "accepted_native_patch_events": 1,
+      "turn_completed_events": 0,
+      "client_exit_code": 1,
+      "elapsed_ms": 150964,
+      "submitted_requests": 4,
+      "commands": [
+        {
+          "trace_line_1based": 4,
+          "native_item_id": "item_0",
+          "command_sha256": "9aedba266b0f67d98640958ca6956e7b9651d1bde1c9b0cc3447e67dc49dfe29",
+          "exit_code": 0,
+          "after_last_native_patch": false,
+          "output_sha256": "7278ce0a8cf57f75eb18ffcffb4d7407be643e9effdf2eae342e6628e57132c1",
+          "classification": "unclassified_host_command"
+        },
+        {
+          "trace_line_1based": 8,
+          "native_item_id": "item_2",
+          "command_sha256": "2d2d40f1202018cbab29a74e06956909a88b76ac09608489c1441106fee58dda",
+          "exit_code": 2,
+          "after_last_native_patch": true,
+          "output_sha256": "fd9a2c2983e12632e167fe8f1c4436966a3f63d91ccaed4636d00d41d4920278",
+          "classification": "frozen_compiler_typed_checks",
+          "assertion_AST_count": 0,
+          "compiler_command_exact": true,
+          "typed_cases_basis": "Data recovered from actual native command; not the hidden independent oracle.",
+          "typed_spec": {
+            "module_path": "solution.py",
+            "function": "unique_records",
+            "cases": [
+              {
+                "args": [
+                  [
+                    "[{'a': 1}, {'a': 1}, {'a': 2}]",
+                    "'a'"
+                  ]
+                ],
+                "expected": "[{'a': 1}, {'a': 2}]"
+              },
+              {
+                "args": [
+                  [
+                    "[{'a': 1}, {'a': 2}, {'a': 1}]",
+                    "'a'"
+                  ]
+                ],
+                "expected": "[{'a': 1}, {'a': 2}]"
+              },
+              {
+                "args": [
+                  [
+                    "[{'a': [1, 2]}, {'a': [1, 2]}, {'a': [3, 4]}]",
+                    "'a'"
+                  ]
+                ],
+                "expected": "[{'a': [1, 2]}, {'a': [3, 4]}]"
+              },
+              {
+                "args": [
+                  [
+                    "[{'a': {'x': 1}}, {'a': {'x': 1}}, {'a': {'x': 2}}]",
+                    "'a'"
+                  ]
+                ],
+                "expected": "[{'a': {'x': 1}}, {'a': {'x': 2}]"
+              },
+              {
+                "args": [
+                  [
+                    "[]",
+                    "'a'"
+                  ]
+                ],
+                "expected": "[]"
+              },
+              {
+                "args": [
+                  [
+                    "[{'a': 1}]",
+                    "'b'"
+                  ]
+                ],
+                "raises": "KeyError"
+              },
+              {
+                "args": [
+                  [
+                    "[{'a': None}]",
+                    "'a'"
+                  ]
+                ],
+                "raises": "KeyError"
+              }
+            ]
+          },
+          "typed_spec_sha256": "3233756cf72b25a6f2f1265855a950d054a28b31aa7ea688f318a2b0bb489a19",
+          "typed_case_count": 7,
+          "native_check_success_marker": [],
+          "checked_source_equals_saved_final": false,
+          "successful_compiled_checks_on_saved_final": false,
+          "actual_python_failure_messages": [],
+          "case_binding_error_feedback_observed": true,
+          "target_function_not_called_on_binding_error": true,
+          "execution_outcome": "case_binding_error_native_feedback",
+          "model_expectations_are_not_independent_oracles": true,
+          "preserved_signature": {
+            "positional_names": [
+              "records",
+              "key"
+            ],
+            "maximum_positional": 2,
+            "required_positional_names": [
+              "records",
+              "key"
+            ]
+          },
+          "supplied_case_shape_facts": [
+            {
+              "case_1based": 1,
+              "supplied_positional_count": 1,
+              "too_many_positional_for_preserved_signature": false,
+              "missing_required_positional_names": [
+                "key"
+              ],
+              "input_shape_conflicts_with_preserved_signature": true
+            },
+            {
+              "case_1based": 2,
+              "supplied_positional_count": 1,
+              "too_many_positional_for_preserved_signature": false,
+              "missing_required_positional_names": [
+                "key"
+              ],
+              "input_shape_conflicts_with_preserved_signature": true
+            },
+            {
+              "case_1based": 3,
+              "supplied_positional_count": 1,
+              "too_many_positional_for_preserved_signature": false,
+              "missing_required_positional_names": [
+                "key"
+              ],
+              "input_shape_conflicts_with_preserved_signature": true
+            },
+            {
+              "case_1based": 4,
+              "supplied_positional_count": 1,
+              "too_many_positional_for_preserved_signature": false,
+              "missing_required_positional_names": [
+                "key"
+              ],
+              "input_shape_conflicts_with_preserved_signature": true
+            },
+            {
+              "case_1based": 5,
+              "supplied_positional_count": 1,
+              "too_many_positional_for_preserved_signature": false,
+              "missing_required_positional_names": [
+                "key"
+              ],
+              "input_shape_conflicts_with_preserved_signature": true
+            },
+            {
+              "case_1based": 6,
+              "supplied_positional_count": 1,
+              "too_many_positional_for_preserved_signature": false,
+              "missing_required_positional_names": [
+                "key"
+              ],
+              "input_shape_conflicts_with_preserved_signature": true
+            },
+            {
+              "case_1based": 7,
+              "supplied_positional_count": 1,
+              "too_many_positional_for_preserved_signature": false,
+              "missing_required_positional_names": [
+                "key"
+              ],
+              "input_shape_conflicts_with_preserved_signature": true
+            }
+          ],
+          "model_input_shape_error_observed": true
+        }
+      ],
+      "native_errors": [
+        {
+          "type": "error",
+          "message": "stream disconnected before completion: stream closed before response.completed"
+        },
+        {
+          "type": "turn.failed",
+          "error": {
+            "message": "stream disconnected before completion: stream closed before response.completed"
+          }
+        }
+      ],
+      "rejected_native_patches": []
+    },
+    {
+      "arm": "baseline",
+      "case_id": "interval-union",
+      "harness": "qwen-code.v3",
+      "actual_independent_check": {
+        "exit_code": 0,
+        "termination": "completed",
+        "stdout": "",
+        "stderr": ""
+      },
+      "matches_recorded_check": true,
+      "passed": true,
+      "final_source_changed": true,
+      "source_sha256": "286bbb3aaf72f99ddc2fef0489a19bb12478a6f92ae98651ac965fbfc8e8be70",
+      "native_jsonl_sha256": "dc20c67a3978df8bf5446259ef56af5afa5c4f986f9d0e97a1ed78d52fb4de08",
+      "native_request_capture_sha256": "bf2362fd30b9e6f75bc2f29f81bbaffd44df6224fff755bb9119a893c16e57d1",
+      "native_profile_sha256": "cc130de01cc5dcc8f8e43c5eb95a95b801e06a785ee9f5edaec8b1d1a3f6ae83",
+      "actual_flat_exec_descriptor_sha256": "7ecb0f4f51b3982e36be43a9d08daa05348d7dd5f70646231b1f0f9823f40ec3",
+      "accepted_native_patch_events": 1,
+      "turn_completed_events": 1,
+      "client_exit_code": 0,
+      "elapsed_ms": 73339,
+      "submitted_requests": 3,
+      "commands": [
+        {
+          "trace_line_1based": 4,
+          "native_item_id": "item_0",
+          "command_sha256": "9aedba266b0f67d98640958ca6956e7b9651d1bde1c9b0cc3447e67dc49dfe29",
+          "exit_code": 0,
+          "after_last_native_patch": false,
+          "output_sha256": "496fa97cdbbf05e64ff89dd22dd742c7b1531da9e1bcf7c75edd1e428e743fa5",
+          "classification": "unclassified_host_command"
+        }
+      ],
+      "native_errors": [],
+      "rejected_native_patches": []
+    },
+    {
+      "arm": "baseline",
+      "case_id": "atomic-stock",
+      "harness": "qwen-code.v3",
+      "actual_independent_check": {
+        "exit_code": 1,
+        "termination": "completed",
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"/Users/mehrdadz/Downloads/memoWiki/koto-harness-v7-a22-comparison-20261020/checks/atomic-stock.py\", line 14, in <module>\n    assert x == {'a': 5, 'b': 2}\n           ^^^^^^^^^^^^^^^^^^^^^\nAssertionError\n"
+      },
+      "matches_recorded_check": true,
+      "passed": false,
+      "final_source_changed": true,
+      "source_sha256": "58c6c37df766227823a8e42b2dc0934dac1cbb62965b4380ec12261a8174d40f",
+      "native_jsonl_sha256": "d9f614ed883f51b55389d0cbb1eb168f456d63225842dc6a1f60084de4d4d614",
+      "native_request_capture_sha256": "1800bb89445368fab2d8b2fd9097d98b83648d38ea98f0001e1b5bffc5baf478",
+      "native_profile_sha256": "cc130de01cc5dcc8f8e43c5eb95a95b801e06a785ee9f5edaec8b1d1a3f6ae83",
+      "actual_flat_exec_descriptor_sha256": "7ecb0f4f51b3982e36be43a9d08daa05348d7dd5f70646231b1f0f9823f40ec3",
+      "accepted_native_patch_events": 1,
+      "turn_completed_events": 1,
+      "client_exit_code": 0,
+      "elapsed_ms": 177751,
+      "submitted_requests": 6,
+      "commands": [
+        {
+          "trace_line_1based": 4,
+          "native_item_id": "item_0",
+          "command_sha256": "9aedba266b0f67d98640958ca6956e7b9651d1bde1c9b0cc3447e67dc49dfe29",
+          "exit_code": 0,
+          "after_last_native_patch": false,
+          "output_sha256": "177840859689205884344266cd3a7c2ca1e24ef5e73808b3edb284e60532f04f",
+          "classification": "unclassified_host_command"
+        },
+        {
+          "trace_line_1based": 8,
+          "native_item_id": "item_2",
+          "command_sha256": "37b9648fbfbbbf32ee92bcfd6848a09fbf86d7601ae9abe6f975dfdfe5653cb2",
+          "exit_code": 1,
+          "after_last_native_patch": true,
+          "output_sha256": "8da3808662d4e854d9885c204716b29b32d9220839798ea0a088f1c7e9839abc",
+          "classification": "unparseable_shell_display_or_python_payload",
+          "parse_error_type": "ValueError"
+        },
+        {
+          "trace_line_1based": 10,
+          "native_item_id": "item_3",
+          "command_sha256": "37b9648fbfbbbf32ee92bcfd6848a09fbf86d7601ae9abe6f975dfdfe5653cb2",
+          "exit_code": 1,
+          "after_last_native_patch": true,
+          "output_sha256": "8da3808662d4e854d9885c204716b29b32d9220839798ea0a088f1c7e9839abc",
+          "classification": "unparseable_shell_display_or_python_payload",
+          "parse_error_type": "ValueError"
+        },
+        {
+          "trace_line_1based": 12,
+          "native_item_id": "item_4",
+          "command_sha256": "37b9648fbfbbbf32ee92bcfd6848a09fbf86d7601ae9abe6f975dfdfe5653cb2",
+          "exit_code": 1,
+          "after_last_native_patch": true,
+          "output_sha256": "8da3808662d4e854d9885c204716b29b32d9220839798ea0a088f1c7e9839abc",
+          "classification": "unparseable_shell_display_or_python_payload",
+          "parse_error_type": "ValueError"
+        }
+      ],
+      "native_errors": [],
+      "rejected_native_patches": []
+    },
+    {
+      "arm": "baseline",
+      "case_id": "stable-key-unique",
+      "harness": "qwen-code.v3",
+      "actual_independent_check": {
+        "exit_code": 2,
+        "termination": "completed",
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"/Users/mehrdadz/Downloads/memoWiki/koto-harness-v7-a22-comparison-20261020/checks/stable-key-unique.py\", line 10, in <module>\n    r = s.unique_records(x, 'id')\n        ^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/mehrdadz/Downloads/memoWiki/koto-harness-v7-a22-comparison-20261020/runs/baseline-stable-key-unique-solution.py\", line 6, in unique_records\n    if val not in seen:\n       ^^^^^^^^^^^^^^^\nTypeError: unhashable type: 'list'\n"
+      },
+      "matches_recorded_check": true,
+      "passed": false,
+      "final_source_changed": true,
+      "source_sha256": "2dc9041240ceba61ca0c81f7b0b68b3d436c911f6fd471e9e0546488efe193e1",
+      "native_jsonl_sha256": "218dfffb7abdae61abb64550336478e4b1bccfb22a092219d6396770a7afe23b",
+      "native_request_capture_sha256": "7d6606d876aeecb34a23076c5bcf325ab63d15c0bf0cfb7f38868c43c8da4f0a",
+      "native_profile_sha256": "cc130de01cc5dcc8f8e43c5eb95a95b801e06a785ee9f5edaec8b1d1a3f6ae83",
+      "actual_flat_exec_descriptor_sha256": "7ecb0f4f51b3982e36be43a9d08daa05348d7dd5f70646231b1f0f9823f40ec3",
+      "accepted_native_patch_events": 1,
+      "turn_completed_events": 1,
+      "client_exit_code": 0,
+      "elapsed_ms": 47980,
+      "submitted_requests": 4,
+      "commands": [
+        {
+          "trace_line_1based": 4,
+          "native_item_id": "item_0",
+          "command_sha256": "9aedba266b0f67d98640958ca6956e7b9651d1bde1c9b0cc3447e67dc49dfe29",
+          "exit_code": 0,
+          "after_last_native_patch": false,
+          "output_sha256": "7278ce0a8cf57f75eb18ffcffb4d7407be643e9effdf2eae342e6628e57132c1",
+          "classification": "unclassified_host_command"
+        },
+        {
+          "trace_line_1based": 8,
+          "native_item_id": "item_2",
+          "command_sha256": "9fff56707a92381632eb893b3ea623c918513e3a6f2596171811e15cfc1b494a",
+          "exit_code": 0,
+          "after_last_native_patch": true,
+          "output_sha256": "2a13af67601624cb4924e88c89583b6d14c362a01c585716097d241c0a47bd61",
+          "classification": "parseable_python_with_assertion_text",
+          "assertion_AST_count": 1
+        }
+      ],
+      "native_errors": [],
+      "rejected_native_patches": []
+    }
+  ],
+  "summary": {
+    "episodes": 12,
+    "actual_checks_matching_recorded": 12,
+    "baseline_successes": 3,
+    "adapted_successes": 3,
+    "episodes_with_exact_compiled_typed_checks": 3,
+    "episodes_with_successful_compiled_checks_on_saved_final": 1,
+    "episodes_with_recovered_native_semantic_error_feedback": 2,
+    "episodes_with_native_case_binding_error_feedback": 2
+  },
+  "limits": {
+    "episode_seconds_each_arm": 180,
+    "requests_each_episode": 16,
+    "output_tokens_each_request": 2048,
+    "quality_retries": 0,
+    "probe_schema": 5
+  },
+  "setups": [
+    {
+      "arm": "baseline",
+      "model": "Qwen3-14B-Q4_K_M",
+      "capabilities": [
+        "responses",
+        "text",
+        "streaming",
+        "tools",
+        "codex_http",
+        "codex_http_0160",
+        "codex_llama_v1",
+        "qwen_code_v3"
+      ],
+      "max_output_tokens": 2048,
+      "coding_evidence_empty": true,
+      "automatic_coding_declared": false,
+      "readiness_mode": "local_only"
+    },
+    {
+      "arm": "adapted",
+      "model": "Qwen3-14B-Q4_K_M",
+      "capabilities": [
+        "responses",
+        "text",
+        "streaming",
+        "tools",
+        "codex_http",
+        "codex_http_0160",
+        "codex_llama_v1",
+        "qwen_code_v7"
+      ],
+      "max_output_tokens": 2048,
+      "coding_evidence_empty": true,
+      "automatic_coding_declared": false,
+      "readiness_mode": "local_only"
+    }
+  ],
+  "cleanup": {
+    "runner_lifetimes": [
+      {
+        "settings_restored": true,
+        "owned_listeners_closed": true
+      },
+      {
+        "settings_restored": true,
+        "owned_listeners_closed": true
+      },
+      {
+        "settings_restored": true,
+        "owned_listeners_closed": true
+      }
+    ],
+    "disposable_settings_byte_readback_matches": true,
+    "normal_settings_runner_pre_post_equal": true,
+    "normal_settings_reference_snapshot": null,
+    "normal_settings_after_sha256": "858fda4ee8b0938286530aad49117b2b0995e43245d3a23828878ead2061f462",
+    "normal_settings_equal_helper_preparation_snapshot": null
+  },
+  "native_launch_controls": {
+    "fixed_launch_arguments_match_preserved_controls": true,
+    "launch_function_AST_sha256": "1d66ba81965c1678710e67bed0bfc61adb4b291c06dd843c3bdb8dcb6b22ec9a",
+    "fixed_launch_arguments": [
+      "exec",
+      "--skip-git-repo-check",
+      "--ephemeral",
+      "--json",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "approval_policy=\"never\"",
+      "-c",
+      "agents.enabled=false",
+      "--disable",
+      "multi_agent",
+      "--disable",
+      "multi_agent_v2",
+      "--disable",
+      "goals",
+      "--disable",
+      "apps",
+      "--disable",
+      "plugins",
+      "--disable",
+      "shell_snapshot",
+      "-c",
+      "web_search=\"disabled\"",
+      "-c",
+      "sandbox_workspace_write.network_access=false",
+      "-c",
+      "sandbox_workspace_write.exclude_slash_tmp=true",
+      "-c",
+      "sandbox_workspace_write.exclude_tmpdir_env_var=true",
+      "-c",
+      "model_reasoning_summary=\"none\"",
+      "-c",
+      "model_reasoning_effort=\"none\"",
+      "-c",
+      "developer_instructions=\"Repair only solution.py in the working directory. Read it before editing, implement the complete user specification, and run your own relevant checks. Use the existing host tools. Do not inspect files outside this working directory. Finish with a concise factual status. Do not access the network.\"",
+      "-c",
+      "analytics.enabled=false",
+      "-C"
+    ]
+  },
+  "no_model_inference_submitted_by_audit": true,
+  "no_network_connections_started_by_audit": true,
+  "limitations": [
+    "Saved-run replay is not new generation.",
+    "Command syntax/assertion-text classification alone is not proof of adequate or executed assertions.",
+    "No captured shell command is executed; only frozen independent oracles run in the checker sandbox.",
+    "Typed specs are AST-extracted JSON from actual native commands and matched byte for byte to the frozen compiler; raw model helper calls and later full native requests were not retained.",
+    "Typed cases and success markers are model-supplied checks, separate from hidden independent-oracle results; a successful supplied check does not establish complete task coverage.",
+    "A static semantic error command contains no submitted spec or target code, so it proves native feedback recovery, not task correctness or what malformed fields were supplied.",
+    "A case-binding error is emitted after module loading but before any target-function invocation; it is not an implementation assertion failure.",
+    "Helper-preparation normal-settings snapshot is supplementary; its timing must not be substituted for the runner pre-study observation.",
+    "Listener closure is a recorded owner receipt; no network connections are opened to reenact it.",
+    "Known development tasks and one frozen sample per case/arm do not establish general qualification."
+  ]
+}

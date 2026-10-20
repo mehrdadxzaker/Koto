@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "kind": "complete_installed_wheel_suite",
+  "runtime": "2.0.0a22",
+  "runtime_source_commit": "ba7b6517a1bed1423d0160fe5268c51e0d686fcb",
+  "wheel_sha256": "c25fb95df59b38f9e8d46c821dcb8467e33df8d5a226a24351aae916eb1228fd",
+  "python": "3.11.14",
+  "fast": {
+    "passed": 184,
+    "seconds": 0.115,
+    "summary_extra": ""
+  },
+  "workflows": {
+    "passed": 635,
+    "seconds": 598.681,
+    "summary_extra": ""
+  },
+  "all_tests_passed": true,
+  "installed_outside_source_checkout": true,
+  "installed_cli_entrypoints_passed": [
+    "koto",
+    "hormuz"
+  ],
+  "runner_completed_and_temporary_directory_closed": true,
+  "raw_log_sha256": "482c2e970a1429717b722881008af3ff55881b14311bf9c052627e782c37aba6",
+  "raw_log_bytes": 184118,
+  "quality_or_qualification_credit": "none"
+}
