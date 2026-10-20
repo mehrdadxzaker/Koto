@@ -109,8 +109,11 @@ class CodingProbe:
                             or canonical_digest(items[:self.last_length]) != self.last_input_sha256)
                         or not contains_provider_state(value)):
                     raise ProbeError("probe_request_mismatch")
+                history_types = {"function_call", "function_call_output"}
+                if plan["schema_version"] >= 3 and "codex_llama_v1" in plan["subject"]["capabilities"]:
+                    history_types.update({"custom_tool_call", "custom_tool_call_output"})
                 for item in items[self.first_length:]:
-                    if (type(item) is not dict or not (item.get("type") in {"function_call", "function_call_output"}
+                    if (type(item) is not dict or not (item.get("type") in history_types
                             or item.get("type", "message") == "message" and item.get("role") == "assistant")):
                         raise ProbeError("probe_request_mismatch")
             if claim and not claimed:
