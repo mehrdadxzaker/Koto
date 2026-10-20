@@ -393,6 +393,8 @@ def run_session(executable, client_home, cwd, prompt, model=None, provider=None,
         configuration_overrides = _thread_configuration(selected, gateway_environment)
         if gateway_environment:
             inherited = configuration.get('shell_environment_policy', {}).get('exclude', [])
+            if inherited is None:
+                inherited = []  # Native config/read serializes the default as null.
             if type(inherited) is not list or any(type(name) is not str for name in inherited):
                 raise NativeSessionError('native_selection_invalid')
             configuration_overrides['shell_environment_policy.exclude'] = [*inherited, *gateway_environment]
