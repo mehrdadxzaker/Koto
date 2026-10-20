@@ -80,6 +80,7 @@ def _binary_snapshot(path, deadline):
 def _thread_configuration(selected, gateway_environment):
     configuration = selected['config']
     local_controls = {'model_reasoning_effort': 'none', 'model_reasoning_summary': 'none',
+                      'web_search': 'disabled', 'features.apps': False,
                       'agents.enabled': False, 'features.multi_agent_v2': False, 'features.multi_agent': False}
     if (set(configuration) - {'model_catalog_json', *local_controls}
             or 'model_catalog_json' in configuration and (type(configuration['model_catalog_json']) is not str
@@ -393,6 +394,8 @@ def run_session(executable, client_home, cwd, prompt, model=None, provider=None,
         configuration_overrides = _thread_configuration(selected, gateway_environment)
         if gateway_environment:
             inherited = configuration.get('shell_environment_policy', {}).get('exclude', [])
+            if inherited is None:
+                inherited = []  # Native config/read serializes the default as null.
             if type(inherited) is not list or any(type(name) is not str for name in inherited):
                 raise NativeSessionError('native_selection_invalid')
             configuration_overrides['shell_environment_policy.exclude'] = [*inherited, *gateway_environment]

@@ -109,8 +109,12 @@ commercial model.
 
 Local selection currently requires the Responses/text/streaming/tool transport
 capabilities for the supported terminal-native profile. Local session overrides
-use a scoped catalog, disable reasoning and subagents, and preserve the normal
-Codex configuration. Actual downstream requests remain subject to the router's
+use a scoped catalog and disable reasoning, subagents, hosted web search and the
+app catalog before Codex builds the local request. Native function tools remain
+available. These overrides apply only to the local thread; the commercial
+thread receives no search or app override, and saved Codex settings remain
+unchanged. The local controls are bound into history validation, so a profile
+change requires fresh checked validation. Actual downstream requests remain subject to the router's
 qualified envelope; a task label or a host-context hash cannot preapprove that
 wire request. Code-change and code-review tasks are excluded from local
 selection on this read-only surface. An explicit `interactive` qualification

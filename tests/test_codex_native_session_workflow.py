@@ -331,6 +331,40 @@ class CodexNativeSessionWorkflowTests(unittest.TestCase):
         self.assertIn('KOTO_SESSION_GATEWAY_TOKEN', thread['config']['shell_environment_policy.exclude'])
         self.assertNotIn('SYNTHETIC_GATEWAY_ONLY', json.dumps(result) + (self.home / 'requests.jsonl').read_text())
 
+    def test_native_shell_exclusions_preserve_existing_names_and_reject_malformed_values(self):
+        from hormuz.codex_native_session import run_session
+        (self.home / 'mode').write_text('gateway_environment')
+        original = self.config.read_text()
+        original_auth = self.auth.read_bytes()
+        definition = {'name': 'Koto', 'base_url': 'http://127.0.0.1:4567/v1', 'wire_api': 'responses',
+                      'requires_openai_auth': False, 'env_key': 'KOTO_SESSION_GATEWAY_TOKEN'}
+        for value, completed in ((['EXISTING_PRIVATE', 'OTHER_SECRET'], True),
+                                  ('EXISTING_PRIVATE', False), (['EXISTING_PRIVATE', 7], False)):
+            with self.subTest(exclusions=value):
+                self.config.write_text(original + '\n[shell_environment_policy]\nexclude = ' + json.dumps(value) + '\n')
+                expected_config = self.config.read_bytes()
+                log = self.home / 'requests.jsonl'
+                log.unlink(missing_ok=True)
+                result = run_session(self.executable, self.home, self.cwd, 'An ordinary user prompt.',
+                    timeout_seconds=3, gateway_environment={'KOTO_SESSION_GATEWAY_TOKEN': 'SYNTHETIC_GATEWAY_ONLY'},
+                    select=lambda facts: {'provider': 'koto_fixture', 'model': 'local-fixture', 'provider_config': definition})
+                requests = [json.loads(line) for line in log.read_text().splitlines()]
+                if completed:
+                    self.assertEqual((result['status'], result['error']), ('completed', None), result)
+                    thread = next(item['params'] for item in requests if item['method'] == 'thread/start')
+                    self.assertEqual(thread['config']['shell_environment_policy.exclude'],
+                        ['EXISTING_PRIVATE', 'OTHER_SECRET', 'KOTO_SESSION_GATEWAY_TOKEN'])
+                else:
+                    self.assertEqual((result['status'], result['error']), ('unknown', 'native_selection_invalid'), result)
+                    self.assertNotIn('thread/start', [item['method'] for item in requests])
+                self.assertTrue(result['cleanup']['owned_processes_stopped'])
+                for pid in {item['nativePid'] for item in requests}:
+                    with self.assertRaises(ProcessLookupError):
+                        os.kill(pid, 0)
+                self.assertEqual(self.config.read_bytes(), expected_config)
+                self.assertEqual(self.auth.read_bytes(), original_auth)
+                self.assertNotIn('SYNTHETIC_GATEWAY_ONLY', json.dumps(result) + log.read_text())
+
     def test_unknown_usage_is_not_fabricated_and_cumulative_updates_are_not_summed(self):
         from hormuz.codex_native_session import run_session
         for mode in ('negative_usage', 'boolean_usage', 'repeated_usage'):
@@ -466,7 +500,8 @@ class CodexNativeSessionWorkflowTests(unittest.TestCase):
         from hormuz.codex_native_session import run_session
         provider = {'name': 'Koto', 'base_url': 'http://127.0.0.1:4567/v1', 'wire_api': 'responses',
                     'requires_openai_auth': False}
-        controls = {'model_reasoning_effort': 'none', 'model_reasoning_summary': 'none', 'agents.enabled': False,
+        controls = {'model_reasoning_effort': 'none', 'model_reasoning_summary': 'none',
+                    'web_search': 'disabled', 'features.apps': False, 'agents.enabled': False,
                     'features.multi_agent_v2': False, 'features.multi_agent': False}
         original = self.config.read_bytes()
         result = run_session(self.executable, self.home, self.cwd, 'An ordinary user prompt.',
@@ -481,7 +516,9 @@ class CodexNativeSessionWorkflowTests(unittest.TestCase):
         self.assertEqual(self.config.read_bytes(), original)
         for invalid in ({'model_reasoning_effort': 'high'}, {'model_reasoning_summary': 'auto'},
                         {'agents.enabled': True}, {'features.multi_agent_v2': True}, {'features.multi_agent': True},
-                        {'features.multi_agent': 0}, {'features.web_search': False}):
+                        {'features.multi_agent': 0}, {'web_search': 'live'}, {'web_search': 'cached'},
+                        {'web_search': False}, {'web_search': True}, {'features.web_search': False},
+                        {'features.apps': True}, {'features.apps': 0}, {'features.apps': 'false'}):
             with self.subTest(profile_override=invalid):
                 log.unlink()
                 result = run_session(self.executable, self.home, self.cwd, 'An ordinary user prompt.',
