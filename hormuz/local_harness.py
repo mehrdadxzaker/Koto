@@ -5,7 +5,7 @@ ac1fcc8fe57aba51fcc3c79afd57a0883237fe87, core/src/harness/qwen_code.rs.
 This is an independent, transport-only adaptation, not its complete harness.
 """
 from .compaction_formats import strict_json_loads
-from .local_harness_progress import GUIDANCE as V4_GUIDANCE, REPEATED_PATCH_ADVICE as V4_REPEATED_PATCH, progress_checkpoint
+from .local_harness_progress import GUIDANCE as V4_GUIDANCE, REPEATED_PATCH_ADVICE as V4_REPEATED_PATCH, progress_checkpoint, progress_snapshot
 import json
 import re
 
@@ -23,10 +23,46 @@ V6_CAPABILITY = 'qwen_code_v6'
 V6_PROFILE = 'qwen-code.v6'
 V7_CAPABILITY = 'qwen_code_v7'
 V7_PROFILE = 'qwen-code.v7'
+V8_CAPABILITY = 'qwen_code_v8'
+V8_PROFILE = 'qwen-code.v8'
 PROFILES = {CAPABILITY: PROFILE, V2_CAPABILITY: V2_PROFILE, V3_CAPABILITY: V3_PROFILE,
             V4_CAPABILITY: V4_PROFILE, V5_CAPABILITY: V5_PROFILE, V6_CAPABILITY: V6_PROFILE,
-            V7_CAPABILITY: V7_PROFILE}
+            V7_CAPABILITY: V7_PROFILE, V8_CAPABILITY: V8_PROFILE}
 MODEL = 'Qwen3-14B-Q4_K_M'
+V8_GUIDANCE = '''Local coding protocol (subordinate to existing host and repository instructions):
+Complete the requested repair through the declared host tools. For other tasks,
+answer the original request without inventing edits or checks.
+Read the source and every requirement. For Python verification, use the declared
+Python script helper (script parameter) when offered. Its script is ordinary
+Python with real newlines, not a shell command or JSON test cases. Import and
+call the saved function; do not redefine the implementation in a check. Use
+assertions, including errors and boundaries.
+If an error must leave state unchanged, validate all operations using private
+proposed state before committing any mutation. Test a valid step followed by a
+failing step, cumulative repeated operations, and the complete state after the
+exception. If values may be unhashable, compare them by equality rather than
+using a set or dictionary as the sole deduplication mechanism.
+Run focused checks, repair the actual saved code, then rerun the same checks
+after the last edit. Inspect actual host results. A printout, saved patch, test
+definition, or failed command does not establish passing assertions. Do not
+weaken the specification or existing checks. Finish with the repair and checks
+that actually ran, or the concrete blocker. Native patch hunks use plain @@
+and correctly prefixed lines, without unified-diff line-number ranges.'''
+
+
+def _script_checkpoint(items, declarations):
+    state = progress_snapshot(items, declarations)
+    last = state['last_command_exit']
+    return ('Local coding checkpoint (subordinate to host and repository instructions):\n'
+        f"Native patches saved: {state['native_patches_saved']}; rejected: {state['native_patches_rejected']}; "
+        f"latest command exit: {last if last is not None else 'unknown'}; "
+        f"pending sessions: {state['pending_sessions']}.\n"
+        'These counts do not prove correctness or that assertions executed. Inspect actual tool feedback. '
+        'For Python, the declared Python script helper (script parameter) takes one string with actual newlines; use normal Python calls '
+        'and assertions against the saved module, including required rollback and supported value types. '
+        'After a failure, fix its cause and rerun; do not repeat an unchanged failing command. '
+        'After the last edit, obtain passing assertions before reporting success. '
+        'If a command is still running, inspect its declared host session before finishing.')
 GUIDANCE = '''Local coding guidance (subordinate to all existing host and repository instructions):
 Read the relevant source and nearby tests before editing. Follow existing project
 conventions and verify available dependencies. Identify all required return values,
@@ -164,7 +200,7 @@ def adapt_qwen_request(value, declarations, *, profile=PROFILE):
     instructions = value.get('instructions', '')
     if not isinstance(instructions, str):
         raise ValueError('invalid_harness_instructions')
-    guidance = V4_GUIDANCE if profile in {V4_PROFILE, V5_PROFILE, V6_PROFILE, V7_PROFILE} else GUIDANCE if profile == PROFILE else V2_GUIDANCE
+    guidance = V8_GUIDANCE if profile == V8_PROFILE else V4_GUIDANCE if profile in {V4_PROFILE, V5_PROFILE, V6_PROFILE, V7_PROFILE} else GUIDANCE if profile == PROFILE else V2_GUIDANCE
     value['instructions'] = instructions + '\n\n' + guidance
     for item in value.get('input', []):
         if not isinstance(item, dict) or item.get('type') != 'function_call':
@@ -174,13 +210,14 @@ def adapt_qwen_request(value, declarations, *, profile=PROFILE):
         ordered = {key: arguments[key] for key in properties if key in arguments}
         ordered.update(arguments)
         item['arguments'] = json.dumps(ordered, separators=(',', ':'), ensure_ascii=False, allow_nan=False)
-    if profile in {V2_PROFILE, V3_PROFILE, V4_PROFILE, V5_PROFILE, V6_PROFILE, V7_PROFILE} and isinstance(value.get('input'), str):
+    if profile in {V2_PROFILE, V3_PROFILE, V4_PROFILE, V5_PROFILE, V6_PROFILE, V7_PROFILE, V8_PROFILE} and isinstance(value.get('input'), str):
         value['input'] = [{'type': 'message', 'role': 'user', 'content': [
             {'type': 'input_text', 'text': value['input']}]}]
-    if profile in {V2_PROFILE, V3_PROFILE, V4_PROFILE, V5_PROFILE, V6_PROFILE, V7_PROFILE} and isinstance(value.get('input'), list):
+    if profile in {V2_PROFILE, V3_PROFILE, V4_PROFILE, V5_PROFILE, V6_PROFILE, V7_PROFILE, V8_PROFILE} and isinstance(value.get('input'), list):
         # A model-facing reminder, never a fabricated user message, tool result,
         # or extra agent turn. The native transcript remains an exact prefix.
-        checkpoint = (progress_checkpoint(value['input'], declarations, single_line=profile == V5_PROFILE,
+        checkpoint = (_script_checkpoint(value['input'], declarations) if profile == V8_PROFILE else
+                      progress_checkpoint(value['input'], declarations, single_line=profile == V5_PROFILE,
                                           typed_checks=profile in {V6_PROFILE, V7_PROFILE},
                                           feedback_checks=profile == V7_PROFILE)
                       if profile in {V4_PROFILE, V5_PROFILE, V6_PROFILE, V7_PROFILE} else V2_CHECKPOINT)

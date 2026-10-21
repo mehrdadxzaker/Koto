@@ -433,8 +433,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ('output', 'profile', 'client', 'runtime-archive', 'llama', 'model-file'):
         parser.add_argument('--' + name, type=Path, required=True)
-    parser.add_argument('--harness', choices=('v1', 'v2', 'v3', 'v4', 'v5', 'v6', 'v7'), default='v1')
-    parser.add_argument('--baseline-harness', choices=('none', 'v1', 'v2', 'v3', 'v4', 'v5', 'v6', 'v7'), default='none')
+    parser.add_argument('--harness', choices=('v1', 'v2', 'v3', 'v4', 'v5', 'v6', 'v7', 'v8'), default='v1')
+    parser.add_argument('--baseline-harness', choices=('none', 'v1', 'v2', 'v3', 'v4', 'v5', 'v6', 'v7', 'v8'), default='none')
     parser.add_argument('--case', action='append', help='Limit a diagnostic run; all six cases remain frozen')
     parser.add_argument('--arm', choices=('both', 'baseline', 'adapted'), default='both')
     parser.add_argument('--episode-seconds', type=int, choices=(90, 180), default=90,

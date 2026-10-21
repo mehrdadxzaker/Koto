@@ -116,10 +116,10 @@ class CodexLlamaRequest:
             self.value['input'] = [self._input(item) for item in self.value['input']]
         if harness:
             adapt_qwen_request(self.value, self.declarations, profile=harness)
-        if harness in {'qwen-code.v6', 'qwen-code.v7'}:
-            self._add_python_checks(feedback=harness == 'qwen-code.v7')
+        if harness in {'qwen-code.v6', 'qwen-code.v7', 'qwen-code.v8'}:
+            self._add_python_checks(feedback=harness == 'qwen-code.v7', script=harness == 'qwen-code.v8')
 
-    def _add_python_checks(self, *, feedback=False):
+    def _add_python_checks(self, *, feedback=False, script=False):
         """Offer a private compiler only for an existing, identified host command."""
         if self.value.get('tool_choice', 'auto') != 'auto' or len(self.value.get('tools', [])) >= 1024:
             return
@@ -140,27 +140,32 @@ class CodexLlamaRequest:
                 targets.append(alias)
         if len(targets) != 1:
             return
-        if feedback:
+        if script:
+            from .local_python_script import SCRIPT_SCHEMA as checks_schema, compile_script as compiler
+        elif feedback:
             from .local_python_checks import FEEDBACK_CHECKS_SCHEMA as checks_schema, compile_feedback_checks as compiler
         else:
             from .local_python_checks import CHECKS_SCHEMA as checks_schema, compile_checks as compiler
         target = targets[0]
         properties = self.declarations[target]['parameters']['properties']
-        parameters = {'checks': copy.deepcopy(checks_schema)}
+        argument = 'script' if script else 'checks'
+        parameters = {argument: copy.deepcopy(checks_schema)}
         if isinstance(properties.get('workdir'), dict) and properties['workdir'].get('type') == 'string':
             parameters['workdir'] = copy.deepcopy(properties['workdir'])
-        alias = 'koto_python_checks'
+        base_alias = 'koto_python' if script else 'koto_python_checks'
+        alias = base_alias
         for index in range(1025):
             if alias not in self.identities:
                 break
-            alias = 'koto_python_checks_' + hashlib.sha256(str(index).encode()).hexdigest()[:16]
+            alias = base_alias + '_' + hashlib.sha256(str(index).encode()).hexdigest()[:16]
         else:
             raise CodexLlamaError('ambiguous_check_tool')
-        self.derived_checks[alias] = {'target': target, 'workdir': 'workdir' in parameters}
+        self.derived_checks[alias] = {'target': target, 'workdir': 'workdir' in parameters, 'argument': argument}
         self.compile_checks = compiler
         self.value['tools'].append({'type': 'function', 'name': alias, 'strict': True,
-            'description': 'Check supplied cases against a saved local Python function through the existing host command tool. Supply real expected results from the task; these checks are not independent qualification.',
-            'parameters': {'type': 'object', 'properties': parameters, 'required': ['checks'],
+            'description': ('Run a Python script through the existing host command tool, with its normal permissions and actual results. Write plain Python with real newlines; import saved code and use assertions for verification.' if script else
+                'Check supplied cases against a saved local Python function through the existing host command tool. Supply real expected results from the task; these checks are not independent qualification.'),
+            'parameters': {'type': 'object', 'properties': parameters, 'required': [argument],
                            'additionalProperties': False}})
 
     def _derived_identity(self, item):
@@ -195,8 +200,9 @@ class CodexLlamaRequest:
         if not isinstance(raw, str) or len(raw.encode('utf-8')) > MAX_CHECK_ARGUMENTS:
             raise CodexLlamaError('check_arguments_exceeded')
         arguments = strict_json_loads(raw)
-        allowed = {'checks', 'workdir'} if self.derived_checks[alias]['workdir'] else {'checks'}
-        if (type(arguments) is not dict or 'checks' not in arguments or set(arguments) - allowed
+        argument = self.derived_checks[alias]['argument']
+        allowed = {argument, 'workdir'} if self.derived_checks[alias]['workdir'] else {argument}
+        if (type(arguments) is not dict or argument not in arguments or set(arguments) - allowed
                 or 'workdir' in arguments and not isinstance(arguments['workdir'], str)):
             raise CodexLlamaError('invalid_check_arguments')
         canonical = json.dumps(arguments, sort_keys=True, separators=(',', ':'), ensure_ascii=False, allow_nan=False)
@@ -209,7 +215,7 @@ class CodexLlamaRequest:
             if record['signature'] != signature:
                 raise CodexLlamaError('mismatched_check_arguments')
             return record['compiled']
-        command = self.compile_checks(arguments['checks'])
+        command = self.compile_checks(arguments[argument])
         if not isinstance(command, str) or len(command.encode('utf-8')) > MAX_CHECK_COMMAND:
             raise CodexLlamaError('invalid_compiled_check')
         native = {'cmd': command}
