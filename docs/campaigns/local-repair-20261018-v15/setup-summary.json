@@ -1,0 +1,60 @@
+{
+  "campaign_id": "local-repair-20261018-v15",
+  "source_commit": "d9a137b9af2b585ed4c1e006b5afa9182c3c4ba6",
+  "router_version": "2.0.0a4",
+  "host": {
+    "system": "Darwin",
+    "machine": "arm64",
+    "os_version": "26.2",
+    "os_build": "25C56",
+    "hardware": "Mac17,2",
+    "memory": 34359738368
+  },
+  "asset_identities": {
+    "client": {
+      "bytes": 241555024,
+      "sha256": "112fae7a5a1223e673c8a1791d32338f37df8b527ff1159bb8adac6c4dbf1b4b"
+    },
+    "runtime_archive": {
+      "bytes": 12157609,
+      "sha256": "051bb0b55b3e5e72081aa819131ba30c74d910acc915b28bab298757472e39d9"
+    },
+    "runtime_executable": {
+      "bytes": 49984,
+      "sha256": "1bf5602a2be50097c44282a6ecc63234d94ee8f96d39fd45fed6eff4e74b6b41"
+    },
+    "model": {
+      "bytes": 18556689568,
+      "sha256": "fadc3e5f8d42bf7e894a785b05082e47daee4df26680389817e2093056f088ad"
+    }
+  },
+  "model_alias": "Qwen3-Coder-30B-A3B-Instruct-Q4_K_M",
+  "tools": [
+    "exec_command",
+    "write_stdin",
+    "request_user_input",
+    "view_image"
+  ],
+  "retained_schemas_equal_v14": true,
+  "goals_disabled_per_invocation": true,
+  "live_global_settings_change": false,
+  "input_tokens": 2919,
+  "original_template_sha256": "87710339d25b4e789c1d723f93c91ee861a86d305bb3d20a845536f251d6ea8a",
+  "samplers": {
+    "temperature": 0.699999988079071,
+    "top_p": 0.800000011920929,
+    "top_k": 20,
+    "min_p": 0.0,
+    "presence_penalty": 1.5,
+    "reasoning_format": "none"
+  },
+  "context": 32768,
+  "slots": 1,
+  "model_completion_requests_before_canary": 0,
+  "canary_episodes": 1,
+  "remaining_episodes_gated_on_canary": 15,
+  "max_requests_per_episode": 8,
+  "max_elapsed_seconds_per_episode": 90,
+  "max_output_tokens_per_generation": 512,
+  "retries": 0
+}

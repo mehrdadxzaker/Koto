@@ -1,0 +1,141 @@
+{
+  "campaign_id": "local-repair-20261018-v15",
+  "scope": "Authored campaign and sanitized outcomes; raw native context and private references excluded",
+  "files": [
+    {
+      "path": ".gitignore",
+      "bytes": 189,
+      "sha256": "a041068d36ea98c9bb2e7187f8e2d49524f9592e81052e28f7cd7f1bda09d787"
+    },
+    {
+      "path": "PLAN.md",
+      "bytes": 6126,
+      "sha256": "c157579bac25145f5b13cebbccfa9818302c65203bf3be30964701cdad293eaf"
+    },
+    {
+      "path": "README.md",
+      "bytes": 7415,
+      "sha256": "f43139053bd05d6e4ae0d9a1ffc43ba625a6e9f32d3660b58a08bba2b38ae480"
+    },
+    {
+      "path": "campaign-runner.py",
+      "bytes": 37443,
+      "sha256": "53333e4d2b0a1f74163bce2ea201c782d69d59cadb4ce2a3d432e4a749485071"
+    },
+    {
+      "path": "check-preflight.py",
+      "bytes": 1811,
+      "sha256": "8e0f32fe94a6688fcadd4f85324771d59e58343b431a52964f45252e3b2a8880"
+    },
+    {
+      "path": "checker-completion-validation.json",
+      "bytes": 8530,
+      "sha256": "f2d684c821b94c733337045bc91a25fbae2cd89604bd9dc63e51c083e156b1e2"
+    },
+    {
+      "path": "checker-read-boundary-validation-attempt-01.json",
+      "bytes": 8563,
+      "sha256": "8f652aebe336eb44713d7d70c7a8e66180e8ae95f3cd4bfe785861f560ad9d83"
+    },
+    {
+      "path": "checker-read-boundary-validation-attempt-02.json",
+      "bytes": 8531,
+      "sha256": "c0e8b0f814d3a6ef43435a2f21c01482cb4c80991dbd5f5236397d212d60d703"
+    },
+    {
+      "path": "checker-read-boundary-validation-green.json",
+      "bytes": 8530,
+      "sha256": "f2d684c821b94c733337045bc91a25fbae2cd89604bd9dc63e51c083e156b1e2"
+    },
+    {
+      "path": "checker-read-isolation-summary.json",
+      "bytes": 1363,
+      "sha256": "67910ae0076586861eea20609e1ab0ce9caa01e347328409fd2274e35bd47b01"
+    },
+    {
+      "path": "client-instructions.txt",
+      "bytes": 821,
+      "sha256": "f3e26a3152ae9e7084f440a61632c18b50273b1d7682b06db76cfc5da16898c1"
+    },
+    {
+      "path": "coding-plan.json",
+      "bytes": 5498,
+      "sha256": "a99da1fe914488f1ed65c846df4305af942aa0328c865ce62cd5e035ba4cf3f9"
+    },
+    {
+      "path": "corpus-freshness.json",
+      "bytes": 2046,
+      "sha256": "156db13f070fe99a28f278596d3d3e613ad33e420d93401f8b828a26e0710710"
+    },
+    {
+      "path": "corpus.json",
+      "bytes": 18858,
+      "sha256": "fd88df8ab596ac21f94753ce7d42ea669991b0f8f1c512b9d56c8057abb459e3"
+    },
+    {
+      "path": "developer-instructions.txt",
+      "bytes": 1121,
+      "sha256": "fa803d5cb60720793fa28af91652784b32636c7712707baf4f4ff91daa66659c"
+    },
+    {
+      "path": "expected-engine-template.json",
+      "bytes": 456,
+      "sha256": "b91fee65afa96b39576b5105e55e5b63b25d815d4f6719e2ba5eb7818df06ced"
+    },
+    {
+      "path": "native-controls.py",
+      "bytes": 21617,
+      "sha256": "708186e423065a92a4a32941a4b513f6b61be33f856ef0ae7ee5c9a9ca3cf2c4"
+    },
+    {
+      "path": "outcome/case-ledger.json",
+      "bytes": 110818,
+      "sha256": "42ff082831d3031127421e05ee7fd470325366cafe584b295db274b0ed0c333f"
+    },
+    {
+      "path": "outcome/freeze-checkpoint.json",
+      "bytes": 695,
+      "sha256": "da1bcc546f7107d6e437425299bebd88a45207dfeeee2d97369db70004038c24"
+    },
+    {
+      "path": "outcome/owner-state-verification.json",
+      "bytes": 255,
+      "sha256": "8bc426c78e06307586bcd380eb2af8e888d69d2a5faca05b3679173ed6ab2271"
+    },
+    {
+      "path": "outcome/trial-summary.json",
+      "bytes": 1535,
+      "sha256": "e6b7af228dc2312a45fc9efbea801b3556ec24df6964ec42e434ae3330990a8f"
+    },
+    {
+      "path": "preflight-profile-green.json",
+      "bytes": 361,
+      "sha256": "cdc49252f0915390e6c99b050e496c53829fe33697562a517cfa640d06a7b16b"
+    },
+    {
+      "path": "preflight-profile-red.json",
+      "bytes": 363,
+      "sha256": "2aa6cb2f312e3a5fe981a33e19a23223c4e1d19c06fac224db5f0da6b027df04"
+    },
+    {
+      "path": "preparation-controls-summary.json",
+      "bytes": 1306,
+      "sha256": "59d65470bb5f8c89730e5622e5ef957ed72cb677a936d54ba1622b0fcdf03ec2"
+    },
+    {
+      "path": "protocol-control.py",
+      "bytes": 6209,
+      "sha256": "a6b3479aa755516df298ca6189a24fcefb31aaebfffa0366881ef0bce703945e"
+    },
+    {
+      "path": "setup-summary.json",
+      "bytes": 1751,
+      "sha256": "c30d9be8e7338e9b971661a4914ae00088d090de24c244eafc89b1ca992cfd2c"
+    },
+    {
+      "path": "validate-preparation.py",
+      "bytes": 2708,
+      "sha256": "5207dd011ccba837d0ad0213c4232fb53056b579275f66f7a8b4c05c4e6e61a1"
+    }
+  ]
+}

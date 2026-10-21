@@ -1,0 +1,139 @@
+{
+  "criteria_version": "local-repair.v1",
+  "subject": {
+    "client_version": "0.160.0",
+    "system": "Darwin",
+    "machine": "arm64",
+    "runtime_profile": "managed-llama.v1",
+    "runtime_sha256": "051bb0b55b3e5e72081aa819131ba30c74d910acc915b28bab298757472e39d9",
+    "model_revision": "sha256:fadc3e5f8d42bf7e894a785b05082e47daee4df26680389817e2093056f088ad",
+    "upstream_model": "Qwen3-Coder-30B-A3B-Instruct-Q4_K_M",
+    "protocol": "openai",
+    "capabilities": [
+      "responses",
+      "text",
+      "streaming",
+      "tools",
+      "codex_http",
+      "codex_http_0160"
+    ],
+    "max_request_bytes": 65536,
+    "max_output_tokens": 512,
+    "upstream_timeout_seconds": 90,
+    "request_profile_sha256": "a9fac8db9afcc18793506b38c2388333b18027adf4dae9771610d72af7936b0e"
+  },
+  "cases": [
+    {
+      "case_id": "dev-clamp",
+      "partition": "development",
+      "family": "arithmetic",
+      "task_sha256": "33fd16c7939f008528fdcd40d4911c9d323eec130318414f0683d8bd7a2bc5aa",
+      "checks_sha256": "da25b64603054b72230db061e79855ed9d3f32b6f31076fa5755ac4eec12b942"
+    },
+    {
+      "case_id": "dev-strip-prefix",
+      "partition": "development",
+      "family": "text",
+      "task_sha256": "ac666d5237460f22274f88ec968dec3498caa5e45251b0fc62379a429f5ca7d1",
+      "checks_sha256": "fcc045ad3370cc3e2e8306bb1f1ec3105eda3b1566d72877c25269822dd8ff8d"
+    },
+    {
+      "case_id": "dev-rotate-left",
+      "partition": "development",
+      "family": "collections",
+      "task_sha256": "b90c5095ab8c1f6e0c1da0e665b881cd3014f318acaca864caa38482eaea3002",
+      "checks_sha256": "3f83dd8fc94581f1d72a6952b1e0f0c4988e90c0ec9001383c325de44954d3b1"
+    },
+    {
+      "case_id": "dev-positive-counter",
+      "partition": "development",
+      "family": "validation_state",
+      "task_sha256": "40cf635d46f648cb990a97596d31fb79be3641b52a957c701a1b4a06b5148d5f",
+      "checks_sha256": "65e4123e7ba3a0b5e8f953213a1078d170b9fe997e27372efe413719edabb6d3"
+    },
+    {
+      "case_id": "held-floor-mean",
+      "partition": "held_out",
+      "family": "arithmetic",
+      "task_sha256": "25e721ba9f4bd01ea6a2fa171186a54864b14359276306a9775c00bca27d2a74",
+      "checks_sha256": "246199985e46948ca9c31762a1e7c59cabab3090b0ed7cc229935e6da3266ef9"
+    },
+    {
+      "case_id": "held-population-count",
+      "partition": "held_out",
+      "family": "arithmetic",
+      "task_sha256": "7c5cbcc52c17b0482054f791eee5bcc99b4830da05be599264f574ec404057fa",
+      "checks_sha256": "bde2392fa56cb4162cf4277464358e29921397c84920384ec4557bbd328fa0cc"
+    },
+    {
+      "case_id": "held-primality",
+      "partition": "held_out",
+      "family": "arithmetic",
+      "task_sha256": "548be12322d8d8c59b78de2219003b81fa59390f03b31430c5592520b8f55ee2",
+      "checks_sha256": "39dff0a1a3f2ee683c97d1d309927a20a7d2f43b9946698acd8782d27a28a3fd"
+    },
+    {
+      "case_id": "held-remove-ascii-vowels",
+      "partition": "held_out",
+      "family": "text",
+      "task_sha256": "1d99f64bf8b56b00d1dd862c46c06b043d2e30da5f0c23b98d4168268198e900",
+      "checks_sha256": "9742bde409ef8ef68bef1551e21e8cdebb809bcc8afede55143ff9428f52611c"
+    },
+    {
+      "case_id": "held-html-text-escape",
+      "partition": "held_out",
+      "family": "text",
+      "task_sha256": "69cf6320c0df673ae969f169428d4a04520a6db0b60c1771d603514cc0968d8d",
+      "checks_sha256": "469a2267e697d29537a8d99ab759857098d4d64f59eaf40b9ea41074b5ec0e97"
+    },
+    {
+      "case_id": "held-ascii-palindrome",
+      "partition": "held_out",
+      "family": "text",
+      "task_sha256": "5f8c606089bd7be337308cc0532b0b07c309c48e3a34db82145c5bceed1f3b8c",
+      "checks_sha256": "bc692839cfc607bb1eb5b1c893d2da0c50cf6e1616e80b0ff85f6cb675ca254f"
+    },
+    {
+      "case_id": "held-invert-multimap",
+      "partition": "held_out",
+      "family": "collections",
+      "task_sha256": "ca4b0e06408015abf040012255d5e13bb6d4c7137ebbd60dcda1309b96e05425",
+      "checks_sha256": "98851b9f73363075b7d4f214df330a3b5d8e1fb177e77d7133aa03ef2ac229cf"
+    },
+    {
+      "case_id": "held-pad-to-length",
+      "partition": "held_out",
+      "family": "collections",
+      "task_sha256": "8ac6890295e49a21b9118af81b4e8db6f5584ecb2dffc15d52df84a493048a5e",
+      "checks_sha256": "e9150c324b4db3860dbeb69e560e2851497af7007bb05337ff51dee512bcee88"
+    },
+    {
+      "case_id": "held-column-totals",
+      "partition": "held_out",
+      "family": "collections",
+      "task_sha256": "f64886556e2782ee5f476c43b1f34fb226b8ed4e9c8641053618ce42365a3845",
+      "checks_sha256": "1d9b72e47387082d234a9d154328c47a67ceb1b1e64f94de72bd5947eac3125a"
+    },
+    {
+      "case_id": "held-hhmm-parser",
+      "partition": "held_out",
+      "family": "validation_state",
+      "task_sha256": "f762ca3c944b00b6e2eb7b7f2d91ad4cb10db756fafdca35ac626aa47ad186f1",
+      "checks_sha256": "8458d64316eb3453748036e457c02086ff63b5df939c7d472a6d3b37ec31f21a"
+    },
+    {
+      "case_id": "held-luhn-validation",
+      "partition": "held_out",
+      "family": "validation_state",
+      "task_sha256": "7518a5e2b2c5439bdd9a487b29557fef1f16c04d5929e352c358b1f73eae52be",
+      "checks_sha256": "12916930d2fe4aac0e4927f7fe409056fcd8c431c86deb0cb3d22aa98409109d"
+    },
+    {
+      "case_id": "held-json-object",
+      "partition": "held_out",
+      "family": "validation_state",
+      "task_sha256": "397556bc3df3a3bb97cb8ff56db8f7368ca8f52a3c6370b8112e94c0ff79c67c",
+      "checks_sha256": "f36144eba10651e97a50fa17d79133466a41d67c38dcc0887f79663cb1cb3298"
+    }
+  ]
+}
