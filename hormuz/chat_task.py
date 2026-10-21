@@ -32,15 +32,63 @@ def add_commands(commands):
     route.add_argument('--actor', help='Configured owner; required when multiple owners exist')
     route.add_argument('--model', help='Explicit qualified local alias; automatic selection is the default')
     route.add_argument('--timeout-seconds', type=int, default=90, choices=range(1, 361), metavar='1..360')
-    for name in ('models', 'ask'):
+    for name in ('models', 'ask', 'propose'):
         command = operations.add_parser(name)
         command.add_argument('--router-home', required=True, help='Separate, already connected Koto control home')
-        if name == 'ask':
-            command.add_argument('--model', help='Qualified local alias; omit to use the configured router default')
+        if name in {'ask', 'propose'}:
+            command.add_argument('--model', required=name == 'propose',
+                help='Explicit qualified local alias' if name == 'propose' else
+                     'Qualified local alias; omit to use the configured router default')
             command.add_argument('--prompt-file', required=True, help='UTF-8 task file, or - for standard input')
             command.add_argument('--max-output-tokens', type=int, default=2048, choices=range(1, 8193), metavar='1..8192')
-            command.add_argument('--effort', choices=['low', 'medium', 'high', 'max'], default='max')
+            command.add_argument('--effort',
+                choices=['none', 'low', 'medium', 'high', 'max'] if name == 'propose' else
+                        ['low', 'medium', 'high', 'max'], default='max')
             command.add_argument('--timeout-seconds', type=int, default=180, choices=range(1, 361), metavar='1..360')
+
+
+def _proposal_text(body):
+    """Accept only completed text suggestions; the host owns review and execution."""
+    if not isinstance(body, dict):
+        raise ChatTaskError('proposal_output_invalid')
+    if body.get('status') != 'completed':
+        raise ChatTaskError('task_incomplete')
+    if any(body.get(key) for key in ('previous_response_id', 'conversation', 'session_id', 'encrypted_content')):
+        raise ChatTaskError('proposal_output_invalid')
+    output = body.get('output')
+    if not isinstance(output, list) or not output:
+        raise ChatTaskError('proposal_output_invalid')
+    pieces = []
+    for item in output:
+        if not isinstance(item, dict) or item.get('status', 'completed') != 'completed':
+            raise ChatTaskError('proposal_output_invalid')
+        if item.get('type') == 'reasoning':
+            if (set(item) - {'type', 'id', 'status', 'summary', 'content', 'encrypted_content'}
+                    or item.get('encrypted_content')
+                    or not isinstance(item.get('summary', []), list)
+                    or not isinstance(item.get('content', []), list)):
+                raise ChatTaskError('proposal_output_invalid')
+            for part in item.get('summary', []) + item.get('content', []):
+                if (not isinstance(part, dict) or set(part) != {'type', 'text'}
+                        or part['type'] not in {'summary_text', 'reasoning_text'}
+                        or not isinstance(part['text'], str)):
+                    raise ChatTaskError('proposal_output_invalid')
+            continue
+        if (item.get('type') != 'message' or item.get('role') != 'assistant'
+                or set(item) - {'type', 'id', 'role', 'status', 'content'}
+                or not isinstance(item.get('content'), list) or not item['content']):
+            raise ChatTaskError('proposal_output_invalid')
+        for block in item['content']:
+            if (not isinstance(block, dict) or set(block) - {'type', 'text', 'annotations', 'logprobs'}
+                    or block.get('type') != 'output_text'
+                    or 'logprobs' in block and (type(block['logprobs']) is not list or block['logprobs'])
+                    or not isinstance(block.get('text'), str)):
+                raise ChatTaskError('proposal_output_invalid')
+            pieces.append(block['text'])
+    text = ''.join(pieces)
+    if not text.strip():
+        raise ChatTaskError('proposal_output_invalid')
+    return text
 
 
 def run(args):
@@ -48,9 +96,10 @@ def run(args):
         from .native_chat import run
         return run(args)
     submitted = False
+    proposal = args.chat_command == 'propose'
     try:
         prompt = None
-        if args.chat_command == 'ask':
+        if args.chat_command in {'ask', 'propose'}:
             if args.prompt_file == '-':
                 raw = sys.stdin.buffer.read(MAX_PROMPT + 1)
             else:
@@ -80,7 +129,8 @@ def run(args):
         token = lifetime.local_token(status['generation']) if 'auth' in provider else os.environ[provider['env_key']]
         normal_home = Path(os.environ.get('CODEX_HOME', '~/.codex')).expanduser().resolve()
         register_owner(normal_home, home, status['generation'])
-        deadline = time.monotonic() + (args.timeout_seconds if args.chat_command == 'ask' else 6)
+        deadline = time.monotonic() + (args.timeout_seconds if args.chat_command != 'models' else 6)
+        selection = 'proposal' if proposal else 'model' if getattr(args, 'model', None) else 'router'
 
         def request(path, payload=None):
             remaining = deadline - time.monotonic()
@@ -89,7 +139,7 @@ def run(args):
             headers = {'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json',
                        'User-Agent': 'Koto explicit-chat-task', 'X-Hormuz-Routing-Mode': 'local_only'}
             if payload is not None:
-                headers['X-Hormuz-Task-Selection'] = 'model' if args.model else 'router'
+                headers['X-Hormuz-Task-Selection'] = selection
             message = Request(provider['base_url'] + path, headers=headers,
                               data=None if payload is None else json.dumps(payload).encode())
             with open_local_upstream(message, timeout=min(4, remaining), absolute_timeout=remaining,
@@ -106,6 +156,8 @@ def run(args):
             raise ChatTaskError('router_ownership_changed')
         admission, admission_headers = request('/router/state')
         if admission_headers.get('X-Hormuz-Chat-Tasks') != 'v1':
+            raise ChatTaskError('router_upgrade_required')
+        if proposal and admission_headers.get('X-Hormuz-Proposals') != 'v1':
             raise ChatTaskError('router_upgrade_required')
         validate_contract(admission)
         qualified = {(route['model'], route['destination'], route['generation']) for route in admission['routes']
@@ -131,18 +183,24 @@ def run(args):
                 and headers.get('X-Hormuz-Routed-Model') == route['upstream_model']]
             if (not executed or headers.get('X-Hormuz-Destination-Locality') != 'local'
                     or headers.get('X-Hormuz-Requested-Model') != model
-                    or headers.get('X-Hormuz-Task-Selection') != ('model' if args.model else 'router')
+                    or headers.get('X-Hormuz-Task-Selection') != selection
                     or headers.get('X-Hormuz-Failover') is not None):
                 raise ChatTaskError('execution_selection_changed')
             route = executed[0]
-            if body.get('status') != 'completed':
-                raise ChatTaskError('task_incomplete')
-            text = ''.join(block['text'] for item in body.get('output', []) if item.get('type') == 'message'
-                           for block in item.get('content', []) if block.get('type') == 'output_text')
-            result = {'schema_id': 'hormuz.chat-task', 'schema_version': 1, 'text': text, 'model': model,
+            if proposal:
+                text = _proposal_text(body)
+            else:
+                if body.get('status') != 'completed':
+                    raise ChatTaskError('task_incomplete')
+                text = ''.join(block['text'] for item in body.get('output', []) if item.get('type') == 'message'
+                               for block in item.get('content', []) if block.get('type') == 'output_text')
+            result = {'schema_id': 'hormuz.chat-proposal' if proposal else 'hormuz.chat-task',
+                      'schema_version': 1, 'text': text, 'model': model,
                       'routed_model': route['upstream_model'], 'locality': 'local', 'destination': route['destination'],
                       'generation': route['generation'], 'work_id': headers.get('X-Hormuz-Work-Id'),
                       'selection': 'model' if args.model else 'router_default', 'reasoning_effort': args.effort}
+            if proposal:
+                result.update(purpose='proposal', review_required=True, applied=False)
         validate_contract(result)
         print(json.dumps(result))
         return 0

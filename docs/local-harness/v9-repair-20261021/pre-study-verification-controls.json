@@ -1,0 +1,258 @@
+{
+  "schema_version": 1,
+  "publication_status": "private_draft_for_safe_publication_after_independent_36_episode_audit",
+  "evidence_kind": "completed_candidate_verification_and_predeclared_study_controls_not_coding_results",
+  "candidate": {
+    "runtime": "2.0.0a36",
+    "source_commit": "2a0a5f0a6f348cea7f307c100d21265f07648fd4",
+    "wheel_sha256": "c7bb9fb1a95e0ece5a20c3174916de9fc6b2afa1f63e53ac8f4a1fc9520d938e",
+    "experimental_profile": "qwen-code.v9",
+    "comparison_profile": "qwen-code.v8"
+  },
+  "completed_installed_suite": {
+    "full_suite": true,
+    "returncode": 0,
+    "fast_tests": 280,
+    "workflow_tests": 683,
+    "elapsed_seconds": 699.167,
+    "recorded_layer_summaries": [
+      "Ran 280 tests in 0.305s",
+      "Ran 683 tests in 697.378s"
+    ],
+    "owned_process_group_closed": true,
+    "normal_codex_settings_unchanged_during_verification": true,
+    "source_head_unchanged": true,
+    "source_payload_unchanged": true,
+    "wheel_unchanged": true
+  },
+  "payload_equivalence": {
+    "runtime_payload_files": 177,
+    "source_wheel_site_payloads_equal": true,
+    "full_suite_source_matches_every_wheel_payload": true,
+    "provenance": "Recorded parity and complete-suite receipts; no new installed payload or wheel rehash during this summary."
+  },
+  "older_profile_equivalence": {
+    "profiles": [
+      "default",
+      "qwen-code.v1",
+      "qwen-code.v2",
+      "qwen-code.v3",
+      "qwen-code.v4",
+      "qwen-code.v5",
+      "qwen-code.v6",
+      "qwen-code.v7",
+      "qwen-code.v8"
+    ],
+    "recorded_output_count": 630,
+    "changed_outputs": 0,
+    "small_receipt_rows_recompared_equal": true,
+    "baseline_receipt_sha256": "85a8cab62e4fa1057e2c535f8267359f828f51c26523ca514b4a5bcfbe9b7771",
+    "installed_receipt_sha256": "f81d3d64e4889fc9970c8b0dc3f03c8a14e4891dcd4df326c8fc2b6ff0bfb1d0",
+    "provenance": "Comparison of existing public-adapter output-digest receipts; no new adapter or model execution."
+  },
+  "frozen_study": {
+    "plan_sha256": "177468abb4ba759418448403751d09a6b9ad43f37911bfe864194e64a9ccd531",
+    "status": "frozen_before_study_inference",
+    "expected_episodes": 36,
+    "expected_owned_connection_lifetimes": 9,
+    "controls": {
+      "episode_seconds": 180,
+      "requests_per_episode": 16,
+      "output_tokens": 2048,
+      "native_reasoning_effort": "low",
+      "inference_concurrency": 1,
+      "quality_retries": 0,
+      "automatic_startup_retries": 0,
+      "startup_attempts_per_connection": 1,
+      "pair_process_seconds": 7200,
+      "automatic_coding_effect": "none"
+    },
+    "strict_target_criterion": {
+      "candidate_profile": "qwen-code.v9",
+      "targets": [
+        "atomic-stock",
+        "stable-key-unique"
+      ],
+      "repetitions_per_target": 3,
+      "required_full_successes_per_target": 3,
+      "full_success": "Changed source, unchanged passing original checker, normal native completion and client exit0.",
+      "both_targets_required": true,
+      "scope": "Specific reused-task repair criterion only; no held-out or ordinary90-second qualification."
+    },
+    "full_success_rule": "Changed source, unchanged passing independent checker, normal native turn and client exit0.",
+    "repetitions": [
+      {
+        "repetition": 1,
+        "baseline_profile": "qwen-code.v8",
+        "adapted_profile": "qwen-code.v9",
+        "native_blocks": [
+          {
+            "profile": "qwen-code.v8",
+            "case_ids": [
+              "signed-ceiling",
+              "literal-first",
+              "adjacent-groups"
+            ]
+          },
+          {
+            "profile": "qwen-code.v9",
+            "case_ids": [
+              "signed-ceiling",
+              "literal-first",
+              "adjacent-groups",
+              "interval-union",
+              "atomic-stock",
+              "stable-key-unique"
+            ]
+          },
+          {
+            "profile": "qwen-code.v8",
+            "case_ids": [
+              "interval-union",
+              "atomic-stock",
+              "stable-key-unique"
+            ]
+          }
+        ]
+      },
+      {
+        "repetition": 2,
+        "baseline_profile": "qwen-code.v9",
+        "adapted_profile": "qwen-code.v8",
+        "native_blocks": [
+          {
+            "profile": "qwen-code.v9",
+            "case_ids": [
+              "signed-ceiling",
+              "literal-first",
+              "adjacent-groups"
+            ]
+          },
+          {
+            "profile": "qwen-code.v8",
+            "case_ids": [
+              "signed-ceiling",
+              "literal-first",
+              "adjacent-groups",
+              "interval-union",
+              "atomic-stock",
+              "stable-key-unique"
+            ]
+          },
+          {
+            "profile": "qwen-code.v9",
+            "case_ids": [
+              "interval-union",
+              "atomic-stock",
+              "stable-key-unique"
+            ]
+          }
+        ]
+      },
+      {
+        "repetition": 3,
+        "baseline_profile": "qwen-code.v8",
+        "adapted_profile": "qwen-code.v9",
+        "native_blocks": [
+          {
+            "profile": "qwen-code.v8",
+            "case_ids": [
+              "signed-ceiling",
+              "literal-first",
+              "adjacent-groups"
+            ]
+          },
+          {
+            "profile": "qwen-code.v9",
+            "case_ids": [
+              "signed-ceiling",
+              "literal-first",
+              "adjacent-groups",
+              "interval-union",
+              "atomic-stock",
+              "stable-key-unique"
+            ]
+          },
+          {
+            "profile": "qwen-code.v8",
+            "case_ids": [
+              "interval-union",
+              "atomic-stock",
+              "stable-key-unique"
+            ]
+          }
+        ]
+      }
+    ],
+    "analysis_rule": "Profile-normalized descriptive paired endpoints; no historical pooling or held-out qualification.",
+    "historical_diagnostic_pooling": false,
+    "coding_results": "pending_independent_post_study_audit"
+  },
+  "fixed_task_and_checker_inputs": {
+    "case_ids": [
+      "signed-ceiling",
+      "literal-first",
+      "adjacent-groups",
+      "interval-union",
+      "atomic-stock",
+      "stable-key-unique"
+    ],
+    "six_fixture_sha256": "ef495f026747e5f4a52703665240883832cc18f8f75eb209ae75dfa682da55b9",
+    "original_checker_sha256": {
+      "signed-ceiling": "cc3be5ed471dfb78cccb32ba7b902ea1c29394ed0fcf04c0dd5c99331aef6922",
+      "literal-first": "4958f109e9cb650ef86ed1bf44129ef8660ab047eed0791bebc4047904e8e727",
+      "adjacent-groups": "b7068821a1667b3d787f4e2ba16f9af1132752e0c14db574811ae5003aad31a4",
+      "interval-union": "3c6fe54e7c7ba8fbc2562a689f484071f2945aeb00a2a952c49e6091def9f7b9",
+      "atomic-stock": "ba6c4c2725d0f7da513cbf153dbe5006b6fe75ec08054cbe5b3d8dda072d6ca3",
+      "stable-key-unique": "ee1f06be069c966c982c93b9a8ec3d4c5dc447e9f9ae70ece25a35f38e57ae19"
+    },
+    "unchanged_native_developer_instructions_sha256": "f54ec08ccdc4acdb7b6cdc0a6730f0802c42b9e2de2363e3be2fe8b1e92c4cfa"
+  },
+  "recorded_physical_input_pins": {
+    "client": {
+      "sha256": "112fae7a5a1223e673c8a1791d32338f37df8b527ff1159bb8adac6c4dbf1b4b"
+    },
+    "runtime_archive": {
+      "sha256": "051bb0b55b3e5e72081aa819131ba30c74d910acc915b28bab298757472e39d9"
+    },
+    "llama": {
+      "sha256": "1bf5602a2be50097c44282a6ecc63234d94ee8f96d39fd45fed6eff4e74b6b41"
+    },
+    "model": {
+      "sha256": "500a8806e85ee9c83f3ae08420295592451379b4f8cf2d0f41c15dffeb6b81f0"
+    }
+  },
+  "frozen_metadata_review": {
+    "finding_count": 0,
+    "status": "no_material_metadata_mismatches",
+    "receipt_sha256": "ecbb68b3639f2e055c3ec4b09175f85c7012ebed5ecf18d87c9e5264b7a5eab7",
+    "scope": "Small bindings/prerequisites/frozen-input metadata consistency; no large physical asset, wheel or installed-source rehash."
+  },
+  "evidence_receipt_sha256": {
+    "installed-a36-full-receipt.json": "382b7b9039bcb1f51464dc159a54a0ac52a1fdd9863419134a52a521be4d1182",
+    "inference-install-parity.json": "383070ddf5d214943f68bbb0658e918ab6f38673004ee9398264d47fa57aa3ee",
+    "baseline-old-profiles.json": "85a8cab62e4fa1057e2c535f8267359f828f51c26523ca514b4a5bcfbe9b7771",
+    "installed-a36-old-profiles.json": "f81d3d64e4889fc9970c8b0dc3f03c8a14e4891dcd4df326c8fc2b6ff0bfb1d0",
+    "frozen-study-plan.json": "177468abb4ba759418448403751d09a6b9ad43f37911bfe864194e64a9ccd531",
+    "frozen-plan-metadata-review.json": "ecbb68b3639f2e055c3ec4b09175f85c7012ebed5ecf18d87c9e5264b7a5eab7"
+  },
+  "limits": [
+    "Passing installed fast/workflow/parser tests verifies implementation boundaries; it does not establish coding gain or a target fix.",
+    "Recorded source/wheel/site parity and physical asset pin hashes are receipt-derived here. This summary does not perform new physical asset, wheel or installed-source hashing.",
+    "A metadata consistency review does not independently establish each live native request, model behavior, checker outcome or final study cleanup.",
+    "Study targets count as fixed only after three strict full successes each; saved-checker passes, native completions and full successes must be reported separately.",
+    "Known reused six-task comparisons do not establish held-out quality, ordinary 90-second readiness, coding qualification or automatic admission.",
+    "All separate a32-a36 diagnostics and the interrupted a35 full suite remain excluded from study scores.",
+    "Nine connection lifetimes and 36 serial episodes are predeclared counts, not claims that the running study has completed or cleaned up.",
+    "Native Codex retains instructions, tools, choice, approvals, sandboxing, execution and continuation; this summary is not a route activation."
+  ],
+  "summary_activity": {
+    "small_receipts_only": true,
+    "large_asset_rehashes": 0,
+    "tests_or_runtime_imports": 0,
+    "inference_or_checker_executions": 0,
+    "network_calls": 0,
+    "inflight_outcome_or_settings_reads": 0,
+    "source_or_pinned_file_edits": 0
+  }
+}

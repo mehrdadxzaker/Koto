@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "files": {
+    "episode-outcomes.json": {
+      "sha256": "836d6d4c1b539853f24dc4b4a4b67fb163bbe9f4efb0ca75b7ed9bfb29696c84",
+      "bytes": 59998
+    }
+  },
+  "source_safe_audit_manifest_sha256": "cdb98736408891c4f9a7164a4a4d6c05b04a86946cef8587a8616c7a75676110",
+  "credential_and_raw_field_scan": "passed",
+  "exporter_self_test_executed_during_preparation": false
+}

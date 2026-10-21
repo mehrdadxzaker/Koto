@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "evidence_scope": "Five separate development diagnostics, frozen36-episode metrics and once-only independent audit. No raw prompts, commands, code, credentials or private paths.",
+  "files": {
+    "README.md": {
+      "sha256": "50d16fb23f9c3d1f5f0d90464ad46566d429b65c26287d9b132991d05d01d684",
+      "bytes": 5213
+    },
+    "a32-diagnostic.json": {
+      "sha256": "255aa96b92ae8f3d245012912861eb31572200c7e77d2e75a321ab15331acad8",
+      "bytes": 6169
+    },
+    "a33-diagnostic.json": {
+      "sha256": "0f760707bb9aa29d8d5f80e2138b6725ec6fee16081291459e69c21d45b6edde",
+      "bytes": 6034
+    },
+    "a34-diagnostic.json": {
+      "sha256": "daf0eca93644a1b7895197240faaffd2ac40a157e41030bd1928aad0a3f08258",
+      "bytes": 8572
+    },
+    "a35-diagnostic.json": {
+      "sha256": "fef6ea0978697d21187c01e541dfb95c4867264c78c5f0a94f27051a2f4b4877",
+      "bytes": 9331
+    },
+    "a36-diagnostic.json": {
+      "sha256": "57d54f73d40e6ac8e00b4f204a2c1267a15b1139102d904ec6b8050b98f1074e",
+      "bytes": 10035
+    },
+    "episode-outcomes-manifest.json": {
+      "sha256": "24238bc1ca277aedf72bd7b59ba5a11922a8c1148220a7258b6efad81d3b3686",
+      "bytes": 397
+    },
+    "episode-outcomes.json": {
+      "sha256": "836d6d4c1b539853f24dc4b4a4b67fb163bbe9f4efb0ca75b7ed9bfb29696c84",
+      "bytes": 59998
+    },
+    "post-study-audit/independent-authored-command-observations.json": {
+      "sha256": "04b10d83fe61162178f204a5dae2be4d86e3c34f7b65a41b976300116cd3a48d",
+      "bytes": 40255
+    },
+    "post-study-audit/independent-integrity.json": {
+      "sha256": "d457fbdaa18aed1ffff5badf080e97e2f8aef7e78d3c28833807dcf6f0aa3257",
+      "bytes": 32975
+    },
+    "post-study-audit/independent-limitations.json": {
+      "sha256": "eb6166394707fec2332f1189260e33b6ecba24d80e013e05d113cec3c9525cff",
+      "bytes": 1448
+    },
+    "post-study-audit/independent-primary-targets.json": {
+      "sha256": "cc2d72b7fcdbc373980c52488cf6ddbc883273038bb8c30ed82d17c7599ac067",
+      "bytes": 660
+    },
+    "post-study-audit/independent-secondary-summary.json": {
+      "sha256": "668b4a7c81c82d4eed689a679cae7b784081876b232a52876bc3125c5885efd4",
+      "bytes": 33160
+    },
+    "post-study-audit/manifest.json": {
+      "sha256": "cdb98736408891c4f9a7164a4a4d6c05b04a86946cef8587a8616c7a75676110",
+      "bytes": 894
+    },
+    "pre-study-verification-controls.json": {
+      "sha256": "7e3065a6aadbb696a328b3fe806f694836b68858992598a8f6dcbed7fc1b248c",
+      "bytes": 10025
+    },
+    "target-failure-observations.json": {
+      "sha256": "d98cd5cea8b9b58cf3954ab2ff6971856e47bf858a3f8b93ab625669c6852e54",
+      "bytes": 30614
+    }
+  },
+  "privacy_scan": "passed",
+  "coding_qualification_granted": false,
+  "targets_fixed": false
+}

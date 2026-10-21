@@ -70,7 +70,8 @@ from ._contract_schemas.cloud_readiness import FIELDS as CLOUD_READINESS_FIELDS,
 from ._contract_schemas.codex_app_bridge import FIELDS as APP_BRIDGE_FIELDS, validate_install as _validate_app_bridge_install
 from ._contract_schemas.chat_task import (TASK_FIELDS as CHAT_TASK_FIELDS, MODELS_FIELDS as CHAT_MODELS_FIELDS,
     ERROR_FIELDS as CHAT_ERROR_FIELDS, validate_task as _validate_chat_task, validate_models as _validate_chat_models,
-    validate_error as _validate_chat_error, OWNER_FIELDS as CHAT_OWNER_FIELDS, validate_owner as _validate_chat_owner)
+    validate_error as _validate_chat_error, OWNER_FIELDS as CHAT_OWNER_FIELDS, validate_owner as _validate_chat_owner,
+    PROPOSAL_FIELDS as CHAT_PROPOSAL_FIELDS, validate_proposal as _validate_chat_proposal)
 from ._contract_schemas.native_codex import FIELDS as NATIVE_STATUS_FIELDS, validate_status as _validate_native_status
 from ._contract_schemas.local_setup import (validate_profile as _validate_local_setup_profile,
     validate_profile_v3 as _validate_local_setup_profile_v3,
@@ -561,6 +562,7 @@ def contract_manifest() -> dict[str, object]:
             _manifest_schema("hormuz.local-acquisition-catalog", 1, "durable-evidence", "hormuz", sorted(ACQUISITION_CATALOG_FIELDS)),
             _manifest_schema("hormuz.codex-app-bridge-install", 1, "cli-output", "hormuz", sorted(APP_BRIDGE_FIELDS)),
             _manifest_schema("hormuz.chat-task", 1, "cli-output", "hormuz", sorted(CHAT_TASK_FIELDS)),
+            _manifest_schema("hormuz.chat-proposal", 1, "cli-output", "hormuz", sorted(CHAT_PROPOSAL_FIELDS)),
             _manifest_schema("hormuz.chat-models", 1, "cli-output", "hormuz", sorted(CHAT_MODELS_FIELDS)),
             _manifest_schema("hormuz.chat-error", 1, "cli-output", "hormuz", sorted(CHAT_ERROR_FIELDS)),
             _manifest_schema("hormuz.chat-owner", 1, "durable-evidence", "hormuz", sorted(CHAT_OWNER_FIELDS)),
@@ -636,6 +638,7 @@ def validate_contract(value: Mapping[str, Any]) -> None:
         ("hormuz.local-acquisition-catalog", 1): _validate_acquisition_catalog,
         ("hormuz.codex-app-bridge-install", 1): _validate_app_bridge_install,
         ("hormuz.chat-task", 1): _validate_chat_task,
+        ("hormuz.chat-proposal", 1): _validate_chat_proposal,
         ("hormuz.chat-models", 1): _validate_chat_models,
         ("hormuz.chat-error", 1): _validate_chat_error,
         ("hormuz.chat-owner", 1): _validate_chat_owner,

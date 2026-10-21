@@ -1,0 +1,152 @@
+{
+  "schema_version": 1,
+  "publication_status": "draft",
+  "evidence_kind": "retained_two_target_diagnostic_not_paired_study",
+  "candidate": {
+    "runtime": "2.0.0a32",
+    "profile": "qwen-code.v9",
+    "source_commit": "b51dc23edeb1d2ed1d82c705f120f340d1f5d944",
+    "wheel_sha256": "98c0bba0824c783ae214d21bda7ab2086f7bd11bbcd9514ae685964d3a25638c"
+  },
+  "pinned_inputs": {
+    "model": "Qwen3-14B-Q4_K_M",
+    "model_sha256": "500a8806e85ee9c83f3ae08420295592451379b4f8cf2d0f41c15dffeb6b81f0",
+    "client_version": "0.160.0",
+    "client_sha256": "112fae7a5a1223e673c8a1791d32338f37df8b527ff1159bb8adac6c4dbf1b4b",
+    "engine_sha256": "1bf5602a2be50097c44282a6ecc63234d94ee8f96d39fd45fed6eff4e74b6b41",
+    "engine_archive_sha256": "051bb0b55b3e5e72081aa819131ba30c74d910acc915b28bab298757472e39d9",
+    "six_fixture_sha256": "ef495f026747e5f4a52703665240883832cc18f8f75eb209ae75dfa682da55b9"
+  },
+  "controls": {
+    "episode_seconds": 180,
+    "requests_per_episode": 16,
+    "output_tokens": 2048,
+    "native_effort": "low",
+    "inference_concurrency": 1,
+    "quality_retries": 0,
+    "automatic_startup_retries": 0
+  },
+  "episodes": [
+    {
+      "case_id": "atomic-stock",
+      "full_success": false,
+      "implementation_changed": true,
+      "checker": {
+        "exit_code": 1,
+        "termination": "completed",
+        "checks_unchanged": true
+      },
+      "native": {
+        "termination": "completed",
+        "client_exit_code": 1,
+        "turn_completed": false,
+        "elapsed_ms": 180010,
+        "submitted_requests": 6,
+        "turn_completed_events": 0,
+        "turn_failed_events": 1,
+        "stream_disconnected_before_response_completed": true
+      },
+      "saved_patch_events": 1,
+      "recorded_numbered_hunk_rejections": 0,
+      "recorded_python_syntax_failure_commands": 2,
+      "recorded_command_completions": 4,
+      "completed_commands_after_last_saved_patch": 3,
+      "evidence_hashes": {
+        "native_jsonl_sha256": "218556b0a89a44d4101306fc192fa3efc6afa7f94632ed038f1928fb9974216d",
+        "saved_implementation_sha256": "2342728d51134b4dfec577e8b67b2a08a8ac08629b2718fac9c81ab0208821a6",
+        "checker_sha256": "ba6c4c2725d0f7da513cbf153dbe5006b6fe75ec08054cbe5b3d8dda072d6ca3"
+      }
+    },
+    {
+      "case_id": "stable-key-unique",
+      "full_success": false,
+      "implementation_changed": true,
+      "checker": {
+        "exit_code": 0,
+        "termination": "completed",
+        "checks_unchanged": true
+      },
+      "native": {
+        "termination": "timeout",
+        "client_exit_code": -15,
+        "turn_completed": false,
+        "elapsed_ms": 180008,
+        "submitted_requests": 5,
+        "turn_completed_events": 0,
+        "turn_failed_events": 0,
+        "stream_disconnected_before_response_completed": false
+      },
+      "saved_patch_events": 2,
+      "recorded_numbered_hunk_rejections": 0,
+      "recorded_python_syntax_failure_commands": 0,
+      "recorded_command_completions": 2,
+      "completed_commands_after_last_saved_patch": 0,
+      "evidence_hashes": {
+        "native_jsonl_sha256": "fad3e70b1b3b4a27718d0b9a2d16c40a703de5514602b58a0dddd383846e74c1",
+        "saved_implementation_sha256": "b582135ad17898a2a227bb1811a8e4153c6281f1276db25ed9b12e485c36c445",
+        "checker_sha256": "ee1f06be069c966c982c93b9a8ec3d4c5dc447e9f9ae70ece25a35f38e57ae19"
+      }
+    }
+  ],
+  "verdict": "stop_and_diagnose",
+  "full_successes": 0,
+  "saved_checker_successes": 1,
+  "normal_native_successes": 0,
+  "paired_study_started": false,
+  "pooled_into_paired_study": false,
+  "cleanup": {
+    "settings_restored": true,
+    "owned_listeners_closed": true,
+    "connection_lifetimes_closed": 1,
+    "supervisor_group_closed": true,
+    "normal_settings_unchanged": true,
+    "frozen_artifacts_unchanged": true
+  },
+  "installed_parity": {
+    "runtime_payload_files": 175,
+    "source_wheel_site_payloads_equal": true,
+    "old_profile_outputs": 630,
+    "old_profile_outputs_changed": 0
+  },
+  "evidence_hashes": {
+    "comparison_sha256": "e6e59feadd2cda38f879db36dd2b811dce8f356ca0859964f92fb817370eb1bf",
+    "diagnostic_execution_sha256": "b64f38c614d64c5cb5c17a6195a9dff7553116f6ad3f703961877eaf771cefe2",
+    "stop_verdict_sha256": "4a599d8edf0c65cb30f5de515eef55584b27454fb0e9db441e50440cd2511524",
+    "frozen_supervisor_plan_sha256": "9ad94a445893bba571cd1aea35de6ab78a49e1c848c7a3d9db82f803fac6fa1b",
+    "inference_install_parity_sha256": "79806c25c8f57805faf3341f56de98decdd4a943d7a1cc62838819a1029313e1",
+    "reused_a32_draft_sha256": "92c0e1714f68a4ba5d0998cc5ac8bbb1aa485f92b4349cebd4bb48e6ce8a87c9"
+  },
+  "limits": [
+    "Recorded termination, client exit, native turn completion and saved-checker result are separate fields. No unrecorded timeout or transport exception subtype is inferred.",
+    "Cleanup flags cover this diagnostic’s owned lifecycle; they do not prove absence of unrelated processes.",
+    "This once-only diagnostic is not repeatability, a paired comparison, held-out qualification or ordinary 90-second readiness.",
+    "No model, native client, generated command or checker was executed to prepare this draft.",
+    "Stock recorded completed termination with stream disconnect at 180010 ms; list-key recorded timeout at 180008 ms.",
+    "List-key saved code passes its checker but lacks a post-repair command and a completed native turn.",
+    "The adapter replay used explicitly reconstructed histories, not a raw captured historical continuation; it establishes mechanism behavior only."
+  ],
+  "adapter_replay": {
+    "receipt_sha256": "e0cbafb7fdb6891707e5de288046c5e2481ae43e12d6b30a166de70b145db227",
+    "all_five_stages_passed": true,
+    "history_reconstructed": true,
+    "raw_continuation_capture": false,
+    "stock_budgets": [
+      256,
+      256,
+      256
+    ],
+    "list_failure_then_patch_budgets": [
+      256,
+      64
+    ],
+    "quality_evidence": false
+  },
+  "subsequent_diagnostic": {
+    "runtime": "2.0.0a33",
+    "source_commit": "c37aa9fb29a47adaf181bc39642c7641c20121e8",
+    "full_successes": 1,
+    "episodes": 2,
+    "reported_separately": true,
+    "repeatability_proven": false
+  }
+}

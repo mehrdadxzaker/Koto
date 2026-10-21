@@ -55,6 +55,54 @@ it does not replace the model running the whole Codex conversation.
    inside Koto. A failed task stays inside this command and leaves native
    Codex available. Ambiguous submissions are reported and never retried.
 
+## Delegate a proposal for commercial review
+
+Use `chat propose` when the commercial agent needs a bounded suggestion, such as
+a proposed code change, from an installed local model. The commercial agent
+chooses the subtask and supplies only its authorized context in a private UTF-8
+file. An explicit local alias is required:
+
+```sh
+koto chat propose --router-home /private/koto-router-home \
+  --model qualified-local-alias --prompt-file /private/proposal.txt \
+  --max-output-tokens 2048 --effort none --timeout-seconds 180
+```
+
+For a small, bounded part, `chat propose --effort none` explicitly disables local
+thinking. Other supported proposal efforts are `low`, `medium`, `high` and `max`;
+the default remains `max`. Ordinary `chat ask` retains its four effort choices
+and does not accept `none`.
+
+The router must advertise proposal v1 before the task text is submitted. This
+operation uses the same separate owner, local destination and finite
+prompt/output/deadline bounds as `chat ask`, without retries or fallback. It
+accepts one fresh text request with no tools, provider history or continuation.
+It does not use automatic model selection or answer reuse. Existing policy,
+transport qualification, health, resource limits and accounting still apply.
+Proposal admission does not depend on automatic task-type classification or
+independent coding evidence. An agent role/context preamble may remain an
+`unknown` task hint; the request is neither relabeled nor used for learning.
+The CLI deadline does not widen the configured upstream timeout: with a
+90-second upstream cap, `--timeout-seconds 180` still permits at most 90 seconds
+for that provider request. Keep the delegated context and requested output small
+enough for both bounds; a timeout remains a failed handoff without an automatic
+retry.
+
+Only a completed, nonempty text response becomes a `hormuz.chat-proposal` v1
+receipt. Transparent reasoning is ignored; tool calls, opaque provider state
+and other nontext output are rejected. The receipt always
+states `purpose: proposal`, `review_required: true` and `applied: false`.
+It identifies the actual local model, destination generation and work ID; it
+does not claim that the suggestion is correct or that coding work succeeded.
+
+The commercial agent reviews the returned text, decides which changes to apply,
+uses its normal Codex tools and permissions, and checks the integrated result.
+Koto executes no proposed commands, applies no edits and runs no additional
+agent loop. Delete the private input file after the call, including on failure.
+Normal Codex settings, account, model and tools stay unchanged. This explicit
+proposal permission grants no autonomous coding qualification and does not
+change `chat ask`, `chat route` or automatic local coding admission.
+
 ## Disable
 
 ```sh
@@ -86,7 +134,7 @@ integration and separate full startup, policy, login and visible-app qualificati
 The legacy `hormuz` command remains a compatibility alias. Existing private
 ownership paths and receipt identifiers retain their `hormuz` names.
 
-`hormuz.chat-models`, `hormuz.chat-task` and `hormuz.chat-error` are additive v1
+`hormuz.chat-models`, `hormuz.chat-task`, `hormuz.chat-proposal` and `hormuz.chat-error` are additive v1
 CLI receipts, frozen by matching fixtures in `tests/fixtures`. The additive v1
 `hormuz.chat-owner` control document records only the normal home, separate router
 home and connection generation; it is removed after successful shutdown. Its

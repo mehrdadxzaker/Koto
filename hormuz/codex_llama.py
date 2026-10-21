@@ -4,16 +4,15 @@ import hashlib
 import json
 import re
 from .compaction_formats import strict_json_loads
-from .local_harness import PROFILES, adapt_qwen_request
+from .local_harness import PROFILES
+from .local_harness_request import (LocalHarnessRequest, LocalHarnessRequestError,
+    PINNED_CODEX_0160_EXEC_SHA256, PINNED_CODEX_0160_PATCH_SHA256)
 
 CAPABILITY = 'codex_llama_v1'
 MAX_FRAME = 2 * 1024 * 1024
 MAX_CHECK_ARGUMENTS = 65536
 MAX_CHECK_COMMAND = 128 * 1024
 MAX_COMPILED_CHECK_CACHE = 512 * 1024
-# Canonical declaration observed in all twelve pinned Codex 0.160.0 captures.
-# Flat same-name functions are otherwise insufficient evidence of a native tool.
-PINNED_CODEX_0160_EXEC_SHA256 = '7ecb0f4f51b3982e36be43a9d08daa05348d7dd5f70646231b1f0f9823f40ec3'
 PARENT_TAGS = {'parent_turn_id', 'x-codex-parent-thread-id', 'x-openai-subagent'}
 
 
@@ -53,6 +52,7 @@ class CodexLlamaRequest:
         self.stream_kinds = {}
         self.pending_functions = set()
         self.derived_checks = {}
+        self.derived_compilers = {}
         self.derived_calls = {}
         self.derived_streams = {}
         self.stream_bindings = {}
@@ -81,11 +81,6 @@ class CodexLlamaRequest:
         self.value['chat_template_kwargs'] = {'enable_thinking': reasoning.get('effort') != 'none'}
         limit = value.get('max_output_tokens', 8192)
         budget = min(1024, max(1, limit // 2)) if type(limit) is int and limit > 0 else 1024
-        if harness == 'qwen-code.v8':
-            # Keep low-effort local requests from spending the whole host
-            # deadline on thought before producing their first tool call.
-            budget = min(budget, {'minimal': 128, 'low': 256, 'medium': 512}.get(
-                reasoning.get('effort', 'medium'), 1024))
         self.value['reasoning_budget_tokens'] = budget if reasoning.get('effort') != 'none' else 0
         tools = value.get('tools', [])
         if type(tools) is not list or len(tools) > 1024:
@@ -119,76 +114,15 @@ class CodexLlamaRequest:
             self.value['tools'] = flattened
         if isinstance(self.value.get('input'), list):
             self.value['input'] = [self._input(item) for item in self.value['input']]
-        if harness:
-            adapt_qwen_request(self.value, self.declarations, profile=harness)
-        if harness in {'qwen-code.v6', 'qwen-code.v7', 'qwen-code.v8'}:
-            self._add_python_checks(feedback=harness == 'qwen-code.v7', script=harness == 'qwen-code.v8')
-        if harness == 'qwen-code.v8' and isinstance(self.value.get('input'), list):
-            from .local_harness_progress import progress_snapshot
-            progress = progress_snapshot(self.value['input'], self.declarations, include_attempts=True)
-            if not progress['pending_sessions'] and not progress['unresolved_tool_calls']:
-                cap = None
-                if (progress['native_patches_saved'] and progress['completed_commands_since_last_native_patch']
-                        and progress['last_command_exit'] == 0 and progress['last_attempt_command_succeeded']):
-                    cap = 16
-                elif reasoning.get('effort') in {'low', 'minimal'} and isinstance(value.get('input'), list):
-                    if not progress['tool_history_seen']:
-                        cap = 32
-                    elif progress['last_attempt_patch_saved']:
-                        cap = 64
-                # Compute allocation only: these phases do not prove assertions
-                # ran or that the task is correct. Uncertain work keeps its budget.
-                if cap is not None:
-                    self.value['reasoning_budget_tokens'] = min(self.value['reasoning_budget_tokens'], cap)
-
-    def _add_python_checks(self, *, feedback=False, script=False):
-        """Offer a private compiler only for an existing, identified host command."""
-        if self.value.get('tool_choice', 'auto') != 'auto' or len(self.value.get('tools', [])) >= 1024:
-            return
-        targets = []
-        for alias, identity in self.identities.items():
-            if alias not in self.original_tool_aliases:
-                continue
-            namespace, name, kind = identity
-            declaration = self.declarations[alias]
-            digest = hashlib.sha256(json.dumps(declaration, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
-            native = namespace == 'functions' or namespace is None and digest == PINNED_CODEX_0160_EXEC_SHA256
-            schema = declaration.get('parameters', {})
-            properties = schema.get('properties', {}) if isinstance(schema, dict) else {}
-            if (native and name == 'exec_command' and kind == 'function' and isinstance(schema, dict)
-                    and schema.get('type') == 'object' and isinstance(properties, dict)
-                    and isinstance(properties.get('cmd'), dict) and properties['cmd'].get('type') == 'string'
-                    and schema.get('required') == ['cmd']):
-                targets.append(alias)
-        if len(targets) != 1:
-            return
-        if script:
-            from .local_python_script import SCRIPT_SCHEMA as checks_schema, compile_script as compiler
-        elif feedback:
-            from .local_python_checks import FEEDBACK_CHECKS_SCHEMA as checks_schema, compile_feedback_checks as compiler
-        else:
-            from .local_python_checks import CHECKS_SCHEMA as checks_schema, compile_checks as compiler
-        target = targets[0]
-        properties = self.declarations[target]['parameters']['properties']
-        argument = 'script' if script else 'checks'
-        parameters = {argument: copy.deepcopy(checks_schema)}
-        if isinstance(properties.get('workdir'), dict) and properties['workdir'].get('type') == 'string':
-            parameters['workdir'] = copy.deepcopy(properties['workdir'])
-        base_alias = 'koto_python' if script else 'koto_python_checks'
-        alias = base_alias
-        for index in range(1025):
-            if alias not in self.identities:
-                break
-            alias = base_alias + '_' + hashlib.sha256(str(index).encode()).hexdigest()[:16]
-        else:
-            raise CodexLlamaError('ambiguous_check_tool')
-        self.derived_checks[alias] = {'target': target, 'workdir': 'workdir' in parameters, 'argument': argument}
-        self.compile_checks = compiler
-        self.value['tools'].append({'type': 'function', 'name': alias, 'strict': True,
-            'description': ('Run a Python script through the existing host command tool, with its normal permissions and actual results. Write plain Python with real newlines; import saved code and use assertions for verification.' if script else
-                'Check supplied cases against a saved local Python function through the existing host command tool. Supply real expected results from the task; these checks are not independent qualification.'),
-            'parameters': {'type': 'object', 'properties': parameters, 'required': [argument],
-                           'additionalProperties': False}})
+        try:
+            shaped = LocalHarnessRequest(self.value, self.declarations, self.identities,
+                                         self.original_tool_aliases, profile=harness)
+        except LocalHarnessRequestError as error:
+            raise CodexLlamaError(str(error)) from error
+        self.derived_checks = shaped.derived_checks
+        self.derived_compilers = shaped.derived_compilers
+        if hasattr(shaped, 'compile_checks'):
+            self.compile_checks = shaped.compile_checks
 
     def _derived_identity(self, item):
         if (set(item) - {'type', 'id', 'call_id', 'name', 'arguments', 'status'}
@@ -237,10 +171,10 @@ class CodexLlamaRequest:
             if record['signature'] != signature:
                 raise CodexLlamaError('mismatched_check_arguments')
             return record['compiled']
-        command = self.compile_checks(arguments[argument])
+        command = self.derived_compilers[alias](arguments[argument])
         if not isinstance(command, str) or len(command.encode('utf-8')) > MAX_CHECK_COMMAND:
             raise CodexLlamaError('invalid_compiled_check')
-        native = {'cmd': command}
+        native = {self.derived_checks[alias]['native_field']: command}
         if 'workdir' in arguments:
             native['workdir'] = arguments['workdir']
         compiled = json.dumps(native, separators=(',', ':'), ensure_ascii=False, allow_nan=False)
@@ -388,8 +322,12 @@ class CodexLlamaRequest:
                 record = self.derived_streams.get(identity[0])
                 if record is None or (record['id'], record['call_id'], record['alias']) != identity:
                     raise CodexLlamaError('mismatched_check_call')
-            namespace, name, _ = self.identities[self.derived_checks[value['name']]['target']]
-            result = {**value, 'name': name, 'arguments': self._compile_derived(value) if complete else ''}
+            namespace, name, kind = self.identities[self.derived_checks[value['name']]['target']]
+            compiled = self._compile_derived(value) if complete else ''
+            result = {**value, 'name': name, 'arguments': compiled}
+            if kind == 'custom':
+                result = {key: item for key, item in result.items() if key != 'arguments'} | {
+                    'type': 'custom_tool_call', 'input': json.loads(compiled)['input'] if complete else ''}
             if namespace:
                 result['namespace'] = namespace
             if complete:

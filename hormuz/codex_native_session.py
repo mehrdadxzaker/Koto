@@ -33,6 +33,7 @@ _ERROR_CODES = frozenset({
     'native_request_limit', 'native_reroute_invalid', 'native_router_cleanup_incomplete', 'native_rpc_rejected',
     'native_router_configuration_invalid', 'native_router_request_invalid', 'native_router_command_invalid',
     'native_router_response_limit', 'native_router_response_invalid', 'native_router_unavailable', 'native_router_deadline',
+    'native_router_storage_unavailable',
     'native_secret_detected', 'native_secret_policy_invalid', 'native_selection_changed', 'native_selection_invalid',
     'native_terminal_invalid', 'native_thread_invalid', 'native_turn_failed', 'native_turn_invalid',
     'native_version_unsupported',

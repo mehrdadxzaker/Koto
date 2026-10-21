@@ -1,0 +1,204 @@
+{
+  "schema_version": 1,
+  "publication_status": "draft",
+  "evidence_kind": "retained_two_target_diagnostic_not_paired_study",
+  "candidate": {
+    "runtime": "2.0.0a35",
+    "profile": "qwen-code.v9",
+    "source_commit": "7fe3fd8cb799730744fc50846cad50d1622b7e3a",
+    "wheel_sha256": "c0cd83b24956c08bc7d74f98d27491edd54a7ba972b7c75591b8eafb39be254b",
+    "named_case_compiler_sha256": "ee575e730245a894d8aff72901115e526e4e7d6bfa8bcdaf554ab147cb2a903d"
+  },
+  "pinned_inputs": {
+    "model": "Qwen3-14B-Q4_K_M",
+    "model_sha256": "500a8806e85ee9c83f3ae08420295592451379b4f8cf2d0f41c15dffeb6b81f0",
+    "client_version": "0.160.0",
+    "client_sha256": "112fae7a5a1223e673c8a1791d32338f37df8b527ff1159bb8adac6c4dbf1b4b",
+    "engine_build": "b11617",
+    "engine_sha256": "1bf5602a2be50097c44282a6ecc63234d94ee8f96d39fd45fed6eff4e74b6b41",
+    "engine_archive_sha256": "051bb0b55b3e5e72081aa819131ba30c74d910acc915b28bab298757472e39d9",
+    "six_fixture_sha256": "ef495f026747e5f4a52703665240883832cc18f8f75eb209ae75dfa682da55b9",
+    "pin_origin": "Frozen diagnostic receipts; large model and engine assets were not reread for this publication draft."
+  },
+  "controls": {
+    "episode_seconds": 180,
+    "requests_per_episode": 16,
+    "output_tokens": 2048,
+    "native_reasoning_effort": "low",
+    "inference_concurrency": 1,
+    "quality_retries": 0,
+    "automatic_startup_retries": 0,
+    "startup_attempts_per_connection": 1,
+    "process_seconds": 2100,
+    "automatic_coding_effect": "none"
+  },
+  "episodes": [
+    {
+      "case_id": "atomic-stock",
+      "full_success": false,
+      "implementation_changed": false,
+      "checker": {
+        "exit_code": 1,
+        "termination": "completed",
+        "checks_unchanged": true
+      },
+      "native": {
+        "termination": "completed",
+        "client_exit_code": 1,
+        "turn_completed": false,
+        "elapsed_ms": 180009,
+        "submitted_requests": 5,
+        "turn_completed_events": 0,
+        "turn_failed_events": 1,
+        "stream_disconnected_before_response_completed": true
+      },
+      "saved_patch_events": 0,
+      "rejected_native_patch_formats": 3,
+      "recorded_command_completions": 1,
+      "evidence_hashes": {
+        "native_jsonl_sha256": "575f7142edbc6cab2e3a234bb3be99c2a04a25c08320d62351f0dd91424e7138",
+        "saved_implementation_sha256": "177840859689205884344266cd3a7c2ca1e24ef5e73808b3edb284e60532f04f",
+        "checker_sha256": "ba6c4c2725d0f7da513cbf153dbe5006b6fe75ec08054cbe5b3d8dda072d6ca3"
+      },
+      "observed_sequence": [
+        "read_saved_source",
+        "native_patch_rejected_unprefixed_update_lines",
+        "native_patch_rejected_numbered_hunk_header",
+        "native_patch_rejected_unprefixed_update_lines",
+        "native_stream_disconnect_without_turn_completion"
+      ],
+      "native_patch_rejection_categories": {
+        "unprefixed_update_lines": 2,
+        "numbered_hunk_header": 1
+      },
+      "retained_failure_observation": "Three native patch syntax rejections leave the initial broken stock implementation unchanged. No saved patch or authored verification command is recorded."
+    },
+    {
+      "case_id": "stable-key-unique",
+      "full_success": true,
+      "implementation_changed": true,
+      "checker": {
+        "exit_code": 0,
+        "termination": "completed",
+        "checks_unchanged": true
+      },
+      "native": {
+        "termination": "completed",
+        "client_exit_code": 0,
+        "turn_completed": true,
+        "elapsed_ms": 115716,
+        "submitted_requests": 4,
+        "turn_completed_events": 1,
+        "turn_failed_events": 0,
+        "stream_disconnected_before_response_completed": false
+      },
+      "saved_patch_events": 1,
+      "rejected_native_patch_formats": 0,
+      "recorded_command_completions": 2,
+      "evidence_hashes": {
+        "native_jsonl_sha256": "a432e78f818435589681262a149a3df4175d337b4fa55948c6c7132acdf2ee6e",
+        "saved_implementation_sha256": "de182d1d3564d70c5694796ebee8ef1f429e503c0ab14d469311c5496697dd49",
+        "checker_sha256": "ee1f06be069c966c982c93b9a8ec3d4c5dc447e9f9ae70ece25a35f38e57ae19"
+      },
+      "observed_sequence": [
+        "read_saved_source",
+        "saved_native_patch",
+        "compiled_named_case_driver_exit_0",
+        "native_turn_completed"
+      ],
+      "authored_verification": {
+        "driver_kind": "compiled_named_case_checks",
+        "native_exit_code": 0,
+        "cases": 7,
+        "probes": 0,
+        "reported_source_sha256": "de182d1d3564d70c5694796ebee8ef1f429e503c0ab14d469311c5496697dd49",
+        "helper_alias_directly_recorded": false,
+        "provenance_limit": "The completed native command contains the named compiler driver and keyword invocation wrapper. Its model-facing helper alias is not present in this native event log."
+      },
+      "retained_success_limit": "One completed native episode and unchanged checker pass establish this diagnostic success only; repeatability remains unestablished."
+    }
+  ],
+  "verdict": "stop_and_diagnose",
+  "full_successes": 1,
+  "saved_checker_successes": 1,
+  "normal_native_successes": 1,
+  "paired_study_started": false,
+  "pooled_into_paired_study": false,
+  "cleanup": {
+    "settings_restored": true,
+    "owned_listeners_closed": true,
+    "connection_lifetimes_closed": 1,
+    "supervisor_group_closed": true,
+    "normal_settings_unchanged": true,
+    "frozen_artifacts_unchanged": true,
+    "final_install_artifact_parity_unchanged": true
+  },
+  "installed_verification": {
+    "focused_suite_pass": true,
+    "full_suite": false,
+    "fast_tests": 256,
+    "affected_workflow_tests": 49,
+    "runtime_payload_files": 176,
+    "source_wheel_site_payloads_equal": true,
+    "old_profile_outputs": 630,
+    "old_profile_outputs_changed": 0,
+    "normal_settings_unchanged": true,
+    "source_head_unchanged": true,
+    "source_payload_unchanged": true,
+    "wheel_unchanged": true,
+    "full_installed_suite": {
+      "status": "owner_aborted_SIGINT",
+      "pass_established": false,
+      "elapsed_seconds": 172.932,
+      "fast_tests_completed_before_interruption": 256,
+      "workflow_layer_completed": false,
+      "signals": [
+        "SIGINT"
+      ],
+      "supervisor_returncode": -2,
+      "owned_supervisor_group_closed": true,
+      "normal_settings_unchanged": true,
+      "source_head_unchanged": true,
+      "source_payload_unchanged": true,
+      "wheel_unchanged": true
+    }
+  },
+  "evidence_hashes": {
+    "comparison_sha256": "0b2fde726b95fa408d45d3ed3fb9e0309fb01f2d8bdc22c3788e2d7379e27048",
+    "diagnostic_execution_sha256": "973e09133b27ddc3c3580e3641ceaf47c3fdfb6f0f4695fbb55ec8e1527714db",
+    "stop_verdict_sha256": "f101d0c524ac15c07012d5a75cc1ddd96bcb935de2bd9d21a80af20de65442d0",
+    "frozen_supervisor_plan_sha256": "bdfcd195570694cb882906953fdcd3002059307d5b91ecbbece0f767a5dd8539",
+    "frozen_episode_plan_physical_sha256": "ce31aae932aa6dc581a023c54982f7721528373c1d26ec084244760c0bfd6873",
+    "inference_install_parity_sha256": "99f4620302af03e40c8ba091c711cf6c30f24658ebde9138d0789dbe6383ba53",
+    "focused_installed_receipt_sha256": "0d8edd2e5e7cb24aa33b563cea148cd289ef32047ccd67a8cd6a8592f959d83c",
+    "spec_review_receipt_sha256": "86cd7e92d0f439739766193a52f7b715b8da15bcba0e43a591e219da7a350bef",
+    "standards_review_receipt_sha256": "924c439948d9f7ffb779f9d2f67dfa91742441a45e91c56b1eb949bb6623b9e8",
+    "orchestration_review_receipt_sha256": "cee30b93b727ad2f3829562a72a6c58dcd38838b7626c53a2bfa0fd0d24a10bd",
+    "frozen_episode_plan_canonical_sha256": "9d18ad8af3be838521be0c8d8594e8767e06f54050c5a1ddde0ad407a3c9bfef",
+    "interrupted_full_installed_receipt_sha256": "12d882bc43933720ffc23db07d07c10ed5dbedecc1f75f04c5a42e7d70e2ed9c"
+  },
+  "draft_audit": {
+    "mode": "read_only_source_evidence_allowlisted_output",
+    "model_requests": 0,
+    "native_client_executions": 0,
+    "generated_command_executions": 0,
+    "independent_checker_executions": 0,
+    "physical_wheel_hash_matches_frozen_pin": true,
+    "supervisor_plan_physical_hash_binding_matches": true,
+    "inner_plan_canonical_digest_binding_matches": true
+  },
+  "limits": [
+    "Recorded termination, client exit, native turn completion and saved-checker result remain separate fields. No exact timeout or transport exception subtype is inferred.",
+    "Cleanup flags cover the diagnostic owned lifecycle and do not prove absence of unrelated processes.",
+    "A once-only diagnostic is not repeatability, a paired comparison, held-out qualification or ordinary 90-second readiness.",
+    "Authored check success does not replace the unchanged independent checker.",
+    "No raw traces, submitted task text, generated source, commands, credentials, endpoints or private paths are embedded in this draft.",
+    "All a32 through a35 outcomes remain historical diagnostics and are excluded from later a36 quality results."
+  ],
+  "subsequent_hypothesis": {
+    "runtime": "2.0.0a36",
+    "quality_status": "pending_not_established_by_a32_to_a35",
+    "treatment": "A pure derived old/new text compiler targets the existing native apply_patch tool to address observed patch syntax friction.",
+    "preserved_boundary": "Native tool execution and permission authority, model, checks, compute budgets, effort, request and time limits remain fixed."
+  }
+}

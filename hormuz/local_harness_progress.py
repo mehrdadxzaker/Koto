@@ -43,7 +43,7 @@ inline Python command format above; avoid shell temporary-file constructions whe
 temporary directories are excluded. Check the saved code and report actual results.'''
 
 
-def progress_snapshot(items, declarations, *, include_attempts=False):
+def progress_snapshot(items, declarations, *, include_attempts=False, include_verification=False):
     """Count correlated host envelopes, ignoring program text as status metadata."""
     state = {'native_patches_saved': 0, 'native_patches_rejected': 0,
              'completed_commands_since_last_native_patch': 0, 'last_command_exit': None,
@@ -54,29 +54,35 @@ def progress_snapshot(items, declarations, *, include_attempts=False):
     unresolved, seen_attempts = set(), set()
     invalid_attempt = last_attempt_succeeded = False
     tool_history_seen = last_attempt_patch_saved = False
+    latest_verification = False
+    verification_calls, verification_sessions = {}, {}
+    if include_verification:
+        from .local_verification import has_python_assertions
     for item in items:
-        if include_attempts:
+        if include_attempts or include_verification:
             message = (isinstance(item, dict) and (item.get('type') == 'message'
                        or item.get('type') is None and isinstance(item.get('role'), str)
                        and item['role'] in {'system', 'developer', 'user', 'assistant'}))
             reasoning = isinstance(item, dict) and item.get('type') == 'reasoning'
             if not (message or reasoning):
+                latest_verification = False
                 # Any later attempt/result supersedes an earlier successful
                 # phase. Unknown history cannot masquerade as an initial request.
-                tool_history_seen = True
-                last_attempt_succeeded = last_attempt_patch_saved = False
-                kind = item.get('type') if isinstance(item, dict) else None
-                call_id = item.get('call_id') if isinstance(item, dict) else None
-                if kind == 'function_call':
-                    if not isinstance(call_id, str) or not call_id or call_id in seen_attempts:
-                        invalid_attempt = True
+                if include_attempts:
+                    tool_history_seen = True
+                    last_attempt_succeeded = last_attempt_patch_saved = False
+                    kind = item.get('type') if isinstance(item, dict) else None
+                    call_id = item.get('call_id') if isinstance(item, dict) else None
+                    if kind == 'function_call':
+                        if not isinstance(call_id, str) or not call_id or call_id in seen_attempts:
+                            invalid_attempt = True
+                        else:
+                            seen_attempts.add(call_id)
+                            unresolved.add(call_id)
+                    elif kind == 'function_call_output' and isinstance(call_id, str):
+                        unresolved.discard(call_id)
                     else:
-                        seen_attempts.add(call_id)
-                        unresolved.add(call_id)
-                elif kind == 'function_call_output' and isinstance(call_id, str):
-                    unresolved.discard(call_id)
-                else:
-                    invalid_attempt = True
+                        invalid_attempt = True
         if not isinstance(item, dict) or not isinstance(item.get('call_id'), str) or not item['call_id']:
             continue
         call_id = item['call_id']
@@ -94,12 +100,17 @@ def progress_snapshot(items, declarations, *, include_attempts=False):
                 continue
             if isinstance(arguments, dict):
                 calls[call_id] = (name, arguments)
+                if include_verification and name == 'exec_command':
+                    verification_calls[call_id] = (
+                        state['native_patches_saved'], has_python_assertions(arguments.get('cmd')))
         elif item.get('type') == 'function_call_output' and call_id in calls:
             name, arguments = calls.pop(call_id)
+            verification = verification_calls.pop(call_id, (None, False))
             consumed.add(call_id)
             output = item.get('output')
             if name == 'apply_patch':
                 if isinstance(output, str) and _PATCH.match(output):
+                    latest_verification = False
                     last_attempt_patch_saved = True
                     state['native_patches_saved'] += 1
                     state['completed_commands_since_last_native_patch'] = 0
@@ -116,6 +127,7 @@ def progress_snapshot(items, declarations, *, include_attempts=False):
                     continue
             match = _COMMAND.match(output) if isinstance(output, str) else None
             if match is None:
+                latest_verification = False
                 state['last_command_exit'], state['shell_parse_failure'] = None, False
                 state['python_syntax_failure'] = False
                 state['repeated_command_completions'] = 0
@@ -124,6 +136,12 @@ def progress_snapshot(items, declarations, *, include_attempts=False):
                 if match['session'] is not None and match['session'] != str(session):
                     continue
             if match['session'] is not None:
+                latest_verification = False
+                if include_verification and name == 'exec_command':
+                    key = match['session']
+                    # A duplicate originating session cannot supply trustworthy
+                    # intent for either command.
+                    verification_sessions[key] = ((None, False) if key in verification_sessions else verification)
                 pending.add(match['session'])
                 state['last_command_exit'], state['shell_parse_failure'] = None, False
                 state['python_syntax_failure'] = False
@@ -131,6 +149,7 @@ def progress_snapshot(items, declarations, *, include_attempts=False):
             else:
                 if name == 'write_stdin':
                     pending.remove(str(session))
+                    verification = verification_sessions.pop(str(session), (None, False))
                 code = int(match['exit'])
                 last_attempt_succeeded = code == 0
                 state['completed_commands_since_last_native_patch'] += 1
@@ -138,6 +157,9 @@ def progress_snapshot(items, declarations, *, include_attempts=False):
                 state['shell_parse_failure'] = code != 0 and bool(_SHELL_PARSE.search(output[match.end():]))
                 state['python_syntax_failure'] = code != 0 and bool(_PYTHON_SYNTAX.search(output[match.end():]))
                 command = arguments.get('cmd') if name == 'exec_command' else None
+                if include_verification:
+                    latest_verification = (code == 0 and verification[1]
+                        and verification[0] == state['native_patches_saved'])
                 state['repeated_command_completions'] = 0
                 if isinstance(command, str):
                     commands[command] = commands.get(command, 0) + 1
@@ -148,6 +170,8 @@ def progress_snapshot(items, declarations, *, include_attempts=False):
                      last_attempt_patch_saved=last_attempt_patch_saved,
                      tool_history_seen=tool_history_seen,
                      unresolved_tool_calls=len(unresolved) + int(invalid_attempt))
+    if include_verification:
+        state['latest_command_verification_intent'] = latest_verification
     return state
 
 

@@ -146,3 +146,25 @@ The later v8 a31 campaign passed **1/6**, with **0/3 rollback and 0/3 list-key**
 target passes. These diagnostics do not establish reliable improvement or
 ordinary coding qualification. Their separate effort controls, unchanged
 checks, saved-code outcomes and failures are retained in the linked report.
+
+[V9](LOCAL_QWEN_HARNESS_V9.md) distinguishes a successful printout from observed
+assertion intent before applying the finishing hint, and corrects feedback for
+newly authored exception-message assumptions. It is a separate opt-in profile;
+the [completed three-pair comparison](local-harness/v9-repair-20261021/README.md)
+recorded **10/18 full successes for v8 and 1/18 for v9**. Rollback remained
+**0/3 for both**, while list-key passed **3/3 for v8 and 0/3 for v9**. All 36
+unchanged checker replays agreed. The attempted repair worsened the measured
+result and fixed neither target. V9 remains disabled for ordinary coding and
+unqualified; the existing Codex experience and settings remain unchanged.
+
+[V10](LOCAL_QWEN_HARNESS_V10.md) tests a smaller script/text-edit interface with
+one repair protocol. It omits the function-case helper and gives explicit generic
+guidance for evolving private state, equality over unhashable keys and rerunning
+checks after corrections. The [completed a38 comparison](local-harness/v10-repair-20261021/README.md)
+recorded **7/18 full successes for v8 and 3/18 for v10**, with rollback **0/3 for
+both** and list-key **1/3 versus 0/3**. All 36 checker replays agreed. A39 adds
+current-context recovery, excludes handled-only assertions from syntax intent,
+and retains v10's selected effort allocation throughout the turn. Its planned
+six-task comparison was not started after the owner redirected work to explicit
+local proposals with commercial review. The profile remains default off and
+unqualified.

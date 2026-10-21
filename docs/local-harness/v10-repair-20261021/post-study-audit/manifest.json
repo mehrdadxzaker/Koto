@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "files": {
+    "independent-integrity.json": {
+      "sha256": "095425c7456de36d49b2a52da3881e4ccaca2cb4715a5721e0fc3349779dcad0",
+      "bytes": 669
+    },
+    "independent-primary-targets.json": {
+      "sha256": "355d72f43360380bb85e03a537db15dbc15bfe7bc9948e28ae99ac1b5a9b6ae2",
+      "bytes": 626
+    },
+    "independent-secondary-summary.json": {
+      "sha256": "4cc1964c070f5c914c0ce469428daf4c9a3e2c86801c0bce8dbd41d8c7fe5996",
+      "bytes": 3370
+    },
+    "independent-authored-command-observations.json": {
+      "sha256": "d8675416f5a96d22700dc74b4b4cc09f805ddcf43c1884296890329dc02daddf",
+      "bytes": 26101
+    },
+    "independent-limitations.json": {
+      "sha256": "0e12cee81c142aef709b9fd10f554361b245b5fd71978c242b61afe07e0935eb",
+      "bytes": 677
+    }
+  },
+  "export_kind": "Explicit allowlisted projections; raw audit diagnostic text and paths excluded."
+}

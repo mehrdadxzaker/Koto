@@ -109,9 +109,14 @@ def _serve(connection, config, workspace, deadline):
             except (OSError, ValueError, TypeError, KeyError, RuntimeError, sqlite3.Error) as error:
                 code = str(error) if isinstance(error, NativeSessionError) else "native_router_unavailable"
                 _send(connection, {"ok": False, "error": code})
-    except (OSError, ValueError, TypeError, KeyError, RuntimeError, EOFError, sqlite3.Error):
+    except (OSError, ValueError, TypeError, KeyError, RuntimeError, EOFError):
         try:
             _send(connection, {"ok": False, "error": "native_router_unavailable"})
+        except OSError:
+            pass
+    except sqlite3.Error:
+        try:
+            _send(connection, {"ok": False, "error": "native_router_storage_unavailable"})
         except OSError:
             pass
     finally:
