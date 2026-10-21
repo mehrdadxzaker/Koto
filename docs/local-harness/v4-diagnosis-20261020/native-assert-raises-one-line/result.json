@@ -1,0 +1,37 @@
+{
+  "passed": true,
+  "client_version": "codex-cli 0.160.0",
+  "client_exit_code": 0,
+  "sandbox_flags": [
+    "sandbox_workspace_write.network_access=false",
+    "sandbox_workspace_write.exclude_slash_tmp=true",
+    "sandbox_workspace_write.exclude_tmpdir_env_var=true"
+  ],
+  "native_trace_sha256": "28756ddab7fa827deee3e8f0ebea7d0bfaa28b81cfebbb624ca6e88a41f57c52",
+  "requests": 4,
+  "request_limit": 4,
+  "model_inference_submissions": 0,
+  "quality_claim": "none; scripted representation control only",
+  "normal_settings_unchanged": true,
+  "owned_listener_closed": true,
+  "server_thread_stopped": true,
+  "owned_process_stopped": true,
+  "checks": {
+    "red_observed": true,
+    "native_patch_saved": true,
+    "green_observed": true
+  },
+  "errors": [],
+  "catalog_requests": 1,
+  "same_literal_command_before_after": true,
+  "scripted_command_sha256_before_after": [
+    "61c62f26f0e1125de5cbb54f335cc3799b9b796deeb1dbe9c710b79f3b8dcc46",
+    "61c62f26f0e1125de5cbb54f335cc3799b9b796deeb1dbe9c710b79f3b8dcc46"
+  ],
+  "assertion_command_has_newline_or_backslash_n": false,
+  "python_body": "import unittest, solution; state = [10]; before = state.copy(); unittest.TestCase().assertRaises(TypeError, solution.apply_offsets, state, [2, None]); print(\"SCRIPTED_EXPECTED_ERROR_OBSERVED\"); assert state == before; print(\"SCRIPTED_ASSERT_RAISES_CHECK_PASSED\")",
+  "source_before_sha256": "da2a1f352556fb9ea8fe9a0b2170c8dff70b9abe79f9b369abeb0b139f43136a",
+  "source_after_sha256": "f7fdc9a27756313d89fa16b378c7fc30b488e378cabb2c6d6e1779454d89c04a",
+  "pinned_helper_sha256": "9726b7c4097d930c6ebd82883f8c34d3a400ecb4a7a7959782842ae235365659",
+  "normal_settings_used": false
+}

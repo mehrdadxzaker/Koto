@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "id": "signed-ceiling",
+      "goal": "Fix the Python function ceil_div(n, d) in solution.py. For integer n and positive integer d, return the exact integer ceiling of n/d without floating point. Reject d <= 0 with ValueError. Preserve the signature.",
+      "source": "def ceil_div(n, d):\n    return n // d\n",
+      "checks": "assert s.ceil_div(7, 3) == 3\nassert s.ceil_div(-7, 3) == -2\nassert s.ceil_div(0, 7) == 0\nassert s.ceil_div(10**60 + 1, 10) == 10**59 + 1\nfor d in (0, -1):\n    try: s.ceil_div(1, d)\n    except ValueError: pass\n    else: raise AssertionError('invalid divisor accepted')\n"
+    },
+    {
+      "id": "literal-first",
+      "goal": "Fix the Python function replace_first(text, needle, replacement) in solution.py. Replace only the first literal occurrence, preserving the rest exactly. If absent return text unchanged; empty needle raises ValueError. Needle is literal text, not a regular expression.",
+      "source": "def replace_first(text, needle, replacement):\n    return text.replace(needle, replacement)\n",
+      "checks": "assert s.replace_first('a.a.a', '.', '-') == 'a-a.a'\nassert s.replace_first('aaaa', 'aa', 'x') == 'xaa'\nassert s.replace_first('abc', 'z', 'x') == 'abc'\nassert s.replace_first('aab', 'a', '') == 'ab'\ntry: s.replace_first('abc', '', 'x')\nexcept ValueError: pass\nelse: raise AssertionError('empty needle accepted')\n"
+    },
+    {
+      "id": "adjacent-groups",
+      "goal": "Fix the Python function group_runs(values) in solution.py. Return a list of lists, each containing one maximal consecutive run of equal values, preserving order. Nonadjacent equal values belong to different runs. Empty input returns []; do not mutate input or alias any returned run to input.",
+      "source": "def group_runs(values):\n    return [values] if values else []\n",
+      "checks": "x = [1, 1, 2, 1, 1, 3]\nr = s.group_runs(x)\nassert r == [[1, 1], [2], [1, 1], [3]]\nassert x == [1, 1, 2, 1, 1, 3]\nassert s.group_runs([]) == []\nassert s.group_runs([None, None, False]) == [[None, None], [False]]\nr[0].append(9)\nassert x == [1, 1, 2, 1, 1, 3]\n"
+    },
+    {
+      "id": "interval-union",
+      "goal": "Fix the Python function merge_intervals(intervals) in solution.py. Accept a list of (start, end) tuples. Return sorted tuples merging overlapping or touching intervals; preserve isolated zero-length intervals. Raise ValueError for any start > end. Do not mutate the input. Empty input returns [].",
+      "source": "def merge_intervals(intervals):\n    intervals.sort()\n    return intervals\n",
+      "checks": "x = [(5, 7), (1, 3), (2, 5), (9, 9)]\nassert s.merge_intervals(x) == [(1, 7), (9, 9)]\nassert x == [(5, 7), (1, 3), (2, 5), (9, 9)]\nassert s.merge_intervals([]) == []\nassert s.merge_intervals([(1, 10), (2, 3), (10, 12)]) == [(1, 12)]\ntry: s.merge_intervals([(0, 2), (5, 4)])\nexcept ValueError: pass\nelse: raise AssertionError('reversed interval accepted')\n"
+    },
+    {
+      "id": "atomic-stock",
+      "goal": "Fix the Python function consume_stock(stock, requests) in solution.py. stock maps item names to nonnegative integer quantities; requests is a list of (item, quantity) pairs. Validate all requests before mutating: unknown item raises KeyError; negative quantity or insufficient total stock for repeated items raises ValueError. On any failure stock must remain unchanged. On success deduct all quantities in place and return the same stock object. Zero quantities and an empty request list are valid.",
+      "source": "def consume_stock(stock, requests):\n    for item, quantity in requests:\n        stock[item] -= quantity\n    return stock\n",
+      "checks": "x = {'a': 5, 'b': 2}\nassert s.consume_stock(x, [('a', 2), ('a', 3), ('b', 0)]) is x\nassert x == {'a': 0, 'b': 2}\nfor requests, error in [([('a', 2), ('a', 4)], ValueError), ([('a', 1), ('b', -1)], ValueError), ([('a', 1), ('z', 0)], KeyError)]:\n    x = {'a': 5, 'b': 2}\n    try: s.consume_stock(x, requests)\n    except error: pass\n    else: raise AssertionError('invalid batch accepted')\n    assert x == {'a': 5, 'b': 2}\nx = {'a': 5}\nassert s.consume_stock(x, []) is x\n"
+    },
+    {
+      "id": "stable-key-unique",
+      "goal": "Fix the Python function unique_records(records, key) in solution.py. records is a list of dicts and key is a field name. Return the first record for each distinct field value, in original order, preserving object identity. Missing field raises KeyError. Field values may be unhashable lists or dicts; compare values by equality. Do not mutate input records. Empty input returns [].",
+      "source": "def unique_records(records, key):\n    return records[:]\n",
+      "checks": "a = {'id': [1], 'v': 'first'}\nb = {'id': [2], 'v': 'second'}\nc = {'id': [1], 'v': 'later'}\nx = [a, b, c]\nr = s.unique_records(x, 'id')\nassert r == [a, b] and r[0] is a and r[1] is b\nassert x == [a, b, c] and a == {'id': [1], 'v': 'first'}\nassert s.unique_records([{'id': {'x': 1}}, {'id': {'x': 1}}], 'id') == [{'id': {'x': 1}}]\nassert s.unique_records([], 'id') == []\ntry: s.unique_records([{'other': 1}], 'id')\nexcept KeyError: pass\nelse: raise AssertionError('missing field accepted')\n"
+    }
+  ]
+}

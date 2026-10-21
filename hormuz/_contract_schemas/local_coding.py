@@ -5,6 +5,7 @@ import math
 import re
 
 from .common import ContractValidationError, _exact_keys
+from ..local_harness import MODEL, PROFILES
 
 EVIDENCE_FIELDS = {"schema_id", "schema_version", "evidence_id", "plan", "plan_sha256", "outcomes"}
 SUBJECT_FIELDS = {"client_version", "system", "machine", "runtime_profile", "runtime_sha256", "model_revision",
@@ -61,10 +62,16 @@ def validate_subject(subject, *, namespaces=False, extended_output=False):
     allowed = {"responses", "text", "streaming", "tools", "codex_http", "codex_http_0160", "structured_output"}
     if namespaces:
         allowed.add("codex_llama_v1")
+    if extended_output:
+        allowed.update(PROFILES)
     if (type(caps) is not list
             or any(type(cap) is not str or cap not in allowed for cap in caps)
             or not {"responses", "text"}.issubset(caps) or len(caps) != len(set(caps))):
         raise ContractValidationError("invalid coding capabilities")
+    harnesses = set(PROFILES).intersection(caps)
+    if harnesses and (len(harnesses) != 1 or 'codex_llama_v1' not in caps
+            or subject['upstream_model'] != MODEL):
+        raise ContractValidationError('invalid Qwen harness subject')
     for key, maximum in (("max_request_bytes", 65536), ("max_output_tokens", 2048 if extended_output else 512), ("upstream_timeout_seconds", 90)):
         if type(subject[key]) is not int or not 1 <= subject[key] <= maximum:
             raise ContractValidationError("invalid coding evidence limit")

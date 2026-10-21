@@ -1,0 +1,1993 @@
+{
+  "schema_version": 1,
+  "model": "Qwen3-14B-Q4_K_M",
+  "check_fixture_sha256": "ef495f026747e5f4a52703665240883832cc18f8f75eb209ae75dfa682da55b9",
+  "inference_concurrency": 1,
+  "max_requests_per_episode": 16,
+  "max_output_tokens_per_request": 2048,
+  "max_episode_seconds": 180,
+  "quality_retries": 0,
+  "automatic_qualification": false,
+  "causal_limit": "Effort and candidate changed during exploration. Do not pool diagnostics or infer a harness-only gain over historical none-effort comparisons.",
+  "trials": [
+    {
+      "name": "v8-diagnostic-1",
+      "runtime": "2.0.0a23",
+      "native_reasoning_effort": "none",
+      "runtime_label_source": "authored_diagnostic_inventory",
+      "effort_label_source": "authored_diagnostic_inventory",
+      "diagnostic": true,
+      "study_kind": "diagnostic",
+      "complete_six_task_run": false,
+      "report_sha256": "30bc296305775e80bf7a8e1ee9712a6eee0528d5a452494618871384d66fd57f",
+      "frozen_plan_sha256": "da67a23e3771ec22218f3e4994624ecd7b87d3f721db1be5e90ddc9c06680c7b",
+      "frozen_plan_digest_kind": "canonical_json",
+      "frozen_plan_file_sha256": "1640c4d4ef8cfb43cd20367c4ee88e6fc8f2c529369002dfdfabf4a830254049",
+      "frozen_artifacts_unchanged": true,
+      "normal_settings_unchanged": true,
+      "cleanup": [
+        {
+          "settings_restored": true,
+          "owned_listeners_closed": true
+        }
+      ],
+      "episodes": [
+        {
+          "case_id": "atomic-stock",
+          "passed": false,
+          "client_exit_code": 0,
+          "termination": "completed",
+          "elapsed_ms": 66774,
+          "turn_completed": true,
+          "implementation_changed": true,
+          "check_exit_code": 1,
+          "checks_unchanged": true,
+          "submitted_requests": 4,
+          "tool_calls": 3,
+          "tool_errors": 0,
+          "saved_solution_sha256": "3898b0c65fcbe52ea8e93b1dc208105e1f187dbd54bbf33f0c18275c03867817",
+          "checker_sha256": "ba6c4c2725d0f7da513cbf153dbe5006b6fe75ec08054cbe5b3d8dda072d6ca3",
+          "host_command_exit_codes": [
+            0,
+            0
+          ],
+          "independent_check_termination": "completed"
+        },
+        {
+          "case_id": "stable-key-unique",
+          "passed": true,
+          "client_exit_code": 0,
+          "termination": "completed",
+          "elapsed_ms": 139751,
+          "turn_completed": true,
+          "implementation_changed": true,
+          "check_exit_code": 0,
+          "checks_unchanged": true,
+          "submitted_requests": 8,
+          "tool_calls": 7,
+          "tool_errors": 2,
+          "saved_solution_sha256": "7967cb834971050983657bfb9ec1e27281a65cdce93b322fa6441bdce88fef8a",
+          "checker_sha256": "ee1f06be069c966c982c93b9a8ec3d4c5dc447e9f9ae70ece25a35f38e57ae19",
+          "host_command_exit_codes": [
+            0,
+            1,
+            1,
+            0
+          ],
+          "independent_check_termination": "completed"
+        }
+      ]
+    },
+    {
+      "name": "v8-reasoning-low-diagnostic",
+      "runtime": "2.0.0a23",
+      "native_reasoning_effort": "low",
+      "runtime_label_source": "authored_diagnostic_inventory",
+      "effort_label_source": "authored_diagnostic_inventory",
+      "diagnostic": true,
+      "study_kind": "diagnostic",
+      "complete_six_task_run": false,
+      "report_sha256": "2bbf7b04780e1f929ecfc265c5aa406d65bfd86668c13907c01fa95c667c4813",
+      "frozen_plan_sha256": "6e4b37ed52b44a25813e8ef712dde6a11d918e64487f003d6074ccfbaee5d494",
+      "frozen_plan_digest_kind": "canonical_json",
+      "frozen_plan_file_sha256": "64e7bbbd0c5514d21365e4f78a4811744d1c0fa7e351cfcbe9d3796c23ce03f5",
+      "frozen_artifacts_unchanged": true,
+      "normal_settings_unchanged": true,
+      "cleanup": [
+        {
+          "settings_restored": true,
+          "owned_listeners_closed": true
+        }
+      ],
+      "episodes": [
+        {
+          "case_id": "atomic-stock",
+          "passed": false,
+          "client_exit_code": 1,
+          "termination": "completed",
+          "elapsed_ms": 90293,
+          "turn_completed": false,
+          "implementation_changed": false,
+          "check_exit_code": 1,
+          "checks_unchanged": true,
+          "submitted_requests": 1,
+          "tool_calls": 0,
+          "tool_errors": 0,
+          "saved_solution_sha256": "177840859689205884344266cd3a7c2ca1e24ef5e73808b3edb284e60532f04f",
+          "checker_sha256": "ba6c4c2725d0f7da513cbf153dbe5006b6fe75ec08054cbe5b3d8dda072d6ca3",
+          "host_command_exit_codes": [],
+          "independent_check_termination": "completed"
+        }
+      ]
+    },
+    {
+      "name": "v8-low-budget-diagnostic",
+      "runtime": "2.0.0a25",
+      "native_reasoning_effort": "low",
+      "runtime_label_source": "authored_diagnostic_inventory",
+      "effort_label_source": "authored_diagnostic_inventory",
+      "diagnostic": true,
+      "study_kind": "diagnostic",
+      "complete_six_task_run": false,
+      "report_sha256": "ab02b6e53fc592767ccd4ba02da8611a271eaf41013fb40eb53489d8dc290ebe",
+      "frozen_plan_sha256": "bda78186add7a3749fb3c49517045a0ec525478888ae07067fa02165a1e359bf",
+      "frozen_plan_digest_kind": "canonical_json",
+      "frozen_plan_file_sha256": "f4fd0df52497081fcd5404d78babdb322781d2b6f00ce2ff532a043e01ad94b0",
+      "frozen_artifacts_unchanged": true,
+      "normal_settings_unchanged": true,
+      "cleanup": [
+        {
+          "settings_restored": true,
+          "owned_listeners_closed": true
+        }
+      ],
+      "episodes": [
+        {
+          "case_id": "atomic-stock",
+          "passed": false,
+          "client_exit_code": 1,
+          "termination": "completed",
+          "elapsed_ms": 53844,
+          "turn_completed": false,
+          "implementation_changed": false,
+          "check_exit_code": 1,
+          "checks_unchanged": true,
+          "submitted_requests": 1,
+          "tool_calls": 1,
+          "tool_errors": 0,
+          "saved_solution_sha256": "177840859689205884344266cd3a7c2ca1e24ef5e73808b3edb284e60532f04f",
+          "checker_sha256": "ba6c4c2725d0f7da513cbf153dbe5006b6fe75ec08054cbe5b3d8dda072d6ca3",
+          "host_command_exit_codes": [
+            0
+          ],
+          "independent_check_termination": "completed"
+        }
+      ]
+    },
+    {
+      "name": "v8-continuation-fixed-diagnostic",
+      "runtime": "2.0.0a26",
+      "native_reasoning_effort": "low",
+      "runtime_label_source": "authored_diagnostic_inventory",
+      "effort_label_source": "frozen_plan",
+      "diagnostic": true,
+      "study_kind": "diagnostic",
+      "complete_six_task_run": false,
+      "report_sha256": "298630089f0b554abae9ac52e3842d20e6a69dbc68cab8a72b824916dd2b7551",
+      "frozen_plan_sha256": "73df859dc871609b6569c6c56ee9fb49ee95c51ea44b42e9ca77b0456867bbd9",
+      "frozen_plan_digest_kind": "canonical_json",
+      "frozen_plan_file_sha256": "f2d1d76bc029d0c3ff8e27561fa4829fe8079278e7c78bb8ba6398b41e2dc374",
+      "frozen_artifacts_unchanged": true,
+      "normal_settings_unchanged": true,
+      "cleanup": [
+        {
+          "settings_restored": true,
+          "owned_listeners_closed": true
+        }
+      ],
+      "episodes": [
+        {
+          "case_id": "atomic-stock",
+          "passed": false,
+          "client_exit_code": -15,
+          "termination": "timeout",
+          "elapsed_ms": 180010,
+          "turn_completed": false,
+          "implementation_changed": true,
+          "check_exit_code": 0,
+          "checks_unchanged": true,
+          "submitted_requests": 4,
+          "tool_calls": 3,
+          "tool_errors": 0,
+          "saved_solution_sha256": "7605ead747292d7ed2eebbb1d96cf516042c1c0b53f1c002f4793e808d29c9f2",
+          "checker_sha256": "ba6c4c2725d0f7da513cbf153dbe5006b6fe75ec08054cbe5b3d8dda072d6ca3",
+          "host_command_exit_codes": [
+            0,
+            0
+          ],
+          "independent_check_termination": "completed"
+        }
+      ]
+    },
+    {
+      "name": "v8-phase-budget-diagnostic",
+      "runtime": "2.0.0a27",
+      "native_reasoning_effort": "low",
+      "runtime_label_source": "authored_diagnostic_inventory",
+      "effort_label_source": "frozen_plan",
+      "diagnostic": true,
+      "study_kind": "diagnostic",
+      "complete_six_task_run": false,
+      "report_sha256": "7c138a61e1bf52bef86b0133340271634fd2ef866a4383962e6a338a18251ebf",
+      "frozen_plan_sha256": "3c77e63368d068cfa053ffa993ec072b98c5627308a4670540c03a63603fff59",
+      "frozen_plan_digest_kind": "canonical_json",
+      "frozen_plan_file_sha256": "98c97c8a567a62bdb97c7b0f610eab9ceee63aa9bd6ce43a8e2d1e9f37717c51",
+      "frozen_artifacts_unchanged": true,
+      "normal_settings_unchanged": true,
+      "cleanup": [
+        {
+          "settings_restored": true,
+          "owned_listeners_closed": true
+        }
+      ],
+      "episodes": [
+        {
+          "case_id": "atomic-stock",
+          "passed": false,
+          "client_exit_code": -15,
+          "termination": "timeout",
+          "elapsed_ms": 180011,
+          "turn_completed": false,
+          "implementation_changed": true,
+          "check_exit_code": 0,
+          "checks_unchanged": true,
+          "submitted_requests": 4,
+          "tool_calls": 3,
+          "tool_errors": 1,
+          "saved_solution_sha256": "b3503dd68943a65da9eb9427425207d692eae78ce87d8bccf9a0908c440c4bce",
+          "checker_sha256": "ba6c4c2725d0f7da513cbf153dbe5006b6fe75ec08054cbe5b3d8dda072d6ca3",
+          "host_command_exit_codes": [
+            0,
+            1
+          ],
+          "independent_check_termination": "completed"
+        }
+      ]
+    },
+    {
+      "name": "v8-a28-six-minimal",
+      "runtime": "2.0.0a28",
+      "native_reasoning_effort": "minimal",
+      "runtime_label_source": "authored_diagnostic_inventory",
+      "effort_label_source": "frozen_plan",
+      "diagnostic": true,
+      "study_kind": "diagnostic",
+      "complete_six_task_run": true,
+      "report_sha256": "fe5b30e5e9bb7b55b667bd224da5aafd50bf73a73f86199f7532f0daecdac942",
+      "frozen_plan_sha256": "68a35278d46d849fcf0150e08238f8b469950a7db99e59f0451df1814d76e5b6",
+      "frozen_plan_digest_kind": "canonical_json",
+      "frozen_plan_file_sha256": "1bb5466fd02d7f10194cf2ab2f30857db5498617bc95fd66fe1b0c8013e8110b",
+      "frozen_artifacts_unchanged": true,
+      "normal_settings_unchanged": true,
+      "cleanup": [
+        {
+          "settings_restored": true,
+          "owned_listeners_closed": true
+        }
+      ],
+      "episodes": [
+        {
+          "case_id": "signed-ceiling",
+          "passed": true,
+          "client_exit_code": 0,
+          "termination": "completed",
+          "elapsed_ms": 112423,
+          "turn_completed": true,
+          "implementation_changed": true,
+          "check_exit_code": 0,
+          "checks_unchanged": true,
+          "submitted_requests": 4,
+          "tool_calls": 3,
+          "tool_errors": 0,
+          "saved_solution_sha256": "79258439b234407f0d9a2db2162ee99cbe9d1ad57c8aa656bf34f5a3e18b20cc",
+          "checker_sha256": "cc3be5ed471dfb78cccb32ba7b902ea1c29394ed0fcf04c0dd5c99331aef6922",
+          "host_command_exit_codes": [
+            0,
+            0
+          ],
+          "independent_check_termination": "completed"
+        },
+        {
+          "case_id": "literal-first",
+          "passed": false,
+          "client_exit_code": 1,
+          "termination": "completed",
+          "elapsed_ms": 180005,
+          "turn_completed": false,
+          "implementation_changed": true,
+          "check_exit_code": 0,
+          "checks_unchanged": true,
+          "submitted_requests": 9,
+          "tool_calls": 8,
+          "tool_errors": 3,
+          "saved_solution_sha256": "787731eda8fe65a01709b8b91b0072948e1d7fbf4dc40dbafb7c1e1b5852fdd7",
+          "checker_sha256": "4958f109e9cb650ef86ed1bf44129ef8660ab047eed0791bebc4047904e8e727",
+          "host_command_exit_codes": [
+            0,
+            1,
+            1,
+            0,
+            0,
+            1
+          ],
+          "independent_check_termination": "completed"
+        },
+        {
+          "case_id": "adjacent-groups",
+          "passed": true,
+          "client_exit_code": 0,
+          "termination": "completed",
+          "elapsed_ms": 95693,
+          "turn_completed": true,
+          "implementation_changed": true,
+          "check_exit_code": 0,
+          "checks_unchanged": true,
+          "submitted_requests": 4,
+          "tool_calls": 3,
+          "tool_errors": 0,
+          "saved_solution_sha256": "f6df84f0d95cc5101704f1b053f811c03a5b361cf209f3191e8182eea2f65f09",
+          "checker_sha256": "b7068821a1667b3d787f4e2ba16f9af1132752e0c14db574811ae5003aad31a4",
+          "host_command_exit_codes": [
+            0,
+            0
+          ],
+          "independent_check_termination": "completed"
+        },
+        {
+          "case_id": "interval-union",
+          "passed": true,
+          "client_exit_code": 0,
+          "termination": "completed",
+          "elapsed_ms": 113489,
+          "turn_completed": true,
+          "implementation_changed": true,
+          "check_exit_code": 0,
+          "checks_unchanged": true,
+          "submitted_requests": 4,
+          "tool_calls": 3,
+          "tool_errors": 0,
+          "saved_solution_sha256": "79da412c48e2c1da829bc8a39b540d68be85ce925aa6f67a4d6a5bb5fcb9d24b",
+          "checker_sha256": "3c6fe54e7c7ba8fbc2562a689f484071f2945aeb00a2a952c49e6091def9f7b9",
+          "host_command_exit_codes": [
+            0,
+            0
+          ],
+          "independent_check_termination": "completed"
+        },
+        {
+          "case_id": "atomic-stock",
+          "passed": false,
+          "client_exit_code": 1,
+          "termination": "completed",
+          "elapsed_ms": 180013,
+          "turn_completed": false,
+          "implementation_changed": true,
+          "check_exit_code": 1,
+          "checks_unchanged": true,
+          "submitted_requests": 6,
+          "tool_calls": 3,
+          "tool_errors": 3,
+          "saved_solution_sha256": "bf98bd4399e4f61e8d0e14c37542bd4684a1601db247fb269dbdc32b105aa13f",
+          "checker_sha256": "ba6c4c2725d0f7da513cbf153dbe5006b6fe75ec08054cbe5b3d8dda072d6ca3",
+          "host_command_exit_codes": [
+            0,
+            127
+          ],
+          "independent_check_termination": "completed"
+        },
+        {
+          "case_id": "stable-key-unique",
+          "passed": true,
+          "client_exit_code": 0,
+          "termination": "completed",
+          "elapsed_ms": 101084,
+          "turn_completed": true,
+          "implementation_changed": true,
+          "check_exit_code": 0,
+          "checks_unchanged": true,
+          "submitted_requests": 4,
+          "tool_calls": 3,
+          "tool_errors": 0,
+          "saved_solution_sha256": "3c7e522df402e2911e5a7bb38295796367e8453e5bb9241c7d48546bc63f788f",
+          "checker_sha256": "ee1f06be069c966c982c93b9a8ec3d4c5dc447e9f9ae70ece25a35f38e57ae19",
+          "host_command_exit_codes": [
+            0,
+            0
+          ],
+          "independent_check_termination": "completed"
+        }
+      ]
+    },
+    {
+      "name": "v8-a30-six-low",
+      "runtime": "2.0.0a30",
+      "native_reasoning_effort": "low",
+      "runtime_label_source": "bound_campaign",
+      "effort_label_source": "frozen_plan",
+      "diagnostic": true,
+      "study_kind": "diagnostic",
+      "complete_six_task_run": true,
+      "report_sha256": "ff3c9c3615cfc2469d5b7074078a7f19446b3d9cd17a5338647f1873e14cffd3",
+      "frozen_plan_sha256": "9c77d72bcd5c6d2dca9276398d38ec663cfefd196ef0f8b2a0b38c4252de2fd0",
+      "frozen_plan_digest_kind": "canonical_json",
+      "frozen_plan_file_sha256": "8de90eefe80613109d9380610e797beb6d77a7af3422d8b3d617db480b9d09b9",
+      "frozen_artifacts_unchanged": true,
+      "normal_settings_unchanged": true,
+      "cleanup": [
+        {
+          "settings_restored": true,
+          "owned_listeners_closed": true
+        }
+      ],
+      "episodes": [
+        {
+          "case_id": "signed-ceiling",
+          "passed": false,
+          "client_exit_code": 0,
+          "termination": "completed",
+          "elapsed_ms": 164239,
+          "turn_completed": true,
+          "implementation_changed": true,
+          "check_exit_code": 1,
+          "checks_unchanged": true,
+          "submitted_requests": 7,
+          "tool_calls": 6,
+          "tool_errors": 1,
+          "saved_solution_sha256": "c40727e6957b3aec85557fff9752c35e6373da1420644305d31620dde63b1c58",
+          "checker_sha256": "cc3be5ed471dfb78cccb32ba7b902ea1c29394ed0fcf04c0dd5c99331aef6922",
+          "host_command_exit_codes": [
+            0,
+            1,
+            0,
+            0
+          ],
+          "independent_check_termination": "completed"
+        },
+        {
+          "case_id": "literal-first",
+          "passed": false,
+          "client_exit_code": 1,
+          "termination": "completed",
+          "elapsed_ms": 180006,
+          "turn_completed": false,
+          "implementation_changed": true,
+          "check_exit_code": 0,
+          "checks_unchanged": true,
+          "submitted_requests": 6,
+          "tool_calls": 5,
+          "tool_errors": 3,
+          "saved_solution_sha256": "95063c1f6eeae05c2eb1964d4052f143ef763c48cb35250a0e886e2160cfb45e",
+          "checker_sha256": "4958f109e9cb650ef86ed1bf44129ef8660ab047eed0791bebc4047904e8e727",
+          "host_command_exit_codes": [
+            0,
+            1,
+            1,
+            1
+          ],
+          "independent_check_termination": "completed"
+        },
+        {
+          "case_id": "adjacent-groups",
+          "passed": true,
+          "client_exit_code": 0,
+          "termination": "completed",
+          "elapsed_ms": 82387,
+          "turn_completed": true,
+          "implementation_changed": true,
+          "check_exit_code": 0,
+          "checks_unchanged": true,
+          "submitted_requests": 4,
+          "tool_calls": 3,
+          "tool_errors": 0,
+          "saved_solution_sha256": "82cfffb4173c41a94907100cacc4124c560d2534ddf05c8a9173a994eef4321c",
+          "checker_sha256": "b7068821a1667b3d787f4e2ba16f9af1132752e0c14db574811ae5003aad31a4",
+          "host_command_exit_codes": [
+            0,
+            0
+          ],
+          "independent_check_termination": "completed"
+        },
+        {
+          "case_id": "interval-union",
+          "passed": false,
+          "client_exit_code": 1,
+          "termination": "completed",
+          "elapsed_ms": 90262,
+          "turn_completed": false,
+          "implementation_changed": false,
+          "check_exit_code": 1,
+          "checks_unchanged": true,
+          "submitted_requests": 1,
+          "tool_calls": 0,
+          "tool_errors": 0,
+          "saved_solution_sha256": "496fa97cdbbf05e64ff89dd22dd742c7b1531da9e1bcf7c75edd1e428e743fa5",
+          "checker_sha256": "3c6fe54e7c7ba8fbc2562a689f484071f2945aeb00a2a952c49e6091def9f7b9",
+          "host_command_exit_codes": [],
+          "independent_check_termination": "completed"
+        },
+        {
+          "case_id": "atomic-stock",
+          "passed": false,
+          "client_exit_code": 1,
+          "termination": "completed",
+          "elapsed_ms": 180008,
+          "turn_completed": false,
+          "implementation_changed": true,
+          "check_exit_code": 1,
+          "checks_unchanged": true,
+          "submitted_requests": 7,
+          "tool_calls": 6,
+          "tool_errors": 3,
+          "saved_solution_sha256": "74b3bd493e4b056739167ca20f393ea0110c09575a96af030a8dd0738e8c668a",
+          "checker_sha256": "ba6c4c2725d0f7da513cbf153dbe5006b6fe75ec08054cbe5b3d8dda072d6ca3",
+          "host_command_exit_codes": [
+            0,
+            0,
+            1,
+            1,
+            1
+          ],
+          "independent_check_termination": "completed"
+        },
+        {
+          "case_id": "stable-key-unique",
+          "passed": false,
+          "client_exit_code": 1,
+          "termination": "completed",
+          "elapsed_ms": 180013,
+          "turn_completed": false,
+          "implementation_changed": true,
+          "check_exit_code": 0,
+          "checks_unchanged": true,
+          "submitted_requests": 5,
+          "tool_calls": 4,
+          "tool_errors": 1,
+          "saved_solution_sha256": "93e0aa21af7df58bab2d7f204928058a94c5838281342600715b8e2d0eb816c5",
+          "checker_sha256": "ee1f06be069c966c982c93b9a8ec3d4c5dc447e9f9ae70ece25a35f38e57ae19",
+          "host_command_exit_codes": [
+            0,
+            1
+          ],
+          "independent_check_termination": "completed"
+        }
+      ]
+    },
+    {
+      "name": "v8-a30-targets-repeat-2",
+      "runtime": "2.0.0a30",
+      "native_reasoning_effort": "low",
+      "runtime_label_source": "bound_campaign",
+      "effort_label_source": "frozen_plan",
+      "diagnostic": true,
+      "study_kind": "diagnostic",
+      "complete_six_task_run": false,
+      "report_sha256": "575eab5184fe1e0a50380cf5a7928f4affa6c1c7389a7c2ab653a3d864c5bd70",
+      "frozen_plan_sha256": "0ea0f512c7a55d399d4380cf959c1f169512ad3dcb719b6c8bbb6bec33d2f0d7",
+      "frozen_plan_digest_kind": "canonical_json",
+      "frozen_plan_file_sha256": "64aaf85085b4aad4ca0cd7b42c2fa485eba85ddb7d351b98f212ce61677f18c5",
+      "frozen_artifacts_unchanged": true,
+      "normal_settings_unchanged": true,
+      "cleanup": [
+        {
+          "settings_restored": true,
+          "owned_listeners_closed": true
+        }
+      ],
+      "episodes": [
+        {
+          "case_id": "atomic-stock",
+          "passed": false,
+          "client_exit_code": 1,
+          "termination": "completed",
+          "elapsed_ms": 180008,
+          "turn_completed": false,
+          "implementation_changed": true,
+          "check_exit_code": 1,
+          "checks_unchanged": true,
+          "submitted_requests": 6,
+          "tool_calls": 5,
+          "tool_errors": 2,
+          "saved_solution_sha256": "035c609f2ec31e3047056399c37b22b437808045a191f858f8735fce95b9d83f",
+          "checker_sha256": "ba6c4c2725d0f7da513cbf153dbe5006b6fe75ec08054cbe5b3d8dda072d6ca3",
+          "host_command_exit_codes": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "independent_check_termination": "completed"
+        },
+        {
+          "case_id": "stable-key-unique",
+          "passed": false,
+          "client_exit_code": 1,
+          "termination": "completed",
+          "elapsed_ms": 180013,
+          "turn_completed": false,
+          "implementation_changed": true,
+          "check_exit_code": 0,
+          "checks_unchanged": true,
+          "submitted_requests": 5,
+          "tool_calls": 4,
+          "tool_errors": 1,
+          "saved_solution_sha256": "28e9c4bdc958f393bc7931de0d4605405d247952e6f22fa6dc0954dffab1c135",
+          "checker_sha256": "ee1f06be069c966c982c93b9a8ec3d4c5dc447e9f9ae70ece25a35f38e57ae19",
+          "host_command_exit_codes": [
+            0,
+            1
+          ],
+          "independent_check_termination": "completed"
+        }
+      ]
+    },
+    {
+      "name": "v8-a30-targets-repeat-3",
+      "runtime": "2.0.0a30",
+      "native_reasoning_effort": "low",
+      "runtime_label_source": "bound_campaign",
+      "effort_label_source": "frozen_plan",
+      "diagnostic": true,
+      "study_kind": "diagnostic",
+      "complete_six_task_run": false,
+      "report_sha256": "5ec6a5748bb769cb31b6da97998b7eb4490639eeee5e14a590e2ea2ca19042d0",
+      "frozen_plan_sha256": "01e2e3348e649508acfdf7828fc0deca088eeba8822d128c4ad04ec865c64391",
+      "frozen_plan_digest_kind": "canonical_json",
+      "frozen_plan_file_sha256": "2dffffc2b087b7ad2e8a5c8a86bd03ebde0ef0c4a643d053fb592c6224bcd51e",
+      "frozen_artifacts_unchanged": true,
+      "normal_settings_unchanged": true,
+      "cleanup": [
+        {
+          "settings_restored": true,
+          "owned_listeners_closed": true
+        }
+      ],
+      "episodes": [
+        {
+          "case_id": "atomic-stock",
+          "passed": false,
+          "client_exit_code": 0,
+          "termination": "completed",
+          "elapsed_ms": 129739,
+          "turn_completed": true,
+          "implementation_changed": true,
+          "check_exit_code": 1,
+          "checks_unchanged": true,
+          "submitted_requests": 4,
+          "tool_calls": 3,
+          "tool_errors": 1,
+          "saved_solution_sha256": "52072478f25e42da2e6bb5f99250f472b5ff7986156ada74c38a40fbd1c28510",
+          "checker_sha256": "ba6c4c2725d0f7da513cbf153dbe5006b6fe75ec08054cbe5b3d8dda072d6ca3",
+          "host_command_exit_codes": [
+            0,
+            127
+          ],
+          "independent_check_termination": "completed"
+        },
+        {
+          "case_id": "stable-key-unique",
+          "passed": true,
+          "client_exit_code": 0,
+          "termination": "completed",
+          "elapsed_ms": 79097,
+          "turn_completed": true,
+          "implementation_changed": true,
+          "check_exit_code": 0,
+          "checks_unchanged": true,
+          "submitted_requests": 4,
+          "tool_calls": 3,
+          "tool_errors": 0,
+          "saved_solution_sha256": "0ab9184af4159bd78a8c12dabfb9bdb2184c8ae99560fb81d8d1cc83dbcd6ee8",
+          "checker_sha256": "ee1f06be069c966c982c93b9a8ec3d4c5dc447e9f9ae70ece25a35f38e57ae19",
+          "host_command_exit_codes": [
+            0,
+            0
+          ],
+          "independent_check_termination": "completed"
+        }
+      ]
+    },
+    {
+      "name": "v8-a31-six-low",
+      "runtime": "2.0.0a31",
+      "native_reasoning_effort": "low",
+      "runtime_label_source": "bound_campaign",
+      "effort_label_source": "frozen_plan",
+      "diagnostic": true,
+      "study_kind": "diagnostic",
+      "complete_six_task_run": true,
+      "report_sha256": "c629bec0bd24959c8a1574c38b83d9b786b86660a3827f78f14f581f405578c0",
+      "frozen_plan_sha256": "2912a5346d5e09bf2dfe9d64549472d28557cd4b6ab78db99414bdc45cefa761",
+      "frozen_plan_digest_kind": "canonical_json",
+      "frozen_plan_file_sha256": "a0d98c4db2cdf1963bc63f7ec5f702f1f22fa091fc695ecac8ea0483916d6fbe",
+      "frozen_artifacts_unchanged": true,
+      "normal_settings_unchanged": true,
+      "cleanup": [
+        {
+          "settings_restored": true,
+          "owned_listeners_closed": true
+        }
+      ],
+      "episodes": [
+        {
+          "case_id": "signed-ceiling",
+          "passed": false,
+          "client_exit_code": 1,
+          "termination": "completed",
+          "elapsed_ms": 180013,
+          "turn_completed": false,
+          "implementation_changed": true,
+          "check_exit_code": 1,
+          "checks_unchanged": true,
+          "submitted_requests": 6,
+          "tool_calls": 5,
+          "tool_errors": 2,
+          "saved_solution_sha256": "c40727e6957b3aec85557fff9752c35e6373da1420644305d31620dde63b1c58",
+          "checker_sha256": "cc3be5ed471dfb78cccb32ba7b902ea1c29394ed0fcf04c0dd5c99331aef6922",
+          "host_command_exit_codes": [
+            0,
+            1,
+            1
+          ],
+          "independent_check_termination": "completed"
+        },
+        {
+          "case_id": "literal-first",
+          "passed": true,
+          "client_exit_code": 0,
+          "termination": "completed",
+          "elapsed_ms": 73363,
+          "turn_completed": true,
+          "implementation_changed": true,
+          "check_exit_code": 0,
+          "checks_unchanged": true,
+          "submitted_requests": 4,
+          "tool_calls": 3,
+          "tool_errors": 0,
+          "saved_solution_sha256": "95063c1f6eeae05c2eb1964d4052f143ef763c48cb35250a0e886e2160cfb45e",
+          "checker_sha256": "4958f109e9cb650ef86ed1bf44129ef8660ab047eed0791bebc4047904e8e727",
+          "host_command_exit_codes": [
+            0,
+            0
+          ],
+          "independent_check_termination": "completed"
+        },
+        {
+          "case_id": "adjacent-groups",
+          "passed": false,
+          "client_exit_code": 1,
+          "termination": "completed",
+          "elapsed_ms": 180009,
+          "turn_completed": false,
+          "implementation_changed": false,
+          "check_exit_code": 1,
+          "checks_unchanged": true,
+          "submitted_requests": 6,
+          "tool_calls": 1,
+          "tool_errors": 4,
+          "saved_solution_sha256": "0d004e68c2e804b697729a9d26a2c9ee2e7e42b12710b950ee9429ca11a3ae5c",
+          "checker_sha256": "b7068821a1667b3d787f4e2ba16f9af1132752e0c14db574811ae5003aad31a4",
+          "host_command_exit_codes": [
+            0
+          ],
+          "independent_check_termination": "completed"
+        },
+        {
+          "case_id": "interval-union",
+          "passed": false,
+          "client_exit_code": 1,
+          "termination": "completed",
+          "elapsed_ms": 90278,
+          "turn_completed": false,
+          "implementation_changed": false,
+          "check_exit_code": 1,
+          "checks_unchanged": true,
+          "submitted_requests": 1,
+          "tool_calls": 0,
+          "tool_errors": 0,
+          "saved_solution_sha256": "496fa97cdbbf05e64ff89dd22dd742c7b1531da9e1bcf7c75edd1e428e743fa5",
+          "checker_sha256": "3c6fe54e7c7ba8fbc2562a689f484071f2945aeb00a2a952c49e6091def9f7b9",
+          "host_command_exit_codes": [],
+          "independent_check_termination": "completed"
+        },
+        {
+          "case_id": "atomic-stock",
+          "passed": false,
+          "client_exit_code": 1,
+          "termination": "completed",
+          "elapsed_ms": 180010,
+          "turn_completed": false,
+          "implementation_changed": false,
+          "check_exit_code": 1,
+          "checks_unchanged": true,
+          "submitted_requests": 4,
+          "tool_calls": 1,
+          "tool_errors": 2,
+          "saved_solution_sha256": "177840859689205884344266cd3a7c2ca1e24ef5e73808b3edb284e60532f04f",
+          "checker_sha256": "ba6c4c2725d0f7da513cbf153dbe5006b6fe75ec08054cbe5b3d8dda072d6ca3",
+          "host_command_exit_codes": [
+            0
+          ],
+          "independent_check_termination": "completed"
+        },
+        {
+          "case_id": "stable-key-unique",
+          "passed": false,
+          "client_exit_code": 1,
+          "termination": "completed",
+          "elapsed_ms": 180012,
+          "turn_completed": false,
+          "implementation_changed": true,
+          "check_exit_code": 0,
+          "checks_unchanged": true,
+          "submitted_requests": 5,
+          "tool_calls": 4,
+          "tool_errors": 1,
+          "saved_solution_sha256": "1f29490459ba6f18d468091f222bf06acd120f1c1eb0925690a31a5b04b7695a",
+          "checker_sha256": "ee1f06be069c966c982c93b9a8ec3d4c5dc447e9f9ae70ece25a35f38e57ae19",
+          "host_command_exit_codes": [
+            0,
+            1
+          ],
+          "independent_check_termination": "completed"
+        }
+      ]
+    },
+    {
+      "name": "v8-a31-targets-repeat-2",
+      "runtime": "2.0.0a31",
+      "native_reasoning_effort": "low",
+      "runtime_label_source": "bound_campaign",
+      "effort_label_source": "frozen_plan",
+      "diagnostic": true,
+      "study_kind": "diagnostic",
+      "complete_six_task_run": false,
+      "report_sha256": "bab18e14416043d4820712b36766b6aae6a3d3da0fbdfae38069c318b30a9b6a",
+      "frozen_plan_sha256": "c02f0c149b3b1ee9eb782bb8d792f0fd2990a553b0b6bb8dc227a2243cad0dca",
+      "frozen_plan_digest_kind": "canonical_json",
+      "frozen_plan_file_sha256": "297181da2dca8621382063628225ddd4efe42462c0d800861434b13cc733c891",
+      "frozen_artifacts_unchanged": true,
+      "normal_settings_unchanged": true,
+      "cleanup": [
+        {
+          "settings_restored": true,
+          "owned_listeners_closed": true
+        }
+      ],
+      "episodes": [
+        {
+          "case_id": "atomic-stock",
+          "passed": false,
+          "client_exit_code": 1,
+          "termination": "completed",
+          "elapsed_ms": 180009,
+          "turn_completed": false,
+          "implementation_changed": true,
+          "check_exit_code": 1,
+          "checks_unchanged": true,
+          "submitted_requests": 6,
+          "tool_calls": 5,
+          "tool_errors": 2,
+          "saved_solution_sha256": "c353f243d22f1ea7f0178660dc72435cee1b1e01f314cda5da97687ac432f880",
+          "checker_sha256": "ba6c4c2725d0f7da513cbf153dbe5006b6fe75ec08054cbe5b3d8dda072d6ca3",
+          "host_command_exit_codes": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "independent_check_termination": "completed"
+        },
+        {
+          "case_id": "stable-key-unique",
+          "passed": false,
+          "client_exit_code": 0,
+          "termination": "completed",
+          "elapsed_ms": 99901,
+          "turn_completed": true,
+          "implementation_changed": true,
+          "check_exit_code": 2,
+          "checks_unchanged": true,
+          "submitted_requests": 4,
+          "tool_calls": 3,
+          "tool_errors": 0,
+          "saved_solution_sha256": "f412e8a7b08e9c30d9a0c5941002cb556c4883b2b07b4cc121d5f172fd44bae8",
+          "checker_sha256": "ee1f06be069c966c982c93b9a8ec3d4c5dc447e9f9ae70ece25a35f38e57ae19",
+          "host_command_exit_codes": [
+            0,
+            0
+          ],
+          "independent_check_termination": "completed"
+        }
+      ]
+    },
+    {
+      "name": "v8-a31-targets-repeat-3",
+      "runtime": "2.0.0a31",
+      "native_reasoning_effort": "low",
+      "runtime_label_source": "bound_campaign",
+      "effort_label_source": "frozen_plan",
+      "diagnostic": true,
+      "study_kind": "diagnostic",
+      "complete_six_task_run": false,
+      "report_sha256": "6d111d22ddf1902b0dcdc45e4242d4badfc55b7a8028d9d9d1708768588fc22e",
+      "frozen_plan_sha256": "f7d96dc7be38a5d08397b85344debf55e5f17b2aad04392245bc192162aefdda",
+      "frozen_plan_digest_kind": "canonical_json",
+      "frozen_plan_file_sha256": "168402d44310972507ee8d1c42b96be676e7dd9b311a1f1ac2837321f0b475a8",
+      "frozen_artifacts_unchanged": true,
+      "normal_settings_unchanged": true,
+      "cleanup": [
+        {
+          "settings_restored": true,
+          "owned_listeners_closed": true
+        }
+      ],
+      "episodes": [
+        {
+          "case_id": "atomic-stock",
+          "passed": false,
+          "client_exit_code": 0,
+          "termination": "completed",
+          "elapsed_ms": 119947,
+          "turn_completed": true,
+          "implementation_changed": true,
+          "check_exit_code": 1,
+          "checks_unchanged": true,
+          "submitted_requests": 5,
+          "tool_calls": 4,
+          "tool_errors": 0,
+          "saved_solution_sha256": "af25add4c794c6dcdcab987c59248db6338d7fb5dcdac55e9e8e1a810165817a",
+          "checker_sha256": "ba6c4c2725d0f7da513cbf153dbe5006b6fe75ec08054cbe5b3d8dda072d6ca3",
+          "host_command_exit_codes": [
+            0,
+            0,
+            0
+          ],
+          "independent_check_termination": "completed"
+        },
+        {
+          "case_id": "stable-key-unique",
+          "passed": false,
+          "client_exit_code": 1,
+          "termination": "timeout",
+          "elapsed_ms": 180011,
+          "turn_completed": false,
+          "implementation_changed": true,
+          "check_exit_code": 0,
+          "checks_unchanged": true,
+          "submitted_requests": 5,
+          "tool_calls": 4,
+          "tool_errors": 2,
+          "saved_solution_sha256": "de182d1d3564d70c5694796ebee8ef1f429e503c0ab14d469311c5496697dd49",
+          "checker_sha256": "ee1f06be069c966c982c93b9a8ec3d4c5dc447e9f9ae70ece25a35f38e57ae19",
+          "host_command_exit_codes": [
+            0,
+            1,
+            1
+          ],
+          "independent_check_termination": "completed"
+        }
+      ]
+    }
+  ],
+  "campaigns": {
+    "a30": {
+      "plan_sha256": "04d211f0b5cfd3b42458b4bc210a03905334f67893d33ea1db3bb4106f13b8a8",
+      "plan": {
+        "schema_version": 1,
+        "frozen_at_utc": "2026-10-21 01:08:53 UTC",
+        "candidate_commit": "77f48ddd8246a436cd99d4af6385e3caee05b1b7",
+        "runtime": "2.0.0a30",
+        "harness": "qwen-code.v8",
+        "wheel_sha256": "4539da511caf628804abc578be6732664216a48da821cfccffd7097af56b9b3e",
+        "check_fixture_sha256": "ef495f026747e5f4a52703665240883832cc18f8f75eb209ae75dfa682da55b9",
+        "runner_sha256": "bec690a4a1de4ddf3f14ce5c0c5cb633c9ba9ca6f18e95e72a8f4cc7026cb067",
+        "native_reasoning_effort": "low",
+        "max_requests_per_episode": 16,
+        "max_output_tokens_per_request": 2048,
+        "max_episode_seconds": 180,
+        "inference_concurrency": 1,
+        "quality_retries": 0,
+        "retuning_between_repetitions": false,
+        "automatic_qualification": false,
+        "causal_limit": "Known development tasks and unpaired new candidate. Historical none/minimal-effort runs are not matched controls for this low-effort campaign. All failures are retained; native completion and unchanged independent checker must both pass.",
+        "reasoning_phase_maxima": {
+          "initial": 32,
+          "solving": 256,
+          "after_saved_patch": 64,
+          "after_successful_post_edit_command": 16,
+          "recovery": 256
+        },
+        "repetitions": [
+          {
+            "id": 1,
+            "output": "v8-a30-six-low",
+            "case_ids": [
+              "signed-ceiling",
+              "literal-first",
+              "adjacent-groups",
+              "interval-union",
+              "atomic-stock",
+              "stable-key-unique"
+            ]
+          },
+          {
+            "id": 2,
+            "output": "v8-a30-targets-repeat-2",
+            "case_ids": [
+              "atomic-stock",
+              "stable-key-unique"
+            ]
+          },
+          {
+            "id": 3,
+            "output": "v8-a30-targets-repeat-3",
+            "case_ids": [
+              "atomic-stock",
+              "stable-key-unique"
+            ]
+          }
+        ]
+      },
+      "independent_audit_sha256": "ae8e8e931768a17163c45165c03326445132ce99f26fd65ee685c33a5a73241d",
+      "independent_audit": {
+        "schema_version": 1,
+        "campaign": "a30",
+        "runtime": "2.0.0a30",
+        "candidate_commit": "77f48ddd8246a436cd99d4af6385e3caee05b1b7",
+        "wheel_sha256": "4539da511caf628804abc578be6732664216a48da821cfccffd7097af56b9b3e",
+        "campaign_plan_sha256": "04d211f0b5cfd3b42458b4bc210a03905334f67893d33ea1db3bb4106f13b8a8",
+        "native_reasoning_effort": "low",
+        "status": "complete",
+        "evidence_verified": true,
+        "summary": {
+          "saved_episodes": 10,
+          "oracle_verified": 10,
+          "oracle_passes": 5,
+          "native_successes": 4,
+          "full_episode_passes": 2
+        },
+        "all_independent_replays_match_recorded_checker_results": true,
+        "stricter_native_event_checks_passed": true,
+        "recorded_full_episode_scores_match_recomputed": true,
+        "repetitions": [
+          {
+            "id": 1,
+            "status": "complete",
+            "pending_case_ids": [],
+            "summary": {
+              "saved_episodes": 6,
+              "oracle_verified": 6,
+              "oracle_passes": 3,
+              "native_successes": 2,
+              "full_episode_passes": 1
+            },
+            "targets": {
+              "atomic-stock": {
+                "saved_episodes": 1,
+                "oracle_verified": 1,
+                "oracle_passes": 0,
+                "native_successes": 0,
+                "full_episode_passes": 0
+              },
+              "stable-key-unique": {
+                "saved_episodes": 1,
+                "oracle_verified": 1,
+                "oracle_passes": 1,
+                "native_successes": 0,
+                "full_episode_passes": 0
+              }
+            },
+            "lifetime_proof": {
+              "normal_settings_unchanged": true,
+              "frozen_artifacts_unchanged": true,
+              "cleanup": [
+                {
+                  "settings_restored": true,
+                  "owned_listeners_closed": true
+                }
+              ]
+            }
+          },
+          {
+            "id": 2,
+            "status": "complete",
+            "pending_case_ids": [],
+            "summary": {
+              "saved_episodes": 2,
+              "oracle_verified": 2,
+              "oracle_passes": 1,
+              "native_successes": 0,
+              "full_episode_passes": 0
+            },
+            "targets": {
+              "atomic-stock": {
+                "saved_episodes": 1,
+                "oracle_verified": 1,
+                "oracle_passes": 0,
+                "native_successes": 0,
+                "full_episode_passes": 0
+              },
+              "stable-key-unique": {
+                "saved_episodes": 1,
+                "oracle_verified": 1,
+                "oracle_passes": 1,
+                "native_successes": 0,
+                "full_episode_passes": 0
+              }
+            },
+            "lifetime_proof": {
+              "normal_settings_unchanged": true,
+              "frozen_artifacts_unchanged": true,
+              "cleanup": [
+                {
+                  "settings_restored": true,
+                  "owned_listeners_closed": true
+                }
+              ]
+            }
+          },
+          {
+            "id": 3,
+            "status": "complete",
+            "pending_case_ids": [],
+            "summary": {
+              "saved_episodes": 2,
+              "oracle_verified": 2,
+              "oracle_passes": 1,
+              "native_successes": 2,
+              "full_episode_passes": 1
+            },
+            "targets": {
+              "atomic-stock": {
+                "saved_episodes": 1,
+                "oracle_verified": 1,
+                "oracle_passes": 0,
+                "native_successes": 1,
+                "full_episode_passes": 0
+              },
+              "stable-key-unique": {
+                "saved_episodes": 1,
+                "oracle_verified": 1,
+                "oracle_passes": 1,
+                "native_successes": 1,
+                "full_episode_passes": 1
+              }
+            },
+            "lifetime_proof": {
+              "normal_settings_unchanged": true,
+              "frozen_artifacts_unchanged": true,
+              "cleanup": [
+                {
+                  "settings_restored": true,
+                  "owned_listeners_closed": true
+                }
+              ]
+            }
+          }
+        ],
+        "targets": {
+          "atomic-stock": {
+            "saved_episodes": 3,
+            "oracle_verified": 3,
+            "oracle_passes": 0,
+            "native_successes": 1,
+            "full_episode_passes": 0,
+            "predeclared_episodes": 3
+          },
+          "stable-key-unique": {
+            "saved_episodes": 3,
+            "oracle_verified": 3,
+            "oracle_passes": 3,
+            "native_successes": 1,
+            "full_episode_passes": 1,
+            "predeclared_episodes": 3
+          }
+        },
+        "same_model_runtime_asset_pins": true,
+        "same_original_manifest_keyset": true,
+        "same_setup_control_fields": true,
+        "workspace_normalized_native_profiles_equal": true,
+        "all_wheel_runtime_payload_files_matched_per_installation": 174,
+        "campaign_execution_receipt_verified": true,
+        "historical_outcomes_pooled": false,
+        "automatic_qualification": false,
+        "causal_limit": "Known development tasks and unpaired new candidate. Historical none/minimal-effort runs are not matched controls for this low-effort campaign. All failures are retained; native completion and unchanged independent checker must both pass."
+      }
+    },
+    "a31": {
+      "plan_sha256": "b3f698f27b06139b70dd61e8d1f1ace4bc4e8a8711c8ed3c8533ed1ee4a11ce6",
+      "plan": {
+        "schema_version": 1,
+        "frozen_at_utc": "2026-10-21T01:31:03.606424+00:00",
+        "candidate_commit": "97dec78d7699d40172d5641d14a7da36e2ec3c95",
+        "runtime": "2.0.0a31",
+        "harness": "qwen-code.v8",
+        "wheel_sha256": "a601a12973e70f10d4e92e1c29ecd026c29fa6fbbde2ad802f966458c414fa06",
+        "check_fixture_sha256": "ef495f026747e5f4a52703665240883832cc18f8f75eb209ae75dfa682da55b9",
+        "runner_sha256": "bec690a4a1de4ddf3f14ce5c0c5cb633c9ba9ca6f18e95e72a8f4cc7026cb067",
+        "native_reasoning_effort": "low",
+        "max_requests_per_episode": 16,
+        "max_output_tokens_per_request": 2048,
+        "max_episode_seconds": 180,
+        "inference_concurrency": 1,
+        "quality_retries": 0,
+        "retuning_between_repetitions": false,
+        "automatic_qualification": false,
+        "causal_limit": "Known development tasks; no seeded or counterbalanced matched control. Separate a30 and a31 low-effort campaigns retain identical task goals/checks and bounds; do not pool earlier none/minimal-effort diagnostics or infer general benefit. All failures retained; native completion and unchanged independent checker both required. No ordinary qualification.",
+        "reasoning_phase_maxima": {
+          "initial": 32,
+          "solving": 256,
+          "after_saved_patch": 64,
+          "after_successful_post_edit_command": 16,
+          "recovery": 256
+        },
+        "repetitions": [
+          {
+            "id": 1,
+            "output": "v8-a31-six-low",
+            "case_ids": [
+              "signed-ceiling",
+              "literal-first",
+              "adjacent-groups",
+              "interval-union",
+              "atomic-stock",
+              "stable-key-unique"
+            ]
+          },
+          {
+            "id": 2,
+            "output": "v8-a31-targets-repeat-2",
+            "case_ids": [
+              "atomic-stock",
+              "stable-key-unique"
+            ]
+          },
+          {
+            "id": 3,
+            "output": "v8-a31-targets-repeat-3",
+            "case_ids": [
+              "atomic-stock",
+              "stable-key-unique"
+            ]
+          }
+        ]
+      },
+      "independent_audit_sha256": "70d1a5a03b50bf3228f7e9d6890e394e241c4213897832676a85d84a9256dcd9",
+      "independent_audit": {
+        "schema_version": 1,
+        "campaign": "a31",
+        "runtime": "2.0.0a31",
+        "candidate_commit": "97dec78d7699d40172d5641d14a7da36e2ec3c95",
+        "wheel_sha256": "a601a12973e70f10d4e92e1c29ecd026c29fa6fbbde2ad802f966458c414fa06",
+        "campaign_plan_sha256": "b3f698f27b06139b70dd61e8d1f1ace4bc4e8a8711c8ed3c8533ed1ee4a11ce6",
+        "native_reasoning_effort": "low",
+        "status": "complete",
+        "evidence_verified": true,
+        "summary": {
+          "saved_episodes": 10,
+          "oracle_verified": 10,
+          "oracle_passes": 3,
+          "native_successes": 3,
+          "full_episode_passes": 1
+        },
+        "all_independent_replays_match_recorded_checker_results": true,
+        "stricter_native_event_checks_passed": true,
+        "recorded_full_episode_scores_match_recomputed": true,
+        "repetitions": [
+          {
+            "id": 1,
+            "status": "complete",
+            "pending_case_ids": [],
+            "summary": {
+              "saved_episodes": 6,
+              "oracle_verified": 6,
+              "oracle_passes": 2,
+              "native_successes": 1,
+              "full_episode_passes": 1
+            },
+            "targets": {
+              "atomic-stock": {
+                "saved_episodes": 1,
+                "oracle_verified": 1,
+                "oracle_passes": 0,
+                "native_successes": 0,
+                "full_episode_passes": 0
+              },
+              "stable-key-unique": {
+                "saved_episodes": 1,
+                "oracle_verified": 1,
+                "oracle_passes": 1,
+                "native_successes": 0,
+                "full_episode_passes": 0
+              }
+            },
+            "lifetime_proof": {
+              "normal_settings_unchanged": true,
+              "frozen_artifacts_unchanged": true,
+              "cleanup": [
+                {
+                  "settings_restored": true,
+                  "owned_listeners_closed": true
+                }
+              ]
+            }
+          },
+          {
+            "id": 2,
+            "status": "complete",
+            "pending_case_ids": [],
+            "summary": {
+              "saved_episodes": 2,
+              "oracle_verified": 2,
+              "oracle_passes": 0,
+              "native_successes": 1,
+              "full_episode_passes": 0
+            },
+            "targets": {
+              "atomic-stock": {
+                "saved_episodes": 1,
+                "oracle_verified": 1,
+                "oracle_passes": 0,
+                "native_successes": 0,
+                "full_episode_passes": 0
+              },
+              "stable-key-unique": {
+                "saved_episodes": 1,
+                "oracle_verified": 1,
+                "oracle_passes": 0,
+                "native_successes": 1,
+                "full_episode_passes": 0
+              }
+            },
+            "lifetime_proof": {
+              "normal_settings_unchanged": true,
+              "frozen_artifacts_unchanged": true,
+              "cleanup": [
+                {
+                  "settings_restored": true,
+                  "owned_listeners_closed": true
+                }
+              ]
+            }
+          },
+          {
+            "id": 3,
+            "status": "complete",
+            "pending_case_ids": [],
+            "summary": {
+              "saved_episodes": 2,
+              "oracle_verified": 2,
+              "oracle_passes": 1,
+              "native_successes": 1,
+              "full_episode_passes": 0
+            },
+            "targets": {
+              "atomic-stock": {
+                "saved_episodes": 1,
+                "oracle_verified": 1,
+                "oracle_passes": 0,
+                "native_successes": 1,
+                "full_episode_passes": 0
+              },
+              "stable-key-unique": {
+                "saved_episodes": 1,
+                "oracle_verified": 1,
+                "oracle_passes": 1,
+                "native_successes": 0,
+                "full_episode_passes": 0
+              }
+            },
+            "lifetime_proof": {
+              "normal_settings_unchanged": true,
+              "frozen_artifacts_unchanged": true,
+              "cleanup": [
+                {
+                  "settings_restored": true,
+                  "owned_listeners_closed": true
+                }
+              ]
+            }
+          }
+        ],
+        "targets": {
+          "atomic-stock": {
+            "saved_episodes": 3,
+            "oracle_verified": 3,
+            "oracle_passes": 0,
+            "native_successes": 1,
+            "full_episode_passes": 0,
+            "predeclared_episodes": 3
+          },
+          "stable-key-unique": {
+            "saved_episodes": 3,
+            "oracle_verified": 3,
+            "oracle_passes": 2,
+            "native_successes": 1,
+            "full_episode_passes": 0,
+            "predeclared_episodes": 3
+          }
+        },
+        "same_model_runtime_asset_pins": true,
+        "same_original_manifest_keyset": true,
+        "same_setup_control_fields": true,
+        "workspace_normalized_native_profiles_equal": true,
+        "all_wheel_runtime_payload_files_matched_per_installation": 174,
+        "campaign_execution_receipt_verified": true,
+        "historical_outcomes_pooled": false,
+        "automatic_qualification": false,
+        "causal_limit": "Known development tasks; no seeded or counterbalanced matched control. Separate a30 and a31 low-effort campaigns retain identical task goals/checks and bounds; do not pool earlier none/minimal-effort diagnostics or infer general benefit. All failures retained; native completion and unchanged independent checker both required. No ordinary qualification."
+      }
+    }
+  },
+  "a28_review": {
+    "reviewed_head": "91596c825115732106dda24df42b7964e56d1e68",
+    "baseline_commit": "069e8a8a91503e02c966677090e7b80fb1bb379b",
+    "wheel_sha256": "69dc9c9a4c05069ff82916115f768f6916aab7264e82ac29e70b54f69fb74e31",
+    "blocking_findings": [],
+    "temporary_installation_removed": true,
+    "reviewed_files_unchanged_during_checks": true,
+    "result": "passed",
+    "scope": [
+      "native authority and no executor",
+      "transparent probe continuation",
+      "default and v1-v7 wire preservation",
+      "opt-in phase compute allocation",
+      "documented evidence and qualification boundaries"
+    ],
+    "limits": [
+      "No real model or provider inference; mock workflows do not prove coding quality.",
+      "Phase hint changes compute allocation only; arbitrary successful commands do not prove assertions or coverage."
+    ],
+    "checks": [
+      {
+        "name": "targeted_fast",
+        "exit_code": 0,
+        "elapsed_seconds": 0.137,
+        "timeout_seconds": 60,
+        "tests_run": 39,
+        "modules": [
+          "tests.test_local_harness_v8_phase_fast",
+          "tests.test_local_harness_v8_contract_fast",
+          "tests.test_local_harness_v8_transport_fast",
+          "tests.test_coding_probe_v8_reasoning_fast",
+          "tests.test_local_python_script_fast",
+          "tests.test_local_harness_v5_transport_fast",
+          "tests.test_local_python_checks_feedback_transport_fast"
+        ]
+      },
+      {
+        "name": "affected_workflows",
+        "exit_code": 0,
+        "elapsed_seconds": 19.877,
+        "timeout_seconds": 180,
+        "tests_run": 13,
+        "modules": [
+          "tests.test_local_python_script_workflow",
+          "tests.test_local_harness_v8_workflow",
+          "tests.test_coding_probe_v8_reasoning_workflow",
+          "tests.test_coding_probe_v5_workflow",
+          "tests.test_namespaced_coding_workflow.NamespacedCodingWorkflowTests.test_synthetic_v3_receipt_binds_raw_namespaces_and_real_tool_continuation"
+        ]
+      }
+    ],
+    "installed_package_matches_worktree": {
+      "hormuz/codex_llama.py": true,
+      "hormuz/local_harness.py": true,
+      "hormuz/local_harness_progress.py": true,
+      "hormuz/coding_probe.py": true,
+      "hormuz/local_python_script.py": true
+    }
+  },
+  "old_profile_wire_review": {
+    "baseline_commit": "069e8a8a",
+    "comparisons": 64,
+    "all_equal": true,
+    "rows": [
+      {
+        "case": "no_tool_history",
+        "profile": null,
+        "sha256": "5fb043dd38c119c6407c773897a8d85bf95c83bfdd4f1e1bc25f2ac579c9384c"
+      },
+      {
+        "case": "no_tool_history",
+        "profile": "qwen-code.v1",
+        "sha256": "3d67545f67fb1fc8d6579adcb374fe73d196c5a4e9f4fad2f95e9f9753502d58"
+      },
+      {
+        "case": "no_tool_history",
+        "profile": "qwen-code.v2",
+        "sha256": "65780b4b8630b0ec5d7a77bafac0d8dc119e28e91bacfbfa5dbb502555d00c8d"
+      },
+      {
+        "case": "no_tool_history",
+        "profile": "qwen-code.v3",
+        "sha256": "65780b4b8630b0ec5d7a77bafac0d8dc119e28e91bacfbfa5dbb502555d00c8d"
+      },
+      {
+        "case": "no_tool_history",
+        "profile": "qwen-code.v4",
+        "sha256": "bfc7f312c852c689e0b94e412a02dde0a8e187c5436addb8322f58e1fce8bea9"
+      },
+      {
+        "case": "no_tool_history",
+        "profile": "qwen-code.v5",
+        "sha256": "a53e82b6080a5284b787be719e89e66c8815c07172770eb16c7b693c060a4ec5"
+      },
+      {
+        "case": "no_tool_history",
+        "profile": "qwen-code.v6",
+        "sha256": "efd80443000b880af6fe7bb19003dcb88cfc435ac672b3fb2fb686d8d343be92"
+      },
+      {
+        "case": "no_tool_history",
+        "profile": "qwen-code.v7",
+        "sha256": "19b5795b55c7f91322de04ea900b1c890511f30244df507dd8d96b919a374d6b"
+      },
+      {
+        "case": "exec_failure",
+        "profile": null,
+        "sha256": "7b5ebd7b477a1d2822c923d9b41700a2a1565ffd1d31073a7ea945a4fb675136"
+      },
+      {
+        "case": "exec_failure",
+        "profile": "qwen-code.v1",
+        "sha256": "a831d364779cd661733c7c7f09b9a734307a7a48bbd369e722b8beec6ceacefd"
+      },
+      {
+        "case": "exec_failure",
+        "profile": "qwen-code.v2",
+        "sha256": "1884c5611becc832b69f7c8d9382d14d5a2480d218d5d1067b73db96345140cf"
+      },
+      {
+        "case": "exec_failure",
+        "profile": "qwen-code.v3",
+        "sha256": "1884c5611becc832b69f7c8d9382d14d5a2480d218d5d1067b73db96345140cf"
+      },
+      {
+        "case": "exec_failure",
+        "profile": "qwen-code.v4",
+        "sha256": "00b6a2bf7a60b8f0e7b3b7615520b2c83a70a96692e7df9b030cdf94452b35ca"
+      },
+      {
+        "case": "exec_failure",
+        "profile": "qwen-code.v5",
+        "sha256": "1722e53e5810323cf78f804313445c7a2dcc5e6810d00b71fab4ef5fe777d596"
+      },
+      {
+        "case": "exec_failure",
+        "profile": "qwen-code.v6",
+        "sha256": "9b35f6f5f53feda8eca7b1d68ba104e1dfde2c67e3af651b97b801106773966c"
+      },
+      {
+        "case": "exec_failure",
+        "profile": "qwen-code.v7",
+        "sha256": "3df5f399c3da0e15b7554ee44f2846a0fee4b93ca7b1c9d919685accad1d4453"
+      },
+      {
+        "case": "exec_success",
+        "profile": null,
+        "sha256": "d6eb87380d9401d9f08c559b4a4f7de5dc3f35ca354618124fece67931031450"
+      },
+      {
+        "case": "exec_success",
+        "profile": "qwen-code.v1",
+        "sha256": "b1e20a093e005832cec645f85c5c6c93bcb4f743f18b9da4d169ef35cc4811bf"
+      },
+      {
+        "case": "exec_success",
+        "profile": "qwen-code.v2",
+        "sha256": "7c1f7c99f70e0565ced77c7f94b5ece3daa0d05cf1102bcd9579f5cc6d84d1f7"
+      },
+      {
+        "case": "exec_success",
+        "profile": "qwen-code.v3",
+        "sha256": "7c1f7c99f70e0565ced77c7f94b5ece3daa0d05cf1102bcd9579f5cc6d84d1f7"
+      },
+      {
+        "case": "exec_success",
+        "profile": "qwen-code.v4",
+        "sha256": "2b3bdfc061ef1e9abcc34ec7140ff403642cc611abc9f89288e403520ab74f20"
+      },
+      {
+        "case": "exec_success",
+        "profile": "qwen-code.v5",
+        "sha256": "530b86130f235eab6a4de5ebc428ea93efe8e4902ae5ffa7d5fe97e91b63f88f"
+      },
+      {
+        "case": "exec_success",
+        "profile": "qwen-code.v6",
+        "sha256": "0eff61296c42cb29317ec16be142eaab3efc682ce1a454442378d154c84b5fc1"
+      },
+      {
+        "case": "exec_success",
+        "profile": "qwen-code.v7",
+        "sha256": "b622588775e166b68fe432fe4774d8225629c2b9036b4a73b51fb598b11aeabb"
+      },
+      {
+        "case": "python_syntax_failure",
+        "profile": null,
+        "sha256": "1c09236ce6243f598e65345b21bfb803aae68f458b0dd7b8e2269f8263d2a5a1"
+      },
+      {
+        "case": "python_syntax_failure",
+        "profile": "qwen-code.v1",
+        "sha256": "b98863ce51ca25cd47dde75668feaffa27ea6c150077cc7887673d0ee5305736"
+      },
+      {
+        "case": "python_syntax_failure",
+        "profile": "qwen-code.v2",
+        "sha256": "b7a8c54d737fa0923b3f15bc8988649acb80b5bbb8b7f5f4e4aaf850f24bb42a"
+      },
+      {
+        "case": "python_syntax_failure",
+        "profile": "qwen-code.v3",
+        "sha256": "b7a8c54d737fa0923b3f15bc8988649acb80b5bbb8b7f5f4e4aaf850f24bb42a"
+      },
+      {
+        "case": "python_syntax_failure",
+        "profile": "qwen-code.v4",
+        "sha256": "4cdc2a83f8e227e84a1d4b5a9fb3b409921df9a15f41488efcd3d0d4a0e96da1"
+      },
+      {
+        "case": "python_syntax_failure",
+        "profile": "qwen-code.v5",
+        "sha256": "9edd62d13e380a8243c993ebcb7511ffa709cadd6f6a6f824ae3d02b59278b95"
+      },
+      {
+        "case": "python_syntax_failure",
+        "profile": "qwen-code.v6",
+        "sha256": "cc29fd63d166ee1d442251e672c7c0500bc7464ada3d30fd8c674a6be673046c"
+      },
+      {
+        "case": "python_syntax_failure",
+        "profile": "qwen-code.v7",
+        "sha256": "79877fe4f3faa3bc29df12a377a58114f68da32ba645bb56f5a38a023ffe7f4d"
+      },
+      {
+        "case": "repeated_successful_command",
+        "profile": null,
+        "sha256": "f424a45643b4b91759ba6994017e62a6f08ec5ca6c3b520331fb8a42cb1e1b93"
+      },
+      {
+        "case": "repeated_successful_command",
+        "profile": "qwen-code.v1",
+        "sha256": "f9767deaf6a0a42da2d1f36e0f467f6ce619bac409fd385b66dd49c7938705ef"
+      },
+      {
+        "case": "repeated_successful_command",
+        "profile": "qwen-code.v2",
+        "sha256": "95070ce2c029b81693e7a8de6462c6014d4272f45db4cb5dc688d63f988d19e5"
+      },
+      {
+        "case": "repeated_successful_command",
+        "profile": "qwen-code.v3",
+        "sha256": "95070ce2c029b81693e7a8de6462c6014d4272f45db4cb5dc688d63f988d19e5"
+      },
+      {
+        "case": "repeated_successful_command",
+        "profile": "qwen-code.v4",
+        "sha256": "10d76d18ed43f4dbc67f75de51cc2f14d02c5797194dc895b514ea413b058294"
+      },
+      {
+        "case": "repeated_successful_command",
+        "profile": "qwen-code.v5",
+        "sha256": "c136b95cade54793e3431cff1beb6d1025136b1c01f4e634e75a84f82d0df12b"
+      },
+      {
+        "case": "repeated_successful_command",
+        "profile": "qwen-code.v6",
+        "sha256": "6a76e15f0ece4ba4028a738bea85bcc6e429c18be976592a5fd8dfa138b4f902"
+      },
+      {
+        "case": "repeated_successful_command",
+        "profile": "qwen-code.v7",
+        "sha256": "70e3b259f672bfa5df5a453609e7020dbc6fd10fe44b5c06b403463c75354fab"
+      },
+      {
+        "case": "saved_patch_without_later_command",
+        "profile": null,
+        "sha256": "d753b4d3fcd3154ade7d7ed61b3b19a0315a614ada929999b121ecae3a61f72c"
+      },
+      {
+        "case": "saved_patch_without_later_command",
+        "profile": "qwen-code.v1",
+        "sha256": "33ab675229b399189cc003b5e2dd1d774a46d071867127c523c451f6eb895a56"
+      },
+      {
+        "case": "saved_patch_without_later_command",
+        "profile": "qwen-code.v2",
+        "sha256": "9d4b430fdc809de346bf6c53ca74fa54ce767a1efa2d672584892ce0182e78de"
+      },
+      {
+        "case": "saved_patch_without_later_command",
+        "profile": "qwen-code.v3",
+        "sha256": "9d4b430fdc809de346bf6c53ca74fa54ce767a1efa2d672584892ce0182e78de"
+      },
+      {
+        "case": "saved_patch_without_later_command",
+        "profile": "qwen-code.v4",
+        "sha256": "444fec6181d3ff876e67261512557355f3cbd344e654fac8bfd44a66c47d3168"
+      },
+      {
+        "case": "saved_patch_without_later_command",
+        "profile": "qwen-code.v5",
+        "sha256": "5611f6e06b956976b878a363434472e04d02148f7367d2ef021d9a29d3d16f0b"
+      },
+      {
+        "case": "saved_patch_without_later_command",
+        "profile": "qwen-code.v6",
+        "sha256": "947bf393971dbffb3fd2dec84773b2b06365a31b92352c2e4787847e3c8ecec0"
+      },
+      {
+        "case": "saved_patch_without_later_command",
+        "profile": "qwen-code.v7",
+        "sha256": "9f9af861d958c2b02aa7ab8e24c34c0a4ed222a6cd7f672ff2cbf007dc9c8836"
+      },
+      {
+        "case": "repeated_malformed_patch",
+        "profile": null,
+        "sha256": "1808235b83af084c0fc36226ea31c381d4d756c290c16e0a3159a22ae2278517"
+      },
+      {
+        "case": "repeated_malformed_patch",
+        "profile": "qwen-code.v1",
+        "sha256": "f02127cc2461a6192832bbe79308ec26d7666eb22999ed1229b2ae93e93d6c01"
+      },
+      {
+        "case": "repeated_malformed_patch",
+        "profile": "qwen-code.v2",
+        "sha256": "a669502954f29be8e9185e36aa69d41f490727944b00070f3ec4e1385bf1f453"
+      },
+      {
+        "case": "repeated_malformed_patch",
+        "profile": "qwen-code.v3",
+        "sha256": "9c1f76d37790b8d76127e4487dc359f26c79718d680fa423d6695ab18dae433b"
+      },
+      {
+        "case": "repeated_malformed_patch",
+        "profile": "qwen-code.v4",
+        "sha256": "3471ec623e50152f7bd0767cd17056b6b1a82597bba97e89e0c587aa2353693f"
+      },
+      {
+        "case": "repeated_malformed_patch",
+        "profile": "qwen-code.v5",
+        "sha256": "6df5979f46dbca1722a47268d3f5eb0ee2644698184ee8e5ceee762987816874"
+      },
+      {
+        "case": "repeated_malformed_patch",
+        "profile": "qwen-code.v6",
+        "sha256": "e00ce16c5d55429410d6c2738b26eb51c2e81b7591d78d970592d0b73d356ecc"
+      },
+      {
+        "case": "repeated_malformed_patch",
+        "profile": "qwen-code.v7",
+        "sha256": "e237e9425e18f1a2ce4c85748bfc0fa637e4f150daaaf78d9a59cd4d4acd853a"
+      },
+      {
+        "case": "string_input",
+        "profile": null,
+        "sha256": "19775341940f8950864dfc4f6c8fdf119d50931b4c082e06d97b8c52eaee401f"
+      },
+      {
+        "case": "string_input",
+        "profile": "qwen-code.v1",
+        "sha256": "76a93818922a85c3d52c8894b02be603abdb37e82a605996fe69e001b32a6647"
+      },
+      {
+        "case": "string_input",
+        "profile": "qwen-code.v2",
+        "sha256": "0b383ffae88b1f3872562f83558aea4d950424cf2b3c583749bf4a1d96d8451f"
+      },
+      {
+        "case": "string_input",
+        "profile": "qwen-code.v3",
+        "sha256": "0b383ffae88b1f3872562f83558aea4d950424cf2b3c583749bf4a1d96d8451f"
+      },
+      {
+        "case": "string_input",
+        "profile": "qwen-code.v4",
+        "sha256": "47ff215c0026dd7510d08aaadba998fcaf21384eda28f9667a934f64df5aafdb"
+      },
+      {
+        "case": "string_input",
+        "profile": "qwen-code.v5",
+        "sha256": "305c632685c90d07f395c2889bb8d04d8186f9b9a4917fea6be7e23f7559d730"
+      },
+      {
+        "case": "string_input",
+        "profile": "qwen-code.v6",
+        "sha256": "115eab4911fb66363d2890a4eb9aa544d0d4d407c5bf71193991cc87a2deb092"
+      },
+      {
+        "case": "string_input",
+        "profile": "qwen-code.v7",
+        "sha256": "0d77dfc6259a8d4f85787480baab850411dc16fd176ec17dfde0b17f7dbc544e"
+      }
+    ]
+  },
+  "unstarted_a29_campaign_withdrawal": {
+    "schema_version": 1,
+    "withdrawn_at_utc": "2026-10-21 01:05:23 UTC",
+    "plan": "a29-frozen-repeat-plan.json",
+    "status": "withdrawn_before_inference",
+    "episodes_run": 0,
+    "outputs_created": 0,
+    "reason": "The still-running a28 diagnostic independently failed stock object identity at minimal effort. Earlier low-effort candidates produced correct stock code but exhausted completion time. Replace the unstarted candidate with explicit low-effort phase allocation before freezing any final repetitions.",
+    "retained": true
+  },
+  "historical_v1_v2_repetitions": {
+    "runtime": "2.0.0a13",
+    "native_reasoning_effort": "none",
+    "source_summary_sha256": "2c94bc46b8d279570a4b6e11e200f7d50e234f4154f80ead32ffcd641f8c04c4",
+    "protocol_sha256": "b87b753c6c15ec175cd43c62d6f6f7df34630e2710bd95f734a8a5e7172c3318",
+    "repetitions": [
+      {
+        "id": 1,
+        "report_sha256": "e7a03629e7d167cd09fdbe56c572f41b5f63fe1f2e266e015eb2512ace681d50",
+        "profiles": {
+          "qwen-code.v1": {
+            "episodes": 6,
+            "native_and_checker_passes": 3,
+            "rollback_completed_pass": false,
+            "rollback_saved_code_pass": false
+          },
+          "qwen-code.v2": {
+            "episodes": 6,
+            "native_and_checker_passes": 5,
+            "rollback_completed_pass": false,
+            "rollback_saved_code_pass": false
+          }
+        },
+        "matched_tasks": [
+          {
+            "case_id": "signed-ceiling",
+            "v1_passed": true,
+            "v2_passed": true
+          },
+          {
+            "case_id": "literal-first",
+            "v1_passed": true,
+            "v2_passed": true
+          },
+          {
+            "case_id": "adjacent-groups",
+            "v1_passed": false,
+            "v2_passed": true
+          },
+          {
+            "case_id": "interval-union",
+            "v1_passed": true,
+            "v2_passed": true
+          },
+          {
+            "case_id": "atomic-stock",
+            "v1_passed": false,
+            "v2_passed": false
+          },
+          {
+            "case_id": "stable-key-unique",
+            "v1_passed": false,
+            "v2_passed": true
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "report_sha256": "b5dc2c723c569bd681cff5d0b52686d7797fedf3260ea2748485dc1bad11e8ca",
+        "profiles": {
+          "qwen-code.v1": {
+            "episodes": 6,
+            "native_and_checker_passes": 3,
+            "rollback_completed_pass": false,
+            "rollback_saved_code_pass": false
+          },
+          "qwen-code.v2": {
+            "episodes": 6,
+            "native_and_checker_passes": 3,
+            "rollback_completed_pass": false,
+            "rollback_saved_code_pass": true
+          }
+        },
+        "matched_tasks": [
+          {
+            "case_id": "signed-ceiling",
+            "v1_passed": true,
+            "v2_passed": true
+          },
+          {
+            "case_id": "literal-first",
+            "v1_passed": true,
+            "v2_passed": true
+          },
+          {
+            "case_id": "adjacent-groups",
+            "v1_passed": false,
+            "v2_passed": false
+          },
+          {
+            "case_id": "interval-union",
+            "v1_passed": true,
+            "v2_passed": true
+          },
+          {
+            "case_id": "atomic-stock",
+            "v1_passed": false,
+            "v2_passed": false
+          },
+          {
+            "case_id": "stable-key-unique",
+            "v1_passed": false,
+            "v2_passed": false
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "report_sha256": "15b3ba9d3a799054fbf0ef3b8398e24ac820e7c36aac71cd4ba48f0258cbbd1d",
+        "profiles": {
+          "qwen-code.v1": {
+            "episodes": 6,
+            "native_and_checker_passes": 4,
+            "rollback_completed_pass": false,
+            "rollback_saved_code_pass": false
+          },
+          "qwen-code.v2": {
+            "episodes": 6,
+            "native_and_checker_passes": 4,
+            "rollback_completed_pass": false,
+            "rollback_saved_code_pass": false
+          }
+        },
+        "matched_tasks": [
+          {
+            "case_id": "signed-ceiling",
+            "v1_passed": true,
+            "v2_passed": true
+          },
+          {
+            "case_id": "literal-first",
+            "v1_passed": true,
+            "v2_passed": true
+          },
+          {
+            "case_id": "adjacent-groups",
+            "v1_passed": true,
+            "v2_passed": true
+          },
+          {
+            "case_id": "interval-union",
+            "v1_passed": true,
+            "v2_passed": true
+          },
+          {
+            "case_id": "atomic-stock",
+            "v1_passed": false,
+            "v2_passed": false
+          },
+          {
+            "case_id": "stable-key-unique",
+            "v1_passed": false,
+            "v2_passed": false
+          }
+        ]
+      }
+    ],
+    "pooled_with_v8": false,
+    "matched_native_episodes": {
+      "both_pass": 10,
+      "both_fail": 6,
+      "v1_only": 0,
+      "v2_only": 2
+    }
+  }
+}

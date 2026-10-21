@@ -1,0 +1,48 @@
+{
+  "passed": true,
+  "model_inference_submissions": 0,
+  "client_version": "codex-cli 0.160.0",
+  "client_exit_code": 0,
+  "requests": 3,
+  "errors": [],
+  "catalog_requests": [
+    "/v1/models?client_version=0.160.0"
+  ],
+  "source_after": "def example(value):\n    return value\n",
+  "check_style": "literal-c",
+  "command_success": true,
+  "sandbox_flags": [
+    "sandbox_workspace_write.network_access=false",
+    "sandbox_workspace_write.exclude_slash_tmp=true",
+    "sandbox_workspace_write.exclude_tmpdir_env_var=true"
+  ],
+  "tmpdir": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v3-diagnosis-20261020/native-exec-feedback-exact-literal-c/tmp",
+  "developer_instructions": "Repair only solution.py in the working directory. Read it before editing, implement the complete user specification, and run your own relevant checks. Use the existing host tools. Do not inspect files outside this working directory. Finish with a concise factual status. Do not access the network.",
+  "normal_settings_unchanged": true,
+  "feedback": [
+    {
+      "request": 2,
+      "call_id": "command-bad",
+      "native_type": "function_call_output",
+      "translated_type": "function_call_output",
+      "exact_output_preserved": true,
+      "output": "Chunk ID: af55ab\nWall time: 0.0000 seconds\nProcess exited with code 1\nOriginal token count: 7\nOutput:\nzsh:1: parse error near `)'\n"
+    },
+    {
+      "request": 3,
+      "call_id": "command-bad",
+      "native_type": "function_call_output",
+      "translated_type": "function_call_output",
+      "exact_output_preserved": true,
+      "output": "Chunk ID: af55ab\nWall time: 0.0000 seconds\nProcess exited with code 1\nOriginal token count: 7\nOutput:\nzsh:1: parse error near `)'\n"
+    },
+    {
+      "request": 3,
+      "call_id": "command-good",
+      "native_type": "function_call_output",
+      "translated_type": "function_call_output",
+      "exact_output_preserved": true,
+      "output": "Chunk ID: a4dc07\nWall time: 0.0000 seconds\nProcess exited with code 0\nOriginal token count: 35\nOutput:\npython3: warning: confstr() failed with code 5: couldn't get path of DARWIN_USER_TEMP_DIR; using /tmp instead\nSCRIPTED_ASSERTIONS_EXECUTED\n"
+    }
+  ]
+}

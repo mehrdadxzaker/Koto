@@ -1,0 +1,39 @@
+{
+  "passed": true,
+  "model_inference_submissions": 0,
+  "client_version": "codex-cli 0.160.0",
+  "client_exit_code": 0,
+  "requests": 3,
+  "errors": [],
+  "catalog_requests": [
+    "/v1/models?client_version=0.160.0"
+  ],
+  "source_after": "def example(value):\n    return value + 1\n",
+  "normal_settings_unchanged": true,
+  "feedback": [
+    {
+      "request": 2,
+      "call_id": "patch-bad",
+      "native_type": "custom_tool_call_output",
+      "translated_type": "function_call_output",
+      "exact_output_preserved": true,
+      "output": "apply_patch verification failed: Failed to find context '-1,2 +1,2 @@' in /Users/mehrdadz/Downloads/memoWiki/koto-harness-v3-diagnosis-20261020/native-feedback-1/project/solution.py"
+    },
+    {
+      "request": 3,
+      "call_id": "patch-bad",
+      "native_type": "custom_tool_call_output",
+      "translated_type": "function_call_output",
+      "exact_output_preserved": true,
+      "output": "apply_patch verification failed: Failed to find context '-1,2 +1,2 @@' in /Users/mehrdadz/Downloads/memoWiki/koto-harness-v3-diagnosis-20261020/native-feedback-1/project/solution.py"
+    },
+    {
+      "request": 3,
+      "call_id": "patch-good",
+      "native_type": "custom_tool_call_output",
+      "translated_type": "function_call_output",
+      "exact_output_preserved": true,
+      "output": "Exit code: 0\nWall time: 0 seconds\nOutput:\nSuccess. Updated the following files:\nM solution.py\n"
+    }
+  ]
+}

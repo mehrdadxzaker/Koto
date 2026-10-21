@@ -85,7 +85,7 @@ class CodingOutputWorkflowTests(unittest.TestCase):
                 connection.close()
             self.assertFalse(catalog.get('supports_search_tool', False))
             self.assertEqual(catalog['default_reasoning_level'], 'none')
-            self.assertIsNone(catalog['apply_patch_tool_type'])
+            self.assertEqual(catalog['apply_patch_tool_type'], 'freeform')
             f.command('disconnect')
             self.assertEqual(f.client('inspect')['model'], 'original-model')
             self.assertEqual(cloud_requests, [])
@@ -192,6 +192,56 @@ class CodingOutputWorkflowTests(unittest.TestCase):
                         f.command('disconnect', check=False)
             self.assertFalse((engine/'inference-count').exists())
             self.assertEqual(cloud_requests, [])
+
+    def test_v4_probe_accepts_native_patch_result_without_granting_automatic_coding(self):
+        f = self.fixture
+        with lifetime.provider('CLOUD_MUST_STAY_UNUSED') as (cloud, cloud_requests):
+            value, engine, request = self.prepare(cloud)
+            executable = engine / 'llama-server'
+            original = '"name":"hormuz_mcp__repair__fixture_tool","arguments":"{}"'
+            updated = '"name":"apply_patch","arguments":json.dumps({"input":"PATCH_OK"})'
+            self.assertIn(original, executable.read_text())
+            executable.write_text(executable.read_text().replace(original, updated))
+            archive = Path(value['managed_llama']['runtime_archive'])
+            with tarfile.open(archive, 'w:gz') as bundle:
+                for source in engine.iterdir():
+                    bundle.add(source, arcname=source.name)
+            value['managed_llama']['runtime_sha256'] = hashlib.sha256(archive.read_bytes()).hexdigest()
+            request['tools'] = [{'type': 'custom', 'name': 'apply_patch', 'format': {
+                'type': 'grammar', 'syntax': 'lark', 'definition': 'start: "PATCH_OK"'}}]
+            evidence = self.evidence(value, request)
+            plan = {'schema_id': 'hormuz.coding-probe-plan', 'schema_version': 4,
+                    'campaign_id': 'synthetic-patch-probe-v4', 'plan_sha256': evidence['plan_sha256'],
+                    'case_id': 'synthetic-patch', 'task_sha256': 'a' * 64, 'checks_sha256': 'b' * 64,
+                    'model': 'local-code', 'first_input_sha256': digest(request['input']),
+                    'max_requests': 3, 'max_elapsed_seconds': 6, 'subject': evidence['plan']['subject']}
+            validate_contract(plan)
+            f.path.write_text(json.dumps(value))
+            plan_path, path = f.root / 'probe.json', f.root / 'request.json'
+            plan_path.write_text(json.dumps(plan))
+            path.write_text(json.dumps(request))
+            self.addCleanup(lambda: f.command('disconnect', check=False))
+            f.command('connect')
+            armed = json.loads(f.command('qualify', '--plan', str(plan_path)).stdout)
+            options = ('request-file', str(path), 'bound-conversation', 'qualification-probe', armed['probe_id'])
+            first = f.client(*options)
+            self.assertEqual(first['status'], 200, first)
+            call = first['body']['output'][0]
+            self.assertEqual((call['type'], call['name'], call['input']), ('custom_tool_call', 'apply_patch', 'PATCH_OK'))
+            continuation = deepcopy(request)
+            continuation['input'] += [call, {'type': 'custom_tool_call_output',
+                'call_id': call['call_id'], 'output': 'Success. Updated solution.py'}]
+            path.write_text(json.dumps(continuation))
+            second = f.client(*options)
+            self.assertEqual(second['status'], 200, second)
+            self.assertEqual(second['headers']['x-hormuz-work-id'], first['headers']['x-hormuz-work-id'])
+            self.assertEqual(f.client(*options)['status'], 403)
+            self.assertEqual(f.client('request-file', str(path), 'bound-conversation')['status'], 503)
+            route = json.loads(f.command('status', '--routing').stdout)['routes'][0]
+            self.assertEqual((route['coding_readiness'], route['automatic_task_types']), ('unknown', []))
+            self.assertEqual((engine / 'inference-count').read_text().splitlines(), ['1', '1'])
+            self.assertEqual(cloud_requests, [])
+            f.command('disconnect')
 
     def test_new_criteria_preserve_all_cases_and_family_coverage_requirements(self):
         f = self.fixture

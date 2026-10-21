@@ -48,4 +48,8 @@ def qualified_models(config, aliases):
                 include_apps_usage_instructions=True, apply_patch_tool_type='freeform', context_window=32768,
                 supported_reasoning_levels=[{'effort': level, 'description': 'Local model reasoning; native effort semantics apply.'}
                                            for level in ('none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max')])
+        if ('codex_llama_v1' in route.capabilities and config.managed_llama is not None
+                and config.managed_llama.route == alias and config.managed_llama.schema_version == 3):
+            # Editing support is independent of this profile's disabled thinking.
+            result[-1]['apply_patch_tool_type'] = 'freeform'
     return result

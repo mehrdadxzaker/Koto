@@ -1,0 +1,14 @@
+{
+  "outcomes": [
+    {
+      "arm": "adapted",
+      "case_id": "adjacent-groups",
+      "outcome": "ASSERTION_FAILURE",
+      "checker_sha256": "b7068821a1667b3d787f4e2ba16f9af1132752e0c14db574811ae5003aad31a4",
+      "exit_code": 1,
+      "termination": "completed",
+      "stdout": "",
+      "stderr": "Traceback (most recent call last):\n  File \"/Users/mehrdadz/Downloads/memoWiki/koto-harness-v3-comparison-20261020/checks/adjacent-groups.py\", line 8, in <module>\n    assert r == [[1, 1], [2], [1, 1], [3]]\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError\n"
+    }
+  ]
+}

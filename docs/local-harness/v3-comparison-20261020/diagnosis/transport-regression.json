@@ -1,0 +1,152 @@
+{
+  "native_captured_failure_triggers_recovery": true,
+  "native_captured_success_clears_recovery": true,
+  "old_profiles_wire_compatibility": [
+    {
+      "capture": "adapted-adjacent-groups-request.json",
+      "profile": "qwen-code.v1",
+      "sha256": "12281c2c6b165c329d5b2510064f2dd25041a43b0daef94c1f2f4197a536a27d",
+      "unchanged": true
+    },
+    {
+      "capture": "adapted-adjacent-groups-request.json",
+      "profile": "qwen-code.v2",
+      "sha256": "beaf16664e1d9208963d079012427cff98ff70aed5337db048216767569726a3",
+      "unchanged": true
+    },
+    {
+      "capture": "adapted-atomic-stock-request.json",
+      "profile": "qwen-code.v1",
+      "sha256": "bb712cd3a378e43857e8c3102d9ebb36bf0981ba3b978b3fcbb2a4e08c0c8b01",
+      "unchanged": true
+    },
+    {
+      "capture": "adapted-atomic-stock-request.json",
+      "profile": "qwen-code.v2",
+      "sha256": "9de2e1226b9881b8cabf584897d4e9ac400a310bf08a68776648e48aec26ebdc",
+      "unchanged": true
+    },
+    {
+      "capture": "adapted-interval-union-request.json",
+      "profile": "qwen-code.v1",
+      "sha256": "674def6488b2b59a0b8b84bc734874758b186f1834bd588c05da904f19d0cf3a",
+      "unchanged": true
+    },
+    {
+      "capture": "adapted-interval-union-request.json",
+      "profile": "qwen-code.v2",
+      "sha256": "a2d8933cccb3d0df4c88c1ce8bb1428b11b25a8a7ed748e1c8b5407da5d85ae9",
+      "unchanged": true
+    },
+    {
+      "capture": "adapted-literal-first-request.json",
+      "profile": "qwen-code.v1",
+      "sha256": "810e7d6a3abdbf1abef9421c6ceda2bd0063b1381632ccbe205b3909e08188f7",
+      "unchanged": true
+    },
+    {
+      "capture": "adapted-literal-first-request.json",
+      "profile": "qwen-code.v2",
+      "sha256": "9d14b48d91b165139c4a22be2664056e1bd4a12ded8d74e81e40dd41512048d2",
+      "unchanged": true
+    },
+    {
+      "capture": "adapted-signed-ceiling-request.json",
+      "profile": "qwen-code.v1",
+      "sha256": "46617ec409aacf6bd2795e6fc40bbfd6c5c7c129a245ff3ce3c9422692e4dde3",
+      "unchanged": true
+    },
+    {
+      "capture": "adapted-signed-ceiling-request.json",
+      "profile": "qwen-code.v2",
+      "sha256": "4c04e866fda7636afbe202c05e956fab21d7c397494c56d618282b37eb271291",
+      "unchanged": true
+    },
+    {
+      "capture": "adapted-stable-key-unique-request.json",
+      "profile": "qwen-code.v1",
+      "sha256": "608fb0c2042014141169878888aa4ecd71311959112f29ceb873df9c59abcf14",
+      "unchanged": true
+    },
+    {
+      "capture": "adapted-stable-key-unique-request.json",
+      "profile": "qwen-code.v2",
+      "sha256": "67882bf92db3f5a5beba6ef4710e7277f4748caa78d201c1ae68ccb387f23e22",
+      "unchanged": true
+    },
+    {
+      "capture": "baseline-adjacent-groups-request.json",
+      "profile": "qwen-code.v1",
+      "sha256": "b3060b2465481f1e5f6f0171d66e87e25f9ea62036c4a7062088f366cfa9dbac",
+      "unchanged": true
+    },
+    {
+      "capture": "baseline-adjacent-groups-request.json",
+      "profile": "qwen-code.v2",
+      "sha256": "755065c8e37c7e0fef08ca31dff015b601bb34059ab7dda660ed38ef529fe100",
+      "unchanged": true
+    },
+    {
+      "capture": "baseline-atomic-stock-request.json",
+      "profile": "qwen-code.v1",
+      "sha256": "fe3abd689686f81505f933aa89ccf92822f27f143ee562e14f37bdaa9911abb8",
+      "unchanged": true
+    },
+    {
+      "capture": "baseline-atomic-stock-request.json",
+      "profile": "qwen-code.v2",
+      "sha256": "64994cf34ba4e3542dc83fa25cf63ea1b57190c11b526bc7b6dd8649662858cf",
+      "unchanged": true
+    },
+    {
+      "capture": "baseline-interval-union-request.json",
+      "profile": "qwen-code.v1",
+      "sha256": "f2d12c669c7acaf9b3c6310b90a7bd5588cb45e3a5a4752ee4337d6cda534472",
+      "unchanged": true
+    },
+    {
+      "capture": "baseline-interval-union-request.json",
+      "profile": "qwen-code.v2",
+      "sha256": "d143ad54fef253b56d77b41dfa03b2e4cf7d1f3defb189b38ec6909bdbb14d08",
+      "unchanged": true
+    },
+    {
+      "capture": "baseline-literal-first-request.json",
+      "profile": "qwen-code.v1",
+      "sha256": "bb8839b06b37c973d24206c3b6c1ce0aec2302bf3fdf2fc8d347cf00e14e320a",
+      "unchanged": true
+    },
+    {
+      "capture": "baseline-literal-first-request.json",
+      "profile": "qwen-code.v2",
+      "sha256": "74b8e6c426440b65b52ca2aa0280dbcd519473a9322d77ef3ee435da35e65246",
+      "unchanged": true
+    },
+    {
+      "capture": "baseline-signed-ceiling-request.json",
+      "profile": "qwen-code.v1",
+      "sha256": "38d2dd4f67ab290dd4149b3b453d6ddf2cbd18d0e4c91151c3b727907db47540",
+      "unchanged": true
+    },
+    {
+      "capture": "baseline-signed-ceiling-request.json",
+      "profile": "qwen-code.v2",
+      "sha256": "00db227c119ad74e80380ca20bb45ef09b3eba9e81bd9d26c1fd38a25d3ec4cd",
+      "unchanged": true
+    },
+    {
+      "capture": "baseline-stable-key-unique-request.json",
+      "profile": "qwen-code.v1",
+      "sha256": "5641140ecbadd5c9610511d6fe30bd14a2842f6af7dd012172f5224f917df6d0",
+      "unchanged": true
+    },
+    {
+      "capture": "baseline-stable-key-unique-request.json",
+      "profile": "qwen-code.v2",
+      "sha256": "0048d60470eec9b3656ecbd9e078f7af87a56624ced1a30732e150f5b4932ca7",
+      "unchanged": true
+    }
+  ],
+  "unchanged_transforms": 24,
+  "no_inference": true
+}

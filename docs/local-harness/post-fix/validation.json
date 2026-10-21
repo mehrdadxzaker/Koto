@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "implementation_commit": "8de06740df925ba7b80f41d68edefe453bac8d66",
+  "base_main": "7ea327385e218a05321a3dddd022495fba93668d",
+  "wheel_sha256": "f0c939e66cc3f3bfc57778e0316269e85be7c41b1d9df6a32159f24edb26b5e1",
+  "matching_packaged_source_files": 171,
+  "comparison_frozen_plan_sha256": "45f708523018ba5585658d14cd277999a6d559d7a5b63cb512124a30e64b00e6",
+  "same_cases_checks_and_asset_hashes_as_original": true,
+  "affected_regression_tests": {
+    "passed": true,
+    "count": 51,
+    "elapsed_seconds": 51.115
+  },
+  "full_installed_wheel_validation": {
+    "passed": true,
+    "outside_source_checkout": true,
+    "fast_tests": 55,
+    "fast_elapsed_seconds": 0.009,
+    "workflow_tests": 582,
+    "workflow_elapsed_seconds": 543.255,
+    "total_tests": 637,
+    "log_sha256": "a56e799fef3cd052db9b8b479c0665ad527c4ca3573bd8bf9df844172c3757dc"
+  },
+  "independent_reviews": "Original reviews cover the pre-fix implementation; no new independent review is claimed.",
+  "pr_url": "https://github.com/mehrdadxzaker/Koto/pull/585",
+  "model_quality_qualification_installed": false,
+  "initial_full_installed_wheel_attempt": {
+    "fast_tests": 55,
+    "fast_passed": true,
+    "workflow_tests_before_fail_fast": 62,
+    "workflow_passed": false,
+    "failure_test": "test_ctrl_c_during_native_cleanup_finishes_cleanup_and_preserves_the_interrupted_receipt",
+    "observed_status": [
+      "unknown",
+      "native_cleanup_failed"
+    ],
+    "expected_status": [
+      "interrupted",
+      "native_interrupted"
+    ],
+    "test_and_runtime_match_current_main": true
+  },
+  "cleanup_test_isolation": {
+    "passed": true,
+    "elapsed_seconds": 2.902,
+    "installed_wheel_outside_source": true
+  },
+  "final_runtime_source_matches_tested_wheel": true
+}

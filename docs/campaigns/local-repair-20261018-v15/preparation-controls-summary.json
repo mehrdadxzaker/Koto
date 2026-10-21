@@ -1,0 +1,44 @@
+{
+  "model_completion_requests": 0,
+  "model_quality_evidence": false,
+  "typed_first_turn_text_and_four_tools_preserved": true,
+  "typed_continuation_tokenized_and_rendered": true,
+  "continuation_input_tokens": 2965,
+  "supplied_native_function_control": {
+    "executed_commands": 1,
+    "executed_tools": 1,
+    "implementation_changed": true,
+    "check_exit_code": 0,
+    "checks_unchanged": true,
+    "settings_restored": true,
+    "owned_listeners_closed": true,
+    "native": {
+      "exit_code": 0,
+      "termination": "completed",
+      "elapsed_ms": 503
+    }
+  },
+  "native_tools": [
+    "exec_command",
+    "write_stdin",
+    "request_user_input",
+    "view_image"
+  ],
+  "supplied_control_turn_completed_count": 1,
+  "private_inventory_reads_and_outside_writes_denied": true,
+  "preparation_attempt_01": {
+    "rejection": "missing template metadata reference before native request",
+    "model_completion_requests": 0,
+    "settings_restored": true,
+    "owned_listeners_closed": true
+  },
+  "raw_native_requests_and_traces_kept_private": true,
+  "premature_checker_exit_control": {
+    "process_exit_code": 0,
+    "assertions_completed": false,
+    "accepted_check_exit_code": 2,
+    "model_completion_requests": 0,
+    "settings_restored": true,
+    "owned_listeners_closed": true
+  }
+}

@@ -1,0 +1,78 @@
+{
+  "frozen_plan_sha256": "74f658c74ecba66cb272408b6cf9fa73e912f9814b295fd35dda37f90c65c201",
+  "harnesses": {
+    "baseline": "qwen-code.v3",
+    "adapted": "qwen-code.v4"
+  },
+  "study_kind": "diagnostic",
+  "outcomes": [
+    {
+      "case_id": "atomic-stock",
+      "arm": "adapted",
+      "harness": "qwen-code.v4",
+      "model": "Qwen3-14B-Q4_K_M",
+      "client_exit_code": 1,
+      "termination": "completed",
+      "elapsed_ms": 180003,
+      "turn_completed": false,
+      "executed_commands": [
+        {
+          "command": "/bin/zsh -lc 'cat solution.py'",
+          "exit_code": 0,
+          "output": "def consume_stock(stock, requests):\n    for item, quantity in requests:\n        stock[item] -= quantity\n    return stock\n"
+        },
+        {
+          "command": "/bin/zsh -lc \"python3 -c 'import solution; stock = {\\\"apple\\\": 5, \\\"banana\\\": 3}; requests = [(\\\"apple\\\", 2), (\\\"banana\\\", 1)]; solution.consume_stock(stock, requests); assert stock[\\\"apple\\\"] == 3 and stock[\\\"banana\\\"] == 2'\"",
+          "exit_code": 0,
+          "output": "python3: warning: confstr() failed with code 5: couldn't get path of DARWIN_USER_TEMP_DIR; using /tmp instead\n"
+        },
+        {
+          "command": "/bin/zsh -lc \"python3 -c 'import solution; stock = {\\\"apple\\\": 5, \\\"banana\\\": 3}; requests = [(\\\"apple\\\", 2), (\\\"banana\\\", 1)]; solution.consume_stock(stock, requests); assert stock[\\\"apple\\\"] == 3 and stock[\\\"banana\\\"] == 2'\"",
+          "exit_code": 0,
+          "output": "python3: warning: confstr() failed with code 5: couldn't get path of DARWIN_USER_TEMP_DIR; using /tmp instead\n"
+        },
+        {
+          "command": "/bin/zsh -lc \"python3 -c 'import solution; stock = {\\\"apple\\\": 5, \\\"banana\\\": 3}; requests = [(\\\"apple\\\", 2), (\\\"banana\\\", 1)]; solution.consume_stock(stock, requests); assert stock[\\\"apple\\\"] == 3 and stock[\\\"banana\\\"] == 2'\"",
+          "exit_code": 0,
+          "output": "python3: warning: confstr() failed with code 5: couldn't get path of DARWIN_USER_TEMP_DIR; using /tmp instead\n"
+        },
+        {
+          "command": "/bin/zsh -lc \"python3 -c 'import solution; stock = {\\\"apple\\\": 5, \\\"banana\\\": 3}; requests = [(\\\"apple\\\", 2), (\\\"banana\\\", 1)]; solution.consume_stock(stock, requests); assert stock[\\\"apple\\\"] == 3 and stock[\\\"banana\\\"] == 2'\"",
+          "exit_code": 0,
+          "output": "python3: warning: confstr() failed with code 5: couldn't get path of DARWIN_USER_TEMP_DIR; using /tmp instead\n"
+        }
+      ],
+      "rejected_native_patches": [],
+      "tool_calls": 6,
+      "tool_errors": 0,
+      "implementation_changed": true,
+      "check_exit_code": 1,
+      "independent_check": {
+        "exit_code": 1,
+        "termination": "completed",
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"/Users/mehrdadz/Downloads/memoWiki/koto-harness-v4-a17-stock-pilot-20261020/checks/atomic-stock.py\", line 13, in <module>\n    else: raise AssertionError('invalid batch accepted')\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: invalid batch accepted\n"
+      },
+      "baseline_exit_code": 1,
+      "checks_unchanged": true,
+      "request_profile_sha256": "f56e30bf13d104248a5fc4489e7c1a6b7ea28f9a1557fbb1c91658d139e77020",
+      "submitted_requests": 7,
+      "passed": false
+    }
+  ],
+  "adapted": {
+    "passed": 0,
+    "total": 1,
+    "median_elapsed_ms": 180003,
+    "tool_errors": 0
+  },
+  "same_native_profiles": null,
+  "cleanup": [
+    {
+      "settings_restored": true,
+      "owned_listeners_closed": true
+    }
+  ],
+  "normal_settings_unchanged": true,
+  "frozen_artifacts_unchanged": true
+}

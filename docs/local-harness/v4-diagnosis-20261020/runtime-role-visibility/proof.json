@@ -1,0 +1,25 @@
+{
+  "model": "/Users/mehrdadz/Downloads/memoWiki/koto-model-assets-20261019/Qwen3-14B-Q4_K_M.gguf",
+  "model_size": 9001752960,
+  "gguf_version": 3,
+  "tensor_count": 443,
+  "metadata_count": 28,
+  "metadata_end_offset": 5932883,
+  "tensor_data_read": false,
+  "model_requests": 0,
+  "local_network_requests": 0,
+  "runtime_processes_launched": 0,
+  "template_bytes": 4100,
+  "template_sha256": "57f1fd00f0013a2be96aa79b857391f27e23df5b5f847072b524c897e24d0361",
+  "matches_saved_installed_props_template": true,
+  "contains_channel_marker": false,
+  "noninitial_system_render_branch": true,
+  "role_is_emitted_in_system_branch": true,
+  "primary_exact_installed_commit_sources": [
+    "https://github.com/ggml-org/llama.cpp/blob/14310190c/tools/server/server-context.cpp#L5024-L5043",
+    "https://github.com/ggml-org/llama.cpp/blob/14310190c/tools/server/server-chat.cpp#L39-L96",
+    "https://github.com/ggml-org/llama.cpp/blob/14310190c/common/chat.cpp#L924-L931",
+    "https://github.com/ggml-org/llama.cpp/blob/14310190c/common/chat.cpp#L1235-L1242"
+  ],
+  "limit": "Static exact-GGUF plus exact-runtime-source proof; no fresh runtime render or inference. It proves inclusion according to this path, not model attention or obedience."
+}

@@ -1,0 +1,9 @@
+{
+  "id": "held-stable-argsort",
+  "partition": "held_out",
+  "family": "collections",
+  "prompt": "Fix the Python implementation in solution.py. Repair stable_argsort(values): values is a list of integers. Return a new list of all original indices sorted by their corresponding value in ascending order. Equal values retain original index order. Preserve values; empty input returns a new empty list, and negative and arbitrarily large integers are valid. Make the edit, check the behavior, and complete the task. /no_think",
+  "initial_solution": "def stable_argsort(values):\n    return sorted(values)\n",
+  "checker": "import runpy\nimport sys\ns = runpy.run_path(sys.argv[1])\nf=s['stable_argsort']\na=[4,-2,4,0,-2];r=f(a)\nassert r==[1,4,3,0,2] and a==[4,-2,4,0,-2] and r is not a\na=[];r=f(a);assert r==[] and r is not a\nassert f([7])==[0] and f([2,2,2])==[0,1,2]\nassert f([1208925819614629174706176,-1208925819614629174706176,0])==[1,2,0]\nassert f([1208925819614629174706177,1208925819614629174706176,1208925819614629174706178])==[1,0,2]\n",
+  "reference_solution": "def stable_argsort(values):\n    return sorted(range(len(values)),key=values.__getitem__)\n"
+}

@@ -1,0 +1,9 @@
+{
+  "id": "held-replace-counts",
+  "partition": "held_out",
+  "family": "validation_state",
+  "prompt": "Fix the Python implementation in solution.py. Repair replace_counts(state, updates): both inputs are dictionaries; state contains string keys with valid nonnegative integer counts. Every update key must already exist in state and each update value must be a nonnegative built-in int, excluding bool and every int subclass; otherwise raise ValueError. Return a new shallow dictionary with all replacements applied. Never mutate either input, including if a later update is invalid. Empty updates still returns a copy. Make the edit, check the behavior, and complete the task. /no_think",
+  "initial_solution": "def replace_counts(state, updates):\n    state.update(updates)\n    return state\n",
+  "checker": "import runpy\nimport sys\ns = runpy.run_path(sys.argv[1])\nf=s['replace_counts']\na={'a':1,'b':2};b={'a':0};r=f(a,b)\nassert r=={'a':0,'b':2} and a=={'a':1,'b':2} and b=={'a':0} and r is not a\nr=f(a,{});assert r==a and r is not a\nassert f({}, {})=={} and f({'a':1},{'a':1208925819614629174706176})=={'a':1208925819614629174706176}\nclass IntChild(int): pass\nfor bad in [{'a':9,'missing':2},{'a':9,'b':-1},{'a':True},{'a':False},{'a':IntChild(2)},{'a':2.0},{'a':'2'},{'a':None}]:\n    a={'a':1,'b':2};before=bad.copy()\n    try: f(a,bad)\n    except ValueError: pass\n    else: raise AssertionError('invalid replacement accepted')\n    assert a=={'a':1,'b':2} and bad==before\n",
+  "reference_solution": "def replace_counts(state, updates):\n    if any(key not in state or type(value) is not int or value<0 for key,value in updates.items()):\n        raise ValueError('invalid replacement')\n    result=state.copy()\n    result.update(updates)\n    return result\n"
+}

@@ -1,0 +1,862 @@
+{
+  "schema_version": 1,
+  "kind": "pure_in_memory_old_profile_wire_compatibility",
+  "old_reference": {
+    "runtime": "2.0.0a15",
+    "package": "/private/tmp/koto-harness-v3-a15-installed-20261020/hormuz",
+    "old_adapter_files_match_frozen_v3_plan": true
+  },
+  "new_candidate": {
+    "runtime": "2.0.0a18",
+    "package": "/private/tmp/koto-harness-v4-a18-installed-20261020/hormuz",
+    "wheel_sha256": "02d89baff47da4e29addb813db22ea80bf66523198eb7e75fee3426db2c00c34",
+    "package_parity_receipt": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v4-diagnosis-20261020/package-parity-a18.json",
+    "package_parity_receipt_sha256": "a53d9718ddbde6fccff387b42d0675db8cfde6676ccbb52f72e9acded4674385"
+  },
+  "actual_captured_first_request_comparisons": [
+    {
+      "capture": "adapted-adjacent-groups-request.json",
+      "profile": "qwen-code.v1",
+      "wire_sha256": "66107d5688f84648fe9f48870a36b70da1bcdf960958136e0ae275f67b1590e7",
+      "byte_identical": true,
+      "identity_and_declaration_maps_equal": true,
+      "source_request_unchanged": true
+    },
+    {
+      "capture": "adapted-adjacent-groups-request.json",
+      "profile": "qwen-code.v2",
+      "wire_sha256": "f9dc21f31ff9935186594db73e88e4ec715b129ace40c44385421e9fa0c6631b",
+      "byte_identical": true,
+      "identity_and_declaration_maps_equal": true,
+      "source_request_unchanged": true
+    },
+    {
+      "capture": "adapted-adjacent-groups-request.json",
+      "profile": "qwen-code.v3",
+      "wire_sha256": "f9dc21f31ff9935186594db73e88e4ec715b129ace40c44385421e9fa0c6631b",
+      "byte_identical": true,
+      "identity_and_declaration_maps_equal": true,
+      "source_request_unchanged": true
+    },
+    {
+      "capture": "adapted-atomic-stock-request.json",
+      "profile": "qwen-code.v1",
+      "wire_sha256": "fcebc4bde86b90a253fcf2d7ca479bed52a64b387b81317f828232fb1181c38f",
+      "byte_identical": true,
+      "identity_and_declaration_maps_equal": true,
+      "source_request_unchanged": true
+    },
+    {
+      "capture": "adapted-atomic-stock-request.json",
+      "profile": "qwen-code.v2",
+      "wire_sha256": "a02b6710c632e44c75831672c0fb9213e90c145a5353ea88eef47d9e398ab086",
+      "byte_identical": true,
+      "identity_and_declaration_maps_equal": true,
+      "source_request_unchanged": true
+    },
+    {
+      "capture": "adapted-atomic-stock-request.json",
+      "profile": "qwen-code.v3",
+      "wire_sha256": "a02b6710c632e44c75831672c0fb9213e90c145a5353ea88eef47d9e398ab086",
+      "byte_identical": true,
+      "identity_and_declaration_maps_equal": true,
+      "source_request_unchanged": true
+    },
+    {
+      "capture": "adapted-interval-union-request.json",
+      "profile": "qwen-code.v1",
+      "wire_sha256": "fdc8c5e6407c26deb67ba4a6605eac72487b9737c5f36949caafc1f91158fffe",
+      "byte_identical": true,
+      "identity_and_declaration_maps_equal": true,
+      "source_request_unchanged": true
+    },
+    {
+      "capture": "adapted-interval-union-request.json",
+      "profile": "qwen-code.v2",
+      "wire_sha256": "31b0eebb444edd0db1eb69fcf5e7ae6d03147d1927be8f51c99dc242b721d75e",
+      "byte_identical": true,
+      "identity_and_declaration_maps_equal": true,
+      "source_request_unchanged": true
+    },
+    {
+      "capture": "adapted-interval-union-request.json",
+      "profile": "qwen-code.v3",
+      "wire_sha256": "31b0eebb444edd0db1eb69fcf5e7ae6d03147d1927be8f51c99dc242b721d75e",
+      "byte_identical": true,
+      "identity_and_declaration_maps_equal": true,
+      "source_request_unchanged": true
+    },
+    {
+      "capture": "adapted-literal-first-request.json",
+      "profile": "qwen-code.v1",
+      "wire_sha256": "1f9002fd952a8b4cbb2cd971e714b80b21783e519e64596ac9dd4b8e1dea0ad2",
+      "byte_identical": true,
+      "identity_and_declaration_maps_equal": true,
+      "source_request_unchanged": true
+    },
+    {
+      "capture": "adapted-literal-first-request.json",
+      "profile": "qwen-code.v2",
+      "wire_sha256": "4259dc5992aacf2f1fd126ebb3e9e12c8b0b88ab96ef4bd907161698ce082e97",
+      "byte_identical": true,
+      "identity_and_declaration_maps_equal": true,
+      "source_request_unchanged": true
+    },
+    {
+      "capture": "adapted-literal-first-request.json",
+      "profile": "qwen-code.v3",
+      "wire_sha256": "4259dc5992aacf2f1fd126ebb3e9e12c8b0b88ab96ef4bd907161698ce082e97",
+      "byte_identical": true,
+      "identity_and_declaration_maps_equal": true,
+      "source_request_unchanged": true
+    },
+    {
+      "capture": "adapted-signed-ceiling-request.json",
+      "profile": "qwen-code.v1",
+      "wire_sha256": "33dc0f777b085f71c75450f1eea86960edd54fa5877cf92f22236ec2446afc7e",
+      "byte_identical": true,
+      "identity_and_declaration_maps_equal": true,
+      "source_request_unchanged": true
+    },
+    {
+      "capture": "adapted-signed-ceiling-request.json",
+      "profile": "qwen-code.v2",
+      "wire_sha256": "37bb2e6335add1cd874c45c16aafb69ec7a571c7602c4726c338ced41131804b",
+      "byte_identical": true,
+      "identity_and_declaration_maps_equal": true,
+      "source_request_unchanged": true
+    },
+    {
+      "capture": "adapted-signed-ceiling-request.json",
+      "profile": "qwen-code.v3",
+      "wire_sha256": "37bb2e6335add1cd874c45c16aafb69ec7a571c7602c4726c338ced41131804b",
+      "byte_identical": true,
+      "identity_and_declaration_maps_equal": true,
+      "source_request_unchanged": true
+    },
+    {
+      "capture": "adapted-stable-key-unique-request.json",
+      "profile": "qwen-code.v1",
+      "wire_sha256": "185fdc090e3ddb55419a11dfa8cbcd404f545be4909fe1316f65ac8981822f12",
+      "byte_identical": true,
+      "identity_and_declaration_maps_equal": true,
+      "source_request_unchanged": true
+    },
+    {
+      "capture": "adapted-stable-key-unique-request.json",
+      "profile": "qwen-code.v2",
+      "wire_sha256": "e9875e4630fb0ed43222ef153a38c72e025975ab16d969c51a99c0276cc9bf04",
+      "byte_identical": true,
+      "identity_and_declaration_maps_equal": true,
+      "source_request_unchanged": true
+    },
+    {
+      "capture": "adapted-stable-key-unique-request.json",
+      "profile": "qwen-code.v3",
+      "wire_sha256": "e9875e4630fb0ed43222ef153a38c72e025975ab16d969c51a99c0276cc9bf04",
+      "byte_identical": true,
+      "identity_and_declaration_maps_equal": true,
+      "source_request_unchanged": true
+    },
+    {
+      "capture": "baseline-adjacent-groups-request.json",
+      "profile": "qwen-code.v1",
+      "wire_sha256": "3c1f642c368264914e3aeeaba996eb46b723efd3c39cd278cdc7b95048424519",
+      "byte_identical": true,
+      "identity_and_declaration_maps_equal": true,
+      "source_request_unchanged": true
+    },
+    {
+      "capture": "baseline-adjacent-groups-request.json",
+      "profile": "qwen-code.v2",
+      "wire_sha256": "969ee97c3bde9e060c4c31f661a860f998cf5f8ca4f3fb1eff99f5e0748b7007",
+      "byte_identical": true,
+      "identity_and_declaration_maps_equal": true,
+      "source_request_unchanged": true
+    },
+    {
+      "capture": "baseline-adjacent-groups-request.json",
+      "profile": "qwen-code.v3",
+      "wire_sha256": "969ee97c3bde9e060c4c31f661a860f998cf5f8ca4f3fb1eff99f5e0748b7007",
+      "byte_identical": true,
+      "identity_and_declaration_maps_equal": true,
+      "source_request_unchanged": true
+    },
+    {
+      "capture": "baseline-atomic-stock-request.json",
+      "profile": "qwen-code.v1",
+      "wire_sha256": "ed200062c0c189cbbd543e2014da5ba973c99f0bd44ce1ae3a8549666ea6867b",
+      "byte_identical": true,
+      "identity_and_declaration_maps_equal": true,
+      "source_request_unchanged": true
+    },
+    {
+      "capture": "baseline-atomic-stock-request.json",
+      "profile": "qwen-code.v2",
+      "wire_sha256": "53196524f1554b39d9462f3597bd8737815afd361e9e2255f741b8c467e5e2a7",
+      "byte_identical": true,
+      "identity_and_declaration_maps_equal": true,
+      "source_request_unchanged": true
+    },
+    {
+      "capture": "baseline-atomic-stock-request.json",
+      "profile": "qwen-code.v3",
+      "wire_sha256": "53196524f1554b39d9462f3597bd8737815afd361e9e2255f741b8c467e5e2a7",
+      "byte_identical": true,
+      "identity_and_declaration_maps_equal": true,
+      "source_request_unchanged": true
+    },
+    {
+      "capture": "baseline-interval-union-request.json",
+      "profile": "qwen-code.v1",
+      "wire_sha256": "ede2d6bdc3b21a8db0ce44d55cdb4671aa7bdd17faf14c4fc35a0d5be139f276",
+      "byte_identical": true,
+      "identity_and_declaration_maps_equal": true,
+      "source_request_unchanged": true
+    },
+    {
+      "capture": "baseline-interval-union-request.json",
+      "profile": "qwen-code.v2",
+      "wire_sha256": "34b9bc7c1b6577f65ef3e253f46432a2d18e54a1ebe1b10ea409cfd7e1e65363",
+      "byte_identical": true,
+      "identity_and_declaration_maps_equal": true,
+      "source_request_unchanged": true
+    },
+    {
+      "capture": "baseline-interval-union-request.json",
+      "profile": "qwen-code.v3",
+      "wire_sha256": "34b9bc7c1b6577f65ef3e253f46432a2d18e54a1ebe1b10ea409cfd7e1e65363",
+      "byte_identical": true,
+      "identity_and_declaration_maps_equal": true,
+      "source_request_unchanged": true
+    },
+    {
+      "capture": "baseline-literal-first-request.json",
+      "profile": "qwen-code.v1",
+      "wire_sha256": "99bb7b3b8ead6963231902c07adb211308e544b8b1a3bbc150b2558b8c13b0af",
+      "byte_identical": true,
+      "identity_and_declaration_maps_equal": true,
+      "source_request_unchanged": true
+    },
+    {
+      "capture": "baseline-literal-first-request.json",
+      "profile": "qwen-code.v2",
+      "wire_sha256": "6a4aa4fdb0b7a92d598c2e41d5a04c9fdb99215d4a69284ad5a65a7e14b6be38",
+      "byte_identical": true,
+      "identity_and_declaration_maps_equal": true,
+      "source_request_unchanged": true
+    },
+    {
+      "capture": "baseline-literal-first-request.json",
+      "profile": "qwen-code.v3",
+      "wire_sha256": "6a4aa4fdb0b7a92d598c2e41d5a04c9fdb99215d4a69284ad5a65a7e14b6be38",
+      "byte_identical": true,
+      "identity_and_declaration_maps_equal": true,
+      "source_request_unchanged": true
+    },
+    {
+      "capture": "baseline-signed-ceiling-request.json",
+      "profile": "qwen-code.v1",
+      "wire_sha256": "74452d48368059c07438da6fbeb3438b72f9de9e8b9ad8449e0eed71a50e7db6",
+      "byte_identical": true,
+      "identity_and_declaration_maps_equal": true,
+      "source_request_unchanged": true
+    },
+    {
+      "capture": "baseline-signed-ceiling-request.json",
+      "profile": "qwen-code.v2",
+      "wire_sha256": "60dae2440423ca03beac7d2d6472959b447f8e3037a2b63dc741dd231c295fda",
+      "byte_identical": true,
+      "identity_and_declaration_maps_equal": true,
+      "source_request_unchanged": true
+    },
+    {
+      "capture": "baseline-signed-ceiling-request.json",
+      "profile": "qwen-code.v3",
+      "wire_sha256": "60dae2440423ca03beac7d2d6472959b447f8e3037a2b63dc741dd231c295fda",
+      "byte_identical": true,
+      "identity_and_declaration_maps_equal": true,
+      "source_request_unchanged": true
+    },
+    {
+      "capture": "baseline-stable-key-unique-request.json",
+      "profile": "qwen-code.v1",
+      "wire_sha256": "51d8af8981ba5a9952dc4297f1af3ec3b9977bbeabd26163d0dff7790544e548",
+      "byte_identical": true,
+      "identity_and_declaration_maps_equal": true,
+      "source_request_unchanged": true
+    },
+    {
+      "capture": "baseline-stable-key-unique-request.json",
+      "profile": "qwen-code.v2",
+      "wire_sha256": "f455ada0c06cecb01799211dba18157811d44d7dd5b309bb9a89c7ca73629efb",
+      "byte_identical": true,
+      "identity_and_declaration_maps_equal": true,
+      "source_request_unchanged": true
+    },
+    {
+      "capture": "baseline-stable-key-unique-request.json",
+      "profile": "qwen-code.v3",
+      "wire_sha256": "f455ada0c06cecb01799211dba18157811d44d7dd5b309bb9a89c7ca73629efb",
+      "byte_identical": true,
+      "identity_and_declaration_maps_equal": true,
+      "source_request_unchanged": true
+    }
+  ],
+  "actual_captured_comparison_count": 36,
+  "synthetic_argument_history_comparisons": [
+    {
+      "capture": "adapted-adjacent-groups-request.json",
+      "profile": "qwen-code.v1",
+      "wire_sha256": "53b6f1308340eb7c46b2d354a1c7f8040c4804cfeb027f74520b531e6500a908",
+      "byte_identical": true,
+      "argument_values_preserved": true,
+      "argument_key_order": [
+        "cmd",
+        "max_output_tokens",
+        "workdir",
+        "extra_unknown"
+      ],
+      "order_matches_declared_then_unknown": true,
+      "original_request_unchanged": true
+    },
+    {
+      "capture": "adapted-adjacent-groups-request.json",
+      "profile": "qwen-code.v2",
+      "wire_sha256": "4c615803c52d40d23fb1aecdf9fafc58b4d810cd982de26c4247afb9dde5296a",
+      "byte_identical": true,
+      "argument_values_preserved": true,
+      "argument_key_order": [
+        "cmd",
+        "max_output_tokens",
+        "workdir",
+        "extra_unknown"
+      ],
+      "order_matches_declared_then_unknown": true,
+      "original_request_unchanged": true
+    },
+    {
+      "capture": "adapted-adjacent-groups-request.json",
+      "profile": "qwen-code.v3",
+      "wire_sha256": "4c615803c52d40d23fb1aecdf9fafc58b4d810cd982de26c4247afb9dde5296a",
+      "byte_identical": true,
+      "argument_values_preserved": true,
+      "argument_key_order": [
+        "cmd",
+        "max_output_tokens",
+        "workdir",
+        "extra_unknown"
+      ],
+      "order_matches_declared_then_unknown": true,
+      "original_request_unchanged": true
+    },
+    {
+      "capture": "adapted-atomic-stock-request.json",
+      "profile": "qwen-code.v1",
+      "wire_sha256": "038a7d2db2c426c51d784b97a0808cb163560e8b328a1edf70245a91a8606c6c",
+      "byte_identical": true,
+      "argument_values_preserved": true,
+      "argument_key_order": [
+        "cmd",
+        "max_output_tokens",
+        "workdir",
+        "extra_unknown"
+      ],
+      "order_matches_declared_then_unknown": true,
+      "original_request_unchanged": true
+    },
+    {
+      "capture": "adapted-atomic-stock-request.json",
+      "profile": "qwen-code.v2",
+      "wire_sha256": "ede2a32f433dee70f3859db060a6e915aaccb9bc1a17820733a3b2d30b80a8c7",
+      "byte_identical": true,
+      "argument_values_preserved": true,
+      "argument_key_order": [
+        "cmd",
+        "max_output_tokens",
+        "workdir",
+        "extra_unknown"
+      ],
+      "order_matches_declared_then_unknown": true,
+      "original_request_unchanged": true
+    },
+    {
+      "capture": "adapted-atomic-stock-request.json",
+      "profile": "qwen-code.v3",
+      "wire_sha256": "ede2a32f433dee70f3859db060a6e915aaccb9bc1a17820733a3b2d30b80a8c7",
+      "byte_identical": true,
+      "argument_values_preserved": true,
+      "argument_key_order": [
+        "cmd",
+        "max_output_tokens",
+        "workdir",
+        "extra_unknown"
+      ],
+      "order_matches_declared_then_unknown": true,
+      "original_request_unchanged": true
+    },
+    {
+      "capture": "adapted-interval-union-request.json",
+      "profile": "qwen-code.v1",
+      "wire_sha256": "77489c45235e3670b6de6ca7c9ffbe4c49ff0db40d7802e83cd70ae4d28fd5ff",
+      "byte_identical": true,
+      "argument_values_preserved": true,
+      "argument_key_order": [
+        "cmd",
+        "max_output_tokens",
+        "workdir",
+        "extra_unknown"
+      ],
+      "order_matches_declared_then_unknown": true,
+      "original_request_unchanged": true
+    },
+    {
+      "capture": "adapted-interval-union-request.json",
+      "profile": "qwen-code.v2",
+      "wire_sha256": "a654da0486e0addddac579162e99e1d346c959eedb5668d51950640ab508761a",
+      "byte_identical": true,
+      "argument_values_preserved": true,
+      "argument_key_order": [
+        "cmd",
+        "max_output_tokens",
+        "workdir",
+        "extra_unknown"
+      ],
+      "order_matches_declared_then_unknown": true,
+      "original_request_unchanged": true
+    },
+    {
+      "capture": "adapted-interval-union-request.json",
+      "profile": "qwen-code.v3",
+      "wire_sha256": "a654da0486e0addddac579162e99e1d346c959eedb5668d51950640ab508761a",
+      "byte_identical": true,
+      "argument_values_preserved": true,
+      "argument_key_order": [
+        "cmd",
+        "max_output_tokens",
+        "workdir",
+        "extra_unknown"
+      ],
+      "order_matches_declared_then_unknown": true,
+      "original_request_unchanged": true
+    },
+    {
+      "capture": "adapted-literal-first-request.json",
+      "profile": "qwen-code.v1",
+      "wire_sha256": "b090cd3c4b94ff2bac7c54d1ea3735b63c2b7e8c806e325acef06f67fb759429",
+      "byte_identical": true,
+      "argument_values_preserved": true,
+      "argument_key_order": [
+        "cmd",
+        "max_output_tokens",
+        "workdir",
+        "extra_unknown"
+      ],
+      "order_matches_declared_then_unknown": true,
+      "original_request_unchanged": true
+    },
+    {
+      "capture": "adapted-literal-first-request.json",
+      "profile": "qwen-code.v2",
+      "wire_sha256": "bef47c10abc33bce4a99670dbcadfafed93408d0b7cf67c2662e5c44154c59ac",
+      "byte_identical": true,
+      "argument_values_preserved": true,
+      "argument_key_order": [
+        "cmd",
+        "max_output_tokens",
+        "workdir",
+        "extra_unknown"
+      ],
+      "order_matches_declared_then_unknown": true,
+      "original_request_unchanged": true
+    },
+    {
+      "capture": "adapted-literal-first-request.json",
+      "profile": "qwen-code.v3",
+      "wire_sha256": "bef47c10abc33bce4a99670dbcadfafed93408d0b7cf67c2662e5c44154c59ac",
+      "byte_identical": true,
+      "argument_values_preserved": true,
+      "argument_key_order": [
+        "cmd",
+        "max_output_tokens",
+        "workdir",
+        "extra_unknown"
+      ],
+      "order_matches_declared_then_unknown": true,
+      "original_request_unchanged": true
+    },
+    {
+      "capture": "adapted-signed-ceiling-request.json",
+      "profile": "qwen-code.v1",
+      "wire_sha256": "8235c33ff486f55fc33323520150202cc6ece3576dd3c8a9908a4c29a0f512c9",
+      "byte_identical": true,
+      "argument_values_preserved": true,
+      "argument_key_order": [
+        "cmd",
+        "max_output_tokens",
+        "workdir",
+        "extra_unknown"
+      ],
+      "order_matches_declared_then_unknown": true,
+      "original_request_unchanged": true
+    },
+    {
+      "capture": "adapted-signed-ceiling-request.json",
+      "profile": "qwen-code.v2",
+      "wire_sha256": "2b66ac5000abc6ebd306b7d9e6762da70b028acc67d716902b6fd500475a4970",
+      "byte_identical": true,
+      "argument_values_preserved": true,
+      "argument_key_order": [
+        "cmd",
+        "max_output_tokens",
+        "workdir",
+        "extra_unknown"
+      ],
+      "order_matches_declared_then_unknown": true,
+      "original_request_unchanged": true
+    },
+    {
+      "capture": "adapted-signed-ceiling-request.json",
+      "profile": "qwen-code.v3",
+      "wire_sha256": "2b66ac5000abc6ebd306b7d9e6762da70b028acc67d716902b6fd500475a4970",
+      "byte_identical": true,
+      "argument_values_preserved": true,
+      "argument_key_order": [
+        "cmd",
+        "max_output_tokens",
+        "workdir",
+        "extra_unknown"
+      ],
+      "order_matches_declared_then_unknown": true,
+      "original_request_unchanged": true
+    },
+    {
+      "capture": "adapted-stable-key-unique-request.json",
+      "profile": "qwen-code.v1",
+      "wire_sha256": "5ffc21783418236b12263264516d64aa95356422a64457ac71ed8a074a5cb281",
+      "byte_identical": true,
+      "argument_values_preserved": true,
+      "argument_key_order": [
+        "cmd",
+        "max_output_tokens",
+        "workdir",
+        "extra_unknown"
+      ],
+      "order_matches_declared_then_unknown": true,
+      "original_request_unchanged": true
+    },
+    {
+      "capture": "adapted-stable-key-unique-request.json",
+      "profile": "qwen-code.v2",
+      "wire_sha256": "f9b4ee093b7847093641ccaf1230f2ea67e93ec47d6b99e40fc3493573d3ea72",
+      "byte_identical": true,
+      "argument_values_preserved": true,
+      "argument_key_order": [
+        "cmd",
+        "max_output_tokens",
+        "workdir",
+        "extra_unknown"
+      ],
+      "order_matches_declared_then_unknown": true,
+      "original_request_unchanged": true
+    },
+    {
+      "capture": "adapted-stable-key-unique-request.json",
+      "profile": "qwen-code.v3",
+      "wire_sha256": "f9b4ee093b7847093641ccaf1230f2ea67e93ec47d6b99e40fc3493573d3ea72",
+      "byte_identical": true,
+      "argument_values_preserved": true,
+      "argument_key_order": [
+        "cmd",
+        "max_output_tokens",
+        "workdir",
+        "extra_unknown"
+      ],
+      "order_matches_declared_then_unknown": true,
+      "original_request_unchanged": true
+    },
+    {
+      "capture": "baseline-adjacent-groups-request.json",
+      "profile": "qwen-code.v1",
+      "wire_sha256": "d57307e1ffee736fec1fd3ea6e09a276866626a192653c728e8cdfcf8fd7fcf9",
+      "byte_identical": true,
+      "argument_values_preserved": true,
+      "argument_key_order": [
+        "cmd",
+        "max_output_tokens",
+        "workdir",
+        "extra_unknown"
+      ],
+      "order_matches_declared_then_unknown": true,
+      "original_request_unchanged": true
+    },
+    {
+      "capture": "baseline-adjacent-groups-request.json",
+      "profile": "qwen-code.v2",
+      "wire_sha256": "f4dddddd09d08be9a7054f5b6512d23f161702da1b169210516b6bedca9cc924",
+      "byte_identical": true,
+      "argument_values_preserved": true,
+      "argument_key_order": [
+        "cmd",
+        "max_output_tokens",
+        "workdir",
+        "extra_unknown"
+      ],
+      "order_matches_declared_then_unknown": true,
+      "original_request_unchanged": true
+    },
+    {
+      "capture": "baseline-adjacent-groups-request.json",
+      "profile": "qwen-code.v3",
+      "wire_sha256": "f4dddddd09d08be9a7054f5b6512d23f161702da1b169210516b6bedca9cc924",
+      "byte_identical": true,
+      "argument_values_preserved": true,
+      "argument_key_order": [
+        "cmd",
+        "max_output_tokens",
+        "workdir",
+        "extra_unknown"
+      ],
+      "order_matches_declared_then_unknown": true,
+      "original_request_unchanged": true
+    },
+    {
+      "capture": "baseline-atomic-stock-request.json",
+      "profile": "qwen-code.v1",
+      "wire_sha256": "eaeedd018e007ad7c5efd7faa2cacf345a61572da85cbe70edf3cb900b12817a",
+      "byte_identical": true,
+      "argument_values_preserved": true,
+      "argument_key_order": [
+        "cmd",
+        "max_output_tokens",
+        "workdir",
+        "extra_unknown"
+      ],
+      "order_matches_declared_then_unknown": true,
+      "original_request_unchanged": true
+    },
+    {
+      "capture": "baseline-atomic-stock-request.json",
+      "profile": "qwen-code.v2",
+      "wire_sha256": "9a095d33b188738166bab4ecc2c4304a145d8b23aea6e0d4f17eddb010c0bc7f",
+      "byte_identical": true,
+      "argument_values_preserved": true,
+      "argument_key_order": [
+        "cmd",
+        "max_output_tokens",
+        "workdir",
+        "extra_unknown"
+      ],
+      "order_matches_declared_then_unknown": true,
+      "original_request_unchanged": true
+    },
+    {
+      "capture": "baseline-atomic-stock-request.json",
+      "profile": "qwen-code.v3",
+      "wire_sha256": "9a095d33b188738166bab4ecc2c4304a145d8b23aea6e0d4f17eddb010c0bc7f",
+      "byte_identical": true,
+      "argument_values_preserved": true,
+      "argument_key_order": [
+        "cmd",
+        "max_output_tokens",
+        "workdir",
+        "extra_unknown"
+      ],
+      "order_matches_declared_then_unknown": true,
+      "original_request_unchanged": true
+    },
+    {
+      "capture": "baseline-interval-union-request.json",
+      "profile": "qwen-code.v1",
+      "wire_sha256": "e3b742f4d9acf34ce6c41d4469ca74993667a6d3f774c302e76ff2ee709b7f35",
+      "byte_identical": true,
+      "argument_values_preserved": true,
+      "argument_key_order": [
+        "cmd",
+        "max_output_tokens",
+        "workdir",
+        "extra_unknown"
+      ],
+      "order_matches_declared_then_unknown": true,
+      "original_request_unchanged": true
+    },
+    {
+      "capture": "baseline-interval-union-request.json",
+      "profile": "qwen-code.v2",
+      "wire_sha256": "d152c8661333f18628d3dc6f2f543c3ef85f4571b957e4018ab17adefe213394",
+      "byte_identical": true,
+      "argument_values_preserved": true,
+      "argument_key_order": [
+        "cmd",
+        "max_output_tokens",
+        "workdir",
+        "extra_unknown"
+      ],
+      "order_matches_declared_then_unknown": true,
+      "original_request_unchanged": true
+    },
+    {
+      "capture": "baseline-interval-union-request.json",
+      "profile": "qwen-code.v3",
+      "wire_sha256": "d152c8661333f18628d3dc6f2f543c3ef85f4571b957e4018ab17adefe213394",
+      "byte_identical": true,
+      "argument_values_preserved": true,
+      "argument_key_order": [
+        "cmd",
+        "max_output_tokens",
+        "workdir",
+        "extra_unknown"
+      ],
+      "order_matches_declared_then_unknown": true,
+      "original_request_unchanged": true
+    },
+    {
+      "capture": "baseline-literal-first-request.json",
+      "profile": "qwen-code.v1",
+      "wire_sha256": "28141ab0a802cbfb545ac97e031ad319f4686fbc4bdd746d9fc463da3ae86891",
+      "byte_identical": true,
+      "argument_values_preserved": true,
+      "argument_key_order": [
+        "cmd",
+        "max_output_tokens",
+        "workdir",
+        "extra_unknown"
+      ],
+      "order_matches_declared_then_unknown": true,
+      "original_request_unchanged": true
+    },
+    {
+      "capture": "baseline-literal-first-request.json",
+      "profile": "qwen-code.v2",
+      "wire_sha256": "9201dafded69925a687f7405fb6beff5bbc15582247896dd46bb80f9564562dc",
+      "byte_identical": true,
+      "argument_values_preserved": true,
+      "argument_key_order": [
+        "cmd",
+        "max_output_tokens",
+        "workdir",
+        "extra_unknown"
+      ],
+      "order_matches_declared_then_unknown": true,
+      "original_request_unchanged": true
+    },
+    {
+      "capture": "baseline-literal-first-request.json",
+      "profile": "qwen-code.v3",
+      "wire_sha256": "9201dafded69925a687f7405fb6beff5bbc15582247896dd46bb80f9564562dc",
+      "byte_identical": true,
+      "argument_values_preserved": true,
+      "argument_key_order": [
+        "cmd",
+        "max_output_tokens",
+        "workdir",
+        "extra_unknown"
+      ],
+      "order_matches_declared_then_unknown": true,
+      "original_request_unchanged": true
+    },
+    {
+      "capture": "baseline-signed-ceiling-request.json",
+      "profile": "qwen-code.v1",
+      "wire_sha256": "859563448da4f4b35d04117b1814eb658c66af3211a7e517dd36cf1a5730eafd",
+      "byte_identical": true,
+      "argument_values_preserved": true,
+      "argument_key_order": [
+        "cmd",
+        "max_output_tokens",
+        "workdir",
+        "extra_unknown"
+      ],
+      "order_matches_declared_then_unknown": true,
+      "original_request_unchanged": true
+    },
+    {
+      "capture": "baseline-signed-ceiling-request.json",
+      "profile": "qwen-code.v2",
+      "wire_sha256": "1963b3339ebe90a7598bc4ad955feea837e92438e85a32f0ca5a56023347c397",
+      "byte_identical": true,
+      "argument_values_preserved": true,
+      "argument_key_order": [
+        "cmd",
+        "max_output_tokens",
+        "workdir",
+        "extra_unknown"
+      ],
+      "order_matches_declared_then_unknown": true,
+      "original_request_unchanged": true
+    },
+    {
+      "capture": "baseline-signed-ceiling-request.json",
+      "profile": "qwen-code.v3",
+      "wire_sha256": "1963b3339ebe90a7598bc4ad955feea837e92438e85a32f0ca5a56023347c397",
+      "byte_identical": true,
+      "argument_values_preserved": true,
+      "argument_key_order": [
+        "cmd",
+        "max_output_tokens",
+        "workdir",
+        "extra_unknown"
+      ],
+      "order_matches_declared_then_unknown": true,
+      "original_request_unchanged": true
+    },
+    {
+      "capture": "baseline-stable-key-unique-request.json",
+      "profile": "qwen-code.v1",
+      "wire_sha256": "33cbf8c1eacc62409783c967ea0b0152b0953867661fe09290e56e5cc6dcb106",
+      "byte_identical": true,
+      "argument_values_preserved": true,
+      "argument_key_order": [
+        "cmd",
+        "max_output_tokens",
+        "workdir",
+        "extra_unknown"
+      ],
+      "order_matches_declared_then_unknown": true,
+      "original_request_unchanged": true
+    },
+    {
+      "capture": "baseline-stable-key-unique-request.json",
+      "profile": "qwen-code.v2",
+      "wire_sha256": "db085263ecdcf16ee4b44629ca3e5d005174eea76c926db019f14cb2d6612f89",
+      "byte_identical": true,
+      "argument_values_preserved": true,
+      "argument_key_order": [
+        "cmd",
+        "max_output_tokens",
+        "workdir",
+        "extra_unknown"
+      ],
+      "order_matches_declared_then_unknown": true,
+      "original_request_unchanged": true
+    },
+    {
+      "capture": "baseline-stable-key-unique-request.json",
+      "profile": "qwen-code.v3",
+      "wire_sha256": "db085263ecdcf16ee4b44629ca3e5d005174eea76c926db019f14cb2d6612f89",
+      "byte_identical": true,
+      "argument_values_preserved": true,
+      "argument_key_order": [
+        "cmd",
+        "max_output_tokens",
+        "workdir",
+        "extra_unknown"
+      ],
+      "order_matches_declared_then_unknown": true,
+      "original_request_unchanged": true
+    }
+  ],
+  "synthetic_history_count": 36,
+  "synthetic_scope": "Non-executed in-memory call/output fixtures exercise schema-order replay, unknown keys, nested values, unicode, booleans/null and literal string escapes. No fixture was sent to a model or host tool.",
+  "six_case_file_byte_equal_prior_frozen": true,
+  "cases_file_sha256": "ef495f026747e5f4a52703665240883832cc18f8f75eb209ae75dfa682da55b9",
+  "no_model_inference": true,
+  "no_network_calls": true,
+  "no_production_or_test_edits": true,
+  "limitations": [
+    "Finite compatibility corpus, not proof for every possible transcript.",
+    "Pure transport equality does not establish model coding quality or execution of assertions.",
+    "Actual future frozen-study setup, budgets, per-pair native profiles and outcomes require their own completed-run audit.",
+    "No host-sandbox heredoc compatibility claim; proven inline format is literal-newline single-quoted python3 -c."
+  ]
+}

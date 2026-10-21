@@ -1,0 +1,85 @@
+{
+  "case_id": "literal-first",
+  "arm": "adapted",
+  "native_events": [
+    {
+      "type": "thread.started",
+      "thread_id": "01a1596d-299e-7c31-8e0f-96861e4097e1"
+    },
+    {
+      "type": "turn.started"
+    },
+    {
+      "type": "item.started",
+      "item": {
+        "id": "item_0",
+        "type": "command_execution",
+        "command": "/bin/zsh -lc 'cat solution.py'",
+        "aggregated_output": "",
+        "exit_code": null,
+        "status": "in_progress"
+      }
+    },
+    {
+      "type": "item.completed",
+      "item": {
+        "id": "item_0",
+        "type": "command_execution",
+        "command": "/bin/zsh -lc 'cat solution.py'",
+        "aggregated_output": "def replace_first(text, needle, replacement):\n    return text.replace(needle, replacement)\n",
+        "exit_code": 0,
+        "status": "completed"
+      }
+    },
+    {
+      "type": "item.started",
+      "item": {
+        "id": "item_1",
+        "type": "file_change",
+        "changes": [
+          {
+            "path": "/Users/mehrdadz/Downloads/memoWiki/koto-local-harness-comparison-20261020-verification/project/solution.py",
+            "kind": "update"
+          }
+        ],
+        "status": "in_progress"
+      }
+    },
+    {
+      "type": "item.completed",
+      "item": {
+        "id": "item_1",
+        "type": "file_change",
+        "changes": [
+          {
+            "path": "/Users/mehrdadz/Downloads/memoWiki/koto-local-harness-comparison-20261020-verification/project/solution.py",
+            "kind": "update"
+          }
+        ],
+        "status": "completed"
+      }
+    },
+    {
+      "type": "item.completed",
+      "item": {
+        "id": "item_2",
+        "type": "agent_message",
+        "text": "I've fixed the `replace_first` function in `solution.py` to meet the requirements. The function now:\n\n- Raises a `ValueError` if the `needle` is empty\n- Returns the original text unchanged if the `needle` is not found\n- Replaces only the first literal occurrence of `needle` with `replacement`\n\nThe implementation uses string methods to find and replace the first occurrence, rather than the `replace` method which replaces all occurrences."
+      }
+    },
+    {
+      "type": "turn.completed",
+      "usage": {
+        "input_tokens": 19205,
+        "cached_input_tokens": 18856,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 275,
+        "reasoning_output_tokens": 0
+      }
+    }
+  ],
+  "source_after": "def replace_first(text, needle, replacement):\n    if not needle:\n        raise ValueError(\"Needle cannot be empty\")\n    idx = text.find(needle)\n    if idx == -1:\n        return text\n    return text[:idx] + replacement + text[idx + len(needle):]\n",
+  "native_stderr": "Reading additional input from stdin...\n",
+  "raw_jsonl_sha256": "c0ab4810c3498c0b52976863cb477963d9d3edc18164f2f1864a863bc8ff20cc",
+  "source_sha256": "9796fe7167bb4cdff48169f3e1465faedaa5a235988ecffa1c15969e7e863f50"
+}

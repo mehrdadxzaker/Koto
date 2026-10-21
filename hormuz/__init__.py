@@ -6,7 +6,7 @@ from importlib import import_module
 from typing import Any
 
 
-__version__ = "2.0.0a7"
+__version__ = "2.0.0a31"
 
 __all__ = [
     "__version__",

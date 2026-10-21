@@ -163,6 +163,112 @@ class PersonalSelectionWorkflowTests(unittest.TestCase):
                 self.assertEqual(response["headers"].get("x-koto-executed-model"), "cloud-code")
                 self.assertEqual(response["headers"].get("x-koto-selection-status"), "validation_required")
 
+    def test_passing_validation_without_activation_keeps_observation_and_coding_admission_separate(self):
+        with provider_measurements() as reply, workflow.provider(reply("7", 1)) as (local, local_calls), \
+             workflow.provider(reply("7", 10)) as (cloud, cloud_calls):
+            value = self.fixture.admission_configuration(local, cloud, mode="auto")
+            value["route_admission"]["local_routes"]["local-code"]["task_types"] = [
+                "summarization", "code_change", "code_review"]
+            with self.fixture.connected_client(value) as submit:
+                self.history("enable")
+                self.assertFalse(self.history("learning", "status")["enabled"])
+                self.history("learning", "enable")
+                for partition, suffix in (("development", ""), ("held_out", " held")):
+                    for tag in ("alpha", "beta", "gamma"):
+                        for model in ("cloud-code", "local-code"):
+                            self.assess(submit, "Summarize seven invoice boxes " + tag + suffix,
+                                        model, "7", partition=partition)
+                self.assertEqual((len(local_calls), len(cloud_calls)), (6, 6))
+                receipt = self.history("learning", "validate", "--baseline", "cloud-code")
+                self.assertEqual((receipt["passed"], receipt["development_cases"], receipt["held_out_cases"],
+                                  receipt["unknown"], receipt["false_local"], receipt["local_selections"],
+                                  receipt["latency_saved_ms"]), (True, 3, 3, 0, 0, 3, 27000))
+                self.assertEqual(self.history("learning", "status")["mode"], "observe")
+                self.assertEqual((len(local_calls), len(cloud_calls)), (6, 6))
+
+                response = submit(request={"model": "cloud-code",
+                                           "input": "Summarize seven invoice boxes alpha tomorrow"})
+                self.assertEqual((response["headers"].get("x-koto-selection-mode"),
+                                  response["headers"].get("x-koto-selection-model"),
+                                  response["headers"].get("x-koto-executed-model")),
+                                 ("observe", "local-code", "cloud-code"))
+                state = submit(method="GET", path="/router/state")["body"]
+                validate_contract(state)
+                self.assertEqual((state["personal_selection"]["mode"],
+                                  state["personal_selection"]["validation_status"]), ("observe", "current"))
+                self.assertEqual((state["routes"][0]["coding_readiness"],
+                                  state["routes"][0]["automatic_task_types"]), ("unknown", ["summarization"]))
+                denied = submit(request={"model": "local-code", "input": "Fix the arithmetic function in this Python code."},
+                                headers={"X-Hormuz-Routing-Mode": "local_only", "X-Hormuz-Task-Selection": "router"})
+                self.assertEqual(denied["status"], 503, denied)
+                self.assertEqual((len(local_calls), len(cloud_calls)), (6, 7))
+            self.assertEqual((len(local_calls), len(cloud_calls)), (6, 7))
+
+    def test_checked_held_out_tasks_without_positive_latency_benefit_cannot_activate_selection(self):
+        slower_repeat = False
+        with provider_measurements() as reply:
+            def local_answer(body):
+                seconds = 20 if slower_repeat else 10 if "held" in body["input"] else 1
+                return reply("7", seconds)(body)
+
+            with workflow.provider(local_answer) as (local, local_calls), \
+                 workflow.provider(reply("7", 10)) as (cloud, cloud_calls):
+                with self.fixture.connected_client(self.fixture.admission_configuration(local, cloud, mode="auto")) as submit:
+                    self.history("enable")
+                    self.history("learning", "enable")
+                    for partition, suffix in (("development", ""), ("held_out", " held")):
+                        for tag in ("alpha", "beta", "gamma"):
+                            for model in ("cloud-code", "local-code"):
+                                self.assess(submit, "Summarize seven invoice boxes " + tag + suffix,
+                                            model, "7", partition=partition)
+                    receipt = self.history("learning", "validate", "--baseline", "cloud-code", "--activate", expected=2)
+                    self.assertEqual((receipt["passed"], receipt["development_cases"], receipt["held_out_cases"],
+                                      receipt["unknown"], receipt["false_local"], receipt["local_selections"],
+                                      receipt["latency_saved_ms"]), (False, 3, 3, 0, 0, 3, 0))
+                    self.assertEqual(self.history("learning", "status")["mode"], "observe")
+                    self.assertEqual((len(local_calls), len(cloud_calls)), (6, 6))
+
+                    slower_repeat = True
+                    self.assess(submit, "Summarize seven invoice boxes alpha held", "local-code", "7", partition="held_out")
+                    receipt = self.history("learning", "validate", "--baseline", "cloud-code", "--activate", expected=2)
+                    self.assertEqual((receipt["passed"], receipt["held_out_cases"], receipt["unknown"],
+                                      receipt["false_local"], receipt["local_selections"], receipt["latency_saved_ms"]),
+                                     (False, 3, 0, 0, 3, -5000))
+                    self.assertEqual(self.history("learning", "status")["mode"], "observe")
+                    scorecard = self.history("learning", "scorecard")["models"]
+                    local_score = next(row for row in scorecard if row["model"] == "local-code")
+                    self.assertEqual((local_score["attempts"], local_score["quality"]),
+                                     (7, {"pass": 7, "fail": 0, "unknown": 0}))
+                    self.assertEqual((len(local_calls), len(cloud_calls)), (7, 6))
+
+    def test_unchecked_held_out_local_outcome_blocks_selection_despite_sufficient_task_coverage(self):
+        with provider_measurements() as reply, workflow.provider(reply("7", 1)) as (local, local_calls), \
+             workflow.provider(reply("7", 10)) as (cloud, cloud_calls):
+            with self.fixture.connected_client(self.fixture.admission_configuration(local, cloud, mode="auto")) as submit:
+                self.history("enable")
+                self.history("learning", "enable")
+                for partition, suffix in (("development", ""), ("held_out", " held")):
+                    for tag in ("alpha", "beta", "gamma"):
+                        prompt = "Summarize seven invoice boxes " + tag + suffix
+                        self.assess(submit, prompt, "cloud-code", "7", partition=partition)
+                        if partition == "held_out" and tag == "gamma":
+                            unchecked = submit(request={"model": "local-code", "input": prompt},
+                                               headers={"X-Hormuz-Routing-Mode": "local_only",
+                                                        "X-Hormuz-Task-Selection": "model"})
+                            self.assertEqual(unchecked["status"], 200, unchecked)
+                        else:
+                            self.assess(submit, prompt, "local-code", "7", partition=partition)
+                receipt = self.history("learning", "validate", "--baseline", "cloud-code", "--activate", expected=2)
+                self.assertEqual((receipt["passed"], receipt["development_cases"], receipt["held_out_cases"],
+                                  receipt["unknown"], receipt["false_local"], receipt["local_selections"]),
+                                 (False, 3, 3, 1, 0, 2))
+                self.assertEqual(self.history("learning", "status")["mode"], "observe")
+                scorecard = self.history("learning", "scorecard")["models"]
+                local_score = next(row for row in scorecard if row["model"] == "local-code")
+                self.assertEqual((local_score["attempts"], local_score["quality"]),
+                                 (6, {"pass": 5, "fail": 0, "unknown": 1}))
+                self.assertEqual((len(local_calls), len(cloud_calls)), (6, 6))
+
     def test_bounded_local_evaluation_uses_history_checks_without_sending_references_or_contacting_cloud(self):
         with workflow.provider("7") as (local, local_calls), workflow.provider("7") as (cloud, cloud_calls):
             with self.fixture.connected_client(self.fixture.admission_configuration(local, cloud, mode="auto")) as submit:

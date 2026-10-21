@@ -1,0 +1,75 @@
+{
+  "date": "2026-10-20",
+  "verification_mode": "saved-run replay, integration red/green regressions, then fresh paired local-model verification",
+  "original_source_commit": "522ed7f8ee1f98e7c2dfbc17e0668bb2aebf5783",
+  "corrected_source_commit": "bba6ecc05db5e7cf83ecdc3bc5655e6f3be66e4d",
+  "original_regressions": {
+    "tests": 2,
+    "failures": 2,
+    "elapsed_seconds": 2.891,
+    "errors": [
+      "apply_patch_tool_type: None != freeform",
+      "native continuation: HTTP 403 != 200, probe_request_mismatch"
+    ]
+  },
+  "corrected_installed_wheel_regressions": {
+    "tests": 5,
+    "failures": 0,
+    "elapsed_seconds": 3.129
+  },
+  "historical_full_suite_log_verified": {
+    "tests": 637,
+    "sha256": "a56e799fef3cd052db9b8b479c0665ad527c4ca3573bd8bf9df844172c3757dc",
+    "reexecuted_this_verification": false
+  },
+  "packaged_source_byte_matches": 171,
+  "replay_files": {
+    "original-replay.json": "b255071bc7f43aadf38f336bfae153301a5a5e92b5c706b9e6e20893b1f692e9",
+    "corrected-replay.json": "3560652550b24cc356b0f3c8a3ec0bdbb8554674d3d78251321446b39104cfdf",
+    "fresh-replay.json": "e093b474f1c6b301c7e56fbe21006aa84c768c0ab8870a6c4f7776fd4b41c798"
+  },
+  "normal_settings_mutations": 0,
+  "model_submissions": 36,
+  "automatic_coding_enabled": false,
+  "pull_request": 585,
+  "pull_request_head_verified": "bba6ecc05db5e7cf83ecdc3bc5655e6f3be66e4d",
+  "fresh_model_comparison": {
+    "status": "completed",
+    "root": "/Users/mehrdadz/Downloads/memoWiki/koto-local-harness-comparison-20261020-verification",
+    "baseline": {
+      "passed": 4,
+      "total": 6,
+      "median_elapsed_ms": 30000.5,
+      "tool_errors": 0
+    },
+    "adapted": {
+      "passed": 5,
+      "total": 6,
+      "median_elapsed_ms": 33219.5,
+      "tool_errors": 0
+    },
+    "episodes": 12,
+    "same_native_profiles": true,
+    "cleanup": [
+      {
+        "settings_restored": true,
+        "owned_listeners_closed": true
+      },
+      {
+        "settings_restored": true,
+        "owned_listeners_closed": true
+      },
+      {
+        "settings_restored": true,
+        "owned_listeners_closed": true
+      }
+    ],
+    "normal_settings_unchanged": true,
+    "frozen_artifacts_unchanged": true,
+    "frozen_plan_sha256": "3b1be9cd762808713ef136fbb3a73171041b078be4c47fffe4cc37016886c73a",
+    "new_model_execution": true
+  },
+  "native_self_check_commands": 0,
+  "independent_fresh_audit_sha256": "b309cba21912000f8a2d0344046bc15a25cb9b10b5560227c0258137d499622c",
+  "cleanup_process_inventory": "No comparison runner or llama server remained after completion"
+}

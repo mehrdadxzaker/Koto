@@ -1,0 +1,201 @@
+{
+  "schema_version": 1,
+  "hypothesis": "H3 intended model-authored stock tests are insufficient even if shell representation is fixed",
+  "source_path": "/Users/mehrdadz/Downloads/memoWiki/koto-harness-v4-diagnosis-20261020/stock-intended-source-reconstructed.py",
+  "source_sha256": "df7a6abbb97a1ca926a05092931d0880de64de011722ecd70cb7b9747778e8b7",
+  "source_kind": "Explicit reconstruction of visible intended multiline Python; this was not successfully executed by the model.",
+  "inspection": "Static Python AST only; no reconstructed task code executed.",
+  "imports": [
+    "copy"
+  ],
+  "function_definitions": [
+    "test_consume_stock"
+  ],
+  "consume_stock_is_imported_or_defined": false,
+  "assertion_count": 5,
+  "assertions": [
+    {
+      "line": 42,
+      "source": "assert stock == {\"apple\": 10}, \"Stock should remain unchanged for empty requests\""
+    },
+    {
+      "line": 10,
+      "source": "assert stock == {\"apple\": 7, \"banana\": 3}, \"Stock not updated correctly\""
+    },
+    {
+      "line": 19,
+      "source": "assert stock == {\"apple\": 10}, \"Stock should not change on error\""
+    },
+    {
+      "line": 28,
+      "source": "assert stock == {\"apple\": 10}, \"Stock should not change on error\""
+    },
+    {
+      "line": 37,
+      "source": "assert stock == {\"apple\": 10}, \"Stock should not change on error\""
+    }
+  ],
+  "try_blocks": [
+    {
+      "line": 5,
+      "try_statements": [
+        "consume_stock(stock, requests)"
+      ],
+      "handlers": [
+        {
+          "exception_type": "Exception",
+          "assertions": 0,
+          "statements": [
+            "print('Error:', e)"
+          ]
+        }
+      ],
+      "else_assertions": [
+        "assert stock == {\"apple\": 7, \"banana\": 3}, \"Stock not updated correctly\""
+      ],
+      "finally_assertions": 0
+    },
+    {
+      "line": 14,
+      "try_statements": [
+        "consume_stock(stock, requests)"
+      ],
+      "handlers": [
+        {
+          "exception_type": "KeyError",
+          "assertions": 0,
+          "statements": [
+            "print('KeyError caught:', e)"
+          ]
+        }
+      ],
+      "else_assertions": [
+        "assert stock == {\"apple\": 10}, \"Stock should not change on error\""
+      ],
+      "finally_assertions": 0
+    },
+    {
+      "line": 23,
+      "try_statements": [
+        "consume_stock(stock, requests)"
+      ],
+      "handlers": [
+        {
+          "exception_type": "ValueError",
+          "assertions": 0,
+          "statements": [
+            "print('ValueError caught:', e)"
+          ]
+        }
+      ],
+      "else_assertions": [
+        "assert stock == {\"apple\": 10}, \"Stock should not change on error\""
+      ],
+      "finally_assertions": 0
+    },
+    {
+      "line": 32,
+      "try_statements": [
+        "consume_stock(stock, requests)"
+      ],
+      "handlers": [
+        {
+          "exception_type": "ValueError",
+          "assertions": 0,
+          "statements": [
+            "print('ValueError caught:', e)"
+          ]
+        }
+      ],
+      "else_assertions": [
+        "assert stock == {\"apple\": 10}, \"Stock should not change on error\""
+      ],
+      "finally_assertions": 0
+    }
+  ],
+  "request_batches": [
+    {
+      "line": 4,
+      "value": [
+        [
+          "apple",
+          3
+        ],
+        [
+          "banana",
+          2
+        ]
+      ],
+      "has_repeated_item": false,
+      "requests_in_batch": 2
+    },
+    {
+      "line": 13,
+      "value": [
+        [
+          "orange",
+          2
+        ]
+      ],
+      "has_repeated_item": false,
+      "requests_in_batch": 1
+    },
+    {
+      "line": 22,
+      "value": [
+        [
+          "apple",
+          -2
+        ]
+      ],
+      "has_repeated_item": false,
+      "requests_in_batch": 1
+    },
+    {
+      "line": 31,
+      "value": [
+        [
+          "apple",
+          15
+        ]
+      ],
+      "has_repeated_item": false,
+      "requests_in_batch": 1
+    },
+    {
+      "line": 40,
+      "value": [],
+      "has_repeated_item": false,
+      "requests_in_batch": 0
+    }
+  ],
+  "findings": [
+    {
+      "fact": "Fresh python -c body never imports or defines consume_stock.",
+      "effect": "Repairing only shell/newline representation still leaves the target function unbound."
+    },
+    {
+      "fact": "All three specified-error handlers only print; unchanged-state assertions are in else branches.",
+      "effect": "When the expected exception occurs, rollback-state assertions are skipped. Mutation followed by the expected error would not be checked."
+    },
+    {
+      "fact": "Those else branches contain no required-error assertion.",
+      "effect": "A function returning without the specified exception can pass if the state assertion happens to hold."
+    },
+    {
+      "fact": "No invalid batch has a valid operation before its failing operation; no request batch contains repeated items.",
+      "effect": "The tests do not exercise the observed partial-mutation/repeated-item rollback trigger."
+    },
+    {
+      "fact": "The happy-path handler catches Exception and only prints it.",
+      "effect": "A happy-path error is swallowed rather than asserted as a failure at that check."
+    }
+  ],
+  "verification_credit": false,
+  "no_model_inference": true,
+  "no_production_changes": true,
+  "limitations": [
+    "Static coverage/structure audit, not a sensitivity run of repaired captured tests.",
+    "Neither wrapper correction nor supplying an import is credited as actual model verification."
+  ]
+}

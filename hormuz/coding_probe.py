@@ -16,6 +16,34 @@ class ProbeError(ValueError):
     pass
 
 
+def _transparent_reasoning(item):
+    """Accept text history, never opaque provider state or additional authority."""
+    if (type(item) is not dict or item.get('type') != 'reasoning'
+            or set(item) - {'type', 'id', 'summary', 'content', 'encrypted_content', 'status'}
+            or item.get('encrypted_content') not in (None, '')
+            or item.get('status') not in (None, 'completed')
+            or item.get('id') is not None and (type(item['id']) is not str or not 0 < len(item['id']) <= 256)):
+        return False
+    observed_text = False
+    for field in ('content', 'summary'):
+        parts = item.get(field)
+        if parts is None:
+            continue
+        if type(parts) is not list:
+            return False
+        for part in parts:
+            if (type(part) is not dict or set(part) != {'type', 'text'}
+                    or part.get('type') not in ('reasoning_text', 'summary_text')
+                    or type(part.get('text')) is not str):
+                return False
+            try:
+                part['text'].encode('utf-8')
+            except UnicodeEncodeError:
+                return False
+            observed_text = True
+    return observed_text
+
+
 class CodingProbe:
     def __init__(self, admission):
         self.admission = admission
@@ -31,7 +59,8 @@ class CodingProbe:
             remaining = max(0, int((self.deadline - time.monotonic()) * 1000)) if plan else 0
             state = ("inactive" if plan is None else "revoked" if self.revoked else "expired" if not remaining
                      else "exhausted" if self.count >= plan["max_requests"] else "running" if self.count else "armed")
-            return {"schema_id": "hormuz.coding-probe-status", "schema_version": 1, "state": state,
+            return {"schema_id": "hormuz.coding-probe-status",
+                "schema_version": 2 if plan and plan["schema_version"] == 5 else 1, "state": state,
                 "probe_id": self.probe_id if plan else None, "plan_sha256": plan["plan_sha256"] if plan else None,
                 "case_id": plan["case_id"] if plan else None, "model": plan["model"] if plan else None,
                 "destination_generation": self.generation if plan else None, "submitted_requests": self.count,
@@ -90,13 +119,16 @@ class CodingProbe:
                     or self.admission.destinations.resolve(decision.route).generation != self.generation):
                 raise ProbeError("probe_request_mismatch")
             agents = handler.headers.get_all("User-Agent", [])
+            # V5 changes only the explicit development episode's time budget;
+            # its native request identity retains V4's exact semantics.
+            profile_version = 4 if plan["schema_version"] == 5 else plan["schema_version"]
             if (len(agents) != 1 or not 0 < len(agents[0]) <= 512
                     or any(not 32 <= ord(c) < 127 for c in agents[0])
                     or agents[0].partition(" ")[0] != "codex_exec/" + plan["subject"]["client_version"]
-                    or request_profile_digest(value, schema_version=plan["schema_version"]) != plan["subject"]["request_profile_sha256"]
+                    or request_profile_digest(value, schema_version=profile_version) != plan["subject"]["request_profile_sha256"]
                     or getattr(handler, "_work_conversation", None) is None):
                 raise ProbeError("probe_request_mismatch")
-            items = coding_input(value.get("input"), schema_version=plan["schema_version"])
+            items = coding_input(value.get("input"), schema_version=profile_version)
             first = self.work_id is None or claimed and getattr(handler, "_coding_probe_first", False)
             if first:
                 if contains_provider_state(value) or canonical_digest(items) != plan["first_input_sha256"]:
@@ -109,8 +141,18 @@ class CodingProbe:
                             or canonical_digest(items[:self.last_length]) != self.last_input_sha256)
                         or not contains_provider_state(value)):
                     raise ProbeError("probe_request_mismatch")
+                history_types = {"function_call", "function_call_output"}
+                if plan["schema_version"] >= 3 and "codex_llama_v1" in plan["subject"]["capabilities"]:
+                    history_types.update({"custom_tool_call", "custom_tool_call_output"})
+                # Only the new, explicitly selected v8 native probe admits the
+                # transparent reasoning already supported by its transport.
+                # Existing profile/version history contracts stay unchanged.
+                allow_reasoning = plan["schema_version"] >= 4 and {
+                    "codex_llama_v1", "qwen_code_v8"}.issubset(plan["subject"]["capabilities"])
                 for item in items[self.first_length:]:
-                    if (type(item) is not dict or not (item.get("type") in {"function_call", "function_call_output"}
+                    if allow_reasoning and _transparent_reasoning(item):
+                        continue
+                    if (type(item) is not dict or not (item.get("type") in history_types
                             or item.get("type", "message") == "message" and item.get("role") == "assistant")):
                         raise ProbeError("probe_request_mismatch")
             if claim and not claimed:

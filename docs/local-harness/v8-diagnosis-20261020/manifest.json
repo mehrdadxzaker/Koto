@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "kind": "allowlisted_v8_derived_receipts",
+  "files": [
+    {
+      "path": "results.json",
+      "sha256": "898b846c57d7c92141c83c41b176b4caeace4ef52e5ccdb07de3acc08b1e22c5",
+      "bytes": 70739
+    },
+    {
+      "path": "README.md",
+      "sha256": "d285dd2582d6013025a4e91d8e3888090ce9cfbe5246e990fad77ad9e729aa1a",
+      "bytes": 4768
+    },
+    {
+      "path": "budget-diagnostic.json",
+      "sha256": "45c662ad14e807c988e6ffb295dc137d1382e796b7a1dfdf42813652acff286f",
+      "bytes": 1799
+    }
+  ],
+  "excluded": [
+    "configuration contents",
+    "credentials",
+    "databases",
+    "raw requests and frames",
+    "submitted scripts",
+    "probe controls",
+    "native transcripts",
+    "hidden checker source"
+  ],
+  "publication_activity": {
+    "model_calls": 0,
+    "network_requests": 0,
+    "servers": 0
+  }
+}
