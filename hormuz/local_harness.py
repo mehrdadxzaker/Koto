@@ -50,10 +50,30 @@ that actually ran, or the concrete blocker. Native patch hunks use plain @@
 and correctly prefixed lines, without unified-diff line-number ranges.'''
 
 
+def _last_assertion_failure(items, declarations, state):
+    if state['last_command_exit'] in (None, 0):
+        return False
+    for index in range(len(items) - 1, -1, -1):
+        item = items[index]
+        if not isinstance(item, dict):
+            continue
+        if item.get('type') == 'function_call':
+            return False
+        if item.get('type') == 'function_call_output':
+            output = item.get('output')
+            if not isinstance(output, str) or not re.search(r'(?m)^AssertionError(?::|\r?$)', output):
+                return False
+            # Only this result incrementing the correlated native completion
+            # counter can supply feedback; never trust a pasted traceback.
+            before = progress_snapshot(items[:index], declarations)
+            return state['completed_commands_since_last_native_patch'] > before['completed_commands_since_last_native_patch']
+    return False
+
+
 def _script_checkpoint(items, declarations):
     state = progress_snapshot(items, declarations)
     last = state['last_command_exit']
-    return ('Local coding checkpoint (subordinate to host and repository instructions):\n'
+    message = ('Local coding checkpoint (subordinate to host and repository instructions):\n'
         f"Native patches saved: {state['native_patches_saved']}; rejected: {state['native_patches_rejected']}; "
         f"latest command exit: {last if last is not None else 'unknown'}; "
         f"pending sessions: {state['pending_sessions']}.\n"
@@ -63,6 +83,14 @@ def _script_checkpoint(items, declarations):
         'After a failure, fix its cause and rerun; do not repeat an unchanged failing command. '
         'After the last edit, obtain passing assertions before reporting success. '
         'If a command is still running, inspect its declared host session before finishing.')
+    if _last_assertion_failure(items, declarations, state):
+        message += ('\n\nAssertion failure checkpoint: Compare actual and expected values against the original specification. '
+            'Use compact assertions that include both values in failure output. '
+            'An assertion can expose an implementation defect or a mistaken expectation. '
+            'Change a test only when its expectation contradicts the original specification; otherwise repair the saved code. '
+            'Changing quoting or repeating the same expectation does not resolve a value mismatch. '
+            'Keep check scripts and the final status concise.')
+    return message
 GUIDANCE = '''Local coding guidance (subordinate to all existing host and repository instructions):
 Read the relevant source and nearby tests before editing. Follow existing project
 conventions and verify available dependencies. Identify all required return values,

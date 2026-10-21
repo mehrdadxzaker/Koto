@@ -165,6 +165,43 @@ assert state == before
         self.assertEqual(json.loads(continued['input'][-3]['arguments']), json.loads(native['arguments']))
         self.assertEqual(request, before)
 
+    def test_correlated_assertion_failure_gets_specification_advice_without_copying_feedback(self):
+        fixture = json.loads((Path(__file__).parent / 'fixtures/codex-0160-native-progress.json').read_text())
+        request = self.request()
+        result = request['input'][-1]
+        result['output'] = result['output'].split('Output:\n')[0] + (
+            'Output:\nTraceback (most recent call last):\nAssertionError\nprivate-failure-detail\n')
+        marker = 'Assertion failure checkpoint:'
+        for effort in ('none', 'minimal'):
+            with self.subTest(effort=effort):
+                request['reasoning'] = {'effort': effort}
+                original = deepcopy(request)
+                adapted = self.adapter(request).value
+                reminder = adapted['input'][-1]['content'][0]['text']
+                self.assertIn(marker, reminder)
+                self.assertIn('actual and expected', reminder)
+                self.assertIn('original specification', reminder)
+                self.assertIn('Change a test only', reminder)
+                self.assertNotIn('private-failure-detail', reminder)
+                self.assertEqual(adapted['input'][-2], result)
+                self.assertEqual(request, original)
+        for control in ('successful_exit', 'unbound_result', 'unresolved_call', 'later_success'):
+            with self.subTest(control=control):
+                changed = deepcopy(request)
+                if control == 'successful_exit':
+                    changed['input'][-1]['output'] = changed['input'][-1]['output'].replace(
+                        'Process exited with code 1', 'Process exited with code 0')
+                elif control == 'unbound_result':
+                    changed['input'].append({**result, 'call_id': 'unbound-feedback'})
+                elif control == 'unresolved_call':
+                    changed['input'].append({**changed['input'][-2], 'call_id': 'unresolved'})
+                else:
+                    changed['input'] += [
+                        {**changed['input'][-2], 'call_id': 'later'},
+                        {**fixture['cases']['exec_success']['result'], 'call_id': 'later'}]
+                self.assertNotIn(marker, self.adapter(changed).value['input'][-1]['content'][0]['text'])
+        self.assertNotIn(marker, self.adapter(request, profile='qwen-code.v7').value['input'][-1]['content'][0]['text'])
+
 
 if __name__ == '__main__':
     unittest.main()

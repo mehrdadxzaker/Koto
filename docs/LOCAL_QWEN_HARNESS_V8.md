@@ -28,6 +28,14 @@ after an expected exception, cumulative repeated operations, and equality for
 supported unhashable values. Progress counts are observations of native tool
 envelopes. They do not prove that assertions ran or that a repair is correct.
 
+A correlated nonzero native command that reports `AssertionError` receives
+static advice to inspect actual and expected values against the specification.
+It asks for compact failure diagnostics and permits correcting an authored
+expectation only when it contradicts that specification. It does not copy
+program output into instructions, change checks, rewrite results or infer that
+the implementation is wrong. Unbound feedback, successful commands and later
+unfinished calls cannot inherit this advice from an earlier failure.
+
 V8 also assigns bounded reasoning allowances by the client's requested effort:
 minimal 128, low 256, medium 512, and high or above 1,024 tokens, subject to the
 existing output-token cap. Explicit `none` remains zero. After a saved native
