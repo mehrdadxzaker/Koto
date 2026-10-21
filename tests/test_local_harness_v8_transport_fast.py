@@ -190,6 +190,11 @@ assert state == before
                 unbound = deepcopy(request)
                 unbound['input'][-1]['call_id'] = 'unbound'
                 self.assertNotIn(marker, self.adapter(unbound).value['input'][-1]['content'][0]['text'])
+                for later in ({**request['input'][-2], 'call_id': 'unfinished'},
+                              {**request['input'][-1], 'call_id': 'unbound-later'}):
+                    stale = deepcopy(request)
+                    stale['input'].append(later)
+                    self.assertNotIn(marker, self.adapter(stale).value['input'][-1]['content'][0]['text'])
 
     def test_correlated_assertion_failure_gets_specification_advice_without_copying_feedback(self):
         fixture = json.loads((Path(__file__).parent / 'fixtures/codex-0160-native-progress.json').read_text())
