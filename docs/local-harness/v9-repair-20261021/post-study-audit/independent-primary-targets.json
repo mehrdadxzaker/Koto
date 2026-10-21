@@ -1,0 +1,30 @@
+{
+  "atomic-stock": {
+    "qwen-code.v8": {
+      "episodes": 3,
+      "full_success_recorded": 0,
+      "saved_checker_pass": 0,
+      "normal_native_completion": 1
+    },
+    "qwen-code.v9": {
+      "episodes": 3,
+      "full_success_recorded": 0,
+      "saved_checker_pass": 0,
+      "normal_native_completion": 2
+    }
+  },
+  "stable-key-unique": {
+    "qwen-code.v8": {
+      "episodes": 3,
+      "full_success_recorded": 3,
+      "saved_checker_pass": 3,
+      "normal_native_completion": 3
+    },
+    "qwen-code.v9": {
+      "episodes": 3,
+      "full_success_recorded": 0,
+      "saved_checker_pass": 0,
+      "normal_native_completion": 0
+    }
+  }
+}

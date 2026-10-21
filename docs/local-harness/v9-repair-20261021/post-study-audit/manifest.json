@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "files": {
+    "independent-integrity.json": {
+      "sha256": "d457fbdaa18aed1ffff5badf080e97e2f8aef7e78d3c28833807dcf6f0aa3257",
+      "bytes": 32975
+    },
+    "independent-primary-targets.json": {
+      "sha256": "cc2d72b7fcdbc373980c52488cf6ddbc883273038bb8c30ed82d17c7599ac067",
+      "bytes": 660
+    },
+    "independent-secondary-summary.json": {
+      "sha256": "668b4a7c81c82d4eed689a679cae7b784081876b232a52876bc3125c5885efd4",
+      "bytes": 33160
+    },
+    "independent-authored-command-observations.json": {
+      "sha256": "04b10d83fe61162178f204a5dae2be4d86e3c34f7b65a41b976300116cd3a48d",
+      "bytes": 40255
+    },
+    "independent-limitations.json": {
+      "sha256": "eb6166394707fec2332f1189260e33b6ecba24d80e013e05d113cec3c9525cff",
+      "bytes": 1448
+    }
+  },
+  "credential_scan": "passed",
+  "scope": "Five derived safe receipts only."
+}

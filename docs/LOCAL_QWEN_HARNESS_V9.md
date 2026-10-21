@@ -119,6 +119,44 @@ a passing checker in115716ms, but stock saved no edit after three native patch
 format rejections and failed at180009ms. Its full installed suite was then
 intentionally stopped, with cleanup retained, to prepare a36's text-edit compiler.
 No a35 complete-suite pass is claimed.
-The separate three-pair study is pending; v9 must remain unqualified until actual
-outcomes are recorded. These
-known development tasks cannot establish held-out or ordinary90-second readiness.
+
+The a36 diagnostic then recorded zero full successes out of two. Stock saved an
+edit but still accepted cumulative overconsumption and did not complete; list-key
+completed normally but its saved set-based implementation rejected an allowed
+list key. Neither independent checker passed. All five development diagnostics
+are retained separately and excluded from the comparison below.
+
+The [completed frozen comparison](local-harness/v9-repair-20261021/README.md)
+ran the unchanged six tasks three times per profile on exact a36 candidate
+`2a0a5f0a6f348cea7f307c100d21265f07648fd4`. Full success required a saved edit,
+the unchanged passing checker, normal native completion and client exit0.
+
+| Endpoint | V8 | V9 |
+| --- | ---: | ---: |
+| Full successes, all six tasks | 10/18 | 1/18 |
+| Saved checker passes | 10/18 | 3/18 |
+| Normal native completions | 11/18 | 3/18 |
+| Rollback full successes | 0/3 | 0/3 |
+| List-key full successes | 3/3 | 0/3 |
+
+Per-pair full scores were v8/v9 **3/0, 3/1 and 4/0**. Every failure and its
+recorded duration remains included; no quality retries or retuning occurred.
+The independent audit replayed all 36 original checks once and agreed with every
+recorded result. It also verified unchanged frozen evidence, native controls and
+normal settings, with all nine owned connection lifetimes closed. Complete
+installed verification passed 280 fast and 683 workflow tests before the freeze;
+630 earlier-profile request comparisons remained equal.
+
+The candidate failed its predeclared three-out-of-three criterion for both
+targets and worsened the measured coding result. Passing adapter/compiler tests
+did not establish coding benefit. Rejected patch attempts, missing imports,
+insufficient model-authored checks and incomplete native turns remain failures.
+Translated native events do not identify which model-facing helper was chosen;
+the comparison does not prove a particular helper caused the regression. Two
+grouping repairs passed their saved checker but failed native completion; their
+stream-disconnect cause remains unresolved.
+
+V9 remains default off and unqualified, and this attempt is not a resolved coding
+fix. These known development tasks also cannot establish held-out or ordinary
+90-second readiness. The ordinary Codex route, tools, permissions, sandbox,
+execution loop and user settings were preserved.

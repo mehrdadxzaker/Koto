@@ -150,4 +150,9 @@ checks, saved-code outcomes and failures are retained in the linked report.
 [V9](LOCAL_QWEN_HARNESS_V9.md) distinguishes a successful printout from observed
 assertion intent before applying the finishing hint, and corrects feedback for
 newly authored exception-message assumptions. It is a separate opt-in profile;
-its coding comparison remains pending and it grants no qualification.
+the [completed three-pair comparison](local-harness/v9-repair-20261021/README.md)
+recorded **10/18 full successes for v8 and 1/18 for v9**. Rollback remained
+**0/3 for both**, while list-key passed **3/3 for v8 and 0/3 for v9**. All 36
+unchanged checker replays agreed. The attempted repair worsened the measured
+result and fixed neither target. V9 remains disabled for ordinary coding and
+unqualified; the existing Codex experience and settings remain unchanged.

@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "publication_status": "draft",
+  "evidence_kind": "retained_two_target_diagnostic_not_paired_study",
+  "candidate": {
+    "runtime": "2.0.0a33",
+    "profile": "qwen-code.v9",
+    "source_commit": "c37aa9fb29a47adaf181bc39642c7641c20121e8",
+    "wheel_sha256": "a84f7d43f990e2c98f2eb6758d80376252acc9dff49f34773d6acece4219a127"
+  },
+  "pinned_inputs": {
+    "model": "Qwen3-14B-Q4_K_M",
+    "model_sha256": "500a8806e85ee9c83f3ae08420295592451379b4f8cf2d0f41c15dffeb6b81f0",
+    "client_version": "0.160.0",
+    "client_sha256": "112fae7a5a1223e673c8a1791d32338f37df8b527ff1159bb8adac6c4dbf1b4b",
+    "engine_sha256": "1bf5602a2be50097c44282a6ecc63234d94ee8f96d39fd45fed6eff4e74b6b41",
+    "engine_archive_sha256": "051bb0b55b3e5e72081aa819131ba30c74d910acc915b28bab298757472e39d9",
+    "six_fixture_sha256": "ef495f026747e5f4a52703665240883832cc18f8f75eb209ae75dfa682da55b9"
+  },
+  "controls": {
+    "episode_seconds": 180,
+    "requests_per_episode": 16,
+    "output_tokens": 2048,
+    "native_effort": "low",
+    "inference_concurrency": 1,
+    "quality_retries": 0,
+    "automatic_startup_retries": 0
+  },
+  "episodes": [
+    {
+      "case_id": "atomic-stock",
+      "full_success": false,
+      "implementation_changed": true,
+      "checker": {
+        "exit_code": 1,
+        "termination": "completed",
+        "checks_unchanged": true
+      },
+      "native": {
+        "termination": "completed",
+        "client_exit_code": 1,
+        "turn_completed": false,
+        "elapsed_ms": 180012,
+        "submitted_requests": 4,
+        "turn_completed_events": 0,
+        "turn_failed_events": 1,
+        "stream_disconnected_before_response_completed": true
+      },
+      "saved_patch_events": 1,
+      "recorded_numbered_hunk_rejections": 1,
+      "recorded_python_syntax_failure_commands": 0,
+      "recorded_command_completions": 1,
+      "completed_commands_after_last_saved_patch": 1,
+      "evidence_hashes": {
+        "native_jsonl_sha256": "9151d305a44146d53bb88f74527952b1322e37c3bd8f7a4304361325238d21fb",
+        "saved_implementation_sha256": "b14a6f627560999031af9dbc5c7f2b806b6a49b9a0a72351e7e4bef3ebd5bc0f",
+        "checker_sha256": "ba6c4c2725d0f7da513cbf153dbe5006b6fe75ec08054cbe5b3d8dda072d6ca3"
+      }
+    },
+    {
+      "case_id": "stable-key-unique",
+      "full_success": true,
+      "implementation_changed": true,
+      "checker": {
+        "exit_code": 0,
+        "termination": "completed",
+        "checks_unchanged": true
+      },
+      "native": {
+        "termination": "completed",
+        "client_exit_code": 0,
+        "turn_completed": true,
+        "elapsed_ms": 115451,
+        "submitted_requests": 4,
+        "turn_completed_events": 1,
+        "turn_failed_events": 0,
+        "stream_disconnected_before_response_completed": false
+      },
+      "saved_patch_events": 1,
+      "recorded_numbered_hunk_rejections": 0,
+      "recorded_python_syntax_failure_commands": 0,
+      "recorded_command_completions": 2,
+      "completed_commands_after_last_saved_patch": 1,
+      "evidence_hashes": {
+        "native_jsonl_sha256": "f26fb2a33d890ab592ab2c90bbd88d4b9279f84663b48a9066231fc3b4f1dcd2",
+        "saved_implementation_sha256": "6efb9048c8c56ab59234058ef4011f206b58f00c236c7a532f48e472d45b819e",
+        "checker_sha256": "ee1f06be069c966c982c93b9a8ec3d4c5dc447e9f9ae70ece25a35f38e57ae19"
+      }
+    }
+  ],
+  "verdict": "stop_and_diagnose",
+  "full_successes": 1,
+  "saved_checker_successes": 1,
+  "normal_native_successes": 1,
+  "paired_study_started": false,
+  "pooled_into_paired_study": false,
+  "cleanup": {
+    "settings_restored": true,
+    "owned_listeners_closed": true,
+    "connection_lifetimes_closed": 1,
+    "supervisor_group_closed": true,
+    "normal_settings_unchanged": true,
+    "frozen_artifacts_unchanged": true
+  },
+  "installed_parity": {
+    "runtime_payload_files": 175,
+    "source_wheel_site_payloads_equal": true,
+    "old_profile_outputs": 630,
+    "old_profile_outputs_changed": 0
+  },
+  "evidence_hashes": {
+    "comparison_sha256": "0e4fefc13c2dcb6e3475e092087f335f37ed4f3107ea2c8a7825c0eca0c07746",
+    "diagnostic_execution_sha256": "398a02752d8a5a9c69ce2725e3c05f296d8ae360020f0554964aa2743bf2b606",
+    "stop_verdict_sha256": "5c70c803d294dc09cdbfcb101329b9f4baae2d6b74828115639f7f6fab37694a",
+    "frozen_supervisor_plan_sha256": "bb644ec20ac3abcc0a9ff8556ac6188fdc9bd6a2450903dd6a4199e3e2ff85b5",
+    "inference_install_parity_sha256": "8c0bf5e4f1dfcd38ecf7a5fde608e9207a51cf3c1f78ff4e816facc556917d7c"
+  },
+  "limits": [
+    "Recorded termination, client exit, native turn completion and saved-checker result are separate fields. No unrecorded timeout or transport exception subtype is inferred.",
+    "Cleanup flags cover this diagnostic’s owned lifecycle; they do not prove absence of unrelated processes.",
+    "This once-only diagnostic is not repeatability, a paired comparison, held-out qualification or ordinary 90-second readiness.",
+    "No model, native client, generated command or checker was executed to prepare this draft.",
+    "A33 stock recorded completed termination with stream disconnect at 180012 ms and no completed native turn; this is not a verified timeout subtype.",
+    "List-key has one full diagnostic pass at 115451 ms; one pass does not establish a repeatable fix.",
+    "Passing authored checks or printed success text does not replace the unchanged independent checker."
+  ],
+  "retained_failure_observation": "Stock validates each operation against an unchanged copied state, then mutates the original. Its authored wrapper catches exceptions and prints success text; the unchanged independent checker rejects the saved cumulative-validation behavior.",
+  "subsequent_hypothesis": {
+    "runtime": "2.0.0a34",
+    "source_commit": "455ef827d86c664a50fa5ead48c3d11424e9ea01",
+    "treatment": "Existing recoverable function-case verification first, plain script fallback second, and latest correlated patch-format guidance.",
+    "quality_status": "pending_not_established"
+  }
+}
