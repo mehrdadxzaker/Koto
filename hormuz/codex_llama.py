@@ -126,12 +126,20 @@ class CodexLlamaRequest:
         if harness == 'qwen-code.v8' and isinstance(self.value.get('input'), list):
             from .local_harness_progress import progress_snapshot
             progress = progress_snapshot(self.value['input'], self.declarations, include_attempts=True)
-            if (progress['native_patches_saved'] and progress['completed_commands_since_last_native_patch']
-                    and progress['last_command_exit'] == 0 and not progress['pending_sessions']
-                    and progress['last_attempt_command_succeeded'] and not progress['unresolved_tool_calls']):
-                # A compute-allocation hint, never evidence that assertions ran
-                # or that the task is correct. Failures retain the full budget.
-                self.value['reasoning_budget_tokens'] = min(self.value['reasoning_budget_tokens'], 16)
+            if not progress['pending_sessions'] and not progress['unresolved_tool_calls']:
+                cap = None
+                if (progress['native_patches_saved'] and progress['completed_commands_since_last_native_patch']
+                        and progress['last_command_exit'] == 0 and progress['last_attempt_command_succeeded']):
+                    cap = 16
+                elif reasoning.get('effort') in {'low', 'minimal'} and isinstance(value.get('input'), list):
+                    if not progress['tool_history_seen']:
+                        cap = 32
+                    elif progress['last_attempt_patch_saved']:
+                        cap = 64
+                # Compute allocation only: these phases do not prove assertions
+                # ran or that the task is correct. Uncertain work keeps its budget.
+                if cap is not None:
+                    self.value['reasoning_budget_tokens'] = min(self.value['reasoning_budget_tokens'], cap)
 
     def _add_python_checks(self, *, feedback=False, script=False):
         """Offer a private compiler only for an existing, identified host command."""

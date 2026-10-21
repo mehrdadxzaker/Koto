@@ -53,21 +53,30 @@ def progress_snapshot(items, declarations, *, include_attempts=False):
     commands = {}
     unresolved, seen_attempts = set(), set()
     invalid_attempt = last_attempt_succeeded = False
+    tool_history_seen = last_attempt_patch_saved = False
     for item in items:
-        if include_attempts and isinstance(item, dict) and item.get('type') in {
-                'function_call', 'function_call_output'}:
-            # Any later attempt/result supersedes an earlier successful
-            # command. Unsupported or malformed feedback cannot inherit it.
-            last_attempt_succeeded = False
-            call_id = item.get('call_id')
-            if item['type'] == 'function_call':
-                if not isinstance(call_id, str) or not call_id or call_id in seen_attempts:
-                    invalid_attempt = True
+        if include_attempts:
+            message = (isinstance(item, dict) and (item.get('type') == 'message'
+                       or item.get('type') is None and isinstance(item.get('role'), str)
+                       and item['role'] in {'system', 'developer', 'user', 'assistant'}))
+            reasoning = isinstance(item, dict) and item.get('type') == 'reasoning'
+            if not (message or reasoning):
+                # Any later attempt/result supersedes an earlier successful
+                # phase. Unknown history cannot masquerade as an initial request.
+                tool_history_seen = True
+                last_attempt_succeeded = last_attempt_patch_saved = False
+                kind = item.get('type') if isinstance(item, dict) else None
+                call_id = item.get('call_id') if isinstance(item, dict) else None
+                if kind == 'function_call':
+                    if not isinstance(call_id, str) or not call_id or call_id in seen_attempts:
+                        invalid_attempt = True
+                    else:
+                        seen_attempts.add(call_id)
+                        unresolved.add(call_id)
+                elif kind == 'function_call_output' and isinstance(call_id, str):
+                    unresolved.discard(call_id)
                 else:
-                    seen_attempts.add(call_id)
-                    unresolved.add(call_id)
-            elif isinstance(call_id, str):
-                unresolved.discard(call_id)
+                    invalid_attempt = True
         if not isinstance(item, dict) or not isinstance(item.get('call_id'), str) or not item['call_id']:
             continue
         call_id = item['call_id']
@@ -91,6 +100,7 @@ def progress_snapshot(items, declarations, *, include_attempts=False):
             output = item.get('output')
             if name == 'apply_patch':
                 if isinstance(output, str) and _PATCH.match(output):
+                    last_attempt_patch_saved = True
                     state['native_patches_saved'] += 1
                     state['completed_commands_since_last_native_patch'] = 0
                     state['last_command_exit'], state['shell_parse_failure'] = None, False
@@ -135,6 +145,8 @@ def progress_snapshot(items, declarations, *, include_attempts=False):
     state['pending_sessions'] = len(pending)
     if include_attempts:
         state.update(last_attempt_command_succeeded=last_attempt_succeeded,
+                     last_attempt_patch_saved=last_attempt_patch_saved,
+                     tool_history_seen=tool_history_seen,
                      unresolved_tool_calls=len(unresolved) + int(invalid_attempt))
     return state
 

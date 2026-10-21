@@ -69,7 +69,7 @@ class LocalHarnessV8ContractTests(unittest.TestCase):
         fixture = json.loads((Path(__file__).parent / 'fixtures/codex-0160-native-progress.json').read_text())
         edited = synthetic_requests()['saved_patch_without_later_command']
         edited.update(reasoning={'effort': 'low'}, max_output_tokens=2048)
-        self.assertEqual(CodexLlamaRequest(edited, harness='qwen-code.v8').value['reasoning_budget_tokens'], 256)
+        self.assertEqual(CodexLlamaRequest(edited, harness='qwen-code.v8').value['reasoning_budget_tokens'], 64)
         for envelope, budget in [('exec_success', 16), ('exec_failure', 256), ('pending', 256)]:
             with self.subTest(result=envelope):
                 request = deepcopy(edited)

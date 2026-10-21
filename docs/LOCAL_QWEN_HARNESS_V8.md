@@ -38,10 +38,15 @@ unfinished calls cannot inherit this advice from an earlier failure.
 
 V8 also assigns bounded reasoning allowances by the client's requested effort:
 minimal 128, low 256, medium 512, and high or above 1,024 tokens, subject to the
-existing output-token cap. Explicit `none` remains zero. After a saved native
-patch and a successful completed post-edit command, a smaller allowance leaves
-time for reporting. Errors, unknown results and unfinished tool calls retain
-the solving allowance. This is compute allocation, not a correctness gate.
+existing output-token cap. Explicit `none` remains zero. For native list input
+at low or minimal effort, an initial request without tool history receives at
+most 32 tokens; a completed source read retains the full solving allowance;
+the latest correlated saved patch receives at most 64 tokens for choosing
+verification. After a successful completed post-edit command, at most 16 tokens
+leave time for reporting. Errors, unknown results, unresolved calls and pending
+sessions retain the solving allowance. Initial and post-patch caps do not apply
+to string input or medium and higher effort. These are compute hints, not tool
+choice, proof that assertions executed, or a correctness gate.
 
 ## Reasoning continuation repair
 
