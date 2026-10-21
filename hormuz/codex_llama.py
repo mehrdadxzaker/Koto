@@ -14,6 +14,7 @@ MAX_COMPILED_CHECK_CACHE = 512 * 1024
 # Canonical declaration observed in all twelve pinned Codex 0.160.0 captures.
 # Flat same-name functions are otherwise insufficient evidence of a native tool.
 PINNED_CODEX_0160_EXEC_SHA256 = '7ecb0f4f51b3982e36be43a9d08daa05348d7dd5f70646231b1f0f9823f40ec3'
+PINNED_CODEX_0160_PATCH_SHA256 = '5947b870d79e16bddc34946a4afb6200ff14a97f8419a2d23f8e5040af9a7154'
 PARENT_TAGS = {'parent_turn_id', 'x-codex-parent-thread-id', 'x-openai-subagent'}
 
 
@@ -125,6 +126,7 @@ class CodexLlamaRequest:
         if harness == 'qwen-code.v9':
             self._add_python_checks(named=True, prominent=True)
             self._add_python_checks(script=True, prominent=True)
+            self._add_text_patch()
         elif harness in {'qwen-code.v6', 'qwen-code.v7', 'qwen-code.v8'}:
             self._add_python_checks(feedback=harness == 'qwen-code.v7', script=harness == 'qwen-code.v8')
         if harness in {'qwen-code.v8', 'qwen-code.v9'} and isinstance(self.value.get('input'), list):
@@ -190,7 +192,8 @@ class CodexLlamaRequest:
             alias = base_alias + '_' + hashlib.sha256(str(index).encode()).hexdigest()[:16]
         else:
             raise CodexLlamaError('ambiguous_check_tool')
-        self.derived_checks[alias] = {'target': target, 'workdir': 'workdir' in parameters, 'argument': argument}
+        self.derived_checks[alias] = {'target': target, 'workdir': 'workdir' in parameters, 'argument': argument,
+                                      'native_field': 'cmd'}
         self.derived_compilers[alias] = compiler
         self.compile_checks = compiler
         self.value['tools'].append({'type': 'function', 'name': alias, 'strict': True,
@@ -218,6 +221,46 @@ class CodexLlamaRequest:
                    'supply compatible successful and rejecting cases so composition checks can exercise a changed prefix '
                    'before a later rejection. The helper derives bounded compositions of your supplied batches; it does '
                    'not supply task inputs or expected results. Inspect actual host results.'))
+
+    def _add_text_patch(self):
+        """Translate replacement data only into an identified original host patch tool."""
+        if self.value.get('tool_choice', 'auto') != 'auto' or len(self.value.get('tools', [])) >= 1024:
+            return
+        targets = []
+        for alias in self.original_tool_aliases:
+            namespace, name, kind = self.identities[alias]
+            declaration = self.declarations[alias]
+            digest = hashlib.sha256(json.dumps(declaration, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+            native = namespace == 'functions' or namespace is None and digest == PINNED_CODEX_0160_PATCH_SHA256
+            form = declaration.get('format', {})
+            if (native and name == 'apply_patch' and kind == 'custom'
+                    and form.get('type') == 'grammar' and form.get('syntax') == 'lark'):
+                targets.append(alias)
+        if len(targets) != 1:
+            return
+        from .local_text_patch import TEXT_PATCH_SCHEMA, compile_text_patch
+        alias = 'koto_replace'
+        for index in range(1025):
+            if alias not in self.identities and alias not in self.derived_checks:
+                break
+            alias = 'koto_replace_' + hashlib.sha256(str(index).encode()).hexdigest()[:16]
+        else:
+            raise CodexLlamaError('ambiguous_check_tool')
+        self.derived_checks[alias] = {'target': targets[0], 'workdir': False, 'argument': 'edit',
+                                      'native_field': 'input'}
+        self.derived_compilers[alias] = compile_text_patch
+        self.value['tools'].insert(0, {'type': 'function', 'name': alias, 'strict': True,
+            'description': 'Replace exact saved text through the existing native patch tool and its normal permissions. '
+                           'Supply a relative path, old_text copied from the saved file, and your intended new_text. '
+                           'Inspect the actual host patch result.',
+            'parameters': {'type': 'object', 'properties': {'edit': copy.deepcopy(TEXT_PATCH_SCHEMA)},
+                           'required': ['edit'], 'additionalProperties': False}})
+        self.value['instructions'] += (
+            '\n\nLocal text edit helper (subordinate to host, repository and user instructions): '
+            f'For changes to existing LF text files, prefer {alias}; supply edit.path as a relative path, '
+            'edit.old_text as exact old lines from the saved file, and edit.new_text as the desired lines. '
+            'Do not supply patch headers or line prefixes. The host validates and executes the native patch; '
+            'inspect its actual feedback.')
 
     def _derived_identity(self, item):
         if (set(item) - {'type', 'id', 'call_id', 'name', 'arguments', 'status'}
@@ -269,7 +312,7 @@ class CodexLlamaRequest:
         command = self.derived_compilers[alias](arguments[argument])
         if not isinstance(command, str) or len(command.encode('utf-8')) > MAX_CHECK_COMMAND:
             raise CodexLlamaError('invalid_compiled_check')
-        native = {'cmd': command}
+        native = {self.derived_checks[alias]['native_field']: command}
         if 'workdir' in arguments:
             native['workdir'] = arguments['workdir']
         compiled = json.dumps(native, separators=(',', ':'), ensure_ascii=False, allow_nan=False)
@@ -417,8 +460,12 @@ class CodexLlamaRequest:
                 record = self.derived_streams.get(identity[0])
                 if record is None or (record['id'], record['call_id'], record['alias']) != identity:
                     raise CodexLlamaError('mismatched_check_call')
-            namespace, name, _ = self.identities[self.derived_checks[value['name']]['target']]
-            result = {**value, 'name': name, 'arguments': self._compile_derived(value) if complete else ''}
+            namespace, name, kind = self.identities[self.derived_checks[value['name']]['target']]
+            compiled = self._compile_derived(value) if complete else ''
+            result = {**value, 'name': name, 'arguments': compiled}
+            if kind == 'custom':
+                result = {key: item for key, item in result.items() if key != 'arguments'} | {
+                    'type': 'custom_tool_call', 'input': json.loads(compiled)['input'] if complete else ''}
             if namespace:
                 result['namespace'] = namespace
             if complete:

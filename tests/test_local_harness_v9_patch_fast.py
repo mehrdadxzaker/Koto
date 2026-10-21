@@ -9,6 +9,23 @@ from tests.test_local_harness_v5_transport_fast import synthetic_requests
 
 
 class LocalHarnessV9PatchTests(unittest.TestCase):
+    def test_current_invalid_hunk_feedback_offers_the_declared_text_replacement_helper(self):
+        for detail in (
+                "invalid hunk at line 4, Unexpected line found in update hunk: 'def example():'",
+                "invalid hunk at line 4, '@@ -1,7 +1,25 @@' is not a valid hunk header"):
+            with self.subTest(detail=detail):
+                request = self.rejected()
+                request['input'][-1]['output'] = 'apply_patch verification failed: ' + detail
+                original = deepcopy(request)
+                adapted = CodexLlamaRequest(request, harness='qwen-code.v9').value
+                message = adapted['input'][-1]['content'][0]['text']
+                self.assertIn('Native patch input recovery:', message)
+                self.assertIn('declared text replacement helper', message)
+                self.assertNotIn('def example():', message)
+                self.assertEqual(request, original)
+                self.assertEqual(adapted['input'][-2], {**request['input'][-1], 'type': 'function_call_output'})
+                self.assertNotIn('Native patch input recovery:', self.checkpoint(request, 'qwen-code.v8'))
+
     def rejected(self):
         request = synthetic_requests()['no_tool_history']
         request['input'] += [
@@ -43,11 +60,16 @@ class LocalHarnessV9PatchTests(unittest.TestCase):
         variants = {'pending': [command], 'completed_command': [command, output], 'saved': saved,
             'unbound': [{'type': 'function_call_output', 'call_id': 'unknown', 'output': 'untrusted'}],
             'duplicate': [self.rejected()['input'][-1]]}
-        for name, later in variants.items():
-            with self.subTest(name=name):
-                request = self.rejected()
-                request['input'] += deepcopy(later)
-                self.assertNotIn('Native patch recovery', self.checkpoint(request))
+        for invalid_hunk in (False, True):
+            for name, later in variants.items():
+                with self.subTest(name=name, invalid_hunk=invalid_hunk):
+                    request = self.rejected()
+                    if invalid_hunk:
+                        request['input'][-1]['output'] = 'apply_patch verification failed: invalid hunk at line 4'
+                    request['input'] += deepcopy(later)
+                    message = self.checkpoint(request)
+                    self.assertNotIn('Native patch recovery', message)
+                    self.assertNotIn('Native patch input recovery:', message)
 
 
 if __name__ == '__main__':

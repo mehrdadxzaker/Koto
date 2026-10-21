@@ -10,6 +10,7 @@ from hormuz._contract_schemas.local_coding import canonical_digest, coding_input
 from hormuz.contracts import validate_contract
 from hormuz.local_python_named_checks import NAMED_CHECKS_SCHEMA, compile_named_feedback_checks
 from hormuz.local_python_script import SCRIPT_SCHEMA, compile_script
+from hormuz.local_text_patch import TEXT_PATCH_SCHEMA, compile_text_patch
 from tests import test_coding_output_workflow as coding
 from tests import test_connected_client_lifetime_workflow as lifetime
 
@@ -29,15 +30,17 @@ class CodingProbeV9ReasoningWorkflowTests(unittest.TestCase):
             checks_spec = {'module_path': 'solution.py', 'function': 'transform',
                            'cases': [{'arguments': {'value': 3}}]}
             script = 'assert 2 + 2 == 4'
+            edit = {'path': 'solution.py', 'old_text': '    return value', 'new_text': '    return value + 1'}
             workdir = '/native/workspace'
             scripted = (f'        checks_spec={checks_spec!r}\n'
                         f'        script={script!r}\n'
+                        f'        edit={edit!r}\n'
                         f'        workdir={workdir!r}\n') + '''        capture=pathlib.Path(__file__).with_name("provider-requests.jsonl")
         with capture.open("a") as observed:
             observed.write(json.dumps(body)+"\\n")
         step=len(capture.read_text().splitlines())
         calls=[
-            {"type":"function_call","call_id":"patch-saved","name":"apply_patch", "arguments":json.dumps({"input":"*** Begin Patch\\n*** Update File: solution.py\\n@@\\n-    return value\\n+    return value + 1\\n*** End Patch"})},
+            {"type":"function_call","id":"patch-item","call_id":"patch-saved","name":"koto_replace", "arguments":json.dumps({"edit":edit})},
             {"type":"function_call","call_id":"print-check","name":"exec_command", "arguments":json.dumps({"cmd":"python3 -c 'print(4)'"})},
             {"type":"function_call","call_id":"exception-check","name":"exec_command", "arguments":json.dumps({"cmd":"python3 -c 'try:\\n    {}[\\\"missing\\\"]\\nexcept KeyError as error:\\n    assert str(error) == \\\"missing\\\"'"})},
             {"type":"function_call","id":"checks-item","call_id":"checks-call","name":"koto_python_checks", "arguments":json.dumps({"checks":checks_spec,"workdir":workdir})},
@@ -85,6 +88,9 @@ class CodingProbeV9ReasoningWorkflowTests(unittest.TestCase):
             self.assertEqual(first['status'], 200, first)
             call = first['body']['output'][-1]
             self.assertEqual((call['type'], call['name']), ('custom_tool_call', 'apply_patch'))
+            self.assertEqual((call['id'], call['call_id'], call['input']), ('patch-item', 'patch-saved', compile_text_patch(edit)))
+            self.assertNotIn('arguments', call)
+            self.assertNotIn('namespace', call)
             continuation = deepcopy(request)
             patch_output = 'Exit code: 0\nWall time: 0 seconds\nOutput:\nSuccess. Updated the following files:\nM solution.py\n'
             continuation['input'] += first['body']['output'] + [
@@ -156,13 +162,15 @@ class CodingProbeV9ReasoningWorkflowTests(unittest.TestCase):
                 self.assertNotIn('KOTO_CHECK_INPUT_ERROR', checkpoint)
             for body in captured():
                 self.assertEqual([tool['name'] for tool in body['tools']],
-                    ['koto_python_checks', 'koto_python', 'exec_command', 'apply_patch'])
-                checks_tool, script_tool = body['tools'][:2]
+                    ['koto_replace', 'koto_python_checks', 'koto_python', 'exec_command', 'apply_patch'])
+                edit_tool, checks_tool, script_tool = body['tools'][:3]
+                self.assertEqual(edit_tool['parameters']['properties']['edit'], TEXT_PATCH_SCHEMA)
+                self.assertEqual(edit_tool['parameters']['required'], ['edit'])
                 self.assertEqual(checks_tool['parameters']['properties']['checks'], NAMED_CHECKS_SCHEMA)
                 self.assertEqual(script_tool['parameters']['properties']['script'], SCRIPT_SCHEMA)
                 self.assertEqual(checks_tool['parameters']['required'], ['checks'])
                 self.assertEqual(script_tool['parameters']['required'], ['script'])
-                self.assertEqual(body['tools'][2], native['declarations']['exec_command'])
+                self.assertEqual(body['tools'][3], native['declarations']['exec_command'])
             self.assertIn('MANAGED_LOCAL', json.dumps(previous['body']))
             self.assertNotEqual(f.client(*options)['status'], 200)
             status = json.loads(f.command('qualify').stdout)

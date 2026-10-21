@@ -59,8 +59,8 @@ class LocalHarnessV9ChecksTransportTests(unittest.TestCase):
         adapter = self.adapter(request)
         helpers = self.helpers(adapter)
         plain = CodexLlamaRequest(request).value
-        self.assertEqual(adapter.value['tools'][:2], [helpers['checks'], helpers['script']])
-        self.assertEqual(adapter.value['tools'][2:], plain['tools'])
+        self.assertEqual(adapter.value['tools'][1:3], [helpers['checks'], helpers['script']])
+        self.assertEqual(adapter.value['tools'][3:], plain['tools'])
         self.assertEqual(helpers['checks']['parameters']['properties']['checks'], NAMED_CHECKS_SCHEMA)
         self.assertEqual(helpers['script']['parameters']['properties']['script'], SCRIPT_SCHEMA)
         self.assertIn('Prefer ' + helpers['checks']['name'], adapter.value['instructions'])
@@ -130,7 +130,7 @@ class LocalHarnessV9ChecksTransportTests(unittest.TestCase):
         adapter = self.adapter(request)
         helpers = self.helpers(adapter)
         plain = CodexLlamaRequest(request).value
-        self.assertEqual(adapter.value['tools'][2:], plain['tools'])
+        self.assertEqual(adapter.value['tools'][3:], plain['tools'])
         for kind, occupied in (('checks', 'koto_python_checks'), ('script', 'koto_python')):
             self.assertNotEqual(helpers[kind]['name'], occupied)
             self.assertIn(helpers[kind]['name'], adapter.value['instructions'])
@@ -168,7 +168,9 @@ class LocalHarnessV9ChecksTransportTests(unittest.TestCase):
                 self.assertEqual(adapted['tool_choice'], choice)
         request = self.request()
         request['tools'][0]['description'] += ' Unpinned declaration.'
-        self.assertEqual(self.adapter(request).value['tools'], CodexLlamaRequest(request).value['tools'])
+        adapted = self.adapter(request).value['tools']
+        self.assertFalse(any(tool.get('parameters', {}).get('required') in (['checks'], ['script']) for tool in adapted))
+        self.assertEqual(adapted[1:], CodexLlamaRequest(request).value['tools'])
 
     def test_stream_argument_bound_is_shared_across_both_interfaces(self):
         adapter = self.adapter()

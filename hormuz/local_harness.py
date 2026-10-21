@@ -266,6 +266,14 @@ def _patch_recovery(items, declarations, *, repeated_advice=V3_REPEATED_PATCH, l
         if sum(isinstance(item, dict) and item.get('type') == 'function_call_output'
                and item.get('call_id') == call.get('call_id') for item in events) != 1:
             return ''
+        output = latest.get('output')
+        if (isinstance(output, str) and output.startswith('apply_patch verification failed:')
+                and 'invalid hunk' in output):
+            return ('\n\nNative patch input recovery: The host rejected the patch format; no edit is established. '
+                'Prefer the declared text replacement helper when offered: supply the relative path, exact old text '
+                'and desired new text, without patch headers or line prefixes. It compiles a native patch for the '
+                'host to validate and execute with its existing permissions. Otherwise use plain @@ and prefix every '
+                'context/removal/addition line correctly. Do not repeat the unchanged rejected patch.')
     calls, failures = {}, {}
     repeated = 0
     for item in items:

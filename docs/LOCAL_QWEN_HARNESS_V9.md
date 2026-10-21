@@ -36,8 +36,16 @@ while preserving any original message requirement and every existing check.
 The checkpoint supplies static guidance, without copying program output into
 instructions or deciding an expected value.
 
-V9 presents the existing recoverable function-case helper first, then the plain
-Python script helper as fallback. Guidance names their actual collision-safe
+V9 offers a text replacement helper for an identified native patch tool. When
+offered, it comes first, followed by the function-case helper and plain Python
+script fallback. It accepts a relative file path and model-supplied old/new text,
+then compiles a native patch with the required line prefixes. This is a
+line-oriented LF interface with the native tool's final-newline behavior; it
+does not promise exact byte replacement of a missing terminal newline. It never reads,
+searches or writes files itself, supplies replacement code, or repairs a native
+patch argument. The existing host validates and executes the patch with its
+normal permissions. Original native tools stay available. Guidance names the
+actual collision-safe
 aliases and respective arguments. Each retains its existing compiler and shares
 the existing bounded identity, buffering and compiled-command limits. When only
 one catalog slot remains, the function-case helper takes priority. The host's
@@ -66,7 +74,7 @@ signature. Such feedback does not establish passing assertions or an
 implementation defect. Successful or unbound output cannot trigger this advice.
 
 V9 also restores native patch-format recovery after the latest correlated
-numbered-hunk rejection. Pending, later, unknown or duplicate feedback cannot
+numbered-hunk rejection or invalid-hunk error. Pending, later, unknown or duplicate feedback cannot
 reuse that advice. Koto never repairs a patch argument or declares it executed.
 
 ## Controls and compatibility
@@ -106,7 +114,11 @@ verification and patch-recovery a34 diagnostic then completed no native turns:
 stock repeated an invalid identity-on-exception check three times; list-key's
 saved repair passed the checker but its positional check arguments never bound
 to the saved function. The named-argument interface is a subsequent a35
-experiment addressing that observed input friction.
+experiment addressing that observed input friction. A35 completed list-key with
+a passing checker in115716ms, but stock saved no edit after three native patch
+format rejections and failed at180009ms. Its full installed suite was then
+intentionally stopped, with cleanup retained, to prepare a36's text-edit compiler.
+No a35 complete-suite pass is claimed.
 The separate three-pair study is pending; v9 must remain unqualified until actual
 outcomes are recorded. These
 known development tasks cannot establish held-out or ordinary90-second readiness.
