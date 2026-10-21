@@ -213,8 +213,10 @@ Preserve the encrypted files and key rather than silently downgrading records.
 - Closure gate #543: require the supported end-to-end journey, checked held-out
   quality, measured benefit and truthful fallback/status before release claims.
 - Compatibility #569: retain failed evidence and resolve only blockers to
-  admitting useful local candidates. Additional candidate trials are paused.
-- Acquisition #542 / draft #568: supporting setup work, not a separate product.
+  admitting useful local candidates. The separately authorized bounded
+  [harness development studies](LOCAL_QWEN_HARNESS_V8.md) do not replace ordinary
+  coding qualification; additional qualification requires its own bounded plan.
+- Acquisition #542 / merged #568: supporting setup work, not a separate product.
 - Operations #494–501: separate maintenance, outside this product's critical path.
 
 The primary TDD seam remains connect → request through the actual router →
