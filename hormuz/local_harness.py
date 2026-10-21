@@ -25,9 +25,11 @@ V7_CAPABILITY = 'qwen_code_v7'
 V7_PROFILE = 'qwen-code.v7'
 V8_CAPABILITY = 'qwen_code_v8'
 V8_PROFILE = 'qwen-code.v8'
+V9_CAPABILITY = 'qwen_code_v9'
+V9_PROFILE = 'qwen-code.v9'
 PROFILES = {CAPABILITY: PROFILE, V2_CAPABILITY: V2_PROFILE, V3_CAPABILITY: V3_PROFILE,
             V4_CAPABILITY: V4_PROFILE, V5_CAPABILITY: V5_PROFILE, V6_CAPABILITY: V6_PROFILE,
-            V7_CAPABILITY: V7_PROFILE, V8_CAPABILITY: V8_PROFILE}
+            V7_CAPABILITY: V7_PROFILE, V8_CAPABILITY: V8_PROFILE, V9_CAPABILITY: V9_PROFILE}
 MODEL = 'Qwen3-14B-Q4_K_M'
 V8_GUIDANCE = '''Local coding protocol (subordinate to existing host and repository instructions):
 Complete the requested repair through the declared host tools. For other tasks,
@@ -72,8 +74,9 @@ def _last_failed_command_output(items, declarations, state):
     return None
 
 
-def _script_checkpoint(items, declarations):
-    state = progress_snapshot(items, declarations)
+def _script_checkpoint(items, declarations, *, verification_sensitive=False):
+    state = progress_snapshot(items, declarations, include_attempts=verification_sensitive,
+                              include_verification=verification_sensitive)
     last = state['last_command_exit']
     failure = _last_failed_command_output(items, declarations, state)
     message = ('Local coding checkpoint (subordinate to host and repository instructions):\n'
@@ -86,6 +89,15 @@ def _script_checkpoint(items, declarations):
         'After a failure, fix its cause and rerun; do not repeat an unchanged failing command. '
         'After the last edit, obtain passing assertions before reporting success. '
         'If a command is still running, inspect its declared host session before finishing.')
+    if (verification_sensitive and state['native_patches_saved']
+            and state['last_attempt_command_succeeded'] and not state['pending_sessions']):
+        intent = state['latest_command_verification_intent']
+        message += ('\nRecognized assertion intent in the latest successful command: '
+                    + ('observed.' if intent else 'not observed.'))
+        if not intent:
+            message += (' Run compact assertions against the saved function covering the original success, failure, '
+                'state-preservation, identity and supported-value requirements. A printed normal example leaves those checks open. '
+                'Use the declared Python script helper for inline assertions or the repository test runner when appropriate.')
     if failure is not None and state['python_syntax_failure']:
         message += ('\n\nPython syntax recovery: The latest command did not parse, so its intended assertions did not run. '
             'Use the declared Python script helper with real newlines. '
@@ -96,12 +108,23 @@ def _script_checkpoint(items, declarations):
             'For Python, use python3 or the declared Python script helper. '
             'Inspect the actual missing command and use an available declared host tool within existing permissions.')
     if failure is not None and re.search(r'(?m)^AssertionError(?::|\r?$)', failure):
-        message += ('\n\nAssertion failure checkpoint: Compare actual and expected values against the original specification. '
-            'Use compact assertions that include both values in failure output. '
-            'An assertion can expose an implementation defect or a mistaken expectation. '
-            'Change a test only when its expectation contradicts the original specification; otherwise repair the saved code. '
-            'Changing quoting or repeating the same expectation does not resolve a value mismatch. '
-            'Keep check scripts and the final status concise.')
+        if verification_sensitive:
+            message += ('\n\nAssertion failure checkpoint: Compare the actual result and your expected value with the original specification. '
+                'A newly authored check can add an assumption not required by the original specification. '
+                'Correct that unsupported assumption in your own check while preserving every original requirement and existing check. '
+                'Repair the saved implementation when it violates a required result. Include actual and expected values in compact failure diagnostics.')
+            if re.search(r'(?m)^KeyError:', failure):
+                message += ('\nPython KeyError formats its argument with repr, which can add quotation marks to str(error). '
+                    'When the task specifies only the exception type, import unittest and use TestCase().assertRaises(KeyError, callable, ...). '
+                    'Use error.args for an argument-content requirement; preserve an explicitly specified formatted-message requirement. '
+                    'Revise the failing check against that contract before rerunning it.')
+        else:
+            message += ('\n\nAssertion failure checkpoint: Compare actual and expected values against the original specification. '
+                'Use compact assertions that include both values in failure output. '
+                'An assertion can expose an implementation defect or a mistaken expectation. '
+                'Change a test only when its expectation contradicts the original specification; otherwise repair the saved code. '
+                'Changing quoting or repeating the same expectation does not resolve a value mismatch. '
+                'Keep check scripts and the final status concise.')
     return message
 GUIDANCE = '''Local coding guidance (subordinate to all existing host and repository instructions):
 Read the relevant source and nearby tests before editing. Follow existing project
@@ -240,7 +263,7 @@ def adapt_qwen_request(value, declarations, *, profile=PROFILE):
     instructions = value.get('instructions', '')
     if not isinstance(instructions, str):
         raise ValueError('invalid_harness_instructions')
-    guidance = V8_GUIDANCE if profile == V8_PROFILE else V4_GUIDANCE if profile in {V4_PROFILE, V5_PROFILE, V6_PROFILE, V7_PROFILE} else GUIDANCE if profile == PROFILE else V2_GUIDANCE
+    guidance = V8_GUIDANCE if profile in {V8_PROFILE, V9_PROFILE} else V4_GUIDANCE if profile in {V4_PROFILE, V5_PROFILE, V6_PROFILE, V7_PROFILE} else GUIDANCE if profile == PROFILE else V2_GUIDANCE
     value['instructions'] = instructions + '\n\n' + guidance
     for item in value.get('input', []):
         if not isinstance(item, dict) or item.get('type') != 'function_call':
@@ -250,13 +273,13 @@ def adapt_qwen_request(value, declarations, *, profile=PROFILE):
         ordered = {key: arguments[key] for key in properties if key in arguments}
         ordered.update(arguments)
         item['arguments'] = json.dumps(ordered, separators=(',', ':'), ensure_ascii=False, allow_nan=False)
-    if profile in {V2_PROFILE, V3_PROFILE, V4_PROFILE, V5_PROFILE, V6_PROFILE, V7_PROFILE, V8_PROFILE} and isinstance(value.get('input'), str):
+    if profile in {V2_PROFILE, V3_PROFILE, V4_PROFILE, V5_PROFILE, V6_PROFILE, V7_PROFILE, V8_PROFILE, V9_PROFILE} and isinstance(value.get('input'), str):
         value['input'] = [{'type': 'message', 'role': 'user', 'content': [
             {'type': 'input_text', 'text': value['input']}]}]
-    if profile in {V2_PROFILE, V3_PROFILE, V4_PROFILE, V5_PROFILE, V6_PROFILE, V7_PROFILE, V8_PROFILE} and isinstance(value.get('input'), list):
+    if profile in {V2_PROFILE, V3_PROFILE, V4_PROFILE, V5_PROFILE, V6_PROFILE, V7_PROFILE, V8_PROFILE, V9_PROFILE} and isinstance(value.get('input'), list):
         # A model-facing reminder, never a fabricated user message, tool result,
         # or extra agent turn. The native transcript remains an exact prefix.
-        checkpoint = (_script_checkpoint(value['input'], declarations) if profile == V8_PROFILE else
+        checkpoint = (_script_checkpoint(value['input'], declarations, verification_sensitive=profile == V9_PROFILE) if profile in {V8_PROFILE, V9_PROFILE} else
                       progress_checkpoint(value['input'], declarations, single_line=profile == V5_PROFILE,
                                           typed_checks=profile in {V6_PROFILE, V7_PROFILE},
                                           feedback_checks=profile == V7_PROFILE)

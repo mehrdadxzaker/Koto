@@ -81,7 +81,7 @@ class CodexLlamaRequest:
         self.value['chat_template_kwargs'] = {'enable_thinking': reasoning.get('effort') != 'none'}
         limit = value.get('max_output_tokens', 8192)
         budget = min(1024, max(1, limit // 2)) if type(limit) is int and limit > 0 else 1024
-        if harness == 'qwen-code.v8':
+        if harness in {'qwen-code.v8', 'qwen-code.v9'}:
             # Keep low-effort local requests from spending the whole host
             # deadline on thought before producing their first tool call.
             budget = min(budget, {'minimal': 128, 'low': 256, 'medium': 512}.get(
@@ -121,15 +121,17 @@ class CodexLlamaRequest:
             self.value['input'] = [self._input(item) for item in self.value['input']]
         if harness:
             adapt_qwen_request(self.value, self.declarations, profile=harness)
-        if harness in {'qwen-code.v6', 'qwen-code.v7', 'qwen-code.v8'}:
-            self._add_python_checks(feedback=harness == 'qwen-code.v7', script=harness == 'qwen-code.v8')
-        if harness == 'qwen-code.v8' and isinstance(self.value.get('input'), list):
+        if harness in {'qwen-code.v6', 'qwen-code.v7', 'qwen-code.v8', 'qwen-code.v9'}:
+            self._add_python_checks(feedback=harness == 'qwen-code.v7', script=harness in {'qwen-code.v8', 'qwen-code.v9'})
+        if harness in {'qwen-code.v8', 'qwen-code.v9'} and isinstance(self.value.get('input'), list):
             from .local_harness_progress import progress_snapshot
-            progress = progress_snapshot(self.value['input'], self.declarations, include_attempts=True)
+            progress = progress_snapshot(self.value['input'], self.declarations, include_attempts=True,
+                                         include_verification=harness == 'qwen-code.v9')
             if not progress['pending_sessions'] and not progress['unresolved_tool_calls']:
                 cap = None
                 if (progress['native_patches_saved'] and progress['completed_commands_since_last_native_patch']
-                        and progress['last_command_exit'] == 0 and progress['last_attempt_command_succeeded']):
+                        and progress['last_command_exit'] == 0 and progress['last_attempt_command_succeeded']
+                        and (harness != 'qwen-code.v9' or progress['latest_command_verification_intent'])):
                     cap = 16
                 elif reasoning.get('effort') in {'low', 'minimal'} and isinstance(value.get('input'), list):
                     if not progress['tool_history_seen']:

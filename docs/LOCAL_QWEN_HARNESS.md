@@ -146,3 +146,8 @@ The later v8 a31 campaign passed **1/6**, with **0/3 rollback and 0/3 list-key**
 target passes. These diagnostics do not establish reliable improvement or
 ordinary coding qualification. Their separate effort controls, unchanged
 checks, saved-code outcomes and failures are retained in the linked report.
+
+[V9](LOCAL_QWEN_HARNESS_V9.md) distinguishes a successful printout from observed
+assertion intent before applying the finishing hint, and corrects feedback for
+newly authored exception-message assumptions. It is a separate opt-in profile;
+its coding comparison remains pending and it grants no qualification.

@@ -144,11 +144,12 @@ class CodingProbe:
                 history_types = {"function_call", "function_call_output"}
                 if plan["schema_version"] >= 3 and "codex_llama_v1" in plan["subject"]["capabilities"]:
                     history_types.update({"custom_tool_call", "custom_tool_call_output"})
-                # Only the new, explicitly selected v8 native probe admits the
-                # transparent reasoning already supported by its transport.
+                # Only explicitly selected v8/v9 native probes admit the
+                # transparent reasoning already supported by their transport.
                 # Existing profile/version history contracts stay unchanged.
-                allow_reasoning = plan["schema_version"] >= 4 and {
-                    "codex_llama_v1", "qwen_code_v8"}.issubset(plan["subject"]["capabilities"])
+                capabilities = plan["subject"]["capabilities"]
+                allow_reasoning = (plan["schema_version"] >= 4 and "codex_llama_v1" in capabilities
+                    and any(capability in capabilities for capability in ("qwen_code_v8", "qwen_code_v9")))
                 for item in items[self.first_length:]:
                     if allow_reasoning and _transparent_reasoning(item):
                         continue
