@@ -204,6 +204,35 @@ class ChatProposalWorkflowTests(unittest.TestCase):
             self.assertNotIn('tool_choice', local[0]['body'])
             self.chat.assert_normal_unchanged()
 
+    def test_observed_qwen_empty_logprobs_are_accepted_but_other_values_and_unknown_fields_are_rejected(self):
+        block = {'type': 'output_text', 'annotations': [], 'logprobs': [],
+                 'text': 'Suggested patch for host review.'}
+        fields = {'output': [{'type': 'message', 'id': 'fixture-qwen-message', 'role': 'assistant',
+                              'status': 'completed', 'content': [block]}]}
+        with chat.lifetime.provider('UNUSED', response_fields=fields) as (endpoint, requests), \
+                self.fixture.configured() as (local, cloud):
+            self.configuration(endpoint)
+            self.fixture.command('connect')
+            result = self.propose('--effort', 'none')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            receipt = json.loads(result.stdout)
+            self.assertEqual(receipt['text'], block['text'])
+            self.assertIs(receipt['review_required'], True)
+            self.assertIs(receipt['applied'], False)
+            changes = ({'logprobs': [{'token': 'unrequested'}]}, {'logprobs': None},
+                       {'logprobs': False}, {'logprobs': ''}, {'logprobs': {}},
+                       {'unknown': []}, {'encrypted_content': 'opaque'})
+            for change in changes:
+                with self.subTest(change=change):
+                    fields['output'][0]['content'] = [{**block, **change}]
+                    rejected = self.propose('--effort', 'none')
+                    self.assertEqual(rejected.returncode, 2, rejected.stdout)
+                    error = json.loads(rejected.stderr)
+                    self.assertEqual(error['error']['code'], 'proposal_output_invalid')
+                    self.assertFalse(error['retried'])
+            self.assertEqual([len(requests), len(local), len(cloud)], [1 + len(changes), 0, 0])
+            self.chat.assert_normal_unchanged()
+
     def test_proposal_contract_is_additive_and_cannot_claim_applied_or_skip_review(self):
         fixture = Path(__file__).parent / 'fixtures/chat-proposal-v1.json'
         value = json.loads(fixture.read_text())

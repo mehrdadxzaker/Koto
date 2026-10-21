@@ -79,8 +79,9 @@ def _proposal_text(body):
                 or not isinstance(item.get('content'), list) or not item['content']):
             raise ChatTaskError('proposal_output_invalid')
         for block in item['content']:
-            if (not isinstance(block, dict) or set(block) - {'type', 'text', 'annotations'}
+            if (not isinstance(block, dict) or set(block) - {'type', 'text', 'annotations', 'logprobs'}
                     or block.get('type') != 'output_text'
+                    or 'logprobs' in block and (type(block['logprobs']) is not list or block['logprobs'])
                     or not isinstance(block.get('text'), str)):
                 raise ChatTaskError('proposal_output_invalid')
             pieces.append(block['text'])
