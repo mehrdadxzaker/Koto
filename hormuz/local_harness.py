@@ -83,6 +83,15 @@ def _script_checkpoint(items, declarations):
         'After a failure, fix its cause and rerun; do not repeat an unchanged failing command. '
         'After the last edit, obtain passing assertions before reporting success. '
         'If a command is still running, inspect its declared host session before finishing.')
+    if state['python_syntax_failure']:
+        message += ('\n\nPython syntax recovery: The latest command did not parse, so its intended assertions did not run. '
+            'Use the declared Python script helper with real newlines. '
+            'Compound statements such as try, except, for, and if need their own lines and indented bodies; '
+            'do not put try after a semicolon. Correct the syntax before rerunning; do not repeat the same failed command.')
+    elif last == 127:
+        message += ('\n\nCommand lookup recovery: The command was unavailable, so it did not establish passing checks. '
+            'For Python, use python3 or the declared Python script helper. '
+            'Inspect the actual missing command and use an available declared host tool within existing permissions.')
     if _last_assertion_failure(items, declarations, state):
         message += ('\n\nAssertion failure checkpoint: Compare actual and expected values against the original specification. '
             'Use compact assertions that include both values in failure output. '

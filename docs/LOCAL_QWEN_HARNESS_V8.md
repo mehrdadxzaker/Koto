@@ -36,6 +36,12 @@ program output into instructions, change checks, rewrite results or infer that
 the implementation is wrong. Unbound feedback, successful commands and later
 unfinished calls cannot inherit this advice from an earlier failure.
 
+Correlated Python syntax failures receive static guidance to use real newlines
+and indented compound statements through the script helper. Exit 127 receives
+command-availability guidance, including `python3` for Python checks. Neither
+failure establishes that assertions ran. Native output remains unchanged, and
+successful or unbound feedback cannot trigger these recovery messages.
+
 V8 also assigns bounded reasoning allowances by the client's requested effort:
 minimal 128, low 256, medium 512, and high or above 1,024 tokens, subject to the
 existing output-token cap. Explicit `none` remains zero. For native list input
@@ -47,6 +53,8 @@ leave time for reporting. Errors, unknown results, unresolved calls and pending
 sessions retain the solving allowance. Initial and post-patch caps do not apply
 to string input or medium and higher effort. These are compute hints, not tool
 choice, proof that assertions executed, or a correctness gate.
+The pinned engine applies these allowances inside recognized thinking blocks;
+they do not bound untagged output, repeated thinking blocks or total wall time.
 
 ## Reasoning continuation repair
 

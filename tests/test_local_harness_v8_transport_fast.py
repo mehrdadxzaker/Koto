@@ -165,6 +165,32 @@ assert state == before
         self.assertEqual(json.loads(continued['input'][-3]['arguments']), json.loads(native['arguments']))
         self.assertEqual(request, before)
 
+    def test_native_python_and_command_errors_receive_actionable_recovery_without_false_success(self):
+        for detail, code, marker in [
+                ('SyntaxError: invalid syntax\nprivate-syntax-detail', 1, 'Python syntax recovery:'),
+                ('zsh:1: command not found: python', 127, 'Command lookup recovery:')]:
+            with self.subTest(code=code):
+                request = self.request()
+                result = request['input'][-1]
+                result['output'] = result['output'].split('Output:\n')[0].replace(
+                    'Process exited with code 1', 'Process exited with code ' + str(code)) + 'Output:\n' + detail
+                original = deepcopy(request)
+                adapted = self.adapter(request).value
+                reminder = adapted['input'][-1]['content'][0]['text']
+                self.assertIn(marker, reminder)
+                self.assertIn('Python script helper', reminder)
+                self.assertNotIn('private-syntax-detail', reminder)
+                self.assertEqual(adapted['input'][-2], result)
+                self.assertEqual(request, original)
+                self.assertNotIn(marker, self.adapter(request, profile='qwen-code.v7').value['input'][-1]['content'][0]['text'])
+                success = deepcopy(request)
+                success['input'][-1]['output'] = success['input'][-1]['output'].replace(
+                    'Process exited with code ' + str(code), 'Process exited with code 0')
+                self.assertNotIn(marker, self.adapter(success).value['input'][-1]['content'][0]['text'])
+                unbound = deepcopy(request)
+                unbound['input'][-1]['call_id'] = 'unbound'
+                self.assertNotIn(marker, self.adapter(unbound).value['input'][-1]['content'][0]['text'])
+
     def test_correlated_assertion_failure_gets_specification_advice_without_copying_feedback(self):
         fixture = json.loads((Path(__file__).parent / 'fixtures/codex-0160-native-progress.json').read_text())
         request = self.request()
