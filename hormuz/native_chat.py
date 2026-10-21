@@ -24,6 +24,7 @@ from .work_learning import request_characteristics
 from .contracts import validate_contract
 
 LOCAL_CONTROLS = {'model_reasoning_effort': 'none', 'model_reasoning_summary': 'none',
+                  'web_search': 'disabled', 'features.apps': False,
                   'features.multi_agent': False, 'features.multi_agent_v2': False, 'agents.enabled': False}
 
 
