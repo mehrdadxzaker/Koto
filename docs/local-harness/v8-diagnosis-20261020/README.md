@@ -42,6 +42,17 @@ The three paired repeats produced native-plus-checker totals of **10/18 for v1 a
 
 ## What changed and what remains
 
+A separate [single-request engine diagnostic](budget-diagnostic.json), run after
+the campaigns closed, observed activation of budget 32 and a forced thinking
+end. The parsed reasoning text contained 31 tokens, excluding removed
+delimiters. Ordinary output then continued through 831 text deltas until the
+95-second bound, with no function-argument deltas or terminal response. The
+recorder combines deadline and transport termination without the exception subtype.
+This rules out an ignored budget field in that replay. No host tools executed,
+and no generated text was retained. Fresh cache, unseeded sampling and added
+trace logging prevent a matched historical latency claim; this diagnostic is
+not a coding episode or proof of the earlier requests' failure mechanism.
+
 The opt-in v8 profile repairs a confirmed cleartext reasoning-continuation rejection, transports ordinary Python scripts through the already declared native tool, and supplies correlated static failure advice. It preserves the host agent loop, native tool results, permissions and ordinary Codex settings. Reasoning allowances apply inside recognized thinking blocks; they do not cap total generation or wall time. See the [v8 contract](../../LOCAL_QWEN_HARNESS_V8.md).
 
 Package regression tests establish these mechanics. They do not establish reliable coding quality. Issue #569 remains subject to its actual setup-bound qualification; personal selection acceptance also requires checked representative and held-out outcomes. External account cleanup requires authenticated resource, recovery and billing evidence.

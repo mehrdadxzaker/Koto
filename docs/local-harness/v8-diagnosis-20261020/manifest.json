@@ -9,8 +9,13 @@
     },
     {
       "path": "README.md",
-      "sha256": "3b2b756156983a4277dd507782909c0641ac068a747f07b3929ac25c98017c38",
-      "bytes": 3995
+      "sha256": "d285dd2582d6013025a4e91d8e3888090ce9cfbe5246e990fad77ad9e729aa1a",
+      "bytes": 4768
+    },
+    {
+      "path": "budget-diagnostic.json",
+      "sha256": "45c662ad14e807c988e6ffb295dc137d1382e796b7a1dfdf42813652acff286f",
+      "bytes": 1799
     }
   ],
   "excluded": [

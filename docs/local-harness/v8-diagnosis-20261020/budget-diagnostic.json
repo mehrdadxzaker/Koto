@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "kind": "single_instrumented_provider_replay",
+  "source_numeric_receipt_sha256": "b1c1ee7001b27c02c1a82b648ab6de095b4acd36b15f63b63187371b7f614631",
+  "plan_sha256": "de95246bfadc87cfb3e86bd6e1cc068a461609e58231b59094fa23cba262da72",
+  "adapted_payload_sha256": "6eb8a7134d76474e7d7636e57d635d7fa7c974acbdc16296bf653d854c59fd38",
+  "initial_a30_a31_payloads_byte_equal": true,
+  "generation_requests": 1,
+  "http_requests": 3,
+  "host_tools_executed": 0,
+  "raw_text_persisted": false,
+  "observed_activation_budgets": [
+    {
+      "budget_tokens": 32,
+      "occurrences": 1
+    }
+  ],
+  "sampler_transitions": {
+    "activated": 1,
+    "forced_end": 1,
+    "forced_sequence_complete": 1
+  },
+  "parsed_reasoning_token_count": 31,
+  "parsed_reasoning_token_channel": "reasoning",
+  "parsed_count_excludes_removed_delimiters": true,
+  "reasoning_text_deltas": 31,
+  "ordinary_output_text_deltas": 831,
+  "function_argument_deltas": 0,
+  "terminal_response_events": 0,
+  "generation_deadline_or_transport_end": true,
+  "generation_seconds": 95.010156,
+  "delta_bytes": {
+    "reasoning": 154,
+    "content": 3702,
+    "tool_arguments": 0
+  },
+  "owned_process_group_closed": true,
+  "owned_leader_reaped": true,
+  "log_drainer_closed": true,
+  "coding_episode": false,
+  "matched_historical_latency_comparison": false,
+  "historical_failure_mechanism_proved": false,
+  "observability_difference": "Engine trace verbosity 4; fresh engine cache and unseeded sampling. No timing or coding-score comparison.",
+  "finding": "Budget32 activation and forced end were observed in this replay. Ordinary output continued to the 95-second bound without a terminal response; the ignored-budget hypothesis is ruled out for this replay only.",
+  "end_reason_subtype_recorded": false
+}
