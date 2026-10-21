@@ -395,6 +395,15 @@ def prepare(handler, identity, decision, request_value, *, client, protocol, out
     if len(kinds) > 1 or kinds and kinds[0] not in REQUEST_KINDS:
         raise WorkRuntimeError("invalid_request_kind")
     handler._work_request_kind = kinds[0] if kinds else "interactive"
+    if getattr(handler, '_route_admission_proposal', False):
+        # The commercial host selected one worker. Keep accounting, but do not
+        # select a model, reuse an answer or turn a proposal into routing evidence.
+        handler._work_cache_guard = {'bypass': True, 'reason': 'recurrence_excluded'}
+        handler._work_cache_generation = runtime.cache_generation(identity, handler._work_id)
+        handler._work_route = {'alias': decision.resolved_alias, 'reason': 'supervised_proposal'}
+        handler._work_logical_id = uuid4().hex
+        handler._work_routing_ms = (time.monotonic_ns() - routing_started_ns) / 1_000_000
+        return decision
     guard = runtime.recurrence_guard(identity, handler._work_id, _cache_request(handler, request_value), request_kind=handler._work_request_kind)
     handler._work_cache_guard = guard
     handler._work_cache_generation = guard.get("cache_generation", runtime.cache_generation(identity, handler._work_id))
@@ -542,7 +551,7 @@ def _cache_policy(handler, decision):
 
 
 def cache_hit(handler, identity, decision, request_value):
-    if not getattr(handler, "_work_id", None):
+    if getattr(handler, '_route_admission_proposal', False) or not getattr(handler, "_work_id", None):
         return False
     runtime = handler.server.work_runtime
     if handler._work_cache_guard.get("bypass"):
@@ -584,7 +593,8 @@ def cache_hit(handler, identity, decision, request_value):
 
 
 def cache_response(handler, identity, decision, request_value, body, *, status, content_type):
-    if not getattr(handler, "_work_id", None) or status != 200 or "application/json" not in content_type.lower():
+    if (getattr(handler, '_route_admission_proposal', False) or not getattr(handler, "_work_id", None)
+            or status != 200 or "application/json" not in content_type.lower()):
         return
     try:
         value = json.loads(body)

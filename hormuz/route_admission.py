@@ -43,6 +43,22 @@ class RouteAdmissionError(Exception):
         super().__init__(reason)
 
 
+def _proposal_envelope(value, *, normalized=False):
+    if type(value) is not dict:
+        return False
+    fields = {'model', 'input', 'max_output_tokens', 'reasoning', 'stream', 'store'}
+    if normalized and value.get('service_tier') == 'default':
+        fields.add('service_tier')
+    return (set(value) == fields and type(value['model']) is str and bool(value['model'].strip())
+        and type(value['input']) is str and bool(value['input'].strip())
+        and len(value['input']) <= 65536
+        and value['stream'] is False and value['store'] is False
+        and type(value['max_output_tokens']) is int and 1 <= value['max_output_tokens'] <= 8192
+        and type(value['reasoning']) is dict and set(value['reasoning']) == {'effort'}
+        and type(value['reasoning']['effort']) is str
+        and value['reasoning']['effort'] in {'low', 'medium', 'high', 'max'})
+
+
 def build_route_admission(raw, routes, upstreams):
     from .config import ConfigError
     value = raw.get("route_admission", {})
@@ -293,6 +309,29 @@ class RouteAdmission:
                 and agent.partition(" ")[0] == f"codex_exec/{coding.client_version}"
                 and request_profile_digest(value, schema_version=coding.profile_schema_version) == coding.request_profile_sha256)
 
+    def validate_proposal(self, handler, value, *, protocol):
+        """Admit only an explicit, fresh text proposal before wire normalization."""
+        selections = handler.headers.get_all('X-Hormuz-Task-Selection', [])
+        handler._route_admission_proposal = False
+        handler._proposal_requested_model = None
+        if 'proposal' not in selections:
+            return
+        forbidden = (PROBE_HEADER, 'X-Hormuz-Benchmark', 'X-Koto-History-Evaluation',
+            'X-Hormuz-Work-Id', 'thread-id', 'session-id', 'x-codex-parent-thread-id',
+            'X-Hormuz-Request-Kind', 'OpenAI-Beta', 'Anthropic-Beta')
+        if (selections != ['proposal'] or handler.headers.get_all('X-Hormuz-Routing-Mode', []) != ['local_only']
+                or protocol != 'openai' or handler.command != 'POST' or handler.path != '/v1/responses'
+                or any(handler.headers.get_all(name, []) for name in forbidden)
+                or not _proposal_envelope(value)):
+            raise RouteAdmissionError('invalid_proposal')
+        try:
+            if len(value['input'].encode('utf-8')) > 65536:
+                raise RouteAdmissionError('invalid_proposal')
+        except UnicodeError:
+            raise RouteAdmissionError('invalid_proposal') from None
+        handler._route_admission_proposal = True
+        handler._proposal_requested_model = value['model']
+
     def select(self, handler, identity, decision, value, *, client, protocol, output_field):
         handler._coding_probe = handler._coding_probe_claimed = False
         handler._route_admission_candidates = None
@@ -321,9 +360,16 @@ class RouteAdmission:
                 raise RouteAdmissionError("invalid_history_evaluation") from None
         task_selection = handler.headers.get_all('X-Hormuz-Task-Selection', [])
         if (len(task_selection) > 1 or task_selection and
-                (task_selection[0] not in {'model','router'} or mode != 'local_only')):
+                (task_selection[0] not in {'model','router','proposal'} or mode != 'local_only')):
             raise RouteAdmissionError('invalid_task_selection')
         handler._route_admission_task_selection = task_selection[0] if task_selection else None
+        proposal = handler._route_admission_task_selection == 'proposal'
+        if proposal and (not getattr(handler, '_route_admission_proposal', False)
+                or decision.requested_model != handler._proposal_requested_model
+                or decision.resolved_alias != decision.requested_model or not _proposal_envelope(value)):
+            raise RouteAdmissionError('invalid_proposal')
+        if proposal:
+            handler._proposal_destination_generation = self.destinations.resolve(decision.route).generation
         handler._route_admission_mode = mode
         if mode == "configured":
             if (protocol == 'openai' and handler.path.split('?', 1)[0] == '/v1/responses'
@@ -359,7 +405,7 @@ class RouteAdmission:
         limit = 0 if endpoint == "/v1/messages/count_tokens" else value.get(output_field)
         hint = request_characteristics(value)["task_hint"]
         inherited_task = getattr(handler, "_work_task_hint", "unknown")
-        handler._route_admission_coding_required = (hint == "code_change"
+        handler._route_admission_coding_required = not proposal and (hint == "code_change"
             or continuation and inherited_task == "code_change")
         # Inherited state cannot establish a new coding context: the work
         # retains its prior task until a self-contained request is admitted.
@@ -389,6 +435,9 @@ class RouteAdmission:
         candidates = {}
         for alias, qualification in self.qualifications.items():
             route = self.config.model_routes[alias]
+            if proposal and (alias != decision.requested_model
+                    or hint not in qualification.task_types and 'interactive' not in qualification.task_types):
+                continue
             if stateful_coding_switch:
                 continue
             if route.protocol != protocol or required is None or not required.issubset(route.capabilities):
@@ -403,7 +452,7 @@ class RouteAdmission:
                 and hint not in {"code_change", "code_review"}
                 and inherited_task not in {"code_change", "code_review"})
             task_admitted = hint in automatic_tasks or continuation and hint == "unknown" or explicitly_selected
-            if (not automatic_tasks and not explicitly_selected or not task_admitted
+            if not proposal and (not automatic_tasks and not explicitly_selected or not task_admitted
                     or continuation and inherited_task not in automatic_tasks and not explicitly_selected):
                 continue
             if handler._route_admission_coding_required and (
@@ -416,7 +465,7 @@ class RouteAdmission:
                     candidates[alias] = candidate
         if continuation and mode == "auto" and self.destinations.resolve(decision.route).locality == "cloud":
             candidates[decision.resolved_alias] = decision
-        if probes or handler._route_admission_task_selection == 'model':
+        if probes or handler._route_admission_task_selection in {'model', 'proposal'}:
             # Benchmarks and explicit chat choices must observe the requested
             # alias, including failures, before dispatch or scorecard selection.
             candidates = ({decision.requested_model: candidates[decision.requested_model]}
@@ -428,17 +477,19 @@ class RouteAdmission:
                 # dispatch retains admitted operational capacity alternates.
                 selection_candidates = {decision.requested_model: candidates[decision.requested_model]}
             selected = next(iter(selection_candidates.values()))
-            reason = "qualified_local"
+            reason = "supervised_proposal" if proposal else "qualified_local"
         elif mode == "local_only" or self.destinations.resolve(decision.route).locality == "local":
             raise RouteAdmissionError("local_route_unavailable", 503)
         else:
             selected, candidates, reason = decision, {decision.resolved_alias: decision}, "permitted_baseline"
             selection_candidates = candidates
         scorecard_headers = {}
-        try:
-            learning, learning_records = handler.server.local_history.learning_snapshot(identity.actor_id)
-        except (OSError, ValueError):
-            learning, learning_records = {"enabled": True, "mode": "auto", "validation": None}, []
+        learning, learning_records = {"enabled": False}, []
+        if not proposal:
+            try:
+                learning, learning_records = handler.server.local_history.learning_snapshot(identity.actor_id)
+            except (OSError, ValueError):
+                learning, learning_records = {"enabled": True, "mode": "auto", "validation": None}, []
         if (mode == "auto" and not continuation and not probes
                 and self.destinations.resolve(decision.route).locality == "cloud"):
             selected, reason = decision, "permitted_baseline"
@@ -470,7 +521,7 @@ class RouteAdmission:
                     "X-Koto-Selection-Model": advice["selected_model"], "X-Koto-Selection-Status": advice["status"],
                     "X-Koto-Selection-Similarity": str(advice["similarity"]), "X-Koto-Executed-Model": selected.resolved_alias}
         elif self.settings.scorecard:
-            if handler._route_admission_task_selection == 'model':
+            if handler._route_admission_task_selection in {'model', 'proposal'}:
                 scorecard_headers['X-Hormuz-Scorecard-Status'] = 'explicit_model'
             elif continuation or probes:
                 scorecard_headers["X-Hormuz-Scorecard-Status"] = "affinity_preserved" if continuation else "benchmark_probe"
@@ -507,6 +558,13 @@ class RouteAdmission:
         mode = getattr(handler, "_route_admission_mode", "configured")
         if mode == "configured":
             return
+        if getattr(handler, '_route_admission_proposal', False) and (
+                protocol != 'openai' or handler.path != '/v1/responses'
+                or decision.resolved_alias != handler._proposal_requested_model
+                or decision.requested_model != handler._proposal_requested_model
+                or self.destinations.resolve(decision.route).generation != handler._proposal_destination_generation
+                or not _proposal_envelope(value, normalized=True)):
+            raise RouteAdmissionError('invalid_proposal')
         advice = getattr(handler, "_personal_selection", {})
         if advice.get("routing_effect") == "selected" and self.destinations.resolve(decision.route).locality == "local":
             from .personal_selection import validation_current

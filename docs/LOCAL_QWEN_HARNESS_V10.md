@@ -85,7 +85,8 @@ recorded **7/18 full successes for v8 and 3/18 for v10**. Rollback passed
 checker replays agreed. All nine temporary connections closed and normal Codex
 settings stayed unchanged. The compact interface did not repair either target.
 
-The a39 follow-up comparison is pending. It measures the three repairs together
-under the same six tasks and controls; it cannot isolate their individual
-effects. Regression tests and interface size alone do not establish a coding
+The planned a39 follow-up comparison was not started. Work moved, at the owner's
+request, to [commercial review of explicit local proposals](KOTO_CHAT.md#delegate-a-proposal-for-commercial-review).
+Independent local coding qualification and automatic model selection are outside
+that task. Regression tests and interface size alone do not establish a coding
 improvement, and the profile remains unqualified and default off.

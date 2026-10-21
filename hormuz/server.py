@@ -576,10 +576,10 @@ class GatewayRequestHandler(BaseHTTPRequestHandler):
                         validate_contract(value)
                         self._send_json(HTTPStatus.OK, value,
                                         contract_header_value=f"hormuz.route-admission;v={value['schema_version']}",
-                                        extra_headers={"X-Hormuz-Chat-Tasks": "v1"})
+                                        extra_headers={"X-Hormuz-Chat-Tasks": "v1", "X-Hormuz-Proposals": "v1"})
                         return
                     self._send_contract_json(HTTPStatus.OK, schema, value,
-                        extra_headers={'X-Hormuz-Chat-Tasks':'v1'} if path == '/v1/router/state' else None)
+                        extra_headers={'X-Hormuz-Chat-Tasks':'v1', 'X-Hormuz-Proposals':'v1'} if path == '/v1/router/state' else None)
                 except _STORAGE_FAILURES as error:
                     self._send_storage_failure(None, error)
             return
@@ -735,10 +735,12 @@ class GatewayRequestHandler(BaseHTTPRequestHandler):
         protocol, default_client, account_usage = route
         self._history_generation = (history_consent(self.server.local_history, identity.actor_id)
                                     if self.server.capture_history else None)
-        try:
-            self._learning_ingress = self.server.local_history.learning_consent(identity.actor_id).get("generation")
-        except (OSError, ValueError):
-            self._learning_ingress = None
+        self._learning_ingress = None
+        if 'proposal' not in self.headers.get_all('X-Hormuz-Task-Selection', []):
+            try:
+                self._learning_ingress = self.server.local_history.learning_consent(identity.actor_id).get("generation")
+            except (OSError, ValueError):
+                pass
         try:
             self._proxy_generation(
                 identity=identity,
@@ -787,6 +789,7 @@ class GatewayRequestHandler(BaseHTTPRequestHandler):
         request_body = self._read_json_body()
         if request_body is None:
             return
+        self.server.route_admission.validate_proposal(self, request_body, protocol=protocol)
         requested_response_storage = request_body.get("store") is True
         requested_model = request_body.get("model")
         if not isinstance(requested_model, str) or not requested_model.strip():
@@ -1103,11 +1106,14 @@ class GatewayRequestHandler(BaseHTTPRequestHandler):
                         request_value=options["request_value"], redactor=self.server.history_redactor,
                         generation=self._history_generation)
                     if history_capture is not None:
-                        try:
-                            learning = self.server.local_history.learning_consent(options["identity"].actor_id)
-                        except (OSError, ValueError):
-                            learning = {"enabled": False}
-                        if learning["enabled"] and learning.get("generation") == self._learning_ingress:
+                        learning = {"enabled": False}
+                        if not getattr(self, '_route_admission_proposal', False):
+                            try:
+                                learning = self.server.local_history.learning_consent(options["identity"].actor_id)
+                            except (OSError, ValueError):
+                                pass
+                        if (not getattr(self, '_route_admission_proposal', False)
+                                and learning["enabled"] and learning.get("generation") == self._learning_ingress):
                             from .personal_selection import capture_context
                             history_capture.entry["selection"] = capture_context(self.server.config, options["decision"],
                                 options["request_value"], learning["generation"], history_capture.entry,
@@ -1389,7 +1395,8 @@ class GatewayRequestHandler(BaseHTTPRequestHandler):
         parser_type = work_gateway.WorkUsageParser if getattr(self, "_work_id", None) else ResponseUsageParser
         parser = parser_type(protocol, is_event_stream=is_event_stream, chat_completions=urlsplit(self.path).path == "/v1/chat/completions")
         cache_body = bytearray()
-        cache_capture = not is_event_stream and bool(getattr(self, "_work_id", None)) and self.server.config.ai_work.cache_enabled
+        cache_capture = (not getattr(self, '_route_admission_proposal', False) and not is_event_stream
+            and bool(getattr(self, "_work_id", None)) and self.server.config.ai_work.cache_enabled)
 
         self._response_started = True
         self._provider_headers_pending = True

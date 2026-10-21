@@ -5,12 +5,14 @@ from .common import ContractValidationError, _exact_keys
 
 TASK_FIELDS = {'schema_id', 'schema_version', 'text', 'model', 'routed_model', 'locality', 'destination',
                'generation', 'work_id', 'selection', 'reasoning_effort'}
+PROPOSAL_FIELDS = TASK_FIELDS | {'purpose', 'review_required', 'applied'}
 MODELS_FIELDS = {'schema_id', 'schema_version', 'default_model', 'models'}
 ERROR_FIELDS = {'schema_id', 'schema_version', 'error', 'submission', 'retried'}
 OWNER_FIELDS = {'schema_id', 'schema_version', 'normal_home', 'router_home', 'generation'}
 ERROR_CODES = {'prompt_limit', 'separate_router_home_required', 'router_unavailable', 'router_ownership_changed',
                'owned_loopback_router_required', 'router_request_rejected', 'response_limit', 'model_not_qualified',
-               'execution_selection_changed', 'task_incomplete', 'task_unavailable', 'router_upgrade_required'}
+               'execution_selection_changed', 'task_incomplete', 'task_unavailable', 'router_upgrade_required',
+               'proposal_output_invalid'}
 
 
 def label(value):
@@ -34,6 +36,15 @@ def validate_models(value):
             or len(value['models']) > 128 or not all(label(model) for model in value['models'])
             or len(set(value['models'])) != len(value['models'])):
         raise ContractValidationError('Invalid explicit chat model list')
+
+
+def validate_proposal(value):
+    _exact_keys(value, PROPOSAL_FIELDS)
+    validate_task({key: value[key] for key in TASK_FIELDS})
+    if (value['selection'] != 'model' or value['purpose'] != 'proposal'
+            or value['review_required'] is not True or value['applied'] is not False
+            or not value['text'].strip()):
+        raise ContractValidationError('Invalid explicit chat proposal receipt')
 
 
 def validate_error(value):

@@ -164,5 +164,7 @@ checks after corrections. The [completed a38 comparison](local-harness/v10-repai
 recorded **7/18 full successes for v8 and 3/18 for v10**, with rollback **0/3 for
 both** and list-key **1/3 versus 0/3**. All 36 checker replays agreed. A39 adds
 current-context recovery, excludes handled-only assertions from syntax intent,
-and retains v10's selected effort allocation throughout the turn. Its fresh
-six-task comparison is pending; the profile remains default off and unqualified.
+and retains v10's selected effort allocation throughout the turn. Its planned
+six-task comparison was not started after the owner redirected work to explicit
+local proposals with commercial review. The profile remains default off and
+unqualified.
