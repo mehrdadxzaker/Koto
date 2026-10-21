@@ -17,6 +17,23 @@ is no classifier LLM request. Observation and automatic selection use the same
 classifier. Actual routing remains subject to policy, credentials, capability
 qualification, hard local-only enforcement and continuation affinity.
 
+## Command map
+
+Use these commands after `koto --config /absolute/path/koto.json`. Collection
+and learning require separate consent; learning starts in observation mode.
+
+| Intent | Command | Details |
+| --- | --- | --- |
+| Consent to future history collection | `history enable` | [Collection and retention](LOCAL_HISTORY.md) |
+| Separately consent to learning | `history learning enable` | [Use your work](#use-your-work) |
+| Inspect learning mode and evidence | `history learning status` | [Selection status](#learn-validate-and-select) |
+| Assess a retained outcome | `history feedback ENTRY_ID --result pass` or `--checks /absolute/path/checks.json` | [Checked feedback](#use-your-work) |
+| Inspect per-model results | `history learning scorecard` | [Scorecard evidence](#use-your-work) |
+| Validate against the current baseline | `history learning validate --baseline CURRENT_COMMERCIAL_ALIAS` | [Held-out gates](#learn-validate-and-select); validation does not supply coding qualification |
+| Stop future learning or collection | `history learning disable` or `history disable` | [Opt-out behavior](#privacy-migration-and-rollback); retained history is not deleted |
+| Delete retained entries | `history delete ENTRY_ID` or `history delete --all` | [History deletion](LOCAL_HISTORY.md); distinct from disabling future capture |
+| Export selected retained content | `history export --id ENTRY_ID --output /absolute/path/new-export.json` | [Local export](LOCAL_HISTORY.md); decrypted exports are confidential local files |
+
 ## Use your work
 
 Connect the supported client through the existing connection workflow. A hybrid
