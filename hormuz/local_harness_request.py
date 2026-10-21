@@ -36,7 +36,7 @@ class LocalHarnessRequest:
         input_was_list = isinstance(value.get('input'), list)
         reasoning = value.get('reasoning', {})
         progress = None
-        if profile in {'qwen-code.v8', 'qwen-code.v9'}:
+        if profile in {'qwen-code.v8', 'qwen-code.v9', 'qwen-code.v10'}:
             budget = value['reasoning_budget_tokens']
             value['reasoning_budget_tokens'] = min(budget,
                 {'minimal': 128, 'low': 256, 'medium': 512}.get(reasoning.get('effort', 'medium'), 1024))
@@ -44,10 +44,24 @@ class LocalHarnessRequest:
                 # String input becomes one ordinary user message. It has no
                 # native tool observations, and does not gain list-only hints.
                 progress = progress_snapshot(value['input'] if input_was_list else [], declarations, include_attempts=True,
-                                             include_verification=profile == 'qwen-code.v9')
+                                             include_verification=profile in {'qwen-code.v9', 'qwen-code.v10'})
         if profile:
             adapt_qwen_request(value, declarations, profile=profile, _progress=progress)
-        if profile == 'qwen-code.v9':
+        if profile == 'qwen-code.v10':
+            self._add_python_checks(script=True, prominent=True, guidance=False)
+            self._add_text_patch(guidance=False)
+            for alias, binding in self.derived_checks.items():
+                if binding['argument'] == 'script':
+                    self.value['instructions'] += (
+                        f'\nUse {alias} with script containing plain Python source and real newlines; '
+                        'its compiler quotes the source for the existing host command tool to execute.')
+                elif binding['argument'] == 'edit':
+                    self.value['instructions'] += (
+                        f'\nFor existing LF text files, use {alias} with edit.path relative to the workspace, edit.old_text copied '
+                        'exactly from the latest saved file read, and edit.new_text containing the desired lines. '
+                        'The host validates the native patch. On a context mismatch, inspect the actual saved '
+                        'text and correct the next edit instead of repeating the rejected context.')
+        elif profile == 'qwen-code.v9':
             self._add_python_checks(named=True, prominent=True)
             self._add_python_checks(script=True, prominent=True)
             self._add_text_patch()
@@ -58,7 +72,7 @@ class LocalHarnessRequest:
                 cap = None
                 if (progress['native_patches_saved'] and progress['completed_commands_since_last_native_patch']
                         and progress['last_command_exit'] == 0 and progress['last_attempt_command_succeeded']
-                        and (profile != 'qwen-code.v9' or progress['latest_command_verification_intent'])):
+                        and (profile not in {'qwen-code.v9', 'qwen-code.v10'} or progress['latest_command_verification_intent'])):
                     cap = 16
                 elif reasoning.get('effort') in {'low', 'minimal'} and input_was_list:
                     if not progress['tool_history_seen']:
@@ -70,7 +84,7 @@ class LocalHarnessRequest:
                 if cap is not None:
                     self.value['reasoning_budget_tokens'] = min(self.value['reasoning_budget_tokens'], cap)
 
-    def _add_python_checks(self, *, feedback=False, script=False, named=False, prominent=False):
+    def _add_python_checks(self, *, feedback=False, script=False, named=False, prominent=False, guidance=True):
         """Offer a private compiler only for an existing, identified host command."""
         if self.value.get('tool_choice', 'auto') != 'auto' or len(self.value.get('tools', [])) >= 1024:
             return
@@ -124,6 +138,7 @@ class LocalHarnessRequest:
                            'additionalProperties': False}})
         if prominent:
             self.value['tools'].insert(len(self.derived_checks) - 1, self.value['tools'].pop())
+        if prominent and guidance:
             self.value['instructions'] += (
                 '\n\nLocal Python verification helper (subordinate to host, repository and user instructions): '
                 + (f'Use {alias} as the plain Python script fallback. Supply its script argument as plain Python source '
@@ -143,7 +158,7 @@ class LocalHarnessRequest:
                    'before a later rejection. The helper derives bounded compositions of your supplied batches; it does '
                    'not supply task inputs or expected results. Inspect actual host results.'))
 
-    def _add_text_patch(self):
+    def _add_text_patch(self, *, guidance=True):
         """Translate replacement data only into an identified original host patch tool."""
         if self.value.get('tool_choice', 'auto') != 'auto' or len(self.value.get('tools', [])) >= 1024:
             return
@@ -176,10 +191,10 @@ class LocalHarnessRequest:
                            'Inspect the actual host patch result.',
             'parameters': {'type': 'object', 'properties': {'edit': copy.deepcopy(TEXT_PATCH_SCHEMA)},
                            'required': ['edit'], 'additionalProperties': False}})
-        self.value['instructions'] += (
-            '\n\nLocal text edit helper (subordinate to host, repository and user instructions): '
-            f'For changes to existing LF text files, prefer {alias}; supply edit.path as a relative path, '
-            'edit.old_text as exact old lines from the saved file, and edit.new_text as the desired lines. '
-            'Do not supply patch headers or line prefixes. The host validates and executes the native patch; '
-            'inspect its actual feedback.')
-
+        if guidance:
+            self.value['instructions'] += (
+                '\n\nLocal text edit helper (subordinate to host, repository and user instructions): '
+                f'For changes to existing LF text files, prefer {alias}; supply edit.path as a relative path, '
+                'edit.old_text as exact old lines from the saved file, and edit.new_text as the desired lines. '
+                'Do not supply patch headers or line prefixes. The host validates and executes the native patch; '
+                'inspect its actual feedback.')

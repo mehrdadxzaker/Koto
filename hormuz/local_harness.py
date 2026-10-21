@@ -27,9 +27,12 @@ V8_CAPABILITY = 'qwen_code_v8'
 V8_PROFILE = 'qwen-code.v8'
 V9_CAPABILITY = 'qwen_code_v9'
 V9_PROFILE = 'qwen-code.v9'
+V10_CAPABILITY = 'qwen_code_v10'
+V10_PROFILE = 'qwen-code.v10'
 PROFILES = {CAPABILITY: PROFILE, V2_CAPABILITY: V2_PROFILE, V3_CAPABILITY: V3_PROFILE,
             V4_CAPABILITY: V4_PROFILE, V5_CAPABILITY: V5_PROFILE, V6_CAPABILITY: V6_PROFILE,
-            V7_CAPABILITY: V7_PROFILE, V8_CAPABILITY: V8_PROFILE, V9_CAPABILITY: V9_PROFILE}
+            V7_CAPABILITY: V7_PROFILE, V8_CAPABILITY: V8_PROFILE, V9_CAPABILITY: V9_PROFILE,
+            V10_CAPABILITY: V10_PROFILE}
 MODEL = 'Qwen3-14B-Q4_K_M'
 V8_GUIDANCE = '''Local coding protocol (subordinate to existing host and repository instructions):
 Complete the requested repair through the declared host tools. For other tasks,
@@ -65,6 +68,29 @@ express. Import the saved function; do not redefine it in a check. Let assertion
 and unexpected exceptions fail the command rather than catching and printing them.''')
 
 
+V10_GUIDANCE = '''Local coding protocol (subordinate to host, repository and user instructions):
+For a requested repair, read the saved source and every requirement, make a focused
+edit through declared tools, and verify the saved implementation.
+For other tasks, answer the original request without inventing edits or checks.
+For required atomic mutation, make a private working copy of the mutable state.
+Apply every operation in order against that evolving copy, validating cumulative
+effects there. Commit to the original state only after the entire operation succeeds; preserve required
+object identity. Check a valid step followed by a specified error, repeated
+operations whose cumulative effect exceeds a limit, and the entire unchanged
+original state after the exception.
+For supported unhashable keys, retain encountered keys and compare by equality.
+Hashing, sorting and serialization are not substitutes for required equality.
+Distinguish a missing required key from a present None: check key presence
+explicitly instead of inferring absence with get(..., None).
+Use one compact Python assertions script that imports the saved implementation,
+including its required imports, and covers the original success, error, ordering,
+identity and state requirements. Run it before editing, then rerun the identical
+checks after the last edit. Correct import or check errors and obtain actual
+successful assertions before reporting success. Let failed assertions and unexpected
+exceptions fail the command instead of catching and printing them. Preserve original requirements
+and existing checks. Report actual results or the concrete blocker.'''
+
+
 def _last_failed_command_output(items, declarations, state):
     if state['last_command_exit'] in (None, 0):
         return None
@@ -87,7 +113,7 @@ def _last_failed_command_output(items, declarations, state):
     return None
 
 
-def _script_checkpoint(items, declarations, *, verification_sensitive=False, state=None):
+def _script_checkpoint(items, declarations, *, verification_sensitive=False, state=None, compact=False):
     if state is None:
         state = progress_snapshot(items, declarations, include_attempts=verification_sensitive,
                                   include_verification=verification_sensitive)
@@ -100,7 +126,12 @@ def _script_checkpoint(items, declarations, *, verification_sensitive=False, sta
         if verification_sensitive else
         'For Python, the declared Python script helper (script parameter) takes one string with actual newlines; use normal Python calls '
         'and assertions against the saved module, including required rollback and supported value types. ')
-    message = ('Local coding checkpoint (subordinate to host and repository instructions):\n'
+    message = (('Local coding observations (subordinate to host and repository instructions):\n'
+        f"Native patches saved: {state['native_patches_saved']}; rejected: {state['native_patches_rejected']}; "
+        f"latest command exit: {last if last is not None else 'unknown'}; "
+        f"pending sessions: {state['pending_sessions']}.\n"
+        'These observations do not prove task correctness. Inspect a pending host session before finishing.')
+        if compact else ('Local coding checkpoint (subordinate to host and repository instructions):\n'
         f"Native patches saved: {state['native_patches_saved']}; rejected: {state['native_patches_rejected']}; "
         f"latest command exit: {last if last is not None else 'unknown'}; "
         f"pending sessions: {state['pending_sessions']}.\n"
@@ -108,14 +139,15 @@ def _script_checkpoint(items, declarations, *, verification_sensitive=False, sta
         f'{python_guidance}'
         'After a failure, fix its cause and rerun; do not repeat an unchanged failing command. '
         'After the last edit, obtain passing assertions before reporting success. '
-        'If a command is still running, inspect its declared host session before finishing.')
+        'If a command is still running, inspect its declared host session before finishing.'))
     if (verification_sensitive and state['native_patches_saved']
             and state['last_attempt_command_succeeded'] and not state['pending_sessions']):
         intent = state['latest_command_verification_intent']
         message += ('\nRecognized assertion intent in the latest successful command: '
                     + ('observed.' if intent else 'not observed.'))
         if not intent:
-            message += (' Run compact assertions against the saved function covering the original success, failure, '
+            message += (' Obtain passing assertions against the latest saved implementation.' if compact else
+                ' Run compact assertions against the saved function covering the original success, failure, '
                 'state-preservation, identity and supported-value requirements. A printed normal example leaves those checks open. '
                 'Use the declared Python script helper for inline assertions or the repository test runner when appropriate.')
     if failure is not None and state['python_syntax_failure']:
@@ -129,11 +161,14 @@ def _script_checkpoint(items, declarations, *, verification_sensitive=False, sta
             'Inspect the actual missing command and use an available declared host tool within existing permissions.')
     if (verification_sensitive and failure is not None
             and re.search(r'(?m)^KOTO_CHECK_INPUT_ERROR ', failure)):
-        message += ('\n\nCheck input recovery: The check driver rejected the supplied case data; '
+        message += (('\n\nCheck input recovery: The previous command rejected its inputs. '
+            'Correct calls against the saved function signature and original requirements; '
+            'rerun the Python assertions through declared host tools. This error is not a correctness result.')
+            if compact else ('\n\nCheck input recovery: The check driver rejected the supplied case data; '
             'that feedback does not establish passing function assertions. Correct your check data against '
             'the original requirements and keep the saved task signature. Use named arguments exactly as '
             'declared, or use the plain Python script fallback to call the saved function directly. '
-            'Do not repeat unchanged invalid check data or treat this input error as an implementation defect.')
+            'Do not repeat unchanged invalid check data or treat this input error as an implementation defect.'))
     if failure is not None and re.search(r'(?m)^AssertionError(?::|\r?$)', failure):
         if verification_sensitive:
             message += ('\n\nAssertion failure checkpoint: Compare the actual result and your expected value with the original specification. '
@@ -318,7 +353,7 @@ def adapt_qwen_request(value, declarations, *, profile=PROFILE, _progress=None):
     instructions = value.get('instructions', '')
     if not isinstance(instructions, str):
         raise ValueError('invalid_harness_instructions')
-    guidance = V9_GUIDANCE if profile == V9_PROFILE else V8_GUIDANCE if profile == V8_PROFILE else V4_GUIDANCE if profile in {V4_PROFILE, V5_PROFILE, V6_PROFILE, V7_PROFILE} else GUIDANCE if profile == PROFILE else V2_GUIDANCE
+    guidance = V10_GUIDANCE if profile == V10_PROFILE else V9_GUIDANCE if profile == V9_PROFILE else V8_GUIDANCE if profile == V8_PROFILE else V4_GUIDANCE if profile in {V4_PROFILE, V5_PROFILE, V6_PROFILE, V7_PROFILE} else GUIDANCE if profile == PROFILE else V2_GUIDANCE
     value['instructions'] = instructions + '\n\n' + guidance
     for item in value.get('input', []):
         if not isinstance(item, dict) or item.get('type') != 'function_call':
@@ -328,13 +363,13 @@ def adapt_qwen_request(value, declarations, *, profile=PROFILE, _progress=None):
         ordered = {key: arguments[key] for key in properties if key in arguments}
         ordered.update(arguments)
         item['arguments'] = json.dumps(ordered, separators=(',', ':'), ensure_ascii=False, allow_nan=False)
-    if profile in {V2_PROFILE, V3_PROFILE, V4_PROFILE, V5_PROFILE, V6_PROFILE, V7_PROFILE, V8_PROFILE, V9_PROFILE} and isinstance(value.get('input'), str):
+    if profile in {V2_PROFILE, V3_PROFILE, V4_PROFILE, V5_PROFILE, V6_PROFILE, V7_PROFILE, V8_PROFILE, V9_PROFILE, V10_PROFILE} and isinstance(value.get('input'), str):
         value['input'] = [{'type': 'message', 'role': 'user', 'content': [
             {'type': 'input_text', 'text': value['input']}]}]
-    if profile in {V2_PROFILE, V3_PROFILE, V4_PROFILE, V5_PROFILE, V6_PROFILE, V7_PROFILE, V8_PROFILE, V9_PROFILE} and isinstance(value.get('input'), list):
+    if profile in {V2_PROFILE, V3_PROFILE, V4_PROFILE, V5_PROFILE, V6_PROFILE, V7_PROFILE, V8_PROFILE, V9_PROFILE, V10_PROFILE} and isinstance(value.get('input'), list):
         # A model-facing reminder, never a fabricated user message, tool result,
         # or extra agent turn. The native transcript remains an exact prefix.
-        checkpoint = (_script_checkpoint(value['input'], declarations, verification_sensitive=profile == V9_PROFILE, state=_progress) if profile in {V8_PROFILE, V9_PROFILE} else
+        checkpoint = (_script_checkpoint(value['input'], declarations, verification_sensitive=profile in {V9_PROFILE, V10_PROFILE}, state=_progress, compact=profile == V10_PROFILE) if profile in {V8_PROFILE, V9_PROFILE, V10_PROFILE} else
                       progress_checkpoint(value['input'], declarations, single_line=profile == V5_PROFILE,
                                           typed_checks=profile in {V6_PROFILE, V7_PROFILE},
                                           feedback_checks=profile == V7_PROFILE)
@@ -344,7 +379,7 @@ def adapt_qwen_request(value, declarations, *, profile=PROFILE, _progress=None):
                 repeated_advice=V6_REPEATED_PATCH if profile in {V6_PROFILE, V7_PROFILE} else V4_REPEATED_PATCH)
         elif profile == V3_PROFILE:
             checkpoint += _patch_recovery(value['input'], declarations)
-        elif profile == V9_PROFILE:
+        elif profile in {V9_PROFILE, V10_PROFILE}:
             checkpoint += _patch_recovery(value['input'], declarations,
                 repeated_advice=V6_REPEATED_PATCH, latest_only=True, state=_progress)
         value['input'].append({'type': 'message', 'role': 'developer', 'content': [

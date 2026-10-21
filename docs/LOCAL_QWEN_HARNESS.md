@@ -156,3 +156,10 @@ recorded **10/18 full successes for v8 and 1/18 for v9**. Rollback remained
 unchanged checker replays agreed. The attempted repair worsened the measured
 result and fixed neither target. V9 remains disabled for ordinary coding and
 unqualified; the existing Codex experience and settings remain unchanged.
+
+[V10](LOCAL_QWEN_HARNESS_V10.md) tests a smaller script/text-edit interface with
+one repair protocol. It omits the function-case helper and gives explicit generic
+guidance for evolving private state, equality over unhashable keys and rerunning
+checks after corrections. Earlier profiles retain their requests. The unchanged
+six-task repeatability comparison is pending; the new profile remains default
+off and unqualified.
