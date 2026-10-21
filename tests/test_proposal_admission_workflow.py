@@ -48,14 +48,24 @@ class ProposalAdmissionWorkflowTests(unittest.TestCase):
 
                 history('enable')
                 history('learning', 'enable')
+                # Real host delegations include a role/context preamble. The
+                # automatic classifier correctly leaves that text unknown;
+                # explicit text proposals must not depend on its task-quality gate.
+                body = {**self.body, 'input': 'You are the installed local worker assisting a commercial Codex agent.\n'
+                    'Task: Fix the native router storage error in this Python code. Return a proposed patch.'}
+                ordinary = submit(control=True, request=body,
+                    headers={**self.headers, 'X-Hormuz-Task-Selection': 'model'})
+                self.assertEqual(ordinary['status'], 503, ordinary)
+                self.assertEqual(calls, [])
                 for _ in range(2):
-                    result = submit(control=True, request=self.body, headers=self.headers)
+                    result = submit(control=True, request=body, headers=self.headers)
                     self.assertEqual(result['status'], 200, result)
                     self.assertEqual(result['headers']['x-hormuz-task-selection'], 'proposal')
                     self.assertEqual(result['headers']['x-hormuz-work-route'], 'supervised_proposal')
                     self.assertEqual(result['headers']['x-hormuz-work-outcome'], 'unknown')
                     self.assertNotIn('x-hormuz-failover', result['headers'])
                     self.assertNotIn('x-hormuz-cache', result['headers'])
+                    self.assertEqual(calls[-1]['body']['input'], body['input'])
                 entries = history('list')['entries']
                 self.assertEqual(len(entries), 2)
                 for item in entries:

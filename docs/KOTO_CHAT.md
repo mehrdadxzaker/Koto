@@ -74,6 +74,9 @@ prompt/output/deadline bounds as `chat ask`, without retries or fallback. It
 accepts one fresh text request with no tools, provider history or continuation.
 It does not use automatic model selection or answer reuse. Existing policy,
 transport qualification, health, resource limits and accounting still apply.
+Proposal admission does not depend on automatic task-type classification or
+independent coding evidence. An agent role/context preamble may remain an
+`unknown` task hint; the request is neither relabeled nor used for learning.
 
 Only a completed, nonempty text response becomes a `hormuz.chat-proposal` v1
 receipt. Transparent reasoning is ignored; tool calls, opaque provider state

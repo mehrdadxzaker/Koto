@@ -435,8 +435,7 @@ class RouteAdmission:
         candidates = {}
         for alias, qualification in self.qualifications.items():
             route = self.config.model_routes[alias]
-            if proposal and (alias != decision.requested_model
-                    or hint not in qualification.task_types and 'interactive' not in qualification.task_types):
+            if proposal and alias != decision.requested_model:
                 continue
             if stateful_coding_switch:
                 continue
