@@ -5,6 +5,11 @@ Qwen3-14B-Q4_K_M alongside `codex_llama_v1`. It is default off. V1–v7 retain
 their existing request contracts. Codex continues to own instructions, tools,
 approvals, sandboxing, execution, continuation and the agent loop.
 
+The latest frozen development campaign passed **1/6 complete episodes**, with
+**0/3 rollback** and **0/3 list-key** target passes. It did not establish a coding
+improvement. The model remains unqualified; see the
+[audited results and all retained failures](local-harness/v8-diagnosis-20261020/README.md).
+
 ## Changes from v7
 
 The typed check-data interface required the model to express ordinary Python

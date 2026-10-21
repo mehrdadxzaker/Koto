@@ -137,3 +137,12 @@ qualification. Read its own comparison before drawing a quality conclusion.
 script compiler, preserves validated cleartext reasoning continuations in its
 bounded probe, and assigns effort-sensitive reasoning budgets. It remains
 explicitly selected and requires independent task and completion evidence.
+
+The requested [three paired v1/v2 repeats](local-harness/v8-diagnosis-20261020/README.md#requested-v1-versus-v2-comparison)
+completed **10/18 episodes for v1 and 12/18 for v2**. Rollback passed **0/3 for
+both**; the two additional v2 wins occurred only in the first repeat. The
+rollback gain was not repeatable under the required complete-episode endpoint.
+The later v8 a31 campaign passed **1/6**, with **0/3 rollback and 0/3 list-key**
+target passes. These diagnostics do not establish reliable improvement or
+ordinary coding qualification. Their separate effort controls, unchanged
+checks, saved-code outcomes and failures are retained in the linked report.
