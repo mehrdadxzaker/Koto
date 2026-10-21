@@ -304,6 +304,12 @@ def _patch_recovery(items, declarations, *, repeated_advice=V3_REPEATED_PATCH, l
                and item.get('call_id') == call.get('call_id') for item in events) != 1:
             return ''
         output = latest.get('output')
+        if (isinstance(output, str)
+                and output.startswith('apply_patch verification failed: Failed to find expected lines in ')):
+            return ('\n\nNative patch context recovery: The host could not match the supplied old lines; no edit is established. '
+                'Read the current file through a declared host tool. '
+                'Base the next edit on the exact saved text from that read; '
+                'do not repeat the unchanged rejected context. Keep existing host permissions.')
         if (isinstance(output, str) and output.startswith('apply_patch verification failed:')
                 and 'invalid hunk' in output):
             return ('\n\nNative patch input recovery: The host rejected the patch format; no edit is established. '

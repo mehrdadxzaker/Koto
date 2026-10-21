@@ -129,14 +129,14 @@ class LocalHarnessV10TransportTests(unittest.TestCase):
                 if 'script' not in expected:
                     self.assertNotIn('koto_python', adapted['instructions'])
 
-    def test_compute_hints_follow_correlated_native_feedback_and_latest_saved_code(self):
-        self.assertEqual(self.adapter().value['reasoning_budget_tokens'], 32)
+    def test_effort_allocation_preserves_correlated_native_feedback_and_latest_saved_code(self):
+        self.assertEqual(self.adapter().value['reasoning_budget_tokens'], 256)
         saved = self.request('saved_patch_without_later_command')
-        self.assertEqual(self.adapter(saved).value['reasoning_budget_tokens'], 64)
+        self.assertEqual(self.adapter(saved).value['reasoning_budget_tokens'], 256)
         variants = [('print', 'print(4)', 0, False, 256),
                     ('failed', SCRIPT, 1, False, 256),
                     ('pending', SCRIPT, 0, True, 256),
-                    ('verified', SCRIPT, 0, False, 16)]
+                    ('verified', SCRIPT, 0, False, 256)]
         for name, script, code, pending, budget in variants:
             with self.subTest(feedback=name):
                 request = deepcopy(saved)
@@ -154,7 +154,7 @@ class LocalHarnessV10TransportTests(unittest.TestCase):
         self.completed_script(request, code=1, text='AssertionError\nprivate-failure-detail\n', suffix='-failed')
         self.completed_script(request, suffix='-passing')
         adapted = self.adapter(request).value
-        self.assertEqual(adapted['reasoning_budget_tokens'], 16)
+        self.assertEqual(adapted['reasoning_budget_tokens'], 256)
         self.assertNotIn('Assertion failure checkpoint:', adapted['input'][-1]['content'][0]['text'])
         self.assertNotIn('private-failure-detail', adapted['input'][-1]['content'][0]['text'])
         # An unknown later result cannot inherit a prior finishing hint.

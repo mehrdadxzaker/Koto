@@ -47,11 +47,21 @@ repair actual failures and rerun the same compact assertions after the final edi
 No task identifier, benchmark input, expected value or independent oracle is
 inserted into requests. The model still must derive and execute meaningful checks.
 
-Compute hints remain the v9 values: low256, minimal128, medium512, high-or-above1024,
-bounded by output; initial32, after-patch64 and verified post-patch16 under their
-existing conditions. Explicit `none` stays0. Failed, pending, ambiguous or
-unresolved work cannot inherit completion. Recognized assertion syntax remains
-intent only, not execution, requirement coverage or task correctness.
+In a39, v10 retains the selected effort allocation: low256, minimal128, medium512,
+high-or-above1024, bounded by output. Explicit `none` stays0. V10 no longer cuts
+that allocation to initial32, after-patch64 or verified post-patch16. The v8/v9
+phase rules stay unchanged. A larger allocation may consume more of the same
+fixed deadline; its quality benefit is an unproven hypothesis.
+
+The latest correlated native missing-context rejection now gives fixed advice
+to read the current file and use its exact saved text for the next edit. It
+neither copies untrusted paths into instructions nor establishes an edit or
+changes host permissions. The boolean assertion observer excludes assertions in
+handled Try/TryStar bodies, conservatively including specific and re-raising
+handlers. Assertions outside those bodies remain eligible. Recognized syntax is
+intent only: it does not prove execution, requirement coverage, escaping failure
+or task correctness. These are three changes to existing modules, without a new
+helper or executor.
 
 ## Evidence and qualification
 
@@ -69,5 +79,13 @@ checker success and native completion are reported separately. All failures and
 earlier negative evidence are retained. Reused development tasks cannot establish
 held-out or general coding qualification.
 
-The comparison is pending; regression tests and interface size alone do not
-establish a coding improvement.
+The [completed a38 comparison](local-harness/v10-repair-20261021/README.md)
+recorded **7/18 full successes for v8 and 3/18 for v10**. Rollback passed
+**0/3 for both**; list-key passed **1/3 for v8 and 0/3 for v10**. All 36 unchanged
+checker replays agreed. All nine temporary connections closed and normal Codex
+settings stayed unchanged. The compact interface did not repair either target.
+
+The a39 follow-up comparison is pending. It measures the three repairs together
+under the same six tasks and controls; it cannot isolate their individual
+effects. Regression tests and interface size alone do not establish a coding
+improvement, and the profile remains unqualified and default off.

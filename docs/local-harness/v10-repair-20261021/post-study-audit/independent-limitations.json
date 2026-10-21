@@ -1,0 +1,14 @@
+{
+  "repetitions_per_case_profile": 3,
+  "historical_pooling": false,
+  "held_out_qualification": false,
+  "ordinary_90_second_qualification": false,
+  "limits": [
+    "Known development tasks; these descriptive results do not establish general causal improvement.",
+    "Saved checker success and normal native completion are separate endpoints.",
+    "Recorded timeout labels are preserved without inferring an unrecorded cause.",
+    "Cleanup evidence covers owned resources; no unrelated process inventory claim.",
+    "A37 ran no paired study; it is a compatibility/verification reference only.",
+    "Earlier negative studies remain separate and are never pooled."
+  ]
+}

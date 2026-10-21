@@ -119,7 +119,7 @@ class CodingProbeV10WorkflowTests(unittest.TestCase):
                 previous = f.client(*options)
                 self.assertEqual(previous['status'], 200, previous)
             captured = [json.loads(line) for line in (engine / 'provider-requests.jsonl').read_text().splitlines()]
-            self.assertEqual([body['reasoning_budget_tokens'] for body in captured], [32, 64, 256, 16])
+            self.assertEqual([body['reasoning_budget_tokens'] for body in captured], [256, 256, 256, 256])
             for body in captured:
                 self.assertEqual([tool['name'] for tool in body['tools'][:2]], ['koto_replace', 'koto_python'])
                 self.assertEqual(body['tools'][2:], original_tools)

@@ -67,7 +67,7 @@ class LocalHarnessRequest:
             self._add_text_patch()
         elif profile in {'qwen-code.v6', 'qwen-code.v7', 'qwen-code.v8'}:
             self._add_python_checks(feedback=profile == 'qwen-code.v7', script=profile == 'qwen-code.v8')
-        if progress is not None:
+        if progress is not None and profile != 'qwen-code.v10':
             if not progress['pending_sessions'] and not progress['unresolved_tool_calls']:
                 cap = None
                 if (progress['native_patches_saved'] and progress['completed_commands_since_last_native_patch']

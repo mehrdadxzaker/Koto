@@ -58,11 +58,25 @@ def _test_case_instances(tree, nodes, modules, classes):
     return {name for name in candidates if bindings[name] == 1 and name not in modified}
 
 
+def _eligible_assertion_nodes(tree):
+    """Ignore handled try bodies without interpreting exception names or flow."""
+    pending = [tree]
+    while pending:
+        node = pending.pop()
+        yield node
+        if isinstance(node, (ast.Try, ast.TryStar)) and node.handlers:
+            pending.extend([*node.handlers, *node.orelse, *node.finalbody])
+        else:
+            pending.extend(ast.iter_child_nodes(node))
+
+
 def has_python_assertions(command):
     """Observe assertion intent in a simple ``python3 -c`` command.
 
     Unknown shell forms stay conservative. An assertion may be trivial,
     unreachable or insufficient: this says nothing about execution or coverage.
+    Handled try bodies stay unknown, including specific or re-raising handlers;
+    this syntax filter is not an analysis of whether assertion errors escape.
     """
     if type(command) is not str or not command or '\x00' in command:
         return False
@@ -93,7 +107,8 @@ def has_python_assertions(command):
         if index >= MAX_AST_NODES:
             return False
         nodes.append(node)
-    if any(isinstance(node, ast.Assert) for node in nodes):
+    eligible = list(_eligible_assertion_nodes(tree))
+    if any(isinstance(node, ast.Assert) for node in eligible):
         return True
     modules, classes = set(), set()
     for node in nodes:
@@ -112,4 +127,4 @@ def has_python_assertions(command):
         and node.func.attr in UNITTEST_ASSERTIONS
         and (_test_case_constructor(node.func.value, modules, classes)
              or isinstance(node.func.value, ast.Name) and node.func.value.id in instances)
-        for node in nodes)
+        for node in eligible)

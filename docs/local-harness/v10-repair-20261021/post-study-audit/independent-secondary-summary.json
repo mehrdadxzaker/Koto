@@ -1,0 +1,146 @@
+{
+  "full_six": {
+    "qwen-code.v8": {
+      "episodes": 18,
+      "full_success": 7,
+      "saved_checker_pass": 10,
+      "normal_native_completion": 9
+    },
+    "qwen-code.v10": {
+      "episodes": 18,
+      "full_success": 3,
+      "saved_checker_pass": 3,
+      "normal_native_completion": 4
+    }
+  },
+  "per_case": {
+    "signed-ceiling": {
+      "qwen-code.v8": {
+        "episodes": 3,
+        "full_success": 1,
+        "saved_checker_pass": 2,
+        "normal_native_completion": 1
+      },
+      "qwen-code.v10": {
+        "episodes": 3,
+        "full_success": 0,
+        "saved_checker_pass": 0,
+        "normal_native_completion": 0
+      }
+    },
+    "literal-first": {
+      "qwen-code.v8": {
+        "episodes": 3,
+        "full_success": 3,
+        "saved_checker_pass": 3,
+        "normal_native_completion": 3
+      },
+      "qwen-code.v10": {
+        "episodes": 3,
+        "full_success": 2,
+        "saved_checker_pass": 2,
+        "normal_native_completion": 2
+      }
+    },
+    "adjacent-groups": {
+      "qwen-code.v8": {
+        "episodes": 3,
+        "full_success": 2,
+        "saved_checker_pass": 2,
+        "normal_native_completion": 2
+      },
+      "qwen-code.v10": {
+        "episodes": 3,
+        "full_success": 1,
+        "saved_checker_pass": 1,
+        "normal_native_completion": 1
+      }
+    },
+    "interval-union": {
+      "qwen-code.v8": {
+        "episodes": 3,
+        "full_success": 0,
+        "saved_checker_pass": 0,
+        "normal_native_completion": 0
+      },
+      "qwen-code.v10": {
+        "episodes": 3,
+        "full_success": 0,
+        "saved_checker_pass": 0,
+        "normal_native_completion": 0
+      }
+    },
+    "atomic-stock": {
+      "qwen-code.v8": {
+        "episodes": 3,
+        "full_success": 0,
+        "saved_checker_pass": 0,
+        "normal_native_completion": 2
+      },
+      "qwen-code.v10": {
+        "episodes": 3,
+        "full_success": 0,
+        "saved_checker_pass": 0,
+        "normal_native_completion": 1
+      }
+    },
+    "stable-key-unique": {
+      "qwen-code.v8": {
+        "episodes": 3,
+        "full_success": 1,
+        "saved_checker_pass": 3,
+        "normal_native_completion": 1
+      },
+      "qwen-code.v10": {
+        "episodes": 3,
+        "full_success": 0,
+        "saved_checker_pass": 0,
+        "normal_native_completion": 0
+      }
+    }
+  },
+  "per_repetition": {
+    "1": {
+      "qwen-code.v8": {
+        "episodes": 6,
+        "full_success": 3,
+        "saved_checker_pass": 4,
+        "normal_native_completion": 3
+      },
+      "qwen-code.v10": {
+        "episodes": 6,
+        "full_success": 0,
+        "saved_checker_pass": 0,
+        "normal_native_completion": 0
+      }
+    },
+    "2": {
+      "qwen-code.v8": {
+        "episodes": 6,
+        "full_success": 2,
+        "saved_checker_pass": 3,
+        "normal_native_completion": 3
+      },
+      "qwen-code.v10": {
+        "episodes": 6,
+        "full_success": 2,
+        "saved_checker_pass": 2,
+        "normal_native_completion": 3
+      }
+    },
+    "3": {
+      "qwen-code.v8": {
+        "episodes": 6,
+        "full_success": 2,
+        "saved_checker_pass": 3,
+        "normal_native_completion": 3
+      },
+      "qwen-code.v10": {
+        "episodes": 6,
+        "full_success": 1,
+        "saved_checker_pass": 1,
+        "normal_native_completion": 1
+      }
+    }
+  }
+}
