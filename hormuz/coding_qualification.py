@@ -19,13 +19,14 @@ class CodingQualification:
     request_profile_sha256: str | None = None
     client_version: str | None = None
     profile_schema_version: int = 1
+    criteria_version: str = "local-repair.v1"
 
     def describe(self):
         if self.evidence_id is None:
             return None
         return {"evidence_id": self.evidence_id, "plan_sha256": self.plan_sha256,
                 "receipt_sha256": self.receipt_sha256, "basis": "operator_attested_outcomes",
-                "criteria_version": "local-repair.v1", "planned": self.planned,
+                "criteria_version": self.criteria_version, "planned": self.planned,
                 "evaluated": self.evaluated, "passed": self.passed}
 
 
@@ -54,13 +55,14 @@ def matches_coding_subject(subject, config, route, qualification):
     # receipt's exact supported version, independently of the current default.
     supported_versions = getattr(client_versions, "SUPPORTED_CODEX_VERSIONS", (client_versions.SUPPORTED_CODEX_VERSION,))
     expected = {"client_version": subject["client_version"], "system": platform.system(), "machine": platform.machine(),
-                "runtime_profile": "managed-llama.v1", "runtime_sha256": managed.runtime_sha256 if managed else None,
+                "runtime_profile": "managed-llama.v2" if managed and managed.schema_version == 3 else "managed-llama.v1",
+                "runtime_sha256": managed.runtime_sha256 if managed else None,
                 "model_revision": route.model_revision, "upstream_model": route.upstream_model, "protocol": route.protocol,
                 "capabilities": sorted(route.capabilities), "max_request_bytes": qualification.max_request_bytes,
                 "max_output_tokens": qualification.max_output_tokens, "upstream_timeout_seconds": config.upstream_timeout_seconds,
                 "request_profile_sha256": subject["request_profile_sha256"]}
     declared = {**subject, "capabilities": sorted(subject["capabilities"])}
-    return (subject["client_version"] in supported_versions and managed is not None and managed.schema_version == 1
+    return (subject["client_version"] in supported_versions and managed is not None and managed.schema_version in (1, 3)
                and managed.route == route.alias and declared == expected)
 
 
@@ -97,4 +99,4 @@ def assess_coding_evidence(serialized, config, route, qualification):
                  "qualified" if covered and passed == len(plan["cases"]) else "incomplete")
     return CodingQualification(readiness, evidence["evidence_id"], evidence["plan_sha256"], canonical_digest(evidence),
                                len(plan["cases"]), len(outcomes), passed, subject["request_profile_sha256"], subject["client_version"],
-                               evidence["schema_version"])
+                               evidence["schema_version"], criteria_version=plan["criteria_version"])

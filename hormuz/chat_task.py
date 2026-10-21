@@ -1,4 +1,4 @@
-"""Explicit text tasks through an already-owned router; no Codex startup hook."""
+"""Explicit fresh tasks through owned routing or native Codex sessions."""
 import http.client
 import json
 import os
@@ -23,8 +23,15 @@ class ChatTaskError(RuntimeError):
 
 
 def add_commands(commands):
-    chat = commands.add_parser('chat', help='Use Koto for an explicit task without changing the Codex model')
+    chat = commands.add_parser('chat', help='Use Koto for explicit tasks while preserving normal Codex settings')
     operations = chat.add_subparsers(dest='chat_command', required=True)
+    route = operations.add_parser('route', help='Route one fresh task using local evidence and the existing Codex account')
+    route.add_argument('--executable', default='codex', help='Existing supported native Codex executable')
+    route.add_argument('--client-home', help='Native Codex home; authentication stays inside Codex')
+    route.add_argument('--prompt-file', required=True, help='UTF-8 task file, or - for standard input')
+    route.add_argument('--actor', help='Configured owner; required when multiple owners exist')
+    route.add_argument('--model', help='Explicit qualified local alias; automatic selection is the default')
+    route.add_argument('--timeout-seconds', type=int, default=90, choices=range(1, 361), metavar='1..360')
     for name in ('models', 'ask'):
         command = operations.add_parser(name)
         command.add_argument('--router-home', required=True, help='Separate, already connected Koto control home')
@@ -37,6 +44,9 @@ def add_commands(commands):
 
 
 def run(args):
+    if args.chat_command == 'route':
+        from .native_chat import run
+        return run(args)
     submitted = False
     try:
         prompt = None

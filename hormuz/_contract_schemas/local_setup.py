@@ -15,7 +15,7 @@ def _tag(value, key):
         raise ContractValidationError("invalid local setup identifier")
 
 
-def validate_profile(value, *, extended=False, namespaces=False):
+def validate_profile(value, *, extended=False, namespaces=False, output_limit=512):
     _exact_keys(value, PROFILE_FIELDS | ({"coding_evidence"} if value["schema_version"] >= 2 else set()))
     if value["schema_version"] >= 2 and value["coding_evidence"] is not None:
         from .local_coding import validate_evidence
@@ -26,7 +26,7 @@ def validate_profile(value, *, extended=False, namespaces=False):
         if re.fullmatch(r"[a-f0-9]{64}", _value_string(value, key)) is None:
             raise ContractValidationError("invalid local setup digest")
     for key, maximum in (("max_request_bytes", 2 * 1024 * 1024 if extended else 65536),
-                         ("max_output_tokens", 8192 if extended else 512),
+                         ("max_output_tokens", 8192 if extended else output_limit),
                          ("upstream_timeout_seconds", 360 if extended else 90), ("startup_timeout_seconds", 60)):
         if type(value[key]) is not int or not 1 <= value[key] <= maximum:
             raise ContractValidationError("invalid local setup limit")
@@ -52,6 +52,10 @@ def validate_profile_v3(value):
 
 def validate_profile_v4(value):
     validate_profile(value, namespaces=True)
+
+
+def validate_profile_v5(value):
+    validate_profile(value, namespaces=True, output_limit=2048)
 
 
 def validate_setup(value):

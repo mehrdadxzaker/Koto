@@ -4,21 +4,43 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "koto-router"
-version = "2.0.0a5"
+version = "2.0.0a7"
 description = "Personal model selection from checked local history for existing coding clients."
 readme = "README.md"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 requires-python = ">=3.11"
 authors = [{name = "NeuralInt"}]
+maintainers = [{name = "Mehrdad Zaker"}]
+keywords = [
+  "local-llm", "model-routing", "model-selection", "coding-assistant",
+  "codex", "developer-tools", "local-first", "agent-skills"
+]
 classifiers = [
+  "Development Status :: 3 - Alpha",
   "Environment :: Console",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Topic :: Software Development",
   "Topic :: Internet :: Proxy Servers",
   "Topic :: Security"
 ]
 dependencies = ["cryptography>=42"]
+
+[project.urls]
+Homepage = "https://github.com/mehrdadxzaker/Koto"
+Documentation = "https://github.com/mehrdadxzaker/Koto/blob/main/docs/README.md"
+Source = "https://github.com/mehrdadxzaker/Koto"
+Issues = "https://github.com/mehrdadxzaker/Koto/issues"
+Changelog = "https://github.com/mehrdadxzaker/Koto/blob/main/CHANGELOG.md"
+Contributing = "https://github.com/mehrdadxzaker/Koto/blob/main/CONTRIBUTING.md"
+Discussions = "https://github.com/mehrdadxzaker/Koto/discussions"
+Roadmap = "https://github.com/mehrdadxzaker/Koto/blob/main/docs/ROADMAP.md"
 
 [project.scripts]
 koto = "hormuz.cli:main"

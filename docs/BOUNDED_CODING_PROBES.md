@@ -5,6 +5,10 @@ uses the shared connected-client owner at connect → request → inspect → di
 It does not install coding evidence or admit ordinary unqualified coding.
 The [qualification criteria](LOCAL_CODING_QUALIFICATION.md) still govern readiness.
 
+Optional [probe plan v4](BOUNDED_CODING_OUTPUT.md) collects the separately
+versioned `managed-llama.v2` / `local-repair.v2` output profile. Its finite
+submission/time bounds and lack of automatic admission authority are unchanged.
+
 ## Operator workflow
 
 1. Use existing verified engine/model files and an explicit private Codex home.

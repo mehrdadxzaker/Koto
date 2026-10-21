@@ -2,22 +2,30 @@
   "schema_version": 1,
   "repository": "mehrdadxzaker/Koto",
   "metadata": {
-    "description": "Customer-local model routing for existing coding clients, with CLI and shared plugin setup.",
+    "description": "Local-first model selection for Codex: learn from checked task history to choose local or commercial models. Experimental; local coding requires qualification.",
+    "homepage": "https://github.com/mehrdadxzaker/Koto/blob/main/docs/README.md",
     "topics": [
-      "ai-gateway",
-      "ai-governance",
-      "anthropic",
-      "budget-management",
-      "claude-code",
+      "agent-skills",
       "cli",
       "codex",
-      "cost-control",
+      "coding-assistant",
+      "developer-tools",
       "llm",
+      "local-first",
+      "local-llm",
       "model-routing",
-      "openai",
-      "policy-enforcement",
+      "model-selection",
       "python",
-      "security"
+      "self-hosted"
+    ],
+    "social_preview": "assets/koto-social-preview.png",
+    "labels": [
+      {"name": "area:docs", "color": "0075CA", "description": "Documentation, examples and contributor onboarding"},
+      {"name": "area:selection", "color": "5319E7", "description": "Personal scorecards, checked outcomes and local model selection"},
+      {"name": "area:history", "color": "0E8A16", "description": "Local encrypted history, consent, feedback and deletion"},
+      {"name": "area:client", "color": "1D76DB", "description": "Supported client connection, routing and safe restoration"},
+      {"name": "area:plugin", "color": "D876E3", "description": "Skills-only plugin packaging and agent installation"},
+      {"name": "area:testing", "color": "FBCA04", "description": "Fast rules, bounded workflows, package verification and CI"}
     ],
     "features": {
       "discussions": true,
