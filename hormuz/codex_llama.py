@@ -122,7 +122,8 @@ class CodexLlamaRequest:
         if harness:
             adapt_qwen_request(self.value, self.declarations, profile=harness)
         if harness in {'qwen-code.v6', 'qwen-code.v7', 'qwen-code.v8', 'qwen-code.v9'}:
-            self._add_python_checks(feedback=harness == 'qwen-code.v7', script=harness in {'qwen-code.v8', 'qwen-code.v9'})
+            self._add_python_checks(feedback=harness == 'qwen-code.v7', script=harness in {'qwen-code.v8', 'qwen-code.v9'},
+                                    prominent=harness == 'qwen-code.v9')
         if harness in {'qwen-code.v8', 'qwen-code.v9'} and isinstance(self.value.get('input'), list):
             from .local_harness_progress import progress_snapshot
             progress = progress_snapshot(self.value['input'], self.declarations, include_attempts=True,
@@ -143,7 +144,7 @@ class CodexLlamaRequest:
                 if cap is not None:
                     self.value['reasoning_budget_tokens'] = min(self.value['reasoning_budget_tokens'], cap)
 
-    def _add_python_checks(self, *, feedback=False, script=False):
+    def _add_python_checks(self, *, feedback=False, script=False, prominent=False):
         """Offer a private compiler only for an existing, identified host command."""
         if self.value.get('tool_choice', 'auto') != 'auto' or len(self.value.get('tools', [])) >= 1024:
             return
@@ -191,6 +192,15 @@ class CodexLlamaRequest:
                 'Check supplied cases against a saved local Python function through the existing host command tool. Supply real expected results from the task; these checks are not independent qualification.'),
             'parameters': {'type': 'object', 'properties': parameters, 'required': [argument],
                            'additionalProperties': False}})
+        if prominent:
+            self.value['tools'].insert(0, self.value['tools'].pop())
+            self.value['instructions'] += (
+                '\n\nLocal Python verification helper (subordinate to host, repository and user instructions): '
+                f'Prefer {alias} for your own Python verification. Supply its script argument as plain Python source '
+                'with real newlines; the helper quotes it for the existing host command tool. '
+                'Avoid constructing nested shell or python3 -c strings. Import the saved module and combine compact '
+                'assertions for the original requirements in one script. Use unittest.TestCase().assertRaises '
+                'for specified exceptions, then assert any required state preservation. Inspect actual host results.')
 
     def _derived_identity(self, item):
         if (set(item) - {'type', 'id', 'call_id', 'name', 'arguments', 'status'}

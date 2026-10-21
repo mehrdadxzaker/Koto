@@ -36,6 +36,13 @@ while preserving any original message requirement and every existing check.
 The checkpoint supplies static guidance, without copying program output into
 instructions or deciding an expected value.
 
+V9 also presents the existing Python script helper first and names its actual
+allocated alias in subordinate guidance. This includes collision-safe aliases.
+The host's original tools retain their bodies and relative order; tool choice
+and non-automatic host restrictions stay unchanged. The helper accepts plain
+source and compiles it to the existing native command, avoiding model-authored
+nested shell quoting. No script is repaired, executed or marked correct by Koto.
+
 ## Controls and compatibility
 
 V9 retains v8's script helper, native identity mapping and transparent reasoning
@@ -59,6 +66,12 @@ Normal Codex settings and history consent are unchanged by disposable studies.
 Regression tests cover the observed compute/advice defects through the public
 adapter and router. They establish neither coding benefit nor readiness. The
 predeclared comparison uses the same six goals, starting sources and independent
-checks, with complete native turns required. The separate three-pair study is
-pending; v9 must remain unqualified until actual outcomes are recorded. These
+checks, with complete native turns required. The first a32 two-target diagnostic
+completed no native turns: stock still failed cumulative validation and authored
+two malformed commands; list-key's saved repair passed the checker but did not
+finish. Those failures are retained separately. A reconstructed pure-adapter
+replay preserved feedback, recovery guidance and compute policy; it does not
+prove historical model receipt or compliance. Making the existing script helper
+more visible is a subsequent usability hypothesis, not an established gain.
+The separate three-pair study is pending; v9 must remain unqualified until actual outcomes are recorded. These
 known development tasks cannot establish held-out or ordinary90-second readiness.

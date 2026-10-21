@@ -21,8 +21,8 @@ class CodingProbeV9ReasoningWorkflowTests(unittest.TestCase):
         with lifetime.provider('CLOUD_MUST_STAY_UNUSED') as (cloud, cloud_requests):
             value, engine, request = fixture.prepare(cloud)
             executable = engine / 'llama-server'
-            # The controlled provider emits only tools declared by this native
-            # host. Capture the real adapted boundary, without executing a model
+            # The provider uses offered tools; the host sees its native tools.
+            # Capture the adapted boundary, without executing a model
             # or the scripted native commands.
             scripted = '''        capture=pathlib.Path(__file__).with_name("provider-requests.jsonl")
         with capture.open("a") as observed:
@@ -32,7 +32,7 @@ class CodingProbeV9ReasoningWorkflowTests(unittest.TestCase):
             {"type":"function_call","call_id":"patch-saved","name":"apply_patch", "arguments":json.dumps({"input":"*** Begin Patch\\n*** Update File: solution.py\\n@@\\n-    return value\\n+    return value + 1\\n*** End Patch"})},
             {"type":"function_call","call_id":"print-check","name":"exec_command", "arguments":json.dumps({"cmd":"python3 -c 'print(4)'"})},
             {"type":"function_call","call_id":"exception-check","name":"exec_command", "arguments":json.dumps({"cmd":"python3 -c 'try:\\n    {}[\\\"missing\\\"]\\nexcept KeyError as error:\\n    assert str(error) == \\\"missing\\\"'"})},
-            {"type":"function_call","call_id":"assert-check","name":"exec_command", "arguments":json.dumps({"cmd":"python3 -c 'assert 2 + 2 == 4'"})}]
+            {"type":"function_call","call_id":"assert-check","name":"koto_python", "arguments":json.dumps({"script":"assert 2 + 2 == 4"})}]
         if step <= len(calls):
             result["output"]=[calls[step-1]]
             if step == 1:
@@ -110,12 +110,17 @@ class CodingProbeV9ReasoningWorkflowTests(unittest.TestCase):
             for index, (output, budget) in enumerate(zip(outputs, expected_budgets)):
                 call = previous['body']['output'][0]
                 self.assertEqual((call['type'], call['name']), ('function_call', 'exec_command'))
+                if index == 2:
+                    self.assertEqual(json.loads(call['arguments'])['cmd'], "python3 -c 'assert 2 + 2 == 4'")
                 continuation['input'] += previous['body']['output'] + [
                     {'type': 'function_call_output', 'call_id': call['call_id'], 'output': output}]
                 request_path.write_text(json.dumps(continuation))
                 previous = f.client(*options)
                 self.assertEqual(previous['status'], 200, previous)
                 body = captured()[-1]
+                self.assertEqual(body['tools'][0]['name'], 'koto_python')
+                self.assertIn('Prefer koto_python for your own Python verification.', body['instructions'])
+                self.assertEqual(body.get('tool_choice', 'auto'), 'auto')
                 self.assertEqual(body['reasoning_budget_tokens'], budget)
                 checkpoint = '\n'.join(part['text'] for part in body['input'][-1]['content'])
                 if index == 0:

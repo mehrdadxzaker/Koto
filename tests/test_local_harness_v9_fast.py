@@ -26,9 +26,45 @@ class LocalHarnessV9Tests(unittest.TestCase):
         original = deepcopy(request)
         adapted = CodexLlamaRequest(request, harness='qwen-code.v9').value
         previous = CodexLlamaRequest(request, harness='qwen-code.v8').value
-        self.assertEqual(adapted['tools'], previous['tools'])
+        self.assertEqual({tool['name']: tool for tool in adapted['tools']},
+                         {tool['name']: tool for tool in previous['tools']})
         self.assertEqual(adapted['reasoning_budget_tokens'], 32)
         self.assertEqual(request, original)
+
+    def test_python_verification_advertises_the_offered_helper_without_hiding_host_tools(self):
+        request = synthetic_requests()['python_syntax_failure']
+        original = deepcopy(request)
+        adapted = CodexLlamaRequest(request, harness='qwen-code.v9').value
+        previous = CodexLlamaRequest(request, harness='qwen-code.v8').value
+        helper = previous['tools'][-1]
+        self.assertIn(helper['name'], adapted['instructions'])
+        self.assertEqual(adapted['tools'][0], helper)
+        self.assertEqual(adapted['tools'][1:], previous['tools'][:-1])
+        self.assertIn('plain Python source', adapted['instructions'])
+        self.assertEqual(adapted['tool_choice'], request['tool_choice'])
+        self.assertEqual(request, original)
+
+    def test_helper_advertisement_uses_the_collision_safe_alias_and_respects_host_tool_choice(self):
+        request = synthetic_requests()['no_tool_history']
+        request['tools'].append({'type': 'function', 'name': 'koto_python', 'description': 'Existing host tool.',
+            'parameters': {'type': 'object', 'properties': {}, 'required': [], 'additionalProperties': False}})
+        original = deepcopy(request)
+        adapted = CodexLlamaRequest(request, harness='qwen-code.v9').value
+        alias = adapted['tools'][0]['name']
+        self.assertNotEqual(alias, 'koto_python')
+        self.assertIn('Prefer ' + alias + ' for your own Python verification.', adapted['instructions'])
+        previous = CodexLlamaRequest(request, harness='qwen-code.v8').value
+        self.assertEqual(adapted['tools'][1:], previous['tools'][:-1])
+        self.assertEqual(request, original)
+        for choice in ('none', 'required'):
+            with self.subTest(choice=choice):
+                selected = deepcopy(request)
+                selected['tool_choice'] = choice
+                adapted = CodexLlamaRequest(selected, harness='qwen-code.v9').value
+                self.assertNotIn('Local Python verification helper (', adapted['instructions'])
+                self.assertEqual(adapted['tools'],
+                    CodexLlamaRequest(selected, harness='qwen-code.v8').value['tools'])
+                self.assertEqual(adapted['tool_choice'], choice)
 
     def test_printing_a_normal_example_keeps_the_solving_allowance(self):
         request = self.completed_command('python3 -c "import solution; stock = {\'apple\': 10, \'banana\': 5}; '
