@@ -1,0 +1,9 @@
+{
+  "id": "held-parse-binary-size",
+  "partition": "held_out",
+  "family": "validation_state",
+  "prompt": "Fix the Python implementation in solution.py. Repair parse_binary_size(text): accept only a string containing an ASCII decimal integer immediately followed by one exact unit B, KiB, MiB or GiB. The integer is zero or starts with 1-9 followed by zero or more digits 0-9; leading zeros are invalid except for zero itself. Return the exact byte count using multipliers 1, 1024, 1048576 or 1073741824 respectively. Reject signs, spaces, Unicode digits, wrong unit case, missing components and all non-strings with ValueError. Make the edit, check the behavior, and complete the task. /no_think",
+  "initial_solution": "def parse_binary_size(text):\n    return 0\n",
+  "checker": "import runpy\nimport sys\ns = runpy.run_path(sys.argv[1])\nf=s['parse_binary_size']\nassert f('3B')==3 and f('2KiB')==2048 and f('3MiB')==3145728\nassert f('2GiB')==2147483648 and f('0MiB')==0 and f('0B')==0\nassert f('1208925819614629174706176B')==1208925819614629174706176\nfor bad in ['','1','B','01B','00KiB','-1B','+1B',' 1B','1B ','1 B','1KB','1kib','1.5MiB','١B','１KiB','²B','1_0B','1B\\n',None,True,12,b'1B']:\n    try: f(bad)\n    except ValueError: pass\n    else: raise AssertionError('invalid binary size accepted')\nr=f('1208925819614629174706177B')\nassert r==1208925819614629174706177 and type(r) is int\n",
+  "reference_solution": "import re\ndef parse_binary_size(text):\n    if not isinstance(text,str):\n        raise ValueError('invalid binary size')\n    match=re.fullmatch('(0|[1-9][0-9]*)(B|KiB|MiB|GiB)',text)\n    if not match:\n        raise ValueError('invalid binary size')\n    scales={'B':1,'KiB':1024,'MiB':1048576,'GiB':1073741824}\n    return int(match[1])*scales[match[2]]\n"
+}

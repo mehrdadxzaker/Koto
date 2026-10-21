@@ -1,0 +1,28 @@
+{
+  "note": "Escaped newline literals were evaluated by the authoring template before source emission, producing an invalid checker. Corrected before any model request.",
+  "initial_solution": "def trim_ascii_edges(text):\n    return text.strip()\n",
+  "failed_checker": "import runpy\nimport sys\ns = runpy.run_path(sys.argv[1])\n     f=s['trim_ascii_edges']\n     assert f(' \tX\n ')== 'X\n'\n     assert f('\n\tX\t\n')=='\n\tX\t\n'\n     assert f(' \ta \t b\t ')== 'a \t b'\n     assert f('\u00a0 X \u00a0')=='\u00a0 X \u00a0'\n     assert f(' \r ')== '\r' and f('\t \t')=='' and f('')==''\n     assert f('\u03bb')=='\u03bb'\n",
+  "controls": [
+    {
+      "id": "dev-distribute-units",
+      "baseline": {
+        "exit": 1,
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"<fixture>/checker.py\", line 5, in <module>\n    assert f(8,3)==[3,3,2]\n           ^^^^^^^^^^^^^^^\nAssertionError\n"
+      },
+      "reference": {
+        "exit": 0,
+        "stdout": "",
+        "stderr": ""
+      }
+    },
+    {
+      "id": "dev-trim-ascii-edges",
+      "baseline": {
+        "exit": 1,
+        "stdout": "",
+        "stderr": "  File \"<fixture>/checker.py\", line 4\n    f=s['trim_ascii_edges']\nIndentationError: unexpected indent\n"
+      }
+    }
+  ]
+}

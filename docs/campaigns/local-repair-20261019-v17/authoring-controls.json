@@ -1,0 +1,210 @@
+[
+  {
+    "id": "dev-distribute-units",
+    "baseline": {
+      "exit": 1,
+      "stdout": "",
+      "stderr": "Traceback (most recent call last):\n  File \"<fixture>/checker.py\", line 5, in <module>\n    assert f(8,3)==[3,3,2]\n           ^^^^^^^^^^^^^^^\nAssertionError\n"
+    },
+    "reference": {
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  },
+  {
+    "id": "dev-trim-ascii-edges",
+    "baseline": {
+      "exit": 1,
+      "stdout": "",
+      "stderr": "Traceback (most recent call last):\n  File \"<fixture>/checker.py\", line 5, in <module>\n    assert f(' \\tX\\n ')== 'X\\n'\n           ^^^^^^^^^^^^^^^^^^^^\nAssertionError\n"
+    },
+    "reference": {
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  },
+  {
+    "id": "dev-adjacent-deltas",
+    "baseline": {
+      "exit": 1,
+      "stdout": "",
+      "stderr": "Traceback (most recent call last):\n  File \"<fixture>/checker.py\", line 6, in <module>\n    assert r==[5,0,-10] and a==[3,8,8,-2] and r is not a\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError\n"
+    },
+    "reference": {
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  },
+  {
+    "id": "dev-pin-attempts",
+    "baseline": {
+      "exit": 1,
+      "stdout": "",
+      "stderr": "Traceback (most recent call last):\n  File \"<fixture>/checker.py\", line 9, in <module>\n    else: raise AssertionError('invalid pin accepted')\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: invalid pin accepted\n"
+    },
+    "reference": {
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  },
+  {
+    "id": "held-normalize-fraction",
+    "baseline": {
+      "exit": 1,
+      "stdout": "",
+      "stderr": "Traceback (most recent call last):\n  File \"<fixture>/checker.py\", line 5, in <module>\n    assert f(6,8)==(3,4) and f(-6,-8)==(3,4) and f(6,-8)==(-3,4)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError\n"
+    },
+    "reference": {
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  },
+  {
+    "id": "held-exact-integer-power",
+    "baseline": {
+      "exit": 1,
+      "stdout": "",
+      "stderr": "Traceback (most recent call last):\n  File \"<fixture>/checker.py\", line 5, in <module>\n    assert f(3,7)==2187 and f(-2,5)==-32 and f(-2,6)==64\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError\n"
+    },
+    "reference": {
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  },
+  {
+    "id": "held-reverse-low-bits",
+    "baseline": {
+      "exit": 1,
+      "stdout": "",
+      "stderr": "Traceback (most recent call last):\n  File \"<fixture>/checker.py\", line 5, in <module>\n    assert f(3,4)==12 and f(1,4)==8 and f(10,4)==5\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError\n"
+    },
+    "reference": {
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  },
+  {
+    "id": "held-unescape-controls",
+    "baseline": {
+      "exit": 1,
+      "stdout": "",
+      "stderr": "Traceback (most recent call last):\n  File \"<fixture>/checker.py\", line 5, in <module>\n    assert f(r'a\\tb')=='a\\tb'\n           ^^^^^^^^^^^^^^^^^^\nAssertionError\n"
+    },
+    "reference": {
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  },
+  {
+    "id": "held-strip-hash-comments",
+    "baseline": {
+      "exit": 1,
+      "stdout": "",
+      "stderr": "Traceback (most recent call last):\n  File \"<fixture>/checker.py\", line 5, in <module>\n    assert f('a#first\\nb#second\\nc')=='a\\nb\\nc'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError\n"
+    },
+    "reference": {
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  },
+  {
+    "id": "held-title-ascii-words",
+    "baseline": {
+      "exit": 1,
+      "stdout": "",
+      "stderr": "Traceback (most recent call last):\n  File \"<fixture>/checker.py\", line 6, in <module>\n    assert f('\u00e9foo\u03a9BAR')=='\u00e9Foo\u03a9Bar'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError\n"
+    },
+    "reference": {
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  },
+  {
+    "id": "held-stable-argsort",
+    "baseline": {
+      "exit": 1,
+      "stdout": "",
+      "stderr": "Traceback (most recent call last):\n  File \"<fixture>/checker.py\", line 6, in <module>\n    assert r==[1,4,3,0,2] and a==[4,-2,4,0,-2] and r is not a\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError\n"
+    },
+    "reference": {
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  },
+  {
+    "id": "held-subtract-occurrences",
+    "baseline": {
+      "exit": 1,
+      "stdout": "",
+      "stderr": "Traceback (most recent call last):\n  File \"<fixture>/checker.py\", line 6, in <module>\n    assert r==[2,3,1] and a==[1,2,1,3,1] and b==[1,1,9]\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError\n"
+    },
+    "reference": {
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  },
+  {
+    "id": "held-select-columns",
+    "baseline": {
+      "exit": 1,
+      "stdout": "",
+      "stderr": "Traceback (most recent call last):\n  File \"<fixture>/checker.py\", line 6, in <module>\n    assert r==[[3,1,3],[6,4,6]] and a==[[1,2,3],[4,5,6]] and b==[2,0,2]\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError\n"
+    },
+    "reference": {
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  },
+  {
+    "id": "held-door-transitions",
+    "baseline": {
+      "exit": 1,
+      "stdout": "",
+      "stderr": "Traceback (most recent call last):\n  File \"<fixture>/checker.py\", line 8, in <module>\n    else: raise AssertionError('invalid locked transition')\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: invalid locked transition\n"
+    },
+    "reference": {
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  },
+  {
+    "id": "held-replace-counts",
+    "baseline": {
+      "exit": 1,
+      "stdout": "",
+      "stderr": "Traceback (most recent call last):\n  File \"<fixture>/checker.py\", line 6, in <module>\n    assert r=={'a':0,'b':2} and a=={'a':1,'b':2} and b=={'a':0} and r is not a\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError\n"
+    },
+    "reference": {
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  },
+  {
+    "id": "held-parse-binary-size",
+    "baseline": {
+      "exit": 1,
+      "stdout": "",
+      "stderr": "Traceback (most recent call last):\n  File \"<fixture>/checker.py\", line 5, in <module>\n    assert f('3B')==3 and f('2KiB')==2048 and f('3MiB')==3145728\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError\n"
+    },
+    "reference": {
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  }
+]

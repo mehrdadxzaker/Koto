@@ -1,0 +1,181 @@
+{
+  "campaign_id": "local-repair-20261019-v17",
+  "operator_revision": 2,
+  "recorded_at_utc": "2026-10-19T14:43:20.991876+00:00",
+  "preregistration_commit": "6051c0f4f84881e059989166f50e161b531775c7",
+  "status": "failed_canary_remaining_quality_cases_not_run",
+  "runtime_source": "ad895925215e58f6024b561b33137d98f6efe10a",
+  "freeze_sha256": "7f3d3edc8d7c99a809a461b6f8fe3a4630ffc3e56debaa6589fd909743e69e12",
+  "plan_sha256": "edb2525ec73a7e1f39e4ad8bc105fb99736db6a34fd02eb43b7c349d8e13ce31",
+  "tool_sha256": "4634eba9bb4d15c6e6b5b94dd89b6b1adfa02fdf8925f1f574018f44aca1e668",
+  "planned_quality_cases": 16,
+  "evaluated_quality_cases": 1,
+  "accepted_quality_cases": 0,
+  "evaluated_held_out_cases": 0,
+  "remaining_quality_cases_unrun": 15,
+  "automatic_local_coding_enabled": false,
+  "coding_receipt_installed": false,
+  "learning_activated": false,
+  "commercial_evaluation_calls": 0,
+  "commercial_comparison_status": "blocked_existing_chatgpt_subscription_connection_not_implemented",
+  "scenarios": {
+    "edit": {
+      "passed": false,
+      "native_exit_code": 1,
+      "native_elapsed_ms": 35423,
+      "native_termination": "completed",
+      "native_completed_turns": 0,
+      "native_error_events": 2,
+      "completed_commands": 8,
+      "model_submissions": 8,
+      "prior_history_rows_retained": 0,
+      "new_history_outcomes": [
+        "succeeded",
+        "succeeded",
+        "succeeded",
+        "succeeded",
+        "succeeded",
+        "succeeded",
+        "succeeded",
+        "succeeded"
+      ],
+      "trace_statuses": [
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "cleanup": {
+        "settings_restored": true,
+        "live_settings_preserved": true,
+        "owned_listeners_closed": true
+      },
+      "artifact_sha256": {
+        "result.json": "0ca02f18615de05e7e9be81e14aee62a5115f8f4a9611a8e2f4cdddbcfd43bc1",
+        "trace.json": "a72a4c12202d3ddcf08595a5e86fba8de0d4c535670bb66bd2864718f162ecd2",
+        "native.jsonl": "dda7a04210f095760832f53b90f9e26b8d32df392aa43545821b8670bbd41ba5",
+        "implementation.patch": "6366a5f280afbf4e44446b1de162f9cd7f50f398e0a5a514fbaf2af2279bef08"
+      },
+      "baseline_assertion_exit": 1,
+      "independent_checker_exit": 0,
+      "independent_assertions_completed": true,
+      "implementation_changed": true,
+      "safe_patch_independently_inspected": true,
+      "checker_unchanged": true,
+      "first_successful_model_authored_check_at_request": 4,
+      "extra_commands_after_first_check": 4,
+      "failure": "No final turn: the next generation request hit the relay eight-request cap after eight successful commands. Two native error events represent this one failure.",
+      "completed_function_response_arguments_valid": 8,
+      "max_observed_completed_output_tokens": 348,
+      "affinity": {
+        "one_work_and_destination": true,
+        "continuations": 7
+      },
+      "provider_history_is_not_task_success": true
+    },
+    "deny": {
+      "passed": true,
+      "native_exit_code": 1,
+      "native_elapsed_ms": 521,
+      "native_termination": "completed",
+      "native_completed_turns": 0,
+      "native_error_events": 2,
+      "completed_commands": 0,
+      "model_submissions": 0,
+      "prior_history_rows_retained": 8,
+      "new_history_outcomes": [],
+      "trace_statuses": [
+        503
+      ],
+      "cleanup": {
+        "settings_restored": true,
+        "live_settings_preserved": true,
+        "owned_listeners_closed": true
+      },
+      "artifact_sha256": {
+        "result.json": "41ee83501a7b0a32bc43aa5043935e70952d79209f8c252227d35bdcd76a63cd",
+        "trace.json": "feb059986cf17b479c5f3cd54020d82e5d0568b4997358341df3473a5d11648a",
+        "native.jsonl": "77e67cd2e826ebcc855ef02ec4d71a0e8e37a0f7be90e4711709432b0fe78b6c",
+        "implementation.patch": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "cancel": {
+      "passed": true,
+      "native_exit_code": 1,
+      "native_elapsed_ms": 3977,
+      "native_termination": "canceled",
+      "native_completed_turns": 0,
+      "native_error_events": 0,
+      "completed_commands": 0,
+      "model_submissions": 1,
+      "prior_history_rows_retained": 8,
+      "new_history_outcomes": [
+        "outcome_unknown"
+      ],
+      "trace_statuses": [
+        200
+      ],
+      "cleanup": {
+        "settings_restored": true,
+        "live_settings_preserved": true,
+        "owned_listeners_closed": true
+      },
+      "artifact_sha256": {
+        "result.json": "651c491e5dcbbdf2cd2871da20c1f1a3f76e2610fb2f301e7df0ef90ee2f75ac",
+        "trace.json": "27c08eeeb374498888aa5f190181fdce797d64ad847bb223e337fd57e0a93f98",
+        "native.jsonl": "00a72525f36c0054bfb3085a878f869e6f96194e4fe3cfcf5008772f272b9bc3",
+        "implementation.patch": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  },
+  "preservation": {
+    "historical_archives": {
+      "local-repair-20261018-v15": {
+        "original_files": 606,
+        "changed_or_missing": 0,
+        "new_files": 0,
+        "unchanged": true
+      },
+      "local-repair-20261018-v16": {
+        "original_files": 1037,
+        "changed_or_missing": 0,
+        "new_files": 0,
+        "unchanged": true
+      }
+    },
+    "live_codex_settings_unchanged": true,
+    "owned_runtime_processes_remaining": 0,
+    "original_and_revision2_freezes_unchanged": true,
+    "archive_stages": {
+      "preparation": {
+        "indexed_files": 491,
+        "bytes": 10859337,
+        "verified": true,
+        "index_sha256": "a63f1dd59bddd72d3dbd1ef3cdcb5a116e57f4409986c8da5bffd775639372e8"
+      },
+      "outcomes": {
+        "indexed_files": 18,
+        "bytes": 40909,
+        "verified": true,
+        "index_sha256": "b1ebe52b863fc45a7cb790c061b7568484417cdd2d3e5841017ceecdda8bf19c"
+      },
+      "preparation-r2": {
+        "indexed_files": 347,
+        "bytes": 4715490,
+        "verified": true,
+        "index_sha256": "6b5dddf2c47bb0882799cf7811ce4e7a8a3b9be53b855534d8af3b43b7103fd8"
+      },
+      "outcomes-r2": {
+        "indexed_files": 74,
+        "bytes": 787001,
+        "verified": true,
+        "index_sha256": "51207d0f7d91293b32c6d2325d86020cf156549cabad88caa7d069572e5aabd0"
+      }
+    },
+    "raw_native_context_published": false
+  }
+}
