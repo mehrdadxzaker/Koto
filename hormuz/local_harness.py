@@ -51,6 +51,18 @@ weaken the specification or existing checks. Finish with the repair and checks
 that actually ran, or the concrete blocker. Native patch hunks use plain @@
 and correctly prefixed lines, without unified-diff line-number ranges.'''
 
+V9_GUIDANCE = V8_GUIDANCE.replace('''For Python verification, use the declared
+Python script helper (script parameter) when offered. Its script is ordinary
+Python with real newlines, not a shell command or JSON test cases. Import and
+call the saved function; do not redefine the implementation in a check. Use
+assertions, including errors and boundaries.''', '''For saved Python functions, prefer the declared function-case helper when
+offered. Supply small cases with actual args and expected values or exceptions,
+plus required identity and state-preservation checks. Opt into batch composition
+only when the original specification requires its sequential-rejection property.
+The plain Python script helper remains available for checks case data cannot
+express. Import the saved function; do not redefine it in a check. Let assertions
+and unexpected exceptions fail the command rather than catching and printing them.''')
+
 
 def _last_failed_command_output(items, declarations, state):
     if state['last_command_exit'] in (None, 0):
@@ -79,13 +91,19 @@ def _script_checkpoint(items, declarations, *, verification_sensitive=False):
                               include_verification=verification_sensitive)
     last = state['last_command_exit']
     failure = _last_failed_command_output(items, declarations, state)
+    python_guidance = (
+        'For Python, prefer the declared function-case helper for small explicit examples against the saved function, '
+        'including required identity, rollback and supported value types. Its batch composition is opt-in only when '
+        'the original specification requires sequential rejection. Use the plain-script helper for other assertions. '
+        if verification_sensitive else
+        'For Python, the declared Python script helper (script parameter) takes one string with actual newlines; use normal Python calls '
+        'and assertions against the saved module, including required rollback and supported value types. ')
     message = ('Local coding checkpoint (subordinate to host and repository instructions):\n'
         f"Native patches saved: {state['native_patches_saved']}; rejected: {state['native_patches_rejected']}; "
         f"latest command exit: {last if last is not None else 'unknown'}; "
         f"pending sessions: {state['pending_sessions']}.\n"
         'These counts do not prove correctness or that assertions executed. Inspect actual tool feedback. '
-        'For Python, the declared Python script helper (script parameter) takes one string with actual newlines; use normal Python calls '
-        'and assertions against the saved module, including required rollback and supported value types. '
+        f'{python_guidance}'
         'After a failure, fix its cause and rerun; do not repeat an unchanged failing command. '
         'After the last edit, obtain passing assertions before reporting success. '
         'If a command is still running, inspect its declared host session before finishing.')
@@ -219,8 +237,27 @@ the saved function with the declared Python check helper when available; follow
 the actual result before reporting completion.'''
 
 
-def _patch_recovery(items, declarations, *, repeated_advice=V3_REPEATED_PATCH):
+def _patch_recovery(items, declarations, *, repeated_advice=V3_REPEATED_PATCH, latest_only=False):
     """Derive advice from correlated native feedback; never repair tool arguments."""
+    if latest_only:
+        state = progress_snapshot(items, declarations, include_attempts=True)
+        if state['pending_sessions'] or state['unresolved_tool_calls']:
+            return ''
+        events = [item for item in items if not (isinstance(item, dict)
+            and (item.get('type') in {'message', 'reasoning'} or item.get('type') is None
+                 and item.get('role') in {'system', 'developer', 'user', 'assistant'}))]
+        latest = events[-1] if events else None
+        call = next((item for item in reversed(events) if isinstance(item, dict)
+                     and item.get('type') == 'function_call'), None)
+        if (not isinstance(latest, dict) or latest.get('type') != 'function_call_output'
+                or call is None or call.get('call_id') != latest.get('call_id')):
+            return ''
+        declaration = declarations.get(call.get('name'), {})
+        if declaration.get('type') != 'custom' or declaration.get('name') != 'apply_patch':
+            return ''
+        if sum(isinstance(item, dict) and item.get('type') == 'function_call_output'
+               and item.get('call_id') == call.get('call_id') for item in events) != 1:
+            return ''
     calls, failures = {}, {}
     repeated = 0
     for item in items:
@@ -263,7 +300,7 @@ def adapt_qwen_request(value, declarations, *, profile=PROFILE):
     instructions = value.get('instructions', '')
     if not isinstance(instructions, str):
         raise ValueError('invalid_harness_instructions')
-    guidance = V8_GUIDANCE if profile in {V8_PROFILE, V9_PROFILE} else V4_GUIDANCE if profile in {V4_PROFILE, V5_PROFILE, V6_PROFILE, V7_PROFILE} else GUIDANCE if profile == PROFILE else V2_GUIDANCE
+    guidance = V9_GUIDANCE if profile == V9_PROFILE else V8_GUIDANCE if profile == V8_PROFILE else V4_GUIDANCE if profile in {V4_PROFILE, V5_PROFILE, V6_PROFILE, V7_PROFILE} else GUIDANCE if profile == PROFILE else V2_GUIDANCE
     value['instructions'] = instructions + '\n\n' + guidance
     for item in value.get('input', []):
         if not isinstance(item, dict) or item.get('type') != 'function_call':
@@ -289,5 +326,8 @@ def adapt_qwen_request(value, declarations, *, profile=PROFILE):
                 repeated_advice=V6_REPEATED_PATCH if profile in {V6_PROFILE, V7_PROFILE} else V4_REPEATED_PATCH)
         elif profile == V3_PROFILE:
             checkpoint += _patch_recovery(value['input'], declarations)
+        elif profile == V9_PROFILE:
+            checkpoint += _patch_recovery(value['input'], declarations,
+                repeated_advice=V6_REPEATED_PATCH, latest_only=True)
         value['input'].append({'type': 'message', 'role': 'developer', 'content': [
             {'type': 'input_text', 'text': checkpoint}]})

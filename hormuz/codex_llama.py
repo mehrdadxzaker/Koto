@@ -53,6 +53,7 @@ class CodexLlamaRequest:
         self.stream_kinds = {}
         self.pending_functions = set()
         self.derived_checks = {}
+        self.derived_compilers = {}
         self.derived_calls = {}
         self.derived_streams = {}
         self.stream_bindings = {}
@@ -121,9 +122,11 @@ class CodexLlamaRequest:
             self.value['input'] = [self._input(item) for item in self.value['input']]
         if harness:
             adapt_qwen_request(self.value, self.declarations, profile=harness)
-        if harness in {'qwen-code.v6', 'qwen-code.v7', 'qwen-code.v8', 'qwen-code.v9'}:
-            self._add_python_checks(feedback=harness == 'qwen-code.v7', script=harness in {'qwen-code.v8', 'qwen-code.v9'},
-                                    prominent=harness == 'qwen-code.v9')
+        if harness == 'qwen-code.v9':
+            self._add_python_checks(feedback=True, prominent=True)
+            self._add_python_checks(script=True, prominent=True)
+        elif harness in {'qwen-code.v6', 'qwen-code.v7', 'qwen-code.v8'}:
+            self._add_python_checks(feedback=harness == 'qwen-code.v7', script=harness == 'qwen-code.v8')
         if harness in {'qwen-code.v8', 'qwen-code.v9'} and isinstance(self.value.get('input'), list):
             from .local_harness_progress import progress_snapshot
             progress = progress_snapshot(self.value['input'], self.declarations, include_attempts=True,
@@ -180,12 +183,13 @@ class CodexLlamaRequest:
         base_alias = 'koto_python' if script else 'koto_python_checks'
         alias = base_alias
         for index in range(1025):
-            if alias not in self.identities:
+            if alias not in self.identities and alias not in self.derived_checks:
                 break
             alias = base_alias + '_' + hashlib.sha256(str(index).encode()).hexdigest()[:16]
         else:
             raise CodexLlamaError('ambiguous_check_tool')
         self.derived_checks[alias] = {'target': target, 'workdir': 'workdir' in parameters, 'argument': argument}
+        self.derived_compilers[alias] = compiler
         self.compile_checks = compiler
         self.value['tools'].append({'type': 'function', 'name': alias, 'strict': True,
             'description': ('Run a Python script through the existing host command tool, with its normal permissions and actual results. Write plain Python with real newlines; import saved code and use assertions for verification.' if script else
@@ -193,14 +197,22 @@ class CodexLlamaRequest:
             'parameters': {'type': 'object', 'properties': parameters, 'required': [argument],
                            'additionalProperties': False}})
         if prominent:
-            self.value['tools'].insert(0, self.value['tools'].pop())
+            self.value['tools'].insert(len(self.derived_checks) - 1, self.value['tools'].pop())
             self.value['instructions'] += (
                 '\n\nLocal Python verification helper (subordinate to host, repository and user instructions): '
-                f'Prefer {alias} for your own Python verification. Supply its script argument as plain Python source '
-                'with real newlines; the helper quotes it for the existing host command tool. '
-                'Avoid constructing nested shell or python3 -c strings. Import the saved module and combine compact '
-                'assertions for the original requirements in one script. Use unittest.TestCase().assertRaises '
-                'for specified exceptions, then assert any required state preservation. Inspect actual host results.')
+                + (f'Use {alias} as the plain Python script fallback. Supply its script argument as plain Python source '
+                   'with real newlines; the helper quotes it for the existing host command tool. '
+                   'Avoid constructing nested shell or python3 -c strings. Import the saved module and combine compact '
+                   'assertions for the original requirements in one script. Use unittest.TestCase().assertRaises '
+                   'for specified exceptions, then assert any required state preservation. Inspect actual host results.'
+                   if script else
+                   f'Prefer {alias} for your own Python verification. Supply its checks argument with the saved module '
+                   'path, function, and your own cases and expected results or specified exceptions from the original task. '
+                   'Use atomic_batch only when the original task requires both unchanged state on rejection and '
+                   'a combined ordered batch to reject whenever its sequential execution rejects; '
+                   'supply compatible successful and rejecting cases so composition checks can exercise a changed prefix '
+                   'before a later rejection. The helper derives bounded compositions of your supplied batches; it does '
+                   'not supply task inputs or expected results. Inspect actual host results.'))
 
     def _derived_identity(self, item):
         if (set(item) - {'type', 'id', 'call_id', 'name', 'arguments', 'status'}
@@ -249,7 +261,7 @@ class CodexLlamaRequest:
             if record['signature'] != signature:
                 raise CodexLlamaError('mismatched_check_arguments')
             return record['compiled']
-        command = self.compile_checks(arguments[argument])
+        command = self.derived_compilers[alias](arguments[argument])
         if not isinstance(command, str) or len(command.encode('utf-8')) > MAX_CHECK_COMMAND:
             raise CodexLlamaError('invalid_compiled_check')
         native = {'cmd': command}

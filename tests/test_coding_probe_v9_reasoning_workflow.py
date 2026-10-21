@@ -8,6 +8,8 @@ import unittest
 
 from hormuz._contract_schemas.local_coding import canonical_digest, coding_input
 from hormuz.contracts import validate_contract
+from hormuz.local_python_checks import FEEDBACK_CHECKS_SCHEMA, compile_feedback_checks
+from hormuz.local_python_script import SCRIPT_SCHEMA, compile_script
 from tests import test_coding_output_workflow as coding
 from tests import test_connected_client_lifetime_workflow as lifetime
 
@@ -24,7 +26,13 @@ class CodingProbeV9ReasoningWorkflowTests(unittest.TestCase):
             # The provider uses offered tools; the host sees its native tools.
             # Capture the adapted boundary, without executing a model
             # or the scripted native commands.
-            scripted = '''        capture=pathlib.Path(__file__).with_name("provider-requests.jsonl")
+            checks_spec = {'module_path': 'solution.py', 'function': 'transform',
+                           'cases': [{'args': [3]}]}
+            script = 'assert 2 + 2 == 4'
+            workdir = '/native/workspace'
+            scripted = (f'        checks_spec={checks_spec!r}\n'
+                        f'        script={script!r}\n'
+                        f'        workdir={workdir!r}\n') + '''        capture=pathlib.Path(__file__).with_name("provider-requests.jsonl")
         with capture.open("a") as observed:
             observed.write(json.dumps(body)+"\\n")
         step=len(capture.read_text().splitlines())
@@ -32,7 +40,8 @@ class CodingProbeV9ReasoningWorkflowTests(unittest.TestCase):
             {"type":"function_call","call_id":"patch-saved","name":"apply_patch", "arguments":json.dumps({"input":"*** Begin Patch\\n*** Update File: solution.py\\n@@\\n-    return value\\n+    return value + 1\\n*** End Patch"})},
             {"type":"function_call","call_id":"print-check","name":"exec_command", "arguments":json.dumps({"cmd":"python3 -c 'print(4)'"})},
             {"type":"function_call","call_id":"exception-check","name":"exec_command", "arguments":json.dumps({"cmd":"python3 -c 'try:\\n    {}[\\\"missing\\\"]\\nexcept KeyError as error:\\n    assert str(error) == \\\"missing\\\"'"})},
-            {"type":"function_call","call_id":"assert-check","name":"koto_python", "arguments":json.dumps({"script":"assert 2 + 2 == 4"})}]
+            {"type":"function_call","id":"checks-item","call_id":"checks-call","name":"koto_python_checks", "arguments":json.dumps({"checks":checks_spec,"workdir":workdir})},
+            {"type":"function_call","id":"script-item","call_id":"script-call","name":"koto_python", "arguments":json.dumps({"script":script,"workdir":workdir})}]
         if step <= len(calls):
             result["output"]=[calls[step-1]]
             if step == 1:
@@ -58,7 +67,7 @@ class CodingProbeV9ReasoningWorkflowTests(unittest.TestCase):
             plan = {'schema_id': 'hormuz.coding-probe-plan', 'schema_version': 5,
                 'campaign_id': 'synthetic-v9-reasoning', 'plan_sha256': evidence['plan_sha256'],
                 'case_id': 'synthetic-case', 'task_sha256': 'a' * 64, 'checks_sha256': 'b' * 64,
-                'model': 'local-code', 'max_requests': 5, 'max_elapsed_seconds': 180,
+                'model': 'local-code', 'max_requests': 6, 'max_elapsed_seconds': 180,
                 'first_input_sha256': canonical_digest(coding_input(request['input'], schema_version=4)),
                 'subject': deepcopy(evidence['plan']['subject'])}
             validate_contract(plan)
@@ -104,22 +113,31 @@ class CodingProbeV9ReasoningWorkflowTests(unittest.TestCase):
             failure_output = command_output(1, 'Traceback (most recent call last):\nKeyError: \'missing\'\n'
                 '\nDuring handling of the above exception, another exception occurred:\n\n'
                 'Traceback (most recent call last):\nAssertionError\n')
-            outputs = [print_output, failure_output, command_output(0, '')]
-            expected_budgets = [256, 256, 16]
+            checks_output = command_output(2, 'KOTO_CHECK_INPUT_ERROR expected_xor_raises_required: '
+                'Provide exactly one of expected or raises in each case; omit the other field '
+                'rather than setting it to null.\n')
+            outputs = [print_output, failure_output, checks_output, command_output(0, '')]
+            expected_budgets = [256, 256, 256, 16]
             previous = second
             for index, (output, budget) in enumerate(zip(outputs, expected_budgets)):
                 call = previous['body']['output'][0]
                 self.assertEqual((call['type'], call['name']), ('function_call', 'exec_command'))
                 if index == 2:
-                    self.assertEqual(json.loads(call['arguments'])['cmd'], "python3 -c 'assert 2 + 2 == 4'")
+                    self.assertEqual((call['id'], call['call_id']), ('checks-item', 'checks-call'))
+                    self.assertEqual(json.loads(call['arguments']),
+                        {'cmd': compile_feedback_checks(checks_spec), 'workdir': workdir})
+                elif index == 3:
+                    self.assertEqual((call['id'], call['call_id']), ('script-item', 'script-call'))
+                    self.assertEqual(json.loads(call['arguments']),
+                        {'cmd': compile_script(script), 'workdir': workdir})
+                self.assertNotIn('namespace', call)
                 continuation['input'] += previous['body']['output'] + [
                     {'type': 'function_call_output', 'call_id': call['call_id'], 'output': output}]
                 request_path.write_text(json.dumps(continuation))
                 previous = f.client(*options)
                 self.assertEqual(previous['status'], 200, previous)
                 body = captured()[-1]
-                self.assertEqual(body['tools'][0]['name'], 'koto_python')
-                self.assertIn('Prefer koto_python for your own Python verification.', body['instructions'])
+                self.assertIn('Prefer koto_python_checks', body['instructions'])
                 self.assertEqual(body.get('tool_choice', 'auto'), 'auto')
                 self.assertEqual(body['reasoning_budget_tokens'], budget)
                 checkpoint = '\n'.join(part['text'] for part in body['input'][-1]['content'])
@@ -128,20 +146,32 @@ class CodingProbeV9ReasoningWorkflowTests(unittest.TestCase):
                 elif index == 1:
                     self.assertIn('assertRaises(KeyError, callable, ...)', checkpoint)
                     self.assertIn('original specification', checkpoint)
+                elif index == 2:
+                    self.assertIn('latest command exit: 2', checkpoint)
                 else:
                     self.assertIn('Recognized assertion intent in the latest successful command: observed.', checkpoint)
                 # Native feedback stays intact; it is not copied into advice.
                 self.assertEqual([item['output'] for item in body['input']
                     if item.get('type') == 'function_call_output'][-1], output)
                 self.assertNotIn('Traceback (most recent call last):', checkpoint)
+                self.assertNotIn('KOTO_CHECK_INPUT_ERROR', checkpoint)
+            for body in captured():
+                self.assertEqual([tool['name'] for tool in body['tools']],
+                    ['koto_python_checks', 'koto_python', 'exec_command', 'apply_patch'])
+                checks_tool, script_tool = body['tools'][:2]
+                self.assertEqual(checks_tool['parameters']['properties']['checks'], FEEDBACK_CHECKS_SCHEMA)
+                self.assertEqual(script_tool['parameters']['properties']['script'], SCRIPT_SCHEMA)
+                self.assertEqual(checks_tool['parameters']['required'], ['checks'])
+                self.assertEqual(script_tool['parameters']['required'], ['script'])
+                self.assertEqual(body['tools'][2], native['declarations']['exec_command'])
             self.assertIn('MANAGED_LOCAL', json.dumps(previous['body']))
             self.assertNotEqual(f.client(*options)['status'], 200)
             status = json.loads(f.command('qualify').stdout)
-            self.assertEqual((status['submitted_requests'], status['automatic_admission_effect']), (5, 'none'))
+            self.assertEqual((status['submitted_requests'], status['automatic_admission_effect']), (6, 'none'))
             self.assertEqual(f.client(*ordinary)['status'], 503)
             state = json.loads(f.command('status', '--routing').stdout)['routes'][0]
             self.assertEqual((state['coding_readiness'], state['automatic_task_types']), ('unknown', []))
-            self.assertEqual((engine / 'inference-count').read_text().splitlines(), ['1'] * 5)
+            self.assertEqual((engine / 'inference-count').read_text().splitlines(), ['1'] * 6)
             self.assertEqual(cloud_requests, [])
             f.command('disconnect')
             self.assertEqual(f.client('inspect')['model'], 'original-model')

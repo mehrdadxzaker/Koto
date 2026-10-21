@@ -26,7 +26,7 @@ class LocalHarnessV9Tests(unittest.TestCase):
         original = deepcopy(request)
         adapted = CodexLlamaRequest(request, harness='qwen-code.v9').value
         previous = CodexLlamaRequest(request, harness='qwen-code.v8').value
-        self.assertEqual({tool['name']: tool for tool in adapted['tools']},
+        self.assertEqual({tool['name']: tool for tool in adapted['tools'][1:]},
                          {tool['name']: tool for tool in previous['tools']})
         self.assertEqual(adapted['reasoning_budget_tokens'], 32)
         self.assertEqual(request, original)
@@ -38,8 +38,9 @@ class LocalHarnessV9Tests(unittest.TestCase):
         previous = CodexLlamaRequest(request, harness='qwen-code.v8').value
         helper = previous['tools'][-1]
         self.assertIn(helper['name'], adapted['instructions'])
-        self.assertEqual(adapted['tools'][0], helper)
-        self.assertEqual(adapted['tools'][1:], previous['tools'][:-1])
+        self.assertEqual(adapted['tools'][0]['parameters']['required'], ['checks'])
+        self.assertEqual(adapted['tools'][1], helper)
+        self.assertEqual(adapted['tools'][2:], previous['tools'][:-1])
         self.assertIn('plain Python source', adapted['instructions'])
         self.assertEqual(adapted['tool_choice'], request['tool_choice'])
         self.assertEqual(request, original)
@@ -50,11 +51,12 @@ class LocalHarnessV9Tests(unittest.TestCase):
             'parameters': {'type': 'object', 'properties': {}, 'required': [], 'additionalProperties': False}})
         original = deepcopy(request)
         adapted = CodexLlamaRequest(request, harness='qwen-code.v9').value
-        alias = adapted['tools'][0]['name']
+        alias = adapted['tools'][1]['name']
         self.assertNotEqual(alias, 'koto_python')
-        self.assertIn('Prefer ' + alias + ' for your own Python verification.', adapted['instructions'])
+        self.assertIn('Use ' + alias + ' as the plain Python script fallback.', adapted['instructions'])
+        self.assertIn('Prefer ' + adapted['tools'][0]['name'], adapted['instructions'])
         previous = CodexLlamaRequest(request, harness='qwen-code.v8').value
-        self.assertEqual(adapted['tools'][1:], previous['tools'][:-1])
+        self.assertEqual(adapted['tools'][2:], previous['tools'][:-1])
         self.assertEqual(request, original)
         for choice in ('none', 'required'):
             with self.subTest(choice=choice):

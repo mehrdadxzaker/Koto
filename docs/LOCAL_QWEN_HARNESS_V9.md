@@ -36,12 +36,25 @@ while preserving any original message requirement and every existing check.
 The checkpoint supplies static guidance, without copying program output into
 instructions or deciding an expected value.
 
-V9 also presents the existing Python script helper first and names its actual
-allocated alias in subordinate guidance. This includes collision-safe aliases.
-The host's original tools retain their bodies and relative order; tool choice
-and non-automatic host restrictions stay unchanged. The helper accepts plain
-source and compiles it to the existing native command, avoiding model-authored
-nested shell quoting. No script is repaired, executed or marked correct by Koto.
+V9 presents the existing recoverable function-case helper first, then the plain
+Python script helper as fallback. Guidance names their actual collision-safe
+aliases and respective arguments. Each retains its existing compiler and shares
+the existing bounded identity, buffering and compiled-command limits. When only
+one catalog slot remains, the function-case helper takes priority. The host's
+original tools retain their bodies and relative order; tool choice and
+non-automatic host restrictions stay unchanged.
+
+The function-case helper takes model-supplied examples and expectations. Its
+existing optional batch composition repeats/combines those same batches to
+compare sequential rejection with combined acceptance and state preservation.
+Use that property only when the original specification supports it; atomicity
+alone is insufficient. No independent oracle, invented operation, expected value
+or comprehensive coverage is supplied. The script helper still accepts plain
+source unchanged. Both compile commands for the existing host to execute.
+
+V9 also restores native patch-format recovery after the latest correlated
+numbered-hunk rejection. Pending, later, unknown or duplicate feedback cannot
+reuse that advice. Koto never repairs a patch argument or declares it executed.
 
 ## Controls and compatibility
 
@@ -73,5 +86,10 @@ finish. Those failures are retained separately. A reconstructed pure-adapter
 replay preserved feedback, recovery guidance and compute policy; it does not
 prove historical model receipt or compliance. Making the existing script helper
 more visible is a subsequent usability hypothesis, not an established gain.
-The separate three-pair study is pending; v9 must remain unqualified until actual outcomes are recorded. These
+The subsequent a33 diagnostic completed list-key normally with a passing checker
+in115451ms, while stock still missed cumulative demand and failed its checker at
+180012ms without a completed turn. One pass is not repeatability. The structured
+verification and patch-recovery changes are a subsequent a34 experiment.
+The separate three-pair study is pending; v9 must remain unqualified until actual
+outcomes are recorded. These
 known development tasks cannot establish held-out or ordinary90-second readiness.
