@@ -29,6 +29,40 @@ class PythonVerificationIntentTests(unittest.TestCase):
         self.assertFalse(has_python_assertions(
             "python3 -c 'from unittest import TestCase; TestCase = arbitrary; TestCase().assertEqual(1, 1)'"))
 
+    def test_saved_unittest_receivers_are_recognized(self):
+        from hormuz.local_verification import has_python_assertions
+
+        for source in (
+            'import unittest; check = unittest.TestCase(); check.assertEqual(1, 1)',
+            'import unittest as unit; check = unit.TestCase(); check.assertIs(None, None)',
+            'from unittest import TestCase as Case; check = Case(); check.assertRaises(ValueError, operation)',
+        ):
+            with self.subTest(source=source):
+                self.assertTrue(has_python_assertions('python3 -c ' + shlex.quote(source)))
+
+    def test_ambiguous_or_modified_saved_receivers_stay_unknown(self):
+        from hormuz.local_verification import has_python_assertions
+
+        for suffix in (
+            'check = arbitrary; check.assertEqual(1, 1)',
+            'del check; check.assertEqual(1, 1)',
+            'check.assertEqual = print; check.assertEqual(1, 1)',
+            'def nested(check):\n check.assertEqual(1, 1)',
+            'def check(): pass\ncheck.assertEqual(1, 1)',
+            'import arbitrary as check; check.assertEqual(1, 1)',
+            'try:\n pass\nexcept Exception as check:\n check.assertEqual(1, 1)',
+            'match arbitrary:\n case check: pass\ncheck.assertEqual(1, 1)',
+            'match arbitrary:\n case [*check]: pass\ncheck.assertEqual(1, 1)',
+            'match arbitrary:\n case {**check}: pass\ncheck.assertEqual(1, 1)',
+        ):
+            with self.subTest(suffix=suffix):
+                source = 'import unittest\ncheck = unittest.TestCase()\n' + suffix
+                self.assertFalse(has_python_assertions('python3 -c ' + shlex.quote(source)))
+        self.assertFalse(has_python_assertions(
+            "python3 -c 'import unittest; check = arbitrary; check.assertEqual(1, 1)'"))
+        self.assertFalse(has_python_assertions('python3 -c ' + shlex.quote(
+            'import unittest\nif condition:\n check = unittest.TestCase()\ncheck.assertEqual(1, 1)')))
+
     def test_unknown_shell_disabled_invalid_and_oversized_forms_stay_conservative(self):
         from hormuz.local_verification import has_python_assertions
 

@@ -29,10 +29,13 @@ class CodingProbeV9ReasoningWorkflowTests(unittest.TestCase):
             # or the scripted native commands.
             checks_spec = {'module_path': 'solution.py', 'function': 'transform',
                            'cases': [{'arguments': {'value': 3}}]}
+            valid_checks = {'module_path': 'solution.py', 'function': 'transform',
+                            'cases': [{'arguments': {'value': 3}, 'expected': 4}]}
             script = 'assert 2 + 2 == 4'
             edit = {'path': 'solution.py', 'old_text': '    return value', 'new_text': '    return value + 1'}
             workdir = '/native/workspace'
             scripted = (f'        checks_spec={checks_spec!r}\n'
+                        f'        valid_checks={valid_checks!r}\n'
                         f'        script={script!r}\n'
                         f'        edit={edit!r}\n'
                         f'        workdir={workdir!r}\n') + '''        capture=pathlib.Path(__file__).with_name("provider-requests.jsonl")
@@ -44,6 +47,7 @@ class CodingProbeV9ReasoningWorkflowTests(unittest.TestCase):
             {"type":"function_call","call_id":"print-check","name":"exec_command", "arguments":json.dumps({"cmd":"python3 -c 'print(4)'"})},
             {"type":"function_call","call_id":"exception-check","name":"exec_command", "arguments":json.dumps({"cmd":"python3 -c 'try:\\n    {}[\\\"missing\\\"]\\nexcept KeyError as error:\\n    assert str(error) == \\\"missing\\\"'"})},
             {"type":"function_call","id":"checks-item","call_id":"checks-call","name":"koto_python_checks", "arguments":json.dumps({"checks":checks_spec,"workdir":workdir})},
+            {"type":"function_call","id":"valid-checks-item","call_id":"valid-checks-call","name":"koto_python_checks", "arguments":json.dumps({"checks":valid_checks,"workdir":workdir})},
             {"type":"function_call","id":"script-item","call_id":"script-call","name":"koto_python", "arguments":json.dumps({"script":script,"workdir":workdir})}]
         if step <= len(calls):
             result["output"]=[calls[step-1]]
@@ -70,7 +74,7 @@ class CodingProbeV9ReasoningWorkflowTests(unittest.TestCase):
             plan = {'schema_id': 'hormuz.coding-probe-plan', 'schema_version': 5,
                 'campaign_id': 'synthetic-v9-reasoning', 'plan_sha256': evidence['plan_sha256'],
                 'case_id': 'synthetic-case', 'task_sha256': 'a' * 64, 'checks_sha256': 'b' * 64,
-                'model': 'local-code', 'max_requests': 6, 'max_elapsed_seconds': 180,
+                'model': 'local-code', 'max_requests': 7, 'max_elapsed_seconds': 180,
                 'first_input_sha256': canonical_digest(coding_input(request['input'], schema_version=4)),
                 'subject': deepcopy(evidence['plan']['subject'])}
             validate_contract(plan)
@@ -121,8 +125,8 @@ class CodingProbeV9ReasoningWorkflowTests(unittest.TestCase):
                 'Traceback (most recent call last):\nAssertionError\n')
             checks_output = command_output(2, 'KOTO_CHECK_INPUT_ERROR invalid_named_case: '
                 'Use arguments and exactly one of expected or raises; include only applicable fields.\n')
-            outputs = [print_output, failure_output, checks_output, command_output(0, '')]
-            expected_budgets = [256, 256, 256, 16]
+            outputs = [print_output, failure_output, checks_output, command_output(0, ''), command_output(0, '')]
+            expected_budgets = [256, 256, 256, 16, 16]
             previous = second
             for index, (output, budget) in enumerate(zip(outputs, expected_budgets)):
                 call = previous['body']['output'][0]
@@ -132,6 +136,10 @@ class CodingProbeV9ReasoningWorkflowTests(unittest.TestCase):
                     self.assertEqual(json.loads(call['arguments']),
                         {'cmd': compile_named_feedback_checks(checks_spec), 'workdir': workdir})
                 elif index == 3:
+                    self.assertEqual((call['id'], call['call_id']), ('valid-checks-item', 'valid-checks-call'))
+                    self.assertEqual(json.loads(call['arguments']),
+                        {'cmd': compile_named_feedback_checks(valid_checks), 'workdir': workdir})
+                elif index == 4:
                     self.assertEqual((call['id'], call['call_id']), ('script-item', 'script-call'))
                     self.assertEqual(json.loads(call['arguments']),
                         {'cmd': compile_script(script), 'workdir': workdir})
@@ -174,11 +182,11 @@ class CodingProbeV9ReasoningWorkflowTests(unittest.TestCase):
             self.assertIn('MANAGED_LOCAL', json.dumps(previous['body']))
             self.assertNotEqual(f.client(*options)['status'], 200)
             status = json.loads(f.command('qualify').stdout)
-            self.assertEqual((status['submitted_requests'], status['automatic_admission_effect']), (6, 'none'))
+            self.assertEqual((status['submitted_requests'], status['automatic_admission_effect']), (7, 'none'))
             self.assertEqual(f.client(*ordinary)['status'], 503)
             state = json.loads(f.command('status', '--routing').stdout)['routes'][0]
             self.assertEqual((state['coding_readiness'], state['automatic_task_types']), ('unknown', []))
-            self.assertEqual((engine / 'inference-count').read_text().splitlines(), ['1'] * 6)
+            self.assertEqual((engine / 'inference-count').read_text().splitlines(), ['1'] * 7)
             self.assertEqual(cloud_requests, [])
             f.command('disconnect')
             self.assertEqual(f.client('inspect')['model'], 'original-model')

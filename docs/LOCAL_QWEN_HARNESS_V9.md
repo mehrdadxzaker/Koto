@@ -27,6 +27,23 @@ does not prove execution, coverage, correctness or qualification. The host's
 actual tool result stays unchanged. No assertion, test data or command is added,
 rewritten or executed by this observation.
 
+Runtime a37 corrects an integration defect in that observation: the generated
+function-case driver saves `unittest.TestCase()` in a variable, whereas the
+observer previously recognized only inline constructor calls. A single direct
+assignment is now recognized; reassigned, deleted, shadowed or modified receivers
+remain unknown. The public adapter and Router regression tests cover the actual
+compiled command followed by successful and failed native feedback. This fixes
+the assertion-intent observation, not missing requirements in model-authored
+checks or incorrect model repairs.
+
+The Router request module now owns local guidance, helper admission and compute
+hints together. It shares one native progress observation across checkpoint,
+latest patch recovery and compute allocation. Native tool flattening, history
+translation, response identity, stream handling and cache limits stay in the
+transport adapter. Refactor-only comparisons preserve the emitted requests and
+derived compiler bindings for default and v1–v9 profiles, including string input,
+explicit `none` effort and tool-catalog limits. No profile or budget is added.
+
 A retained list-key episode saved code that passed the independent checker but
 repeated a failing newly authored check of KeyError's formatted message. The
 task required an exception type. V9 explains that an authored check can add an

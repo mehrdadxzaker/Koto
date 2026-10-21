@@ -1,6 +1,7 @@
 """Both v9 verification interfaces retain the existing native command boundary."""
 from copy import deepcopy
 import json
+from pathlib import Path
 import unittest
 
 from hormuz.codex_llama import CodexLlamaError, CodexLlamaRequest
@@ -87,6 +88,28 @@ class LocalHarnessV9ChecksTransportTests(unittest.TestCase):
                 request['input'] += history
                 replayed = self.adapter(request).value['input']
                 self.assertEqual(replayed[1:1 + len(history)], history)
+
+    def test_compiled_named_checks_are_observed_after_actual_native_feedback(self):
+        fixture = json.loads((Path(__file__).parent / 'fixtures/codex-0160-native-progress.json').read_text())
+        for successful in (True, False):
+            with self.subTest(successful=successful):
+                request = synthetic_requests()['saved_patch_without_later_command']
+                request.update(reasoning={'effort': 'low'}, max_output_tokens=2048)
+                adapter = self.adapter(request)
+                call = self.calls(adapter, ('checks',))[0]
+                response = {'status': 'completed', 'output': [call]}
+                native = json.loads(adapter.feed(json.dumps(response).encode(),
+                    event_stream=False, final=True))['output'][0]
+                result = fixture['cases']['exec_success' if successful else 'exec_failure']['result']['output']
+                request['input'] += [native, {'type': 'function_call_output',
+                    'call_id': native['call_id'], 'output': result}]
+                original = deepcopy(request)
+                resumed = self.adapter(request).value
+                self.assertEqual(resumed['reasoning_budget_tokens'], 16 if successful else 256)
+                if successful:
+                    self.assertIn('Recognized assertion intent in the latest successful command: observed.',
+                                  resumed['input'][-1]['content'][0]['text'])
+                self.assertEqual(request, original)
 
     def test_interleaved_streams_hide_raw_helper_arguments_and_match_terminal_commands(self):
         for order in (('checks', 'script'), ('script', 'checks')):

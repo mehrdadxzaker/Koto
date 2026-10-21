@@ -4,17 +4,15 @@ import hashlib
 import json
 import re
 from .compaction_formats import strict_json_loads
-from .local_harness import PROFILES, adapt_qwen_request
+from .local_harness import PROFILES
+from .local_harness_request import (LocalHarnessRequest, LocalHarnessRequestError,
+    PINNED_CODEX_0160_EXEC_SHA256, PINNED_CODEX_0160_PATCH_SHA256)
 
 CAPABILITY = 'codex_llama_v1'
 MAX_FRAME = 2 * 1024 * 1024
 MAX_CHECK_ARGUMENTS = 65536
 MAX_CHECK_COMMAND = 128 * 1024
 MAX_COMPILED_CHECK_CACHE = 512 * 1024
-# Canonical declaration observed in all twelve pinned Codex 0.160.0 captures.
-# Flat same-name functions are otherwise insufficient evidence of a native tool.
-PINNED_CODEX_0160_EXEC_SHA256 = '7ecb0f4f51b3982e36be43a9d08daa05348d7dd5f70646231b1f0f9823f40ec3'
-PINNED_CODEX_0160_PATCH_SHA256 = '5947b870d79e16bddc34946a4afb6200ff14a97f8419a2d23f8e5040af9a7154'
 PARENT_TAGS = {'parent_turn_id', 'x-codex-parent-thread-id', 'x-openai-subagent'}
 
 
@@ -83,11 +81,6 @@ class CodexLlamaRequest:
         self.value['chat_template_kwargs'] = {'enable_thinking': reasoning.get('effort') != 'none'}
         limit = value.get('max_output_tokens', 8192)
         budget = min(1024, max(1, limit // 2)) if type(limit) is int and limit > 0 else 1024
-        if harness in {'qwen-code.v8', 'qwen-code.v9'}:
-            # Keep low-effort local requests from spending the whole host
-            # deadline on thought before producing their first tool call.
-            budget = min(budget, {'minimal': 128, 'low': 256, 'medium': 512}.get(
-                reasoning.get('effort', 'medium'), 1024))
         self.value['reasoning_budget_tokens'] = budget if reasoning.get('effort') != 'none' else 0
         tools = value.get('tools', [])
         if type(tools) is not list or len(tools) > 1024:
@@ -121,146 +114,15 @@ class CodexLlamaRequest:
             self.value['tools'] = flattened
         if isinstance(self.value.get('input'), list):
             self.value['input'] = [self._input(item) for item in self.value['input']]
-        if harness:
-            adapt_qwen_request(self.value, self.declarations, profile=harness)
-        if harness == 'qwen-code.v9':
-            self._add_python_checks(named=True, prominent=True)
-            self._add_python_checks(script=True, prominent=True)
-            self._add_text_patch()
-        elif harness in {'qwen-code.v6', 'qwen-code.v7', 'qwen-code.v8'}:
-            self._add_python_checks(feedback=harness == 'qwen-code.v7', script=harness == 'qwen-code.v8')
-        if harness in {'qwen-code.v8', 'qwen-code.v9'} and isinstance(self.value.get('input'), list):
-            from .local_harness_progress import progress_snapshot
-            progress = progress_snapshot(self.value['input'], self.declarations, include_attempts=True,
-                                         include_verification=harness == 'qwen-code.v9')
-            if not progress['pending_sessions'] and not progress['unresolved_tool_calls']:
-                cap = None
-                if (progress['native_patches_saved'] and progress['completed_commands_since_last_native_patch']
-                        and progress['last_command_exit'] == 0 and progress['last_attempt_command_succeeded']
-                        and (harness != 'qwen-code.v9' or progress['latest_command_verification_intent'])):
-                    cap = 16
-                elif reasoning.get('effort') in {'low', 'minimal'} and isinstance(value.get('input'), list):
-                    if not progress['tool_history_seen']:
-                        cap = 32
-                    elif progress['last_attempt_patch_saved']:
-                        cap = 64
-                # Compute allocation only: these phases do not prove assertions
-                # ran or that the task is correct. Uncertain work keeps its budget.
-                if cap is not None:
-                    self.value['reasoning_budget_tokens'] = min(self.value['reasoning_budget_tokens'], cap)
-
-    def _add_python_checks(self, *, feedback=False, script=False, named=False, prominent=False):
-        """Offer a private compiler only for an existing, identified host command."""
-        if self.value.get('tool_choice', 'auto') != 'auto' or len(self.value.get('tools', [])) >= 1024:
-            return
-        targets = []
-        for alias, identity in self.identities.items():
-            if alias not in self.original_tool_aliases:
-                continue
-            namespace, name, kind = identity
-            declaration = self.declarations[alias]
-            digest = hashlib.sha256(json.dumps(declaration, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
-            native = namespace == 'functions' or namespace is None and digest == PINNED_CODEX_0160_EXEC_SHA256
-            schema = declaration.get('parameters', {})
-            properties = schema.get('properties', {}) if isinstance(schema, dict) else {}
-            if (native and name == 'exec_command' and kind == 'function' and isinstance(schema, dict)
-                    and schema.get('type') == 'object' and isinstance(properties, dict)
-                    and isinstance(properties.get('cmd'), dict) and properties['cmd'].get('type') == 'string'
-                    and schema.get('required') == ['cmd']):
-                targets.append(alias)
-        if len(targets) != 1:
-            return
-        if script:
-            from .local_python_script import SCRIPT_SCHEMA as checks_schema, compile_script as compiler
-        elif named:
-            from .local_python_named_checks import NAMED_CHECKS_SCHEMA as checks_schema, compile_named_feedback_checks as compiler
-        elif feedback:
-            from .local_python_checks import FEEDBACK_CHECKS_SCHEMA as checks_schema, compile_feedback_checks as compiler
-        else:
-            from .local_python_checks import CHECKS_SCHEMA as checks_schema, compile_checks as compiler
-        target = targets[0]
-        properties = self.declarations[target]['parameters']['properties']
-        argument = 'script' if script else 'checks'
-        parameters = {argument: copy.deepcopy(checks_schema)}
-        if isinstance(properties.get('workdir'), dict) and properties['workdir'].get('type') == 'string':
-            parameters['workdir'] = copy.deepcopy(properties['workdir'])
-        base_alias = 'koto_python' if script else 'koto_python_checks'
-        alias = base_alias
-        for index in range(1025):
-            if alias not in self.identities and alias not in self.derived_checks:
-                break
-            alias = base_alias + '_' + hashlib.sha256(str(index).encode()).hexdigest()[:16]
-        else:
-            raise CodexLlamaError('ambiguous_check_tool')
-        self.derived_checks[alias] = {'target': target, 'workdir': 'workdir' in parameters, 'argument': argument,
-                                      'native_field': 'cmd'}
-        self.derived_compilers[alias] = compiler
-        self.compile_checks = compiler
-        self.value['tools'].append({'type': 'function', 'name': alias, 'strict': True,
-            'description': ('Run a Python script through the existing host command tool, with its normal permissions and actual results. Write plain Python with real newlines; import saved code and use assertions for verification.' if script else
-                'Check supplied cases against a saved local Python function through the existing host command tool. Supply real expected results from the task; these checks are not independent qualification.'),
-            'parameters': {'type': 'object', 'properties': parameters, 'required': [argument],
-                           'additionalProperties': False}})
-        if prominent:
-            self.value['tools'].insert(len(self.derived_checks) - 1, self.value['tools'].pop())
-            self.value['instructions'] += (
-                '\n\nLocal Python verification helper (subordinate to host, repository and user instructions): '
-                + (f'Use {alias} as the plain Python script fallback. Supply its script argument as plain Python source '
-                   'with real newlines; the helper quotes it for the existing host command tool. '
-                   'Avoid constructing nested shell or python3 -c strings. Import the saved module and combine compact '
-                   'assertions for the original requirements in one script. Use unittest.TestCase().assertRaises '
-                   'for specified exceptions, then assert any required state preservation. Inspect actual host results.'
-                   if script else
-                   f'Prefer {alias} for your own Python verification. Supply its checks argument with the saved module '
-                   'path, function, and your own cases. Put each call in an arguments object keyed by the saved '
-                   'function parameter names; use the same parameter names in each case. Supply either expected '
-                   'or raises. Use same_as only for a successful return, and unchanged for state that must be preserved. '
-                   'Use parameter names in atomic_batch as well. Derive all inputs and expectations from the original task. '
-                   'Use atomic_batch only when the original task requires both unchanged state on rejection and '
-                   'a combined ordered batch to reject whenever its sequential execution rejects; '
-                   'supply compatible successful and rejecting cases so composition checks can exercise a changed prefix '
-                   'before a later rejection. The helper derives bounded compositions of your supplied batches; it does '
-                   'not supply task inputs or expected results. Inspect actual host results.'))
-
-    def _add_text_patch(self):
-        """Translate replacement data only into an identified original host patch tool."""
-        if self.value.get('tool_choice', 'auto') != 'auto' or len(self.value.get('tools', [])) >= 1024:
-            return
-        targets = []
-        for alias in self.original_tool_aliases:
-            namespace, name, kind = self.identities[alias]
-            declaration = self.declarations[alias]
-            digest = hashlib.sha256(json.dumps(declaration, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
-            native = namespace == 'functions' or namespace is None and digest == PINNED_CODEX_0160_PATCH_SHA256
-            form = declaration.get('format', {})
-            if (native and name == 'apply_patch' and kind == 'custom'
-                    and form.get('type') == 'grammar' and form.get('syntax') == 'lark'):
-                targets.append(alias)
-        if len(targets) != 1:
-            return
-        from .local_text_patch import TEXT_PATCH_SCHEMA, compile_text_patch
-        alias = 'koto_replace'
-        for index in range(1025):
-            if alias not in self.identities and alias not in self.derived_checks:
-                break
-            alias = 'koto_replace_' + hashlib.sha256(str(index).encode()).hexdigest()[:16]
-        else:
-            raise CodexLlamaError('ambiguous_check_tool')
-        self.derived_checks[alias] = {'target': targets[0], 'workdir': False, 'argument': 'edit',
-                                      'native_field': 'input'}
-        self.derived_compilers[alias] = compile_text_patch
-        self.value['tools'].insert(0, {'type': 'function', 'name': alias, 'strict': True,
-            'description': 'Replace exact saved text through the existing native patch tool and its normal permissions. '
-                           'Supply a relative path, old_text copied from the saved file, and your intended new_text. '
-                           'Inspect the actual host patch result.',
-            'parameters': {'type': 'object', 'properties': {'edit': copy.deepcopy(TEXT_PATCH_SCHEMA)},
-                           'required': ['edit'], 'additionalProperties': False}})
-        self.value['instructions'] += (
-            '\n\nLocal text edit helper (subordinate to host, repository and user instructions): '
-            f'For changes to existing LF text files, prefer {alias}; supply edit.path as a relative path, '
-            'edit.old_text as exact old lines from the saved file, and edit.new_text as the desired lines. '
-            'Do not supply patch headers or line prefixes. The host validates and executes the native patch; '
-            'inspect its actual feedback.')
+        try:
+            shaped = LocalHarnessRequest(self.value, self.declarations, self.identities,
+                                         self.original_tool_aliases, profile=harness)
+        except LocalHarnessRequestError as error:
+            raise CodexLlamaError(str(error)) from error
+        self.derived_checks = shaped.derived_checks
+        self.derived_compilers = shaped.derived_compilers
+        if hasattr(shaped, 'compile_checks'):
+            self.compile_checks = shaped.compile_checks
 
     def _derived_identity(self, item):
         if (set(item) - {'type', 'id', 'call_id', 'name', 'arguments', 'status'}

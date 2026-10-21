@@ -1,5 +1,6 @@
 """Bounded observations of Python assertion syntax; never execution evidence."""
 import ast
+from collections import Counter
 import shlex
 
 
@@ -24,6 +25,37 @@ def _test_case_constructor(value, modules, classes):
     return (isinstance(function, ast.Name) and function.id in classes
             or isinstance(function, ast.Attribute) and function.attr == 'TestCase'
             and isinstance(function.value, ast.Name) and function.value.id in modules)
+
+
+def _test_case_instances(tree, nodes, modules, classes):
+    """Recognize one direct assignment, without interpreting Python scopes."""
+    candidates = set()
+    for statement in tree.body:
+        if (isinstance(statement, ast.Assign) and len(statement.targets) == 1
+                and isinstance(statement.targets[0], ast.Name)
+                and _test_case_constructor(statement.value, modules, classes)):
+            candidates.add(statement.targets[0].id)
+    bindings = Counter()
+    modified = set()
+    for node in nodes:
+        if isinstance(node, ast.Name) and isinstance(node.ctx, (ast.Store, ast.Del)):
+            bindings[node.id] += 1
+        elif isinstance(node, ast.arg):
+            bindings[node.arg] += 1
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            bindings[node.name] += 1
+        elif isinstance(node, ast.alias):
+            bindings[node.asname or node.name.split('.')[0]] += 1
+        elif isinstance(node, ast.ExceptHandler) and node.name:
+            bindings[node.name] += 1
+        elif isinstance(node, (ast.MatchAs, ast.MatchStar)) and node.name:
+            bindings[node.name] += 1
+        elif isinstance(node, ast.MatchMapping) and node.rest:
+            bindings[node.rest] += 1
+        if (isinstance(node, ast.Attribute) and isinstance(node.ctx, (ast.Store, ast.Del))
+                and isinstance(node.value, ast.Name)):
+            modified.add(node.value.id)
+    return {name for name in candidates if bindings[name] == 1 and name not in modified}
 
 
 def has_python_assertions(command):
@@ -75,6 +107,9 @@ def has_python_assertions(command):
                 and isinstance(node.ctx, (ast.Store, ast.Del))}
     modules.difference_update(assigned)
     classes.difference_update(assigned)
+    instances = _test_case_instances(tree, nodes, modules, classes)
     return any(isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
         and node.func.attr in UNITTEST_ASSERTIONS
-        and _test_case_constructor(node.func.value, modules, classes) for node in nodes)
+        and (_test_case_constructor(node.func.value, modules, classes)
+             or isinstance(node.func.value, ast.Name) and node.func.value.id in instances)
+        for node in nodes)

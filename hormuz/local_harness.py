@@ -87,9 +87,10 @@ def _last_failed_command_output(items, declarations, state):
     return None
 
 
-def _script_checkpoint(items, declarations, *, verification_sensitive=False):
-    state = progress_snapshot(items, declarations, include_attempts=verification_sensitive,
-                              include_verification=verification_sensitive)
+def _script_checkpoint(items, declarations, *, verification_sensitive=False, state=None):
+    if state is None:
+        state = progress_snapshot(items, declarations, include_attempts=verification_sensitive,
+                                  include_verification=verification_sensitive)
     last = state['last_command_exit']
     failure = _last_failed_command_output(items, declarations, state)
     python_guidance = (
@@ -245,10 +246,11 @@ the saved function with the declared Python check helper when available; follow
 the actual result before reporting completion.'''
 
 
-def _patch_recovery(items, declarations, *, repeated_advice=V3_REPEATED_PATCH, latest_only=False):
+def _patch_recovery(items, declarations, *, repeated_advice=V3_REPEATED_PATCH, latest_only=False, state=None):
     """Derive advice from correlated native feedback; never repair tool arguments."""
     if latest_only:
-        state = progress_snapshot(items, declarations, include_attempts=True)
+        if state is None:
+            state = progress_snapshot(items, declarations, include_attempts=True)
         if state['pending_sessions'] or state['unresolved_tool_calls']:
             return ''
         events = [item for item in items if not (isinstance(item, dict)
@@ -309,7 +311,7 @@ def profile_for_capabilities(capabilities):
     return selected[0] if selected else None
 
 
-def adapt_qwen_request(value, declarations, *, profile=PROFILE):
+def adapt_qwen_request(value, declarations, *, profile=PROFILE, _progress=None):
     """Mutate only a private translated copy; preserve every argument value."""
     if profile not in PROFILES.values():
         raise ValueError('unsupported_local_harness')
@@ -332,7 +334,7 @@ def adapt_qwen_request(value, declarations, *, profile=PROFILE):
     if profile in {V2_PROFILE, V3_PROFILE, V4_PROFILE, V5_PROFILE, V6_PROFILE, V7_PROFILE, V8_PROFILE, V9_PROFILE} and isinstance(value.get('input'), list):
         # A model-facing reminder, never a fabricated user message, tool result,
         # or extra agent turn. The native transcript remains an exact prefix.
-        checkpoint = (_script_checkpoint(value['input'], declarations, verification_sensitive=profile == V9_PROFILE) if profile in {V8_PROFILE, V9_PROFILE} else
+        checkpoint = (_script_checkpoint(value['input'], declarations, verification_sensitive=profile == V9_PROFILE, state=_progress) if profile in {V8_PROFILE, V9_PROFILE} else
                       progress_checkpoint(value['input'], declarations, single_line=profile == V5_PROFILE,
                                           typed_checks=profile in {V6_PROFILE, V7_PROFILE},
                                           feedback_checks=profile == V7_PROFILE)
@@ -344,6 +346,6 @@ def adapt_qwen_request(value, declarations, *, profile=PROFILE):
             checkpoint += _patch_recovery(value['input'], declarations)
         elif profile == V9_PROFILE:
             checkpoint += _patch_recovery(value['input'], declarations,
-                repeated_advice=V6_REPEATED_PATCH, latest_only=True)
+                repeated_advice=V6_REPEATED_PATCH, latest_only=True, state=_progress)
         value['input'].append({'type': 'message', 'role': 'developer', 'content': [
             {'type': 'input_text', 'text': checkpoint}]})
