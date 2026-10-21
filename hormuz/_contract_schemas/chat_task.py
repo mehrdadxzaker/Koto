@@ -19,15 +19,19 @@ def label(value):
     return isinstance(value, str) and 0 < len(value) <= 4096 and '\x00' not in value
 
 
-def validate_task(value):
-    _exact_keys(value, TASK_FIELDS)
+def _validate_task_fields(value, efforts):
     if (not all(label(value[key]) for key in ('model', 'routed_model', 'destination'))
             or value['locality'] != 'local' or value['selection'] not in {'model', 'router_default'}
-            or value['reasoning_effort'] not in {'low', 'medium', 'high', 'max'}
+            or value['reasoning_effort'] not in efforts
             or not isinstance(value['text'], str) or len(value['text']) > 2 * 1024 * 1024
             or not isinstance(value['generation'], str) or re.fullmatch('[a-f0-9]{64}', value['generation']) is None
             or value['work_id'] is not None and not label(value['work_id'])):
         raise ContractValidationError('Invalid explicit chat task receipt')
+
+
+def validate_task(value):
+    _exact_keys(value, TASK_FIELDS)
+    _validate_task_fields(value, {'low', 'medium', 'high', 'max'})
 
 
 def validate_models(value):
@@ -40,7 +44,7 @@ def validate_models(value):
 
 def validate_proposal(value):
     _exact_keys(value, PROPOSAL_FIELDS)
-    validate_task({key: value[key] for key in TASK_FIELDS})
+    _validate_task_fields(value, {'none', 'low', 'medium', 'high', 'max'})
     if (value['selection'] != 'model' or value['purpose'] != 'proposal'
             or value['review_required'] is not True or value['applied'] is not False
             or not value['text'].strip()):

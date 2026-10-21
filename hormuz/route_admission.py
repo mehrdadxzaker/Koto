@@ -56,7 +56,7 @@ def _proposal_envelope(value, *, normalized=False):
         and type(value['max_output_tokens']) is int and 1 <= value['max_output_tokens'] <= 8192
         and type(value['reasoning']) is dict and set(value['reasoning']) == {'effort'}
         and type(value['reasoning']['effort']) is str
-        and value['reasoning']['effort'] in {'low', 'medium', 'high', 'max'})
+        and value['reasoning']['effort'] in {'none', 'low', 'medium', 'high', 'max'})
 
 
 def build_route_admission(raw, routes, upstreams):

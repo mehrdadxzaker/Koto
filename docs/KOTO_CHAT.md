@@ -65,8 +65,13 @@ file. An explicit local alias is required:
 ```sh
 koto chat propose --router-home /private/koto-router-home \
   --model qualified-local-alias --prompt-file /private/proposal.txt \
-  --max-output-tokens 2048 --effort low --timeout-seconds 180
+  --max-output-tokens 2048 --effort none --timeout-seconds 180
 ```
+
+For a small, bounded part, `chat propose --effort none` explicitly disables local
+thinking. Other supported proposal efforts are `low`, `medium`, `high` and `max`;
+the default remains `max`. Ordinary `chat ask` retains its four effort choices
+and does not accept `none`.
 
 The router must advertise proposal v1 before the task text is submitted. This
 operation uses the same separate owner, local destination and finite
@@ -77,6 +82,11 @@ transport qualification, health, resource limits and accounting still apply.
 Proposal admission does not depend on automatic task-type classification or
 independent coding evidence. An agent role/context preamble may remain an
 `unknown` task hint; the request is neither relabeled nor used for learning.
+The CLI deadline does not widen the configured upstream timeout: with a
+90-second upstream cap, `--timeout-seconds 180` still permits at most 90 seconds
+for that provider request. Keep the delegated context and requested output small
+enough for both bounds; a timeout remains a failed handoff without an automatic
+retry.
 
 Only a completed, nonempty text response becomes a `hormuz.chat-proposal` v1
 receipt. Transparent reasoning is ignored; tool calls, opaque provider state

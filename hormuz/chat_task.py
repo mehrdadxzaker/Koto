@@ -41,7 +41,9 @@ def add_commands(commands):
                      'Qualified local alias; omit to use the configured router default')
             command.add_argument('--prompt-file', required=True, help='UTF-8 task file, or - for standard input')
             command.add_argument('--max-output-tokens', type=int, default=2048, choices=range(1, 8193), metavar='1..8192')
-            command.add_argument('--effort', choices=['low', 'medium', 'high', 'max'], default='max')
+            command.add_argument('--effort',
+                choices=['none', 'low', 'medium', 'high', 'max'] if name == 'propose' else
+                        ['low', 'medium', 'high', 'max'], default='max')
             command.add_argument('--timeout-seconds', type=int, default=180, choices=range(1, 361), metavar='1..360')
 
 

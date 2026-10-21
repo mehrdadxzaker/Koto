@@ -178,6 +178,32 @@ class ChatProposalWorkflowTests(unittest.TestCase):
             self.assertEqual([len(requests), len(local), len(cloud)], [1, 0, 0])
             self.chat.assert_normal_unchanged()
 
+    def test_explicit_no_thinking_is_proposal_only_and_reaches_the_native_adapter(self):
+        ordinary = self.chat.command('ask', '--model', 'local-code', '--prompt-file', str(self.prompt),
+                                     '--max-output-tokens', '8', '--effort', 'none')
+        self.assertEqual(ordinary.returncode, 2)
+        self.assertIn('invalid choice', ordinary.stderr)
+        old_task = json.loads((Path(__file__).parent / 'fixtures/chat-task-v1.json').read_text())
+        with self.assertRaises(ContractValidationError):
+            validate_contract({**old_task, 'reasoning_effort': 'none'})
+        with self.fixture.configured() as (local, cloud):
+            self.configuration()
+            self.fixture.command('connect')
+            result = self.propose('--effort', 'none')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            receipt = json.loads(result.stdout)
+            validate_contract(receipt)
+            self.assertEqual((receipt['schema_id'], receipt['reasoning_effort']),
+                             ('hormuz.chat-proposal', 'none'))
+            self.assertIs(receipt['review_required'], True)
+            self.assertIs(receipt['applied'], False)
+            self.assertEqual([len(local), len(cloud)], [1, 0])
+            self.assertIs(local[0]['body']['chat_template_kwargs']['enable_thinking'], False)
+            self.assertEqual(local[0]['body']['reasoning_budget_tokens'], 0)
+            self.assertNotIn('tools', local[0]['body'])
+            self.assertNotIn('tool_choice', local[0]['body'])
+            self.chat.assert_normal_unchanged()
+
     def test_proposal_contract_is_additive_and_cannot_claim_applied_or_skip_review(self):
         fixture = Path(__file__).parent / 'fixtures/chat-proposal-v1.json'
         value = json.loads(fixture.read_text())
