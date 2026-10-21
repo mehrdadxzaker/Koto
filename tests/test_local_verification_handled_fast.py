@@ -107,15 +107,17 @@ assert state == before
             'def uninvoked_check():\n    assert 1 == 1\n',
         ):
             with self.subTest(script=script):
-                resumed, _ = self.continued(script)
+                resumed, checkpoint = self.continued(script)
                 self.assertEqual(resumed['reasoning_budget_tokens'], 256)
+                self.assertIn('Recognized assertion intent in the latest successful command: observed.', checkpoint)
         # Handler/else/finally assertions inside a handled outer body stay
         # unknown; visiting those branches must not cross an outer barrier.
         nested = ('try:\n    try:\n        pass\n    except ValueError:\n        assert 1 == 1\n'
                   '    else:\n        assert 1 == 1\n    finally:\n        assert 1 == 1\n'
                   'except Exception:\n    print("failure")\n')
-        resumed, _ = self.continued(nested)
+        resumed, checkpoint = self.continued(nested)
         self.assertEqual(resumed['reasoning_budget_tokens'], 256)
+        self.assertIn('Recognized assertion intent in the latest successful command: not observed.', checkpoint)
 
     def test_valid_generated_named_driver_still_supplies_eligible_assertion_syntax(self):
         from hormuz.local_python_named_checks import compile_named_feedback_checks
