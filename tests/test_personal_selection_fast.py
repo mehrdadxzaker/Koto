@@ -11,10 +11,13 @@ class PersonalSelectionFastTests(unittest.TestCase):
         examples = [{"text": "invoice tally seven boxes", "model": "local-fast", "task": "a" * 64},
                     {"text": "inventory report nine crates", "model": "local-code", "task": "b" * 64}]
         cases = [("invoice tally seven boxes today", {"local-fast", "local-code"}, "local-fast"),
+                 ("INVOICE TALLY SEVEN BOXES TODAY", {"local-fast", "local-code"}, "local-fast"),
+                 ("invoice,tally;seven/boxes!today", {"local-fast", "local-code"}, "local-fast"),
                  ("inventory report nine crates today", {"local-fast", "local-code"}, "local-code"),
                  ("translate bonjour", {"local-fast", "local-code"}, None),
                  ("invoice tally seven boxes", {"local-code"}, None),
-                 ("", {"local-fast"}, None)]
+                 ("", {"local-fast"}, None),
+                 ("!?.,;:-_()", {"local-fast", "local-code"}, None)]
         for text, eligible, expected in cases:
             with self.subTest(text=text, eligible=eligible):
                 self.assertEqual(predict(examples, text, eligible)[0], expected)
