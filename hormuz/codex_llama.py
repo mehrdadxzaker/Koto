@@ -123,7 +123,7 @@ class CodexLlamaRequest:
         if harness:
             adapt_qwen_request(self.value, self.declarations, profile=harness)
         if harness == 'qwen-code.v9':
-            self._add_python_checks(feedback=True, prominent=True)
+            self._add_python_checks(named=True, prominent=True)
             self._add_python_checks(script=True, prominent=True)
         elif harness in {'qwen-code.v6', 'qwen-code.v7', 'qwen-code.v8'}:
             self._add_python_checks(feedback=harness == 'qwen-code.v7', script=harness == 'qwen-code.v8')
@@ -147,7 +147,7 @@ class CodexLlamaRequest:
                 if cap is not None:
                     self.value['reasoning_budget_tokens'] = min(self.value['reasoning_budget_tokens'], cap)
 
-    def _add_python_checks(self, *, feedback=False, script=False, prominent=False):
+    def _add_python_checks(self, *, feedback=False, script=False, named=False, prominent=False):
         """Offer a private compiler only for an existing, identified host command."""
         if self.value.get('tool_choice', 'auto') != 'auto' or len(self.value.get('tools', [])) >= 1024:
             return
@@ -170,6 +170,8 @@ class CodexLlamaRequest:
             return
         if script:
             from .local_python_script import SCRIPT_SCHEMA as checks_schema, compile_script as compiler
+        elif named:
+            from .local_python_named_checks import NAMED_CHECKS_SCHEMA as checks_schema, compile_named_feedback_checks as compiler
         elif feedback:
             from .local_python_checks import FEEDBACK_CHECKS_SCHEMA as checks_schema, compile_feedback_checks as compiler
         else:
@@ -207,7 +209,10 @@ class CodexLlamaRequest:
                    'for specified exceptions, then assert any required state preservation. Inspect actual host results.'
                    if script else
                    f'Prefer {alias} for your own Python verification. Supply its checks argument with the saved module '
-                   'path, function, and your own cases and expected results or specified exceptions from the original task. '
+                   'path, function, and your own cases. Put each call in an arguments object keyed by the saved '
+                   'function parameter names; use the same parameter names in each case. Supply either expected '
+                   'or raises. Use same_as only for a successful return, and unchanged for state that must be preserved. '
+                   'Use parameter names in atomic_batch as well. Derive all inputs and expectations from the original task. '
                    'Use atomic_batch only when the original task requires both unchanged state on rejection and '
                    'a combined ordered batch to reject whenever its sequential execution rejects; '
                    'supply compatible successful and rejecting cases so composition checks can exercise a changed prefix '

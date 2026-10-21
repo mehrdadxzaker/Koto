@@ -8,7 +8,7 @@ import unittest
 
 from hormuz._contract_schemas.local_coding import canonical_digest, coding_input
 from hormuz.contracts import validate_contract
-from hormuz.local_python_checks import FEEDBACK_CHECKS_SCHEMA, compile_feedback_checks
+from hormuz.local_python_named_checks import NAMED_CHECKS_SCHEMA, compile_named_feedback_checks
 from hormuz.local_python_script import SCRIPT_SCHEMA, compile_script
 from tests import test_coding_output_workflow as coding
 from tests import test_connected_client_lifetime_workflow as lifetime
@@ -27,7 +27,7 @@ class CodingProbeV9ReasoningWorkflowTests(unittest.TestCase):
             # Capture the adapted boundary, without executing a model
             # or the scripted native commands.
             checks_spec = {'module_path': 'solution.py', 'function': 'transform',
-                           'cases': [{'args': [3]}]}
+                           'cases': [{'arguments': {'value': 3}}]}
             script = 'assert 2 + 2 == 4'
             workdir = '/native/workspace'
             scripted = (f'        checks_spec={checks_spec!r}\n'
@@ -113,9 +113,8 @@ class CodingProbeV9ReasoningWorkflowTests(unittest.TestCase):
             failure_output = command_output(1, 'Traceback (most recent call last):\nKeyError: \'missing\'\n'
                 '\nDuring handling of the above exception, another exception occurred:\n\n'
                 'Traceback (most recent call last):\nAssertionError\n')
-            checks_output = command_output(2, 'KOTO_CHECK_INPUT_ERROR expected_xor_raises_required: '
-                'Provide exactly one of expected or raises in each case; omit the other field '
-                'rather than setting it to null.\n')
+            checks_output = command_output(2, 'KOTO_CHECK_INPUT_ERROR invalid_named_case: '
+                'Use arguments and exactly one of expected or raises; include only applicable fields.\n')
             outputs = [print_output, failure_output, checks_output, command_output(0, '')]
             expected_budgets = [256, 256, 256, 16]
             previous = second
@@ -125,7 +124,7 @@ class CodingProbeV9ReasoningWorkflowTests(unittest.TestCase):
                 if index == 2:
                     self.assertEqual((call['id'], call['call_id']), ('checks-item', 'checks-call'))
                     self.assertEqual(json.loads(call['arguments']),
-                        {'cmd': compile_feedback_checks(checks_spec), 'workdir': workdir})
+                        {'cmd': compile_named_feedback_checks(checks_spec), 'workdir': workdir})
                 elif index == 3:
                     self.assertEqual((call['id'], call['call_id']), ('script-item', 'script-call'))
                     self.assertEqual(json.loads(call['arguments']),
@@ -159,7 +158,7 @@ class CodingProbeV9ReasoningWorkflowTests(unittest.TestCase):
                 self.assertEqual([tool['name'] for tool in body['tools']],
                     ['koto_python_checks', 'koto_python', 'exec_command', 'apply_patch'])
                 checks_tool, script_tool = body['tools'][:2]
-                self.assertEqual(checks_tool['parameters']['properties']['checks'], FEEDBACK_CHECKS_SCHEMA)
+                self.assertEqual(checks_tool['parameters']['properties']['checks'], NAMED_CHECKS_SCHEMA)
                 self.assertEqual(script_tool['parameters']['properties']['script'], SCRIPT_SCHEMA)
                 self.assertEqual(checks_tool['parameters']['required'], ['checks'])
                 self.assertEqual(script_tool['parameters']['required'], ['script'])

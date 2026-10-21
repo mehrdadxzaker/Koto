@@ -4,15 +4,15 @@ import json
 import unittest
 
 from hormuz.codex_llama import CodexLlamaError, CodexLlamaRequest
-from hormuz.local_python_checks import FEEDBACK_CHECKS_SCHEMA, compile_feedback_checks
+from hormuz.local_python_named_checks import NAMED_CHECKS_SCHEMA, compile_named_feedback_checks
 from hormuz.local_python_script import SCRIPT_SCHEMA, compile_script
 from tests.test_local_harness_v5_transport_fast import synthetic_requests
 
 
 SPEC = {'module_path': 'offsets.py', 'function': 'apply_offsets', 'cases': [
-    {'args': [[5], [2]], 'expected': [3], 'same_as_arg': 0},
-    {'args': [[5], [6]], 'raises': 'ValueError', 'unchanged_args': [0]}],
-    'atomic_batch': {'argument': 1, 'unchanged_args': [0]}}
+    {'arguments': {'state': [5], 'changes': [2]}, 'expected': [3], 'same_as': 'state'},
+    {'arguments': {'state': [5], 'changes': [6]}, 'raises': 'ValueError', 'unchanged': ['state']}],
+    'atomic_batch': {'argument': 'changes', 'unchanged': ['state']}}
 SCRIPT = 'from offsets import apply_offsets\nassert apply_offsets([5], [2]) == [3]\n'
 
 
@@ -42,7 +42,7 @@ class LocalHarnessV9ChecksTransportTests(unittest.TestCase):
 
     def expected(self, call, kind, *, namespace=None):
         result = {**call, 'name': 'exec_command', 'arguments': json.dumps({
-            'cmd': compile_feedback_checks(SPEC) if kind == 'checks' else compile_script(SCRIPT),
+            'cmd': compile_named_feedback_checks(SPEC) if kind == 'checks' else compile_script(SCRIPT),
             'workdir': '/native/workspace'}, separators=(',', ':'))}
         if namespace is not None:
             result['namespace'] = namespace
@@ -61,7 +61,7 @@ class LocalHarnessV9ChecksTransportTests(unittest.TestCase):
         plain = CodexLlamaRequest(request).value
         self.assertEqual(adapter.value['tools'][:2], [helpers['checks'], helpers['script']])
         self.assertEqual(adapter.value['tools'][2:], plain['tools'])
-        self.assertEqual(helpers['checks']['parameters']['properties']['checks'], FEEDBACK_CHECKS_SCHEMA)
+        self.assertEqual(helpers['checks']['parameters']['properties']['checks'], NAMED_CHECKS_SCHEMA)
         self.assertEqual(helpers['script']['parameters']['properties']['script'], SCRIPT_SCHEMA)
         self.assertIn('Prefer ' + helpers['checks']['name'], adapter.value['instructions'])
         self.assertIn('fallback', adapter.value['instructions'])

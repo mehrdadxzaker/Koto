@@ -56,7 +56,8 @@ Python script helper (script parameter) when offered. Its script is ordinary
 Python with real newlines, not a shell command or JSON test cases. Import and
 call the saved function; do not redefine the implementation in a check. Use
 assertions, including errors and boundaries.''', '''For saved Python functions, prefer the declared function-case helper when
-offered. Supply small cases with actual args and expected values or exceptions,
+offered. Supply small cases with an arguments object keyed by the saved function's
+parameter names and expected values or exceptions,
 plus required identity and state-preservation checks. Opt into batch composition
 only when the original specification requires its sequential-rejection property.
 The plain Python script helper remains available for checks case data cannot
@@ -125,6 +126,13 @@ def _script_checkpoint(items, declarations, *, verification_sensitive=False):
         message += ('\n\nCommand lookup recovery: The command was unavailable, so it did not establish passing checks. '
             'For Python, use python3 or the declared Python script helper. '
             'Inspect the actual missing command and use an available declared host tool within existing permissions.')
+    if (verification_sensitive and failure is not None
+            and re.search(r'(?m)^KOTO_CHECK_INPUT_ERROR ', failure)):
+        message += ('\n\nCheck input recovery: The check driver rejected the supplied case data; '
+            'that feedback does not establish passing function assertions. Correct your check data against '
+            'the original requirements and keep the saved task signature. Use named arguments exactly as '
+            'declared, or use the plain Python script fallback to call the saved function directly. '
+            'Do not repeat unchanged invalid check data or treat this input error as an implementation defect.')
     if failure is not None and re.search(r'(?m)^AssertionError(?::|\r?$)', failure):
         if verification_sensitive:
             message += ('\n\nAssertion failure checkpoint: Compare the actual result and your expected value with the original specification. '

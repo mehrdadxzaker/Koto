@@ -9,6 +9,19 @@ from tests.test_local_harness_v5_transport_fast import synthetic_requests
 
 
 class LocalHarnessV9Tests(unittest.TestCase):
+    def test_named_cases_keep_success_identity_out_of_the_exception_branch(self):
+        adapted = CodexLlamaRequest(synthetic_requests()['no_tool_history'], harness='qwen-code.v9').value
+        case = adapted['tools'][0]['parameters']['properties']['checks']['properties']['cases']['items']
+        self.assertIn('oneOf', case)
+        success, failure = case['oneOf']
+        self.assertIn('arguments', success['required'])
+        self.assertIn('expected', success['required'])
+        self.assertIn('same_as', success['properties'])
+        self.assertIn('arguments', failure['required'])
+        self.assertIn('raises', failure['required'])
+        self.assertNotIn('same_as', failure['properties'])
+        self.assertFalse(failure['additionalProperties'])
+
     def completed_command(self, command, *, failure=False):
         request = synthetic_requests()['saved_patch_without_later_command']
         request.update(reasoning={'effort': 'low'}, max_output_tokens=2048)
@@ -75,6 +88,26 @@ class LocalHarnessV9Tests(unittest.TestCase):
         self.assertEqual(CodexLlamaRequest(request, harness='qwen-code.v9').value['reasoning_budget_tokens'], 256)
         self.assertEqual(CodexLlamaRequest(request, harness='qwen-code.v8').value['reasoning_budget_tokens'], 16)
         self.assertEqual(request, original)
+
+    def test_failed_check_input_prompts_data_recovery_without_claiming_verification(self):
+        request = self.completed_command("python3 -c 'raise SystemExit(2)'", failure=True)
+        request['input'][-1]['output'] = request['input'][-1]['output'].replace(
+            'code 1', 'code 2') + '\nKOTO_CHECK_INPUT_ERROR case_argument_binding: retained native feedback\n'
+        original = deepcopy(request)
+        adapted = CodexLlamaRequest(request, harness='qwen-code.v9').value
+        message = adapted['input'][-1]['content'][0]['text']
+        self.assertIn('Check input recovery:', message)
+        self.assertIn('plain Python script fallback', message)
+        self.assertIn('keep the saved task signature', message)
+        self.assertEqual(adapted['reasoning_budget_tokens'], 256)
+        self.assertEqual(request, original)
+        self.assertEqual(adapted['input'][-2], request['input'][-1])
+        passed = deepcopy(request)
+        passed['input'][-1]['output'] = passed['input'][-1]['output'].replace('code 2', 'code 0')
+        self.assertNotIn('Check input recovery:',
+            CodexLlamaRequest(passed, harness='qwen-code.v9').value['input'][-1]['content'][0]['text'])
+        self.assertNotIn('Check input recovery:',
+            CodexLlamaRequest(request, harness='qwen-code.v8').value['input'][-1]['content'][0]['text'])
 
     def test_failed_authored_exception_check_can_add_an_unspecified_requirement(self):
         request = self.completed_command("python3 -c 'import solution; assert True'", failure=True)

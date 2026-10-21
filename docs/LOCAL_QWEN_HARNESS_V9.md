@@ -44,13 +44,26 @@ one catalog slot remains, the function-case helper takes priority. The host's
 original tools retain their bodies and relative order; tool choice and
 non-automatic host restrictions stay unchanged.
 
-The function-case helper takes model-supplied examples and expectations. Its
-existing optional batch composition repeats/combines those same batches to
+The function-case helper takes model-supplied examples and expectations. Each
+call supplies an `arguments` object keyed by actual saved-function parameter
+names, with the same supplied names across cases. Closed, disjoint schema
+branches distinguish successful returns from expected exceptions: identity
+checks belong only to successful returns. State and batch fields also use names.
+The compiler maps these names to internal indices and calls the saved function
+with the original names and values. All cases must bind to its actual signature
+before any call executes. Omitted defaults stay omitted; positional-only
+parameters require the script fallback. No signature or expectation is repaired.
+Its existing optional batch composition repeats/combines those same batches to
 compare sequential rejection with combined acceptance and state preservation.
 Use that property only when the original specification supports it; atomicity
 alone is insufficient. No independent oracle, invented operation, expected value
 or comprehensive coverage is supplied. The script helper still accepts plain
 source unchanged. Both compile commands for the existing host to execute.
+
+After correlated failed check-input feedback, v9 explicitly asks the model to
+correct its case data or use the script fallback while keeping the saved task
+signature. Such feedback does not establish passing assertions or an
+implementation defect. Successful or unbound output cannot trigger this advice.
 
 V9 also restores native patch-format recovery after the latest correlated
 numbered-hunk rejection. Pending, later, unknown or duplicate feedback cannot
@@ -89,7 +102,11 @@ more visible is a subsequent usability hypothesis, not an established gain.
 The subsequent a33 diagnostic completed list-key normally with a passing checker
 in115451ms, while stock still missed cumulative demand and failed its checker at
 180012ms without a completed turn. One pass is not repeatability. The structured
-verification and patch-recovery changes are a subsequent a34 experiment.
+verification and patch-recovery a34 diagnostic then completed no native turns:
+stock repeated an invalid identity-on-exception check three times; list-key's
+saved repair passed the checker but its positional check arguments never bound
+to the saved function. The named-argument interface is a subsequent a35
+experiment addressing that observed input friction.
 The separate three-pair study is pending; v9 must remain unqualified until actual
 outcomes are recorded. These
 known development tasks cannot establish held-out or ordinary90-second readiness.
