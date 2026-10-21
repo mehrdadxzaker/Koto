@@ -98,6 +98,14 @@ current commercial baseline, local-only policy and continuation destination.
 The old `--shadow-router` setup option is retired. Model output and transport
 success alone cannot establish task success or coding qualification.
 
+For an explicitly requested Koto-enabled Codex session using the existing
+ChatGPT account, follow [native personal sessions](../../../docs/NATIVE_PERSONAL_SESSIONS.md).
+Use `chat route` for one fresh task with the existing native client home. Inspect
+its receipt's executed model, locality and execution verification. Keep history
+and learning consent separate; validate checked held-out outcomes before
+automatic selection. A local declaration restricted to `interactive` authorizes
+explicit choice only. Preserve the account, normal settings and failed evidence.
+
 ## Inspect cloud readiness
 
 When the user asks about cloud authorization or readiness, check

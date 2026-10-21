@@ -1,12 +1,13 @@
 # Install Koto in an existing agent
 
-The [README](../README.md#install-in-your-agent) lists local-checkout install
+The [README](../README.md#install-in-your-agent) lists default-branch install
 commands. All packages expose the same [Koto skill](../skills/koto/SKILL.md)
 and [shared workflow](../skills/koto/references/workflow.md). They contain no
 MCP server, lifecycle hook, background installer or separate agent loop.
 
 ## Choose a source revision
 
+The canonical source is [mehrdadxzaker/Koto](https://github.com/mehrdadxzaker/Koto).
 The examples below select `main` explicitly. For a preview, replace `main`
 with a reviewed branch or tag in the same repository. Use a fresh profile
 when testing a preview so an active installation is preserved.
@@ -14,27 +15,27 @@ when testing a preview so an active installation is preserved.
 Codex (CLI `plugin add` checked on 0.160.0):
 
 ```sh
-codex plugin marketplace add mehrdadxzaker/hormuz --ref main
+codex plugin marketplace add mehrdadxzaker/Koto --ref main
 codex plugin add koto@koto
 ```
 
 Gemini CLI:
 
 ```sh
-gemini extensions install https://github.com/mehrdadxzaker/hormuz --ref main
+gemini extensions install https://github.com/mehrdadxzaker/Koto --ref main
 ```
 
 GitHub Copilot CLI:
 
 ```sh
-copilot plugin marketplace add 'mehrdadxzaker/hormuz#main'
+copilot plugin marketplace add 'mehrdadxzaker/Koto#main'
 copilot plugin install koto@koto
 ```
 
 Claude Code (or replace `claude plugin` with `/plugin` inside a session):
 
 ```sh
-claude plugin marketplace add 'mehrdadxzaker/hormuz#main'
+claude plugin marketplace add 'mehrdadxzaker/Koto#main'
 claude plugin install koto@koto
 ```
 
@@ -45,7 +46,7 @@ skill from that local source. Choose an unused directory name if
 
 ```sh
 git clone --depth 1 --single-branch --branch main \
-  https://github.com/mehrdadxzaker/hormuz.git koto-preview
+  https://github.com/mehrdadxzaker/Koto.git koto-preview
 npx skills add ./koto-preview --skill koto --agent cursor
 ```
 

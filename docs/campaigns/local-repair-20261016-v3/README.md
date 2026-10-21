@@ -1,6 +1,6 @@
 # Local coding campaign version 3: prepared, not executed
 
-This prepares issue #537 for the
+This prepares [issue #537](https://github.com/mehrdadxzaker/Koto/issues/537) for the
 [selected candidate](../../CANDIDATE_SETUP.md). The exact inputs are in
 [manifest.json](manifest.json), [candidate.json](candidate.json),
 [setup-profile.json](setup-profile.json), and the

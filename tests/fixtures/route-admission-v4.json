@@ -1,0 +1,45 @@
+{
+  "schema_id": "hormuz.route-admission",
+  "schema_version": 4,
+  "mode": "local_only",
+  "task_classifier": "bounded_local_heuristic",
+  "local_capacity": {
+    "limit": 1,
+    "active": 0
+  },
+  "routes": [
+    {
+      "model": "fixture-local-model",
+      "destination": "fixture-local",
+      "generation": "fixture-generation",
+      "model_revision": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "qualification_id": "synthetic-managed-v2",
+      "evidence_basis": "operator_declared",
+      "capabilities": [
+        "responses",
+        "text",
+        "codex_llama_v1"
+      ],
+      "max_request_bytes": 65536,
+      "max_output_tokens": 2048,
+      "task_types": [
+        "code_change"
+      ],
+      "readiness": "unchecked",
+      "coding_readiness": "qualified",
+      "automatic_task_types": [
+        "code_change"
+      ],
+      "coding_evidence": {
+        "evidence_id": "synthetic-local-repair-v2-output-2048",
+        "plan_sha256": "74848a74caf6069e860b3ddf1db451b606437d60c3139b29131cb496da82d7b9",
+        "receipt_sha256": "97a926f00a6cc64e8426660015fe4fe9174d743a7f402426cac55db070f3f7b8",
+        "basis": "operator_attested_outcomes",
+        "criteria_version": "local-repair.v2",
+        "planned": 16,
+        "evaluated": 16,
+        "passed": 16
+      }
+    }
+  ]
+}

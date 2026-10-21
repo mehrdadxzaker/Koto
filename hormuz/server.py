@@ -86,7 +86,7 @@ from .store_router import (
     create_usage_store,
     create_work_budget_request_repository,
 )
-from .usage import ResponseUsageParser
+from .usage import ResponseUsageLimitError, ResponseUsageParser
 from .local_history import LocalHistory
 from .local_history_capture import HistoryCapture, history_consent, history_redactor
 
@@ -369,7 +369,10 @@ class GatewayServer(ThreadingHTTPServer):
     # runtime's explicitly bounded backpressure path.
     request_queue_size = 128
 
-    def __init__(self, config: GatewayConfig, *, environ: Mapping[str, str] | None = None):
+    def __init__(self, config: GatewayConfig, *, environ: Mapping[str, str] | None = None,
+                 request_deadline: float | None = None, capture_history: bool = True):
+        self.request_deadline = request_deadline
+        self.capture_history = capture_history
         config = replace(config, upstreams=MappingProxyType(dict(config.upstreams)),
                          model_routes=MappingProxyType(dict(config.model_routes)))
         self.config = config
@@ -567,10 +570,11 @@ class GatewayRequestHandler(BaseHTTPRequestHandler):
                     else:
                         schema = "hormuz.route-admission"
                         value = self.server.route_admission.status(identity, self.server.policy_engine)
-                    if value.get("schema_version") == 3 and schema == "hormuz.route-admission":
+                    if value.get("schema_version") in (3, 4) and schema == "hormuz.route-admission":
                         from .contracts import validate_contract
                         validate_contract(value)
-                        self._send_json(HTTPStatus.OK, value, contract_header_value="hormuz.route-admission;v=3",
+                        self._send_json(HTTPStatus.OK, value,
+                                        contract_header_value=f"hormuz.route-admission;v={value['schema_version']}",
                                         extra_headers={"X-Hormuz-Chat-Tasks": "v1"})
                         return
                     self._send_contract_json(HTTPStatus.OK, schema, value,
@@ -728,7 +732,8 @@ class GatewayRequestHandler(BaseHTTPRequestHandler):
         if identity is None:
             return
         protocol, default_client, account_usage = route
-        self._history_generation = history_consent(self.server.local_history, identity.actor_id)
+        self._history_generation = (history_consent(self.server.local_history, identity.actor_id)
+                                    if self.server.capture_history else None)
         try:
             self._learning_ingress = self.server.local_history.learning_consent(identity.actor_id).get("generation")
         except (OSError, ValueError):
@@ -1167,6 +1172,11 @@ class GatewayRequestHandler(BaseHTTPRequestHandler):
                 and urlsplit(self.path).path == '/v1/responses'):
             codex_adapter = CodexLlamaRequest(request_value)
             body = json.dumps(codex_adapter.value, separators=(',', ':')).encode()
+        elif (destination.locality == 'local' and 'codex_http_0160' in route.capabilities
+                and urlsplit(self.path).path == '/v1/responses' and request_value.get('tools')):
+            # Plain Codex functions need completed-argument validation too.
+            # Keep the qualified provider request and catalog unchanged.
+            codex_adapter = CodexLlamaRequest(request_value, translate=False)
         if selected_upstream.upstream.authentication == "none":
             headers.pop("Authorization", None)
             headers.pop("X-Api-Key", None)
@@ -1485,7 +1495,10 @@ class GatewayRequestHandler(BaseHTTPRequestHandler):
                 if first_body_byte_us is None:
                     first_body_byte_us = self._elapsed_us(started_ns)
                 provider_bytes_read += len(partial)
-                parser.feed(partial)
+                try:
+                    parser.feed(partial)
+                except ResponseUsageLimitError:
+                    pass  # The truncated oversized response remains unknown.
                 if history_capture is not None:
                     history_capture.feed(partial)
             downstream_ok = False
@@ -1498,7 +1511,7 @@ class GatewayRequestHandler(BaseHTTPRequestHandler):
                 decision.requested_model,
                 type(error).__name__,
             )
-        except (http.client.HTTPException, TimeoutError, OSError, CodexLlamaError) as error:
+        except (http.client.HTTPException, TimeoutError, OSError, CodexLlamaError, ResponseUsageLimitError) as error:
             downstream_ok = False
             LOGGER.warning(
                 "upstream_stream_failed actor=%s team=%s client=%s protocol=%s requested_model=%s error=%s",

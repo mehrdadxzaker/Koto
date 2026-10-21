@@ -70,7 +70,7 @@ def _validate_error(value: Mapping[str, Any], allowed_codes: frozenset[str]) -> 
 
 def _validate_route_admission(value: Mapping[str, Any]) -> None:
     fields = {"schema_id", "schema_version", "mode", "task_classifier", "local_capacity", "routes"}
-    if value["schema_version"] == 3:
+    if value["schema_version"] == 3 or value["schema_version"] == 4 and "personal_selection" in value:
         fields.add("personal_selection")
         from ..contracts import validate_contract
         validate_contract(value["personal_selection"])
@@ -107,7 +107,8 @@ def _validate_route_admission(value: Mapping[str, Any]) -> None:
                 validate_identifier(evidence["evidence_id"])
                 for field in ("plan_sha256", "receipt_sha256"):
                     _sha256_digest(_value_string(evidence, field), f"coding_evidence.{field}")
-                if (evidence["basis"] != "operator_attested_outcomes" or evidence["criteria_version"] != "local-repair.v1"
+                criteria = {"local-repair.v1", "local-repair.v2"} if value["schema_version"] == 4 else {"local-repair.v1"}
+                if (evidence["basis"] != "operator_attested_outcomes" or _value_string(evidence, "criteria_version") not in criteria
                         or not 0 <= _value_integer(evidence, "passed") <= _value_integer(evidence, "evaluated") <= _value_integer(evidence, "planned", minimum=1) <= 64):
                     raise ContractValidationError("invalid local coding evidence")
             if (coding_readiness == "unknown") != (evidence is None):

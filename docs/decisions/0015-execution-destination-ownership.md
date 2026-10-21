@@ -5,7 +5,7 @@
 - Decision owner: Product owner
 - Approval: The owner requested execution destination ownership first, using TDD
   at the approved connect/request/result/disconnect workflow seam.
-- Parent specification: [#523](https://github.com/Xpounder-com/hormuz/issues/523)
+- Parent specification: [#523](https://github.com/mehrdadxzaker/Koto/issues/523)
 
 Wire protocol no longer identifies a unique origin or credential. An explicitly
 selected model route resolves through one immutable startup destination

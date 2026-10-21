@@ -6,8 +6,8 @@
 - Date proposed: 2026-08-15
 - Date accepted: 2026-08-20
 - Decision owner: Product owner
-- Tracking issue: [#1](https://github.com/Xpounder-com/hormuz/issues/1)
-- Unblocks after acceptance: [#6](https://github.com/Xpounder-com/hormuz/issues/6), [#7](https://github.com/Xpounder-com/hormuz/issues/7), [#4](https://github.com/Xpounder-com/hormuz/issues/4)
+- Tracking issue: [#1](https://github.com/mehrdadxzaker/Koto/issues/1)
+- Unblocks after acceptance: [#6](https://github.com/mehrdadxzaker/Koto/issues/6), [#7](https://github.com/mehrdadxzaker/Koto/issues/7), [#4](https://github.com/mehrdadxzaker/Koto/issues/4)
 
 ## Decision requested
 
@@ -18,7 +18,7 @@ Choose the authorization and persistence topology before Hormuz creates a stable
 3. **Application-filtered shared database.** Simpler initially, but a missed predicate can become a cross-tenant disclosure.
 4. **SQLite as the production store.** Preserve today's local topology and defer shared enterprise semantics.
 
-The product owner accepted option 1 on August 20, 2026. The approved direction is recorded in [issue #1](https://github.com/Xpounder-com/hormuz/issues/1#issuecomment-5355712147). Acceptance authorizes the tenancy and persistence direction; the implementation, recovery, and operational evidence listed below remain separate release gates.
+The product owner accepted option 1 on August 20, 2026. The approved direction is recorded in [issue #1](https://github.com/mehrdadxzaker/Koto/issues/1#issuecomment-5355712147). Acceptance authorizes the tenancy and persistence direction; the implementation, recovery, and operational evidence listed below remain separate release gates.
 
 ## Background
 
@@ -160,6 +160,6 @@ Acceptance of this ADR does not prove the implementation. Issue #6 closes only w
 
 ## Owner approval record
 
-The product owner approved **A — hybrid shared-schema PostgreSQL plus a dedicated database/deployment option** on August 20, 2026. The [recorded approval](https://github.com/Xpounder-com/hormuz/issues/1#issuecomment-5355712147) requires mandatory immutable tenant keys, application-enforced scoping, FORCE ROW LEVEL SECURITY, a non-owner runtime role without BYPASSRLS, and a transaction-local verified tenant context for the shared-schema hosted service. Customers needing stronger isolation or residency may use the same logical schema in a dedicated database and deployment boundary. SQLite remains local single-tenant development/test storage rather than production evidence.
+The product owner approved **A — hybrid shared-schema PostgreSQL plus a dedicated database/deployment option** on August 20, 2026. The [recorded approval](https://github.com/mehrdadxzaker/Koto/issues/1#issuecomment-5355712147) requires mandatory immutable tenant keys, application-enforced scoping, FORCE ROW LEVEL SECURITY, a non-owner runtime role without BYPASSRLS, and a transaction-local verified tenant context for the shared-schema hosted service. Customers needing stronger isolation or residency may use the same logical schema in a dedicated database and deployment boundary. SQLite remains local single-tenant development/test storage rather than production evidence.
 
 The approval deliberately does not claim implementation, migration, pooled-connection isolation, backup/PITR, HA, KMS, or independent-review completion. Those remain tracked implementation and production-readiness gates.

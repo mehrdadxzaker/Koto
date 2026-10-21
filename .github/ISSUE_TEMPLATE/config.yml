@@ -2,13 +2,23 @@
   "blank_issues_enabled": false,
   "contact_links": [
     {
+      "name": "Start contributing",
+      "url": "https://github.com/mehrdadxzaker/Koto/blob/main/docs/FIRST_CONTRIBUTION.md",
+      "about": "Find small tasks, set up a checkout and run checks without a model-provider account."
+    },
+    {
+      "name": "Questions and ideas",
+      "url": "https://github.com/mehrdadxzaker/Koto/discussions",
+      "about": "Ask public, non-sensitive questions or discuss an idea before proposing a larger change."
+    },
+    {
       "name": "Private security report",
-      "url": "https://github.com/mehrdadxzaker/hormuz/security/advisories/new",
+      "url": "https://github.com/mehrdadxzaker/Koto/security/advisories/new",
       "about": "Report vulnerabilities privately. Never publish credentials, bypass details, prompts, responses, or customer data."
     },
     {
       "name": "Public-alpha support boundary",
-      "url": "https://github.com/mehrdadxzaker/hormuz/blob/main/SUPPORT.md",
+      "url": "https://github.com/mehrdadxzaker/Koto/blob/main/SUPPORT.md",
       "about": "Check supported versions, response expectations, and the correct public report path."
     }
   ]

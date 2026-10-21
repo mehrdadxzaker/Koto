@@ -26,6 +26,12 @@ preserves the configured commercial alias matching its current model. An absent
 or ambiguous commercial match stops setup before writing settings. Native plan
 authentication and billable API credentials retain their existing separate gates.
 
+For the existing ChatGPT subscription, use the explicit fresh, read-only
+[native personal session](NATIVE_PERSONAL_SESSIONS.md) workflow. Codex keeps its
+native authentication and selected commercial model; the session can choose
+qualified locals using checked local history. This does not activate a desktop
+model picker or provide an autonomous coding interface.
+
 Collection and learning are separate opt-ins:
 
 ```sh
@@ -61,17 +67,30 @@ For an independently checked, fresh, plain-text task, compare local models:
 
 ```sh
 koto --config /absolute/path/koto.json history learning evaluate \
-  --id ENTRY_ID --models local-fast local-code \
+  --id ENTRY_ID \
   --max-requests 8 --deadline-seconds 90 --timeout-seconds 30 --max-output-tokens 512
 ```
 
+Omitting `--models` discovers configured qualified local aliases, then uses the
+router's current policy-filtered admitted pool. It never adds an unqualified or
+commercial destination. `--models local-fast local-code` remains an advanced,
+explicit override; each requested alias must still pass the same local binding
+and policy checks, rather than silently dropping a denied requested model.
+
 This reuses the router benchmark transport: one request at a time, pooled client,
 absolute deadlines, zero model retries or cloud fallback, and owned connection
-cleanup. The declared task/model combinations must fit the request cap before
-network access. The original output/profile must fit the token cap; evaluation
+cleanup. Explicit task/model combinations must fit the request cap before
+network access. Discovery reads the router's bounded admission metadata, then
+checks the admitted combinations against the cap before model requests.
+The original output/profile must fit the token cap; evaluation
 never silently truncates input or changes its budget. Failed, unknown and unrun
 observations stay visible. Commercial evaluation is rejected before egress;
 additional commercial evaluation needs a separately implemented opt-in budget.
+
+Native v4 history remains non-replayable through this command. To compare a
+native task, explicitly launch fresh baseline and qualified-local native sessions
+and check their retained outcomes. There is no hidden commercial replay or
+conversion of native conversation state into a plain HTTP task.
 
 Text-only history does not contain a replayable repository or native tool state.
 Such tasks need the existing independently checked coding qualification workflow;
@@ -135,6 +154,10 @@ same private encrypted storage and owner-only key as history.
 New `koto.personal-*` and `koto.model-selection` receipts are version 1. Learning
 adds optional `selection`/`quality` metadata to encrypted history entry version 3;
 existing v1/v2 entries and historical shadow/setup receipt readers remain.
+Native `codex_app_server` history uses entry v4, including plain history without
+learning metadata. Current readers preserve v1–v4 together; the host-context
+identity in native records is separate from an HTTP model-request qualification
+profile. See [native compatibility](NATIVE_PERSONAL_SESSIONS.md#history-compatibility-and-evidence-domains).
 Admission status v3 adds `personal_selection`; relay metadata v5 adds selection
 headers. Without learning consent, automatic requests keep their selected
 commercial baseline. Explicit local choices, continuation affinity and advanced
@@ -146,8 +169,9 @@ retired explicitly; their extra LLM request implementation is removed. Prepare
 a new configuration without that field, inspect it, then use the existing
 conditional disconnect/reconnect flow. Learning requires its separate opt-in.
 Never rewrite an active configuration or user-edited Codex settings to migrate.
-Before rolling back to a reader without history v3 support, disable learning and
-capture, and export retained history if needed; older binaries cannot read v3.
+Before rolling back to a reader without the retained history versions, disable
+learning and capture, and export retained history if needed; older binaries
+cannot reinterpret v3 or v4 records as an earlier version.
 Preserve the encrypted files and key rather than silently downgrading records.
 
 ## Active backlog and acceptance

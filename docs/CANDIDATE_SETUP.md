@@ -1,6 +1,6 @@
 # First local coding candidate
 
-Decision for [#541](https://github.com/Xpounder-com/hormuz/issues/541): select
+Decision for [#541](https://github.com/mehrdadxzaker/Koto/issues/541): select
 `codex0160-macos262-m5-32g-llamab11617-qwen3-4b-v1` as an **experimental,
 unqualified candidate**. This pins the next experiment, rather than asserting
 supported coding capability. The machine-readable

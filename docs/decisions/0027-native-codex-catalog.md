@@ -30,4 +30,4 @@ rollback removes native profiles and references before downgrade. The boundary
 does not select a release/deployment envelope or complete #523/#541/#543.
 
 See [the contract and rollback instructions](../NATIVE_CODEX_CATALOG.md) and
-[the implementation review](https://github.com/Xpounder-com/hormuz/pull/550).
+[the implementation review](https://github.com/mehrdadxzaker/Koto/pull/550).

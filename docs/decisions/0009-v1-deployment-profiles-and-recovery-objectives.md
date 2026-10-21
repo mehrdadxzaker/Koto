@@ -4,9 +4,9 @@
 
 - **Status:** Accepted
 - **Decision date:** August 25, 2026
-- **Decision record:** [issue #100 comment](https://github.com/Xpounder-com/hormuz/issues/100#issuecomment-5414302641)
-- **Implementation gate:** [issue #100](https://github.com/Xpounder-com/hormuz/issues/100)
-- **Machine-readable contract:** [deployment-contract-v1.json](https://github.com/Xpounder-com/hormuz/blob/2e5011f8e1064976c33c5694e74fd0bb17539c14/docs/deployment-contract-v1.json)
+- **Decision record:** [issue #100 comment](https://github.com/mehrdadxzaker/Koto/issues/100#issuecomment-5414302641)
+- **Implementation gate:** [issue #100](https://github.com/mehrdadxzaker/Koto/issues/100)
+- **Machine-readable contract:** [deployment-contract-v1.json](https://github.com/mehrdadxzaker/Koto/blob/2e5011f8e1064976c33c5694e74fd0bb17539c14/docs/deployment-contract-v1.json)
 
 ## Context
 

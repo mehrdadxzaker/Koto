@@ -1,6 +1,6 @@
 # Execution destinations
 
-This is the first implementation slice of [router spec #523](https://github.com/Xpounder-com/hormuz/issues/523).
+This is the first implementation slice of [router spec #523](https://github.com/mehrdadxzaker/Koto/issues/523).
 It makes an explicitly selected model route reach its own origin with its own
 authentication. [Local route admission](LOCAL_ROUTE_ADMISSION.md) adds automatic
 selection and a hard local-only transport ceiling. Model/runtime acquisition,

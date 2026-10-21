@@ -273,7 +273,7 @@ def build_managed_llama(raw, routes, upstreams, admission):
         return None
     fields = {"schema_version", "route", "executable", "runtime_archive", "runtime_sha256", "model_file", "model_sha256", "startup_timeout_seconds"}
     try:
-        if type(value) is not dict or set(value) != fields or type(value["schema_version"]) is not int or value["schema_version"] not in {1, 2}:
+        if type(value) is not dict or set(value) != fields or type(value["schema_version"]) is not int or value["schema_version"] not in {1, 2, 3}:
             raise ValueError()
         for key in ("executable", "runtime_archive", "model_file"):
             if type(value[key]) is not str or not 1 <= len(value[key]) <= 4096 or not Path(value[key]).is_absolute():
@@ -292,7 +292,7 @@ def build_managed_llama(raw, routes, upstreams, admission):
                 or endpoint.scheme != "http" or endpoint.hostname != "127.0.0.1" or endpoint.port is None
                 or endpoint.path not in {"", "/", "/v1"} or endpoint.query or endpoint.fragment or endpoint.username
                 or route.model_revision != "sha256:" + value["model_sha256"]
-                or qualification.max_output_tokens > (8192 if value["schema_version"] == 2 else 512)):
+                or qualification.max_output_tokens > {1:512, 2:8192, 3:2048}[value["schema_version"]]):
             raise ValueError()
         return ManagedLlamaProfile(**{key: value[key] for key in fields - {"schema_version"}},
             port=endpoint.port, alias=route.upstream_model, output_tokens=qualification.max_output_tokens,

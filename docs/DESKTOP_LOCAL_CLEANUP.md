@@ -2,8 +2,8 @@
 
 # Local Hormuz workspace cleanup
 
-Checkpoint: 2026-10-13. Parent [#494](https://github.com/Xpounder-com/hormuz/issues/494)
-and focused [#504](https://github.com/Xpounder-com/hormuz/issues/504), in the
+Checkpoint: 2026-10-13. Parent [#494](https://github.com/mehrdadxzaker/Koto/issues/494)
+and focused [#504](https://github.com/mehrdadxzaker/Koto/issues/504), in the
 separate cleanup track. The user requested local cleanup for the
 Electron/llama.cpp direction and explicitly approved the exact generated-folder
 manifest. This is separate from account retirement and real app implementation.

@@ -5,8 +5,8 @@
 - Status: **Accepted**
 - Decision date: 2026-08-21
 - Decision owner: Product owner
-- Approval record: [issue #17 design decision](https://github.com/Xpounder-com/hormuz/issues/17#issuecomment-5377270265)
-- Implementation issue: [#17](https://github.com/Xpounder-com/hormuz/issues/17)
+- Approval record: [issue #17 design decision](https://github.com/mehrdadxzaker/Koto/issues/17#issuecomment-5377270265)
+- Implementation issue: [#17](https://github.com/mehrdadxzaker/Koto/issues/17)
 
 ## Decision
 
@@ -88,7 +88,7 @@ S3-compatible Object Lock interface, and Ceph remains optional for customers.
 
 The verified RGW target is specifically the Tentacle `20.2.3` immutable image
 index `quay.io/ceph/ceph@sha256:d195020de02512030118e772cef7859e92904e91eb4cb21acb503f8b94118137`.
-The paired-reference target verified in [#95](https://github.com/Xpounder-com/hormuz/issues/95)
+The paired-reference target verified in [#95](https://github.com/mehrdadxzaker/Koto/issues/95)
 uses OpenBao Transit
 `openbao/openbao@sha256:436eaf9778cad75507ff70ea26ace30dcbe15606e619ac3823495663d7f7c115`,
 `linux/arm64`, and `OpenBao v2.5.4 (4f6d47246a053375271a5fd8af85c3b75695aa46), built 2026-05-20T16:08:53Z`.

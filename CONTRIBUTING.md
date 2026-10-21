@@ -1,5 +1,18 @@
 # Contributing
 
+New here? Follow the [first-contribution guide](docs/FIRST_CONTRIBUTION.md),
+choose a [good first issue](https://github.com/mehrdadxzaker/Koto/issues?q=is%3Aissue%20is%3Aopen%20label%3A%22good%20first%20issue%22),
+or browse [help wanted](https://github.com/mehrdadxzaker/Koto/issues?q=is%3Aissue%20is%3Aopen%20label%3A%22help%20wanted%22).
+Small documentation corrections, synthetic bug reproductions and focused tests
+are welcome. Ask in the issue before starting a larger change so a maintainer
+can help confirm scope and avoid duplicate work.
+
+The [roadmap](docs/ROADMAP.md) links the active product work.
+[MAINTAINERS.md](MAINTAINERS.md) explains ownership, review and the path to a
+larger role. [CONTRIBUTORS.md](CONTRIBUTORS.md) recognizes contributions beyond
+code. Community support and reviews are best effort; there is no promised
+response deadline. Follow the [code of conduct](CODE_OF_CONDUCT.md).
+
 Work against [the customer-local router scope](docs/ROUTER_SCOPE.md). Use an
 isolated checkout and preserve unrelated dirty work. New product work must
 advance history → scorecard → classifier → model execution → observed outcome.
@@ -78,6 +91,23 @@ for the intended compatibility change. Omit `--dry-run` only to apply that
 reviewed metadata change. CI and test-only PRs do not automatically bump a
 release; schema versions, client pins and historical evidence stay independent.
 
+## Pick a useful first change
+
+- `good first issue`: a small task with a starting file and explicit acceptance
+  criteria; it should not need real credentials, live providers or model downloads.
+- `help wanted`: an open request for community help; read its scope and evidence
+  requirements before starting.
+- `documentation`: docs and examples; `area:docs`, `area:selection`,
+  `area:history`, `area:client`, `area:plugin` and `area:testing` identify the
+  relevant component. Labels describe work, not supported client compatibility.
+
+Keep one PR focused on one outcome. Include the linked issue, exact checks run
+and any limitations in the PR template. Documentation-only changes usually need
+the source/link check and the documented commands they change; behavior changes
+need the relevant fast/workflow tests and final wheel verification described
+above. Add your preferred public credit to [CONTRIBUTORS.md](CONTRIBUTORS.md)
+if you would like recognition, including for documentation, review or testing.
+
 Keep queues, requests, processes and retries finite. Default to at most eight
 outbound HTTP requests in flight, three retries with backoff, explicit timeouts
 and cleanup in finally-equivalent paths. Routine validation does not call real
@@ -95,5 +125,5 @@ repository protections as a side effect of deleting a workflow. See the
 [required-check cutover](docs/MIGRATION_2.md).
 Merge also requires technical-lead sign-off against the exact PR head.
 
-Report defects using synthetic inputs through the [issue tracker](https://github.com/mehrdadxzaker/hormuz/issues).
+Report defects using synthetic inputs through the [issue tracker](https://github.com/mehrdadxzaker/Koto/issues).
 Use [SECURITY.md](SECURITY.md) for private vulnerability reporting.

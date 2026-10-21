@@ -1,12 +1,12 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "koto",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Diagnose, explain and qualify local model routing with explicit privacy, budget and history controls.",
   "author": {
     "name": "mehrdadxzaker"
   },
-  "repository": "https://github.com/mehrdadxzaker/hormuz",
+  "repository": "https://github.com/mehrdadxzaker/Koto",
   "license": "Apache-2.0",
   "extensions": {
     "com.openai": {

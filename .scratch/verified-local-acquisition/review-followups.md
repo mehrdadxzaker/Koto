@@ -1,7 +1,7 @@
 # PR 548 review follow-ups
 
 Origin: the owner's request to review, fix and merge
-[PR 548](https://github.com/Xpounder-com/hormuz/pull/548). Its automatic review
+[PR 548](https://github.com/mehrdadxzaker/Koto/pull/548). Its automatic review
 arrived after merge; all five findings must be corrected and independently
 reviewed before the follow-up merges. Baseline: `f57246781c470e4c913c77287e8f6a92e3e25579`.
 

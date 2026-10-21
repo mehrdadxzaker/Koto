@@ -78,14 +78,14 @@ try:
         data = response.readline() if value.get("cancel_after_event") else response.read()
     print(json.dumps({"status": response.status,
                       "headers": dict((k.lower(), v) for k, v in response.getheaders()),
-                      "body": json.loads(data) if "application/json" in response.getheader("Content-Type", "") else data.decode()}))
+                          "body": json.loads(data) if "application/json" in response.getheader("Content-Type", "") else data.decode(value.get("response_encoding", "utf-8"))}))
 finally:
     connection.close()
 '''
 
 
 @contextmanager
-def provider(answer, *, status=200, health_status=200, hold_first=None, event_stream=False, cancel_stream=None, slow_stream=False, backpressure_first=None, observe_close=None, response_fields=None, text_deltas=(), trailing_events=(), response_body=None, compact_json=False, get_responses=None):
+def provider(answer, *, status=200, health_status=200, hold_first=None, event_stream=False, cancel_stream=None, slow_stream=False, backpressure_first=None, observe_close=None, response_fields=None, text_deltas=(), trailing_events=(), response_body=None, compact_json=False, get_responses=None, hold_after_terminal=False):
     received = []
 
     class Handler(BaseHTTPRequestHandler):
@@ -94,8 +94,9 @@ def provider(answer, *, status=200, health_status=200, hold_first=None, event_st
             pass
 
         def do_GET(self):
-            data = json.dumps((get_responses or {}).get(self.path, {"status": "ok" if health_status == 200 else "loading model"})).encode()
-            self.send_response(200 if self.path in (get_responses or {}) else health_status if self.path == "/health" else 404)
+            current_health = health_status() if callable(health_status) else health_status
+            data = json.dumps((get_responses or {}).get(self.path, {"status": "ok" if current_health == 200 else "loading model"})).encode()
+            self.send_response(200 if self.path in (get_responses or {}) else current_health if self.path == "/health" else 404)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(data)))
             self.end_headers()
@@ -124,13 +125,15 @@ def provider(answer, *, status=200, health_status=200, hold_first=None, event_st
                           {"type": "response.completed", "response": result}, *trailing_events]
                 data = b"".join(("data: " + json.dumps(event, separators=separators) + "\n\n").encode() for event in events)
             if response_body is not None:
-                data = response_body
+                data = response_body(body, len(received)) if callable(response_body) else response_body
             if backpressure_first and len(received) == 1:
                 data = b"data: " + b" " * (16 * 1024 * 1024) + b"\n\n" + data
             self.send_response(status(body) if callable(status) else status)
             self.send_header("Content-Type", "text/event-stream" if event_stream else "application/json")
-            if not ((cancel_stream or slow_stream) and len(received) == 1):
+            if not (hold_after_terminal or (cancel_stream or slow_stream) and len(received) == 1):
                 self.send_header("Content-Length", str(len(data)))
+            else:
+                self.close_connection = True
             self.end_headers()
             if cancel_stream and len(received) == 1:
                 try:
@@ -151,6 +154,9 @@ def provider(answer, *, status=200, health_status=200, hold_first=None, event_st
                         self.wfile.flush()
                         time.sleep(0.2)
                     self.wfile.write(data)
+                    if hold_after_terminal:
+                        self.wfile.flush()
+                        threading.Event().wait(.5)
                 except (BrokenPipeError, ConnectionResetError):
                     pass
             else:

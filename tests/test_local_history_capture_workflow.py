@@ -247,6 +247,145 @@ class LocalHistoryCaptureWorkflowTests(unittest.TestCase):
                 self.assertIsNone(entry["output_tokens"])
             self.assertEqual(len(received), 1)
 
+    def test_malformed_completion_event_keeps_history_outcome_unknown(self):
+        wire = (b'data: {"type":"response.output_text.delta","delta":"Partial answer."}\n\n'
+                b'event: response.completed\ndata: {broken\n\n')
+        with destination_workflow.provider("UNUSED", event_stream=True, response_body=wire) as (endpoint, received):
+            value = self.cloud_configuration(endpoint)
+            self.history("enable")
+            with self.fixture.connected_client(value) as submit:
+                result = submit(request={"model": "cloud-code", "stream": True})
+                self.assertEqual(result["body"], wire.decode())
+                entry = self.history("show", self.history("list")["entries"][0]["id"])["entry"]
+                self.assertEqual(entry["outcome"], "outcome_unknown")
+                self.assertIsNone(entry["estimated_cost_microusd"])
+            self.assertEqual(len(received), 1)
+
+    def test_only_complete_matching_response_data_can_establish_stream_success(self):
+        cases = {
+            "missing_response": b'data: {"type":"response.completed"}\n\n',
+            "wrong_status": b'data: {"type":"response.completed","response":{"status":"in_progress"}}\n\n',
+            "wrong_event": b'event: response.failed\ndata: {"type":"response.completed","response":{"status":"completed"}}\n\n',
+            "unterminated_line": b'data: {"type":"response.completed","response":{"status":"completed"}}',
+            "unterminated_frame": b'data: {"type":"response.completed","response":{"status":"completed"}}\n',
+            "done_without_response": b'data: [DONE]\n\n',
+            "invalid_utf8": b'data: {"type":"response.completed","response":{"status":"completed","model":"bad-\xff"}}\n\n',
+        }
+        replies = list(cases.values())
+        with destination_workflow.provider("UNUSED", event_stream=True,
+                                           response_body=lambda _body, number: replies[number - 1]) as (endpoint, received):
+            value = self.cloud_configuration(endpoint)
+            self.history("enable")
+            with self.fixture.connected_client(value) as submit:
+                seen = set()
+                for name, wire in cases.items():
+                    with self.subTest(frame=name):
+                        result = submit(request={"model": "cloud-code", "stream": True}, response_encoding="latin-1")
+                        self.assertEqual(result["body"], wire.decode("latin-1"))
+                        entry_id = next(row["id"] for row in self.history("list")["entries"] if row["id"] not in seen)
+                        seen.add(entry_id)
+                        entry = self.history("show", entry_id)["entry"]
+                        self.assertEqual(entry["outcome"], "outcome_unknown")
+                        self.assertIsNone(entry["estimated_cost_microusd"])
+            self.assertEqual(len(received), len(cases))
+
+    def test_chat_completion_done_marker_requires_a_matching_successful_stream(self):
+        finished = (b'data: {"object":"chat.completion.chunk","model":"cloud-model",'
+                    b'"choices":[{"index":0,"delta":{"content":"Chat answer."},"finish_reason":"stop"}],'
+                    b'"usage":{"prompt_tokens":4,"completion_tokens":2,"total_tokens":6}}\n\n')
+        cases = [
+            ("valid", finished + b'data: [DONE]\n\n', "succeeded"),
+            ("wrong_event", finished + b'event: response.failed\ndata: [DONE]\n\n', "outcome_unknown"),
+            ("missing_finish", b'data: [DONE]\n\n', "outcome_unknown"),
+            ("wrong_protocol", b'data: {"type":"response.completed","response":{"status":"completed"}}\n\n', "outcome_unknown"),
+            ("provider_error", finished + b'data: {"error":{"message":"fixture failure"}}\n\ndata: [DONE]\n\n', "outcome_unknown"),
+        ]
+        with destination_workflow.provider("UNUSED", event_stream=True,
+                                           response_body=lambda _body, number: cases[number - 1][1]) as (endpoint, received):
+            value = self.cloud_configuration(endpoint)
+            self.history("enable")
+            with self.fixture.connected_client(value) as submit:
+                seen = set()
+                for name, wire, expected in cases:
+                    with self.subTest(frame=name):
+                        result = submit(path="/chat/completions", request={"model": "cloud-code", "stream": True,
+                            "messages": [{"role": "user", "content": "Reply briefly."}]})
+                        self.assertEqual(result["body"], wire.decode())
+                        entry_id = next(row["id"] for row in self.history("list")["entries"] if row["id"] not in seen)
+                        seen.add(entry_id)
+                        self.assertEqual(self.history("show", entry_id)["entry"]["outcome"], expected)
+            self.assertEqual(len(received), len(cases))
+
+    def test_oversized_stream_line_closes_upstream_and_keeps_router_usable(self):
+        closed = threading.Event()
+        wire = b"data: " + b"x" * (1024 * 1024 + 1)
+        recovery = (b'data: {"type":"response.completed","response":{"status":"completed",'
+                    b'"model":"cloud-model","output":[],"usage":{"input_tokens":4,'
+                    b'"output_tokens":2,"total_tokens":6}}}\n\n')
+        with destination_workflow.provider("UNUSED", event_stream=True,
+                                           response_body=lambda _body, number: wire if number == 1 else recovery,
+                                           observe_close=closed) as (endpoint, received):
+            value = self.cloud_configuration(endpoint)
+            self.history("enable")
+            with self.fixture.connected_client(value) as submit:
+                result = submit(request={"model": "cloud-code", "stream": True})
+                self.assertLess(len(result["body"]), len(wire))
+                self.assertTrue(closed.wait(timeout=2), "Oversized upstream stream was not closed")
+                first_id = self.history("list")["entries"][0]["id"]
+                entry = self.history("show", first_id)["entry"]
+                self.assertEqual(entry["outcome"], "outcome_unknown")
+                self.assertIsNone(entry["estimated_cost_microusd"])
+                recovered = submit(request={"model": "cloud-code", "stream": True})
+                self.assertEqual(recovered["status"], 200, recovered)
+                self.assertEqual(recovered["body"], recovery.decode())
+                recovered_id = next(row["id"] for row in self.history("list")["entries"] if row["id"] != first_id)
+                self.assertEqual(self.history("show", recovered_id)["entry"]["outcome"], "succeeded")
+                self.assertEqual(submit(method="GET", path="/router/state")["status"], 200)
+            self.assertEqual(len(received), 2)
+
+    def test_multiline_event_cannot_evade_the_stream_byte_limit(self):
+        wire = b'data: "' + b'x' * (32 * 1024) + b'"\n'
+        wire *= 33
+        with destination_workflow.provider("UNUSED", event_stream=True, response_body=wire) as (endpoint, received):
+            value = self.cloud_configuration(endpoint)
+            self.history("enable")
+            with self.fixture.connected_client(value) as submit:
+                result = submit(request={"model": "cloud-code", "stream": True})
+                self.assertLess(len(result["body"]), len(wire))
+                entry = self.history("show", self.history("list")["entries"][0]["id"])["entry"]
+                self.assertEqual(entry["outcome"], "outcome_unknown")
+            self.assertEqual(len(received), 1)
+
+    def test_valid_named_multiline_and_crlf_streams_preserve_completion_and_usage(self):
+        terminal = ('{"type":"response.completed","response":{"status":"completed",'
+                    '"model":"cloud-model","output":[],"usage":{"input_tokens":4,'
+                    '"output_tokens":2,"total_tokens":6}}}')
+        cases = {
+            "data_only": "data: " + terminal + "\n\n",
+            "named_crlf": "event: response.completed\r\ndata: " + terminal + "\r\n\r\n",
+            "multiline": 'event: response.completed\ndata: {"type":"response.completed",\ndata: '
+                         + terminal.split(',', 1)[1] + "\n\n",
+            "event_reset": "event: response.failed\nevent\n: keep alive\ndata: " + terminal + "\n\n",
+        }
+        replies = list(cases.values())
+        with destination_workflow.provider("UNUSED", event_stream=True,
+                                           response_body=lambda _body, number: replies[number - 1].encode()) as (endpoint, received):
+            value = self.cloud_configuration(endpoint)
+            value["model_routes"]["cloud-code"].update(input_cost_per_million=2, output_cost_per_million=3)
+            self.history("enable")
+            with self.fixture.connected_client(value) as submit:
+                seen = set()
+                for name, wire in cases.items():
+                    with self.subTest(frame=name):
+                        self.assertEqual(submit(request={"model": "cloud-code", "stream": True})["body"], wire)
+                        entry_id = next(row["id"] for row in self.history("list")["entries"] if row["id"] not in seen)
+                        seen.add(entry_id)
+                        entry = self.history("show", entry_id)["entry"]
+                        self.assertEqual(entry["outcome"], "succeeded")
+                        self.assertEqual((entry["input_tokens"], entry["output_tokens"]), (4, 2))
+                        self.assertEqual(entry["estimated_cost_microusd"], 14)
+            self.assertEqual(len(received), len(cases))
+
     def test_oversized_response_text_and_wire_are_omitted_instead_of_truncated(self):
         for size in (65 * 1024, 140 * 1024):
             with self.subTest(bytes=size), streaming_provider(["x" * size]) as (endpoint, received):

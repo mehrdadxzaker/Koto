@@ -6,8 +6,8 @@
 - Date proposed: 2026-08-15
 - Date accepted: 2026-08-15; approval record verified 2026-08-30
 - Decision owner: Product owner
-- Tracking issue: [#2](https://github.com/Xpounder-com/hormuz/issues/2)
-- Unblocks after acceptance: [#13](https://github.com/Xpounder-com/hormuz/issues/13), part of [#7](https://github.com/Xpounder-com/hormuz/issues/7)
+- Tracking issue: [#2](https://github.com/mehrdadxzaker/Koto/issues/2)
+- Unblocks after acceptance: [#13](https://github.com/mehrdadxzaker/Koto/issues/13), part of [#7](https://github.com/mehrdadxzaker/Koto/issues/7)
 
 ## Accepted decision
 
@@ -17,12 +17,12 @@ Choose how employees authenticate to Hormuz while continuing to use Codex and Cl
 2. **Customer-minted JWT access tokens only.** Keep the implemented resource-server path and require every customer to mint and continuously refresh a JWT access token whose audience is Hormuz.
 
 The owner approved option 1 with 10-minute access credentials and a 12-hour
-absolute session limit in [issue #2](https://github.com/Xpounder-com/hormuz/issues/2#issuecomment-5304951246).
+absolute session limit in [issue #2](https://github.com/mehrdadxzaker/Koto/issues/2#issuecomment-5304951246).
 An earlier implementation lived in the closed, unmerged PR #19 alongside the
 retired context experiment. That implementation is not a shipped-core claim.
 The 2026-08-30 hosted-login slice reuses reviewed session components and adapts
 them to the current gateway without restoring directory/context functionality.
-See [local implementation and remaining gates](https://github.com/Xpounder-com/hormuz/blob/2e5011f8e1064976c33c5694e74fd0bb17539c14/docs/HOSTED_LOGIN_LOCAL.md).
+See [local implementation and remaining gates](https://github.com/mehrdadxzaker/Koto/blob/2e5011f8e1064976c33c5694e74fd0bb17539c14/docs/HOSTED_LOGIN_LOCAL.md).
 
 ## Background
 

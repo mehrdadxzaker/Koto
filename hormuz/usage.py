@@ -13,6 +13,12 @@ _OPENAI_TERMINAL_RESPONSE_EVENTS = frozenset({
     "response.failed",
     "response.incomplete",
 })
+MAX_SSE_LINE_BYTES = 1024 * 1024
+MAX_SSE_EVENT_BYTES = 1024 * 1024
+
+
+class ResponseUsageLimitError(ValueError):
+    """Provider SSE exceeded the bounded observation envelope."""
 
 
 @dataclass
@@ -43,9 +49,14 @@ class ResponseUsageParser:
         self.is_event_stream = is_event_stream
         self.chat_completions = chat_completions
         self._chat_usage_valid = False
+        self._chat_finished = False
         self.usage = Usage()
-        self._decoder = codecs.getincrementaldecoder("utf-8")(errors="replace")
+        self._decoder = codecs.getincrementaldecoder("utf-8")(errors="strict")
         self._line_buffer = ""
+        self._sse_data: list[str] = []
+        self._sse_event: str | None = None
+        self._sse_event_bytes = 0
+        self._sse_invalid = False
         self._json_buffer = bytearray()
         self._input_tokens_observed = False
         self._output_tokens_observed = False
@@ -58,18 +69,43 @@ class ResponseUsageParser:
     def provider_completed(self) -> bool:
         """Whether a successful provider terminal marker was observed."""
 
-        return self._provider_completed
+        return self._provider_completed and not self._sse_invalid
 
     def feed(self, data: bytes) -> None:
         if self._finished is not None:
             raise RuntimeError("provider_usage_parser_finished")
         if self.is_event_stream:
-            self._line_buffer += self._decoder.decode(data)
+            if self._sse_invalid:
+                return
+            try:
+                self._line_buffer += self._decoder.decode(data)
+            except UnicodeDecodeError:
+                self._decoder.reset()
+                self._invalidate_sse()
+                return
             while "\n" in self._line_buffer:
                 line, self._line_buffer = self._line_buffer.split("\n", 1)
+                self._check_sse_line_limit(line)
                 self._parse_sse_line(line.rstrip("\r"))
+            self._check_sse_line_limit(self._line_buffer)
         elif len(self._json_buffer) < 10 * 1024 * 1024:
             self._json_buffer.extend(data)
+
+    def _check_sse_line_limit(self, line: str) -> None:
+        if len(line.encode("utf-8")) > MAX_SSE_LINE_BYTES:
+            self._sse_limit_exceeded()
+
+    def _invalidate_sse(self) -> None:
+        self._sse_invalid = True
+        self._native.note_parse_failure()
+
+    def _sse_limit_exceeded(self) -> None:
+        self._line_buffer = ""
+        self._sse_data.clear()
+        self._sse_event = None
+        self._sse_event_bytes = 0
+        self._invalidate_sse()
+        raise ResponseUsageLimitError("provider_sse_limit")
 
     def finish(self) -> Usage:
         return self.finish_with_finance().usage
@@ -78,9 +114,15 @@ class ResponseUsageParser:
         if self._finished is not None:
             return self._finished
         if self.is_event_stream:
-            self._line_buffer += self._decoder.decode(b"", final=True)
-            if self._line_buffer:
-                self._parse_sse_line(self._line_buffer.rstrip("\r"))
+            try:
+                self._line_buffer += self._decoder.decode(b"", final=True)
+            except UnicodeDecodeError:
+                self._invalidate_sse()
+            # EOF does not dispatch an unfinished SSE frame.
+            if self._line_buffer or self._sse_data:
+                self._invalidate_sse()
+            self._line_buffer = ""
+            self._sse_data.clear()
         elif self._json_buffer:
             try:
                 self._parse_object(_strict_json_loads(self._json_buffer))
@@ -88,48 +130,84 @@ class ResponseUsageParser:
                 self._native.note_parse_failure()
         self.usage.evidence_complete = (
             self._input_tokens_observed and self._output_tokens_observed
+            and not self._sse_invalid
             and (not self.chat_completions or self._chat_usage_valid)
         )
         self._finished = ParsedUsage(
             self.usage,
             self._native.finish(),
-            self._provider_terminal_state,
+            self._provider_terminal_state if not self._sse_invalid else None,
         )
         return self._finished
 
     def _parse_sse_line(self, line: str) -> None:
-        if line.startswith("event:"):
-            event = line[6:].strip()
-            if self.protocol == "openai" and event in _OPENAI_TERMINAL_RESPONSE_EVENTS:
-                self._observe_provider_terminal_state(
-                    event.removeprefix("response."),
-                )
-            if (self.protocol == "openai" and event == "response.completed") or (
-                self.protocol == "anthropic" and event == "message_stop"
-            ):
-                self._provider_completed = True
+        if not line:
+            self._dispatch_sse_event()
+            self._sse_data.clear()
+            self._sse_event = None
+            self._sse_event_bytes = 0
             return
-        if not line.startswith("data:"):
+        field, _, value = line.partition(":")
+        value = value.removeprefix(" ")
+        if field == "event":
+            self._sse_event = value or None
+        elif field == "data":
+            self._sse_event_bytes += len(line.encode("utf-8"))
+            if self._sse_event_bytes > MAX_SSE_EVENT_BYTES:
+                self._sse_limit_exceeded()
+            self._sse_data.append(value)
+
+    def _dispatch_sse_event(self) -> None:
+        if not self._sse_data:
             return
-        payload = line[5:].strip()
+        payload = "\n".join(self._sse_data).strip()
         if not payload:
             return
         if payload == "[DONE]":
-            self._provider_completed = True
+            if (self.protocol == "openai" and self.chat_completions and self._chat_finished
+                    and self._sse_event in {None, "message"}):
+                self._provider_completed = True
+            else:
+                self._invalidate_sse()
             return
         try:
             value = _strict_json_loads(payload)
-        except (json.JSONDecodeError, UnicodeDecodeError, ValueError):
-            self._native.note_parse_failure()
+        except (ValueError, RecursionError):
+            self._invalidate_sse()
+            return
+        if self._sse_event not in {None, "message"} and (
+                not isinstance(value, dict) or self._sse_event != value.get("type")):
+            self._invalidate_sse()
             return
         self._parse_object(value)
 
     def _parse_object(self, value: Any) -> None:
         if not isinstance(value, dict):
             return
+        if self.is_event_stream and (value.get("error") is not None
+                or value.get("type") in ("error", "response.error")):
+            self._invalidate_sse()
+            return
         if self.protocol == "openai":
+            if self.chat_completions and self.is_event_stream and value.get("choices"):
+                choices = value["choices"]
+                self._chat_finished = (
+                    value.get("object") == "chat.completion.chunk" and isinstance(choices, list)
+                    and len(choices) == 1 and isinstance(choices[0], dict)
+                    and type(choices[0].get("index")) is int and choices[0]["index"] == 0
+                    and isinstance(choices[0].get("delta"), dict)
+                    and choices[0].get("finish_reason") in ("stop", "tool_calls", "function_call")
+                )
             event_type = value.get("type")
             if isinstance(event_type, str) and event_type in _OPENAI_TERMINAL_RESPONSE_EVENTS:
+                if self.chat_completions:
+                    self._invalidate_sse()
+                    return
+                response = value.get("response")
+                if (not isinstance(response, dict) or response.get("status") != event_type.removeprefix("response.")
+                        or event_type == "response.completed" and response.get("error") is not None):
+                    self._invalidate_sse()
+                    return
                 self._observe_provider_terminal_state(
                     event_type.removeprefix("response."),
                 )

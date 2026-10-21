@@ -4,7 +4,7 @@
 - Date: 2026-10-15
 - Decision owner: Product owner
 - Approval: Implement shared local setup with TDD at the approved workflow seam, reusing existing verified engine/model files and generating configuration for CLI and plugin.
-- Parent specification: [#523](https://github.com/Xpounder-com/hormuz/issues/523)
+- Parent specification: [#523](https://github.com/mehrdadxzaker/Koto/issues/523)
 
 Managed lifetime required a manually assembled router configuration. Add one
 `client setup codex` operation shared by terminal and skills-only callers. It

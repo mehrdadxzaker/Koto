@@ -65,6 +65,7 @@ from ._contract_schemas.coding_probe import (PLAN_FIELDS as PROBE_PLAN_FIELDS, S
     validate_plan as _validate_probe_plan, validate_status as _validate_probe_status, validate_error as _validate_probe_error)
 from ._contract_schemas.benchmark import FIELDS as BENCHMARK_FIELDS, validate_benchmark as _validate_benchmark
 from ._contract_schemas.personal_selection import FIELDS as SELECTION_FIELDS, validate as _validate_selection
+from ._contract_schemas.native_task import FIELDS as NATIVE_TASK_FIELDS, validate as _validate_native_task
 from ._contract_schemas.cloud_readiness import FIELDS as CLOUD_READINESS_FIELDS, validate_readiness as _validate_cloud_readiness
 from ._contract_schemas.codex_app_bridge import FIELDS as APP_BRIDGE_FIELDS, validate_install as _validate_app_bridge_install
 from ._contract_schemas.chat_task import (TASK_FIELDS as CHAT_TASK_FIELDS, MODELS_FIELDS as CHAT_MODELS_FIELDS,
@@ -73,6 +74,8 @@ from ._contract_schemas.chat_task import (TASK_FIELDS as CHAT_TASK_FIELDS, MODEL
 from ._contract_schemas.native_codex import FIELDS as NATIVE_STATUS_FIELDS, validate_status as _validate_native_status
 from ._contract_schemas.local_setup import (validate_profile as _validate_local_setup_profile,
     validate_profile_v3 as _validate_local_setup_profile_v3,
+    validate_profile_v4 as _validate_local_setup_profile_v4,
+    validate_profile_v5 as _validate_local_setup_profile_v5,
     validate_setup as _validate_local_setup, validate_setup_v2 as _validate_local_setup_v2,
     validate_setup_v3 as _validate_local_setup_v3)
 from ._contract_schemas.local_acquisition import (CATALOG_FIELDS as ACQUISITION_CATALOG_FIELDS,
@@ -531,6 +534,8 @@ def contract_manifest() -> dict[str, object]:
               for version in (1, 2)],
             _manifest_schema(ROUTE_ADMISSION_SCHEMA_ID, 3, "response", "hormuz",
                 ["schema_id", "schema_version", "mode", "task_classifier", "local_capacity", "routes", "personal_selection"]),
+            _manifest_schema(ROUTE_ADMISSION_SCHEMA_ID, 4, "response", "hormuz",
+                ["schema_id", "schema_version", "mode", "task_classifier", "local_capacity", "routes"]),
             _manifest_schema("hormuz.cloud-readiness", 1, "cli-output", "hormuz", sorted(CLOUD_READINESS_FIELDS)),
             _manifest_schema(NATIVE_CATALOG_SCHEMA_ID, NATIVE_CATALOG_SCHEMA_VERSION, "http-headers", "hormuz",
                 ["X-Hormuz-Contract"]),
@@ -559,6 +564,8 @@ def contract_manifest() -> dict[str, object]:
             _manifest_schema("hormuz.chat-models", 1, "cli-output", "hormuz", sorted(CHAT_MODELS_FIELDS)),
             _manifest_schema("hormuz.chat-error", 1, "cli-output", "hormuz", sorted(CHAT_ERROR_FIELDS)),
             _manifest_schema("hormuz.chat-owner", 1, "durable-evidence", "hormuz", sorted(CHAT_OWNER_FIELDS)),
+            *[_manifest_schema(schema, 1, "cli-output", "hormuz", sorted(fields))
+              for schema, fields in NATIVE_TASK_FIELDS.items()],
             _manifest_schema("hormuz.local-acquisition", 1, "cli-output", "hormuz", sorted(ACQUISITION_RECEIPT_FIELDS)),
             _manifest_schema("hormuz.local-acquisition-error", 1, "cli-output", "hormuz", ["schema_id", "schema_version", "error"]),
             _manifest_schema(LOCAL_SETUP_SCHEMA_ID, 1, "cli-output", "hormuz",
@@ -568,9 +575,9 @@ def contract_manifest() -> dict[str, object]:
             _manifest_schema(LOCAL_SETUP_SCHEMA_ID, 3, "cli-output", "hormuz",
                 ["schema_id", "schema_version", "configuration", "connection"]),
             *[_manifest_schema("hormuz.local-coding-evidence", version, "durable-evidence", "hormuz", sorted(EVIDENCE_FIELDS))
-              for version in (1, 2)],
+              for version in (1, 2, 3, 4)],
             *[_manifest_schema("hormuz.coding-probe-plan", version, "durable-evidence", "hormuz", sorted(PROBE_PLAN_FIELDS))
-              for version in (1, 2)],
+              for version in (1, 2, 3, 4)],
             _manifest_schema("hormuz.coding-probe-status", 1, "cli-output", "hormuz", sorted(PROBE_STATUS_FIELDS)),
             _manifest_schema("hormuz.coding-probe-error", 1, "cli-output", "hormuz", ["schema_id", "schema_version", "error"]),
             _manifest_schema("hormuz.coding-probe-relay", 1, "http-headers", "hormuz",
@@ -585,7 +592,7 @@ def contract_manifest() -> dict[str, object]:
                 ["schema_id", "schema_version", "qualification_id", "client_version", "system", "machine",
                  "runtime_sha256", "model_sha256", "model", "capabilities", "max_request_bytes",
                  "max_output_tokens", "task_types", "upstream_timeout_seconds", "startup_timeout_seconds"]
-                 + (["coding_evidence"] if version >= 2 else [])) for version in (1, 2, 3)],
+                 + (["coding_evidence"] if version >= 2 else [])) for version in (1, 2, 3, 4, 5)],
         ],
         "policy_action_semantics": {
             "allowed": "The requested route was allowed without a route substitution or output cap.",
@@ -624,6 +631,7 @@ def validate_contract(value: Mapping[str, Any]) -> None:
     validator = {
         **{(schema, 1): _validate_benchmark for schema in BENCHMARK_FIELDS},
         **{(schema, 1): _validate_selection for schema in SELECTION_FIELDS},
+        **{(schema, 1): _validate_native_task for schema in NATIVE_TASK_FIELDS},
         ("hormuz.local-acquisition-catalog", 1): _validate_acquisition_catalog,
         ("hormuz.codex-app-bridge-install", 1): _validate_app_bridge_install,
         ("hormuz.chat-task", 1): _validate_chat_task,
@@ -639,8 +647,12 @@ def validate_contract(value: Mapping[str, Any]) -> None:
         (LOCAL_SETUP_SCHEMA_ID, 3): _validate_local_setup_v3,
         ("hormuz.local-coding-evidence", 1): _validate_coding_evidence,
         ("hormuz.local-coding-evidence", 2): _validate_coding_evidence,
+        ("hormuz.local-coding-evidence", 3): _validate_coding_evidence,
+        ("hormuz.local-coding-evidence", 4): _validate_coding_evidence,
         ("hormuz.coding-probe-plan", 1): _validate_probe_plan,
         ("hormuz.coding-probe-plan", 2): _validate_probe_plan,
+        ("hormuz.coding-probe-plan", 3): _validate_probe_plan,
+        ("hormuz.coding-probe-plan", 4): _validate_probe_plan,
         ("hormuz.coding-probe-status", 1): _validate_probe_status,
         ("hormuz.coding-probe-error", 1): _validate_probe_error,
         ("hormuz.shadow-routing", 1): _validate_shadow,
@@ -649,6 +661,8 @@ def validate_contract(value: Mapping[str, Any]) -> None:
         (LOCAL_SETUP_PROFILE_SCHEMA_ID, 1): _validate_local_setup_profile,
         (LOCAL_SETUP_PROFILE_SCHEMA_ID, 2): _validate_local_setup_profile,
         (LOCAL_SETUP_PROFILE_SCHEMA_ID, 3): _validate_local_setup_profile_v3,
+        (LOCAL_SETUP_PROFILE_SCHEMA_ID, 4): _validate_local_setup_profile_v4,
+        (LOCAL_SETUP_PROFILE_SCHEMA_ID, 5): _validate_local_setup_profile_v5,
         (CONNECTED_CLIENT_STATUS_SCHEMA_ID, CONNECTED_CLIENT_STATUS_SCHEMA_VERSION): _validate_connected_client_status,
         (CONNECTED_CLIENT_PREVIEW_SCHEMA_ID, CONNECTED_CLIENT_PREVIEW_SCHEMA_VERSION): _validate_connected_client_preview,
         (CONNECTED_CLIENT_STATUS_SCHEMA_ID, 2): _validate_connected_client_status_v2,
@@ -657,6 +671,7 @@ def validate_contract(value: Mapping[str, Any]) -> None:
         (ROUTE_ADMISSION_SCHEMA_ID, 1): _validate_route_admission,
         (ROUTE_ADMISSION_SCHEMA_ID, 2): _validate_route_admission,
         (ROUTE_ADMISSION_SCHEMA_ID, 3): _validate_route_admission,
+        (ROUTE_ADMISSION_SCHEMA_ID, 4): _validate_route_admission,
         (HEALTH_SCHEMA_ID, 1): _validate_health,
         (READINESS_SCHEMA_ID, READINESS_SCHEMA_VERSION): _validate_readiness,
         (IDENTITY_SCHEMA_ID, 1): _validate_identity,

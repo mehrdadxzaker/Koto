@@ -1,6 +1,6 @@
 # Local coding qualification
 
-This resolves the admission decision in [#538](https://github.com/Xpounder-com/hormuz/issues/538).
+This resolves the admission decision in [#538](https://github.com/mehrdadxzaker/Koto/issues/538).
 The approved workflow remains connect → submit through the real router → inspect
 result/status → disconnect. Qualification gates fresh automatic coding admission;
 it does not grant a routing model execution authority.
@@ -19,6 +19,12 @@ OS family/architecture, runtime archive, model revision/alias, protocol, capabil
 and output bounds, timeout and the instruction/tool/generation-control profile.
 Changing any of these requires new evidence. User text, conversation IDs and
 provider-owned continuation state are not part of the instruction profile hash.
+
+The separately selected [bounded output profile](BOUNDED_CODING_OUTPUT.md) adds
+`local-repair.v2` with up to 2,048 output tokens and `managed-llama.v2` runtime
+identity. It retains the same sixteen-case quality gate, byte and deadline
+bounds, with new evidence/probe v4 and setup v5. Existing v1 campaigns and
+512-token profiles are not upgraded or relabelled.
 
 Coding admission and final dispatch also require one printable `User-Agent`
 header, at most 512 characters, whose first product is
@@ -215,6 +221,14 @@ does not identify a qualified model. Older binaries reject version-2 evidence;
 disconnect and remove that record before downgrade. Existing v1 records are not
 rewritten or reinterpreted. Freeze a separately versioned v2 campaign before
 collecting new evidence; retained failures keep their original treatment.
+
+[Version-3 evidence and probe plans](BOUNDED_NAMESPACE_CODING.md) additionally
+support the existing reversible adapter for native function namespaces, with the
+same criteria and bounds. The raw native instruction/tool/control profile stays
+bound. Setup profile version 4 selects this bounded adapter envelope with the
+unchanged managed schema-1 inference flags. It does not select the wider app
+profile or qualify a model. A managed schema-2 runtime cannot inherit
+`managed-llama.v1` coding evidence.
 
 Local route declarations may embed `coding_evidence`. Version-1 declarations
 without it remain readable and explicitly unqualified for coding. Setup profile

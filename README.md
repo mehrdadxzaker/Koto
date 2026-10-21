@@ -1,9 +1,18 @@
 # Koto
 
+[![CI](https://github.com/mehrdadxzaker/Koto/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/mehrdadxzaker/Koto/actions/workflows/ci.yml)
+[![Python: 3.11–3.14](https://img.shields.io/badge/Python-3.11%E2%80%933.14-3776AB)](SUPPORT.md)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue)](LICENSE)
+[![Help wanted](https://img.shields.io/github/issues/mehrdadxzaker/Koto/help%20wanted?label=help%20wanted)](https://github.com/mehrdadxzaker/Koto/issues?q=is%3Aissue%20is%3Aopen%20label%3A%22help%20wanted%22)
+
 <img src="assets/koto-logo.png" alt="Koto wooden K logo" width="160" height="160" />
 
 **Koto adds local models to the selection pool alongside the commercial model
 you already use, then learns from your work which model should handle each prompt.**
+
+[Documentation](docs/README.md) · [Start contributing](docs/FIRST_CONTRIBUTION.md) ·
+[Good first issues](https://github.com/mehrdadxzaker/Koto/issues?q=is%3Aissue%20is%3Aopen%20label%3A%22good%20first%20issue%22) ·
+[Roadmap](docs/ROADMAP.md) · [Discussions](https://github.com/mehrdadxzaker/Koto/discussions)
 
 Koto runs on your device and connects to your existing coding client. The client
 keeps its editor, tools, permissions and agent loop. Initially, Koto chooses
@@ -23,9 +32,14 @@ baseline. Hard local-only mode blocks when a suitable local choice is unavailabl
 See [personal model selection](docs/PERSONAL_MODEL_SELECTION.md) for consent,
 feedback, bounded local evaluations, validation, status and migration. Existing
 manual [benchmark suites](docs/MODEL_SCORECARDS.md) remain an advanced tool.
+For an existing ChatGPT subscription, use an explicitly launched
+[Koto-enabled Codex session](docs/NATIVE_PERSONAL_SESSIONS.md). It selects before
+each fresh read-only task while Codex owns sign-in and execution.
 Neither learning nor a scorecard grants missing local coding qualification.
-Current experimental local coding setups remain unqualified; prior successful
-controls and failed trials are retained as evidence.
+Bundled local coding examples remain unqualified; prior successful controls and
+failed trials are retained as evidence. The optional
+[2,048-token coding profile](docs/BOUNDED_CODING_OUTPUT.md) requires its own frozen
+campaign and the same sixteen-case independent quality gate.
 
 Setup, verified model assets, streaming, tools, continuation affinity and safe
 disconnect support this workflow. The CLI and skills plugin share their
@@ -37,14 +51,12 @@ activate routing, download models or establish provider access.
 
 The plugin manifests and shared CLI implementation are included in this source.
 Installation remains subject to each coding client's plugin support and review.
-Clone this repository or download and extract its source archive, then run the
-commands below from the Koto source directory. Keep that directory available
-while the plugins are installed.
+Install from the [Koto repository](https://github.com/mehrdadxzaker/Koto):
 
 ### Codex
 
 ```sh
-codex plugin marketplace add ./
+codex plugin marketplace add mehrdadxzaker/Koto
 codex plugin add koto@koto
 ```
 
@@ -54,7 +66,7 @@ the marketplace, select Koto in your client's plugin browser and install it.
 ### Gemini CLI
 
 ```sh
-gemini extensions install ./
+gemini extensions install https://github.com/mehrdadxzaker/Koto
 ```
 
 Restart the Gemini CLI session after installation.
@@ -62,14 +74,14 @@ Restart the Gemini CLI session after installation.
 ### GitHub Copilot CLI
 
 ```sh
-copilot plugin marketplace add ./
+copilot plugin marketplace add mehrdadxzaker/Koto
 copilot plugin install koto@koto
 ```
 
 ### Claude Code
 
 ```sh
-claude plugin marketplace add ./
+claude plugin marketplace add mehrdadxzaker/Koto
 claude plugin install koto@koto
 ```
 
@@ -82,7 +94,7 @@ Use the [open Agent Skills installer](https://github.com/vercel-labs/skills)
 (requires Node.js/npm). Choose your agent when prompted:
 
 ```sh
-npx skills add ./ --skill koto
+npx skills add mehrdadxzaker/Koto --skill koto
 ```
 
 Or select it explicitly with `--agent cursor` or `--agent opencode`.
@@ -106,6 +118,8 @@ are not implemented. See [installation, updates, removal and compatibility](docs
 Use Python 3.11 or later in a virtual environment:
 
 ```sh
+git clone https://github.com/mehrdadxzaker/Koto.git koto
+cd koto
 python3 -m venv .venv-koto
 . .venv-koto/bin/activate
 python -m pip install .
@@ -169,6 +183,19 @@ resources are not deleted by this repository cleanup.
 
 Use [CONTRIBUTING.md](CONTRIBUTING.md), [SUPPORT.md](SUPPORT.md),
 [SECURITY.md](SECURITY.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+
+## Contribute to Koto
+
+Start with the [first-contribution guide](docs/FIRST_CONTRIBUTION.md) and a
+[good first issue](https://github.com/mehrdadxzaker/Koto/issues?q=is%3Aissue%20is%3Aopen%20label%3A%22good%20first%20issue%22).
+Documentation fixes, synthetic reproductions and focused tests help as much as
+runtime code. Larger changes should follow the [roadmap](docs/ROADMAP.md) and
+start with an issue or [discussion](https://github.com/mehrdadxzaker/Koto/discussions).
+
+See [maintainers and review expectations](MAINTAINERS.md),
+[contribution standards](CONTRIBUTING.md) and [contributor credits](CONTRIBUTORS.md).
+Koto is experimental; contributing does not require a provider account, paid
+model calls or a model download for routine development checks.
 
 ## Plugin capabilities
 

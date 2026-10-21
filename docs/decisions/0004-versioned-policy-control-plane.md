@@ -5,8 +5,8 @@
 - Status: **Accepted**
 - Decision date: 2026-08-21
 - Decision owner: Product owner
-- Approval record: [issue #21 design decision](https://github.com/Xpounder-com/hormuz/issues/21#issuecomment-5376899650)
-- Implementation issue: [#21](https://github.com/Xpounder-com/hormuz/issues/21)
+- Approval record: [issue #21 design decision](https://github.com/mehrdadxzaker/Koto/issues/21#issuecomment-5376899650)
+- Implementation issue: [#21](https://github.com/mehrdadxzaker/Koto/issues/21)
 
 ## Decision
 

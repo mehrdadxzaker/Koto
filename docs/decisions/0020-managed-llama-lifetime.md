@@ -4,7 +4,7 @@
 - Date: 2026-10-15
 - Decision owner: Product owner
 - Approval: The owner requested managed llama.cpp lifetime with TDD at the approved connect/request/result/status/disconnect workflow seam, using existing verified files and stopping only engines Koto owns.
-- Parent specification: [#523](https://github.com/Xpounder-com/hormuz/issues/523)
+- Parent specification: [#523](https://github.com/mehrdadxzaker/Koto/issues/523)
 
 Connecting an existing coding client still required separately supervising its
 local model server. The connected-client lifetime now owns one optional verified

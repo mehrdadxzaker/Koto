@@ -443,7 +443,7 @@ class RouterClient:
     def close(self):
         self.connection.close()
 
-    def bindings(self, routes, *, timeout):
+    def bindings(self, routes, *, timeout, discover=False):
         status, _, value, _ = self.request(None, method="GET", path="/v1/router/benchmark-state", timeout=timeout)
         if status != 200:
             raise BenchmarkError("benchmark_execution_unverified")
@@ -457,6 +457,8 @@ class RouterClient:
         for route in routes:
             matches = [item for item in value["routes"]
                        if type(item) is dict and item.get("model") == route.alias]
+            if discover and not matches:
+                continue
             if len(matches) != 1:
                 raise BenchmarkError("benchmark_execution_mismatch")
             live = matches[0]

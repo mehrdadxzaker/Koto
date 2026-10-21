@@ -1,4 +1,5 @@
 include README.md CONTRIBUTING.md SUPPORT.md SECURITY.md CODE_OF_CONDUCT.md GLOSSARY.md LICENSE
+include MAINTAINERS.md CONTRIBUTORS.md CHANGELOG.md
 include config.example.json
 include plugin.json gemini-extension.json
 recursive-include .agents/plugins *.json

@@ -4,7 +4,7 @@ The [connected-client lifetime](CONNECTED_CLIENT_LIFETIME.md) can start one
 verified llama.cpp engine before connecting Codex and stop that engine during
 disconnect. The CLI and the skills-only setup workflow use the same owner. Existing
 coding clients retain their tools, permissions and agent loop. This implements
-the managed-runtime slice of [#523](https://github.com/Xpounder-com/hormuz/issues/523)
+the managed-runtime slice of [#523](https://github.com/mehrdadxzaker/Koto/issues/523)
 and [ADR 0020](decisions/0020-managed-llama-lifetime.md).
 
 The files must already exist. This slice does not acquire, extract, convert or

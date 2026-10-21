@@ -189,3 +189,15 @@ predecessor inputs rehash unchanged; live settings, hard local-only enforcement,
 unknown coding readiness and empty automatic task lists remain preserved.
 The probe was revoked and owned processes/listeners stopped.
 
+
+
+## V16: completed-argument validation, failed qualification
+
+The [V16 record](../../campaigns/local-repair-20261018-v16/README.md) fixes
+malformed completion/replay handling on the actual plain Codex route using TDD.
+Its real edit/check canary passed in five requests and 16.475 seconds. The full
+cohort accepted six of sixteen cases: repeated checking still exhausts the
+request budget, some implementations miss explicit validation, and one incomplete
+command was safely blocked. Prior [V15 evidence](https://github.com/mehrdadxzaker/Koto/pull/576)
+and failed inputs remain unchanged. Ordinary coding readiness remains unknown;
+no automatic coding or new acquisition trial is enabled.

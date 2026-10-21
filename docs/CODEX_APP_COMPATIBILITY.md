@@ -49,6 +49,11 @@ runtime's inline function interface and reverses tool identities in output:
 - Plain reasoning and completed tool history replay on the pinned destination.
   Opaque encrypted reasoning, undeclared calls and unsupported request forms
   fail closed. Malformed provider frames settle ambiguous work as unknown.
+  Completed function arguments must decode to a JSON object before a tool item
+  or arguments-done event is delivered. Truncated arguments interrupt the stream;
+  Koto never fills them in or executes the call. Malformed function history is
+  denied before provider dispatch. Valid argument strings retain their exact
+  bytes, including whitespace, and completed replay status is preserved.
 - Native automatic approval review retains its JSON-schema response format,
   low-effort reasoning and bounded parent/subagent metadata. The app profile
   declares structured output for this path. Legacy profiles still reject these

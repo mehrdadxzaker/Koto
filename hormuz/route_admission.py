@@ -12,6 +12,7 @@ from types import MappingProxyType
 from .work_learning import contains_provider_state, request_characteristics
 from .coding_qualification import assess_coding_evidence, request_profile_digest
 from .coding_probe import CodingProbe, ProbeError, HEADER as PROBE_HEADER
+from .codex_llama import CodexLlamaRequest, validate_function_arguments
 
 
 @dataclass(frozen=True)
@@ -182,11 +183,18 @@ def _text_envelope(value, protocol, endpoint):
         if type(item) is list:
             pending.extend(item)
             continue
-        if type(item) is not dict or set(item) - {"role", "content", "type", "text", "name", "call_id", "arguments", "output", "id", "input", "tool_use_id", "is_error", "tool_calls", "tool_call_id", "function"}:
+        if type(item) is not dict or set(item) - {"role", "content", "type", "text", "name", "call_id", "arguments", "output", "id", "input", "tool_use_id", "is_error", "tool_calls", "tool_call_id", "function", "status"}:
             return None
         kind = item.get("type")
         if kind is not None and (type(kind) is not str or kind not in kinds):
             return None
+        if "status" in item and (kind != "function_call" or item["status"] != "completed"):
+            return None
+        if kind == "function_call":
+            try:
+                validate_function_arguments(item.get("arguments", ""))
+            except (ValueError, TypeError, RecursionError):
+                return None
         if kind in {"function_call", "function_call_output", "tool_use", "tool_result"} or item.get("tool_calls") or item.get("role") == "tool":
             required.add("tools")
         pending.extend(item[key] for key in ("content", "output") if key in item)
@@ -241,6 +249,9 @@ class RouteAdmission:
 
     def remaining_timeout(self, handler):
         deadline = getattr(handler, "_local_route_deadline", None)
+        owner_deadline = getattr(handler.server, 'request_deadline', None)
+        if owner_deadline is not None:
+            deadline = min(deadline, owner_deadline) if deadline is not None else owner_deadline
         if deadline is None:
             return self.config.upstream_timeout_seconds
         remaining = deadline - time.monotonic()
@@ -315,6 +326,13 @@ class RouteAdmission:
         handler._route_admission_task_selection = task_selection[0] if task_selection else None
         handler._route_admission_mode = mode
         if mode == "configured":
+            if (protocol == 'openai' and handler.path.split('?', 1)[0] == '/v1/responses'
+                    and 'codex_http_0160' in decision.route.capabilities
+                    and self.destinations.resolve(decision.route).locality == 'local'):
+                try:
+                    CodexLlamaRequest(value, translate=False)
+                except (ValueError, TypeError, RecursionError):
+                    raise RouteAdmissionError('invalid_tool_history', 503) from None
             return decision
         continuation = contains_provider_state(value)
         work_headers = handler.headers.get_all("X-Hormuz-Work-Id", [])
@@ -557,7 +575,7 @@ class RouteAdmission:
             headers['X-Hormuz-Task-Selection'] = handler._route_admission_task_selection
         return headers
 
-    def status(self, identity, policy_engine):
+    def status(self, identity, policy_engine, *, check_readiness=False):
         routes = []
         for alias, qualification in self.qualifications.items():
             route = self.config.model_routes[alias]
@@ -567,6 +585,8 @@ class RouteAdmission:
             if not decision.allowed or decision.resolved_alias != alias:
                 continue
             destination = self.destinations.resolve(route)
+            if check_readiness:
+                self._ready(route)
             with self._health_lock:
                 health = self._health.get(destination.generation)
             readiness = "unchecked" if health is None else "stale" if time.monotonic() - health[0] >= 5 else "ready" if health[1] else "unavailable"
@@ -580,7 +600,9 @@ class RouteAdmission:
                 "automatic_task_types": list(qualification.automatic_task_types(coding))})
         with self._capacity_lock:
             capacity = {"limit": 1, "active": self._active_local}
-        result = {"schema_id": "hormuz.route-admission", "schema_version": 2, "mode": self.settings.mode,
+        version = 4 if any(row["coding_evidence"] and row["coding_evidence"]["criteria_version"] == "local-repair.v2"
+                           for row in routes) else 2
+        result = {"schema_id": "hormuz.route-admission", "schema_version": version, "mode": self.settings.mode,
                   "task_classifier": "bounded_local_heuristic", "local_capacity": capacity, "routes": routes}
         if self.history is not None:
             from .personal_selection import status
@@ -589,7 +611,7 @@ class RouteAdmission:
             except (OSError, ValueError):
                 personal = None
             if personal is not None and personal["enabled"]:
-                result.update(schema_version=3, personal_selection=personal)
+                result.update(schema_version=4 if version == 4 else 3, personal_selection=personal)
         return result
 
     def benchmark_status(self, identity, policy_engine):

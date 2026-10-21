@@ -212,6 +212,8 @@ PUBLIC_ERROR_CODES = frozenset({*PUBLIC_ERROR_CODES_V2, "hormuz_custody_restrict
                               *ROUTE_ADMISSION_ERROR_CODES, *CONNECTED_CLIENT_ERROR_ACTIONS})
 
 _CURRENT_SCHEMA_VERSIONS = {
+    "koto.native-task": 1,
+    "koto.native-task-error": 1,
     "koto.personal-selection-status": 1, "koto.personal-scorecard": 1,
     "koto.personal-selection-feedback": 1, "koto.personal-selection-validation": 1,
     "koto.personal-selection-evaluation": 1, "koto.model-selection": 1,
@@ -220,8 +222,8 @@ _CURRENT_SCHEMA_VERSIONS = {
     "hormuz.chat-error": 1,
     "hormuz.chat-owner": 1,
     "hormuz.codex-app-bridge-install": 1,
-    "hormuz.local-coding-evidence": 2,
-    "hormuz.coding-probe-plan": 2,
+    "hormuz.local-coding-evidence": 3,
+    "hormuz.coding-probe-plan": 3,
     "hormuz.coding-probe-status": 1,
     "hormuz.coding-probe-error": 1,
     "hormuz.coding-probe-relay": 1,
@@ -231,7 +233,7 @@ _CURRENT_SCHEMA_VERSIONS = {
     NATIVE_STATUS_SCHEMA_ID: 1,
     "hormuz.cloud-readiness": 1,
     LOCAL_SETUP_SCHEMA_ID: 1,
-    LOCAL_SETUP_PROFILE_SCHEMA_ID: 3,
+    LOCAL_SETUP_PROFILE_SCHEMA_ID: 4,
     CONNECTED_CLIENT_STATUS_SCHEMA_ID: CONNECTED_CLIENT_STATUS_SCHEMA_VERSION,
     CONNECTED_CLIENT_PREVIEW_SCHEMA_ID: CONNECTED_CLIENT_PREVIEW_SCHEMA_VERSION,
     CONNECTED_CLIENT_ERROR_SCHEMA_ID: CONNECTED_CLIENT_ERROR_SCHEMA_VERSION,

@@ -1,6 +1,6 @@
 # Persistent Codex connection
 
-This implements connected-client lifetime from [router spec #523](https://github.com/Xpounder-com/hormuz/issues/523), alongside [execution destinations](EXECUTION_DESTINATIONS.md) and [local route admission](LOCAL_ROUTE_ADMISSION.md). The CLI connects Codex's user defaults to one generation-owned router and can restore the settings it owns. A plugin can invoke the same commands rather than maintaining another installer.
+This implements connected-client lifetime from [router spec #523](https://github.com/mehrdadxzaker/Koto/issues/523), alongside [execution destinations](EXECUTION_DESTINATIONS.md) and [local route admission](LOCAL_ROUTE_ADMISSION.md). The CLI connects Codex's user defaults to one generation-owned router and can restore the settings it owns. A plugin can invoke the same commands rather than maintaining another installer.
 
 The implemented workflow is tested with disposable Codex-compatible executables, temporary configuration and loopback providers. It uses POSIX file locks, private files and Unix-domain process control. Exact supported CLI versions are `0.147.0` and `0.160.0`; see the [qualified 0.160.0 HTTP profile](CODEX_0160.md). This does not qualify the Codex desktop app's separately bundled engine. Synthetic checks do not establish installed operating-system support, real model quality, subscription eligibility or plugin marketplace acceptance. Persistent Claude configuration, model installation, startup registration and native subscription adapters remain separate work.
 
@@ -163,7 +163,7 @@ loss, so a pending shutdown remains `disconnecting`.
 Codex's [documented configuration precedence](https://developers.openai.com/codex/config-basic#configuration-precedence)
 and [managed configuration](https://developers.openai.com/codex/enterprise/managed-configuration)
 explain why this user-default scope cannot promise control over every app or
-project request. See the [qualification evidence](https://github.com/Xpounder-com/hormuz/blob/2e5011f8e1064976c33c5694e74fd0bb17539c14/docs/evidence/connected-client-lifetime/README.md)
+project request. See the [qualification evidence](https://github.com/mehrdadxzaker/Koto/blob/2e5011f8e1064976c33c5694e74fd0bb17539c14/docs/evidence/connected-client-lifetime/README.md)
 for the exact synthetic checks and remaining support work.
 
 The version probe reads only its seven named process-context variables; gateway
