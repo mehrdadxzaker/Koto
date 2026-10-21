@@ -64,6 +64,26 @@ class LocalHarnessV8ContractTests(unittest.TestCase):
         self.assertLessEqual(translated('low', 64)['reasoning_budget_tokens'], 32)
         self.assertEqual(translated('low', profile='qwen-code.v7')['reasoning_budget_tokens'], 1024)
 
+    def test_successful_post_edit_command_leaves_time_to_finish_without_reducing_error_recovery(self):
+        from tests.test_local_harness_v5_transport_fast import synthetic_requests
+        fixture = json.loads((Path(__file__).parent / 'fixtures/codex-0160-native-progress.json').read_text())
+        edited = synthetic_requests()['saved_patch_without_later_command']
+        edited.update(reasoning={'effort': 'low'}, max_output_tokens=2048)
+        self.assertEqual(CodexLlamaRequest(edited, harness='qwen-code.v8').value['reasoning_budget_tokens'], 256)
+        for envelope, budget in [('exec_success', 16), ('exec_failure', 256), ('pending', 256)]:
+            with self.subTest(result=envelope):
+                request = deepcopy(edited)
+                result = deepcopy(fixture['cases']['exec_success' if envelope == 'pending' else envelope]['result'])
+                if envelope == 'pending':
+                    result['output'] = result['output'].replace('Process exited with code 0', 'Process running with session ID 12345')
+                result['call_id'] = 'check'
+                request['input'] += [{'type': 'function_call', 'name': 'exec_command', 'call_id': 'check',
+                    'arguments': json.dumps({'cmd': "python3 -c 'assert 2 + 2 == 4'"})}, result]
+                self.assertEqual(CodexLlamaRequest(request, harness='qwen-code.v8').value['reasoning_budget_tokens'], budget)
+                self.assertEqual(CodexLlamaRequest(request, harness='qwen-code.v7').value['reasoning_budget_tokens'], 1024)
+                request['reasoning']['effort'] = 'none'
+                self.assertEqual(CodexLlamaRequest(request, harness='qwen-code.v8').value['reasoning_budget_tokens'], 0)
+
 
 if __name__ == '__main__':
     unittest.main()

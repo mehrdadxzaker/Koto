@@ -43,7 +43,7 @@ inline Python command format above; avoid shell temporary-file constructions whe
 temporary directories are excluded. Check the saved code and report actual results.'''
 
 
-def progress_snapshot(items, declarations):
+def progress_snapshot(items, declarations, *, include_attempts=False):
     """Count correlated host envelopes, ignoring program text as status metadata."""
     state = {'native_patches_saved': 0, 'native_patches_rejected': 0,
              'completed_commands_since_last_native_patch': 0, 'last_command_exit': None,
@@ -51,7 +51,23 @@ def progress_snapshot(items, declarations):
              'repeated_command_completions': 0}
     calls, consumed, pending = {}, set(), set()
     commands = {}
+    unresolved, seen_attempts = set(), set()
+    invalid_attempt = last_attempt_succeeded = False
     for item in items:
+        if include_attempts and isinstance(item, dict) and item.get('type') in {
+                'function_call', 'function_call_output'}:
+            # Any later attempt/result supersedes an earlier successful
+            # command. Unsupported or malformed feedback cannot inherit it.
+            last_attempt_succeeded = False
+            call_id = item.get('call_id')
+            if item['type'] == 'function_call':
+                if not isinstance(call_id, str) or not call_id or call_id in seen_attempts:
+                    invalid_attempt = True
+                else:
+                    seen_attempts.add(call_id)
+                    unresolved.add(call_id)
+            elif isinstance(call_id, str):
+                unresolved.discard(call_id)
         if not isinstance(item, dict) or not isinstance(item.get('call_id'), str) or not item['call_id']:
             continue
         call_id = item['call_id']
@@ -106,6 +122,7 @@ def progress_snapshot(items, declarations):
                 if name == 'write_stdin':
                     pending.remove(str(session))
                 code = int(match['exit'])
+                last_attempt_succeeded = code == 0
                 state['completed_commands_since_last_native_patch'] += 1
                 state['last_command_exit'] = code
                 state['shell_parse_failure'] = code != 0 and bool(_SHELL_PARSE.search(output[match.end():]))
@@ -116,6 +133,9 @@ def progress_snapshot(items, declarations):
                     commands[command] = commands.get(command, 0) + 1
                     state['repeated_command_completions'] = commands[command]
     state['pending_sessions'] = len(pending)
+    if include_attempts:
+        state.update(last_attempt_command_succeeded=last_attempt_succeeded,
+                     unresolved_tool_calls=len(unresolved) + int(invalid_attempt))
     return state
 
 

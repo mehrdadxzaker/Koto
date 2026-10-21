@@ -132,3 +132,8 @@ the measured outcome. The separately selected
 errors as actual native command failures so Codex can continue correcting them.
 It keeps the existing host execution loop and remains subject to ordinary
 qualification. Read its own comparison before drawing a quality conclusion.
+
+[V8](LOCAL_QWEN_HARNESS_V8.md) replaces typed check data with a native Python
+script compiler, preserves validated cleartext reasoning continuations in its
+bounded probe, and assigns effort-sensitive reasoning budgets. It remains
+explicitly selected and requires independent task and completion evidence.

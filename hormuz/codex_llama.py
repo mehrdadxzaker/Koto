@@ -123,6 +123,15 @@ class CodexLlamaRequest:
             adapt_qwen_request(self.value, self.declarations, profile=harness)
         if harness in {'qwen-code.v6', 'qwen-code.v7', 'qwen-code.v8'}:
             self._add_python_checks(feedback=harness == 'qwen-code.v7', script=harness == 'qwen-code.v8')
+        if harness == 'qwen-code.v8' and isinstance(self.value.get('input'), list):
+            from .local_harness_progress import progress_snapshot
+            progress = progress_snapshot(self.value['input'], self.declarations, include_attempts=True)
+            if (progress['native_patches_saved'] and progress['completed_commands_since_last_native_patch']
+                    and progress['last_command_exit'] == 0 and not progress['pending_sessions']
+                    and progress['last_attempt_command_succeeded'] and not progress['unresolved_tool_calls']):
+                # A compute-allocation hint, never evidence that assertions ran
+                # or that the task is correct. Failures retain the full budget.
+                self.value['reasoning_budget_tokens'] = min(self.value['reasoning_budget_tokens'], 16)
 
     def _add_python_checks(self, *, feedback=False, script=False):
         """Offer a private compiler only for an existing, identified host command."""
