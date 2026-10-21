@@ -6,6 +6,7 @@ import unittest
 
 from hormuz._contract_schemas.local_coding import canonical_digest
 from hormuz.contracts import ContractValidationError, validate_contract
+from hormuz.codex_llama import CodexLlamaRequest
 
 
 class LocalHarnessV8ContractTests(unittest.TestCase):
@@ -50,6 +51,18 @@ class LocalHarnessV8ContractTests(unittest.TestCase):
         value['schema_version'] = 4
         with self.assertRaises(ContractValidationError):
             self.validate(value)
+
+    def test_low_reasoning_retains_time_for_tools_and_none_remains_disabled(self):
+        def translated(effort, tokens=2048, profile='qwen-code.v8'):
+            return CodexLlamaRequest({'input': 'Repair the function.',
+                'reasoning': {'effort': effort}, 'max_output_tokens': tokens}, harness=profile).value
+        low, high, none = translated('low'), translated('high'), translated('none')
+        self.assertLess(low['reasoning_budget_tokens'], high['reasoning_budget_tokens'])
+        self.assertLessEqual(low['reasoning_budget_tokens'], 256)
+        self.assertEqual(none['reasoning_budget_tokens'], 0)
+        self.assertFalse(none['chat_template_kwargs']['enable_thinking'])
+        self.assertLessEqual(translated('low', 64)['reasoning_budget_tokens'], 32)
+        self.assertEqual(translated('low', profile='qwen-code.v7')['reasoning_budget_tokens'], 1024)
 
 
 if __name__ == '__main__':

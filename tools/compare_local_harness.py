@@ -113,6 +113,9 @@ class Comparison:
                           'adapted': 'qwen-code.' + args.harness}
         if any(profile is not None and profile not in PROFILES.values() for profile in self.harnesses.values()):
             raise ValueError('unsupported harness for the installed runtime')
+        self.reasoning_effort = getattr(args, 'reasoning_effort', 'none')
+        if self.reasoning_effort not in {'none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'}:
+            raise ValueError('unsupported native reasoning effort')
         self.root = args.output.resolve()
         self.root.mkdir(mode=0o700, parents=False, exist_ok=False)
         self.project = self.root / 'project'
@@ -227,7 +230,7 @@ class Comparison:
             '-c', 'sandbox_workspace_write.network_access=false',
             '-c', 'sandbox_workspace_write.exclude_slash_tmp=true',
             '-c', 'sandbox_workspace_write.exclude_tmpdir_env_var=true',
-            '-c', 'model_reasoning_summary="none"', '-c', 'model_reasoning_effort="none"',
+            '-c', 'model_reasoning_summary="none"', '-c', 'model_reasoning_effort=' + json.dumps(self.reasoning_effort),
             '-c', 'developer_instructions=' + json.dumps(DEVELOPER),
             '-c', 'analytics.enabled=false', '-C', str(self.project)]
         if base_url:
@@ -302,6 +305,7 @@ class Comparison:
         plan = {'schema_version': 1, 'model': MODEL, 'pins': pins, 'artifacts': artifacts,
                 'cases': self.cases, 'developer_instructions': DEVELOPER,
                 'max_episode_seconds': self.episode_seconds, 'probe_schema_version': self.probe_version,
+                'native_reasoning_effort': self.reasoning_effort,
                 'max_requests': 16, 'quality_retries': 0,
                 'harnesses': self.harnesses,
                 'study_kind': 'paired_comparison' if self.args.arm == 'both' and not self.args.case else 'diagnostic',
@@ -437,6 +441,8 @@ def main():
     parser.add_argument('--baseline-harness', choices=('none', 'v1', 'v2', 'v3', 'v4', 'v5', 'v6', 'v7', 'v8'), default='none')
     parser.add_argument('--case', action='append', help='Limit a diagnostic run; all six cases remain frozen')
     parser.add_argument('--arm', choices=('both', 'baseline', 'adapted'), default='both')
+    parser.add_argument('--reasoning-effort', choices=('none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'),
+                        default='none', help='Explicit native client control, recorded in the frozen plan')
     parser.add_argument('--episode-seconds', type=int, choices=(90, 180), default=90,
                         help='180 selects the explicit development probe; older probes remain capped at 90')
     args = parser.parse_args()

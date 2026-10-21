@@ -16,6 +16,34 @@ class ProbeError(ValueError):
     pass
 
 
+def _transparent_reasoning(item):
+    """Accept text history, never opaque provider state or additional authority."""
+    if (type(item) is not dict or item.get('type') != 'reasoning'
+            or set(item) - {'type', 'id', 'summary', 'content', 'encrypted_content', 'status'}
+            or item.get('encrypted_content') not in (None, '')
+            or item.get('status') not in (None, 'completed')
+            or item.get('id') is not None and (type(item['id']) is not str or not 0 < len(item['id']) <= 256)):
+        return False
+    observed_text = False
+    for field in ('content', 'summary'):
+        parts = item.get(field)
+        if parts is None:
+            continue
+        if type(parts) is not list:
+            return False
+        for part in parts:
+            if (type(part) is not dict or set(part) != {'type', 'text'}
+                    or part.get('type') not in ('reasoning_text', 'summary_text')
+                    or type(part.get('text')) is not str):
+                return False
+            try:
+                part['text'].encode('utf-8')
+            except UnicodeEncodeError:
+                return False
+            observed_text = True
+    return observed_text
+
+
 class CodingProbe:
     def __init__(self, admission):
         self.admission = admission
@@ -116,7 +144,14 @@ class CodingProbe:
                 history_types = {"function_call", "function_call_output"}
                 if plan["schema_version"] >= 3 and "codex_llama_v1" in plan["subject"]["capabilities"]:
                     history_types.update({"custom_tool_call", "custom_tool_call_output"})
+                # Only the new, explicitly selected v8 native probe admits the
+                # transparent reasoning already supported by its transport.
+                # Existing profile/version history contracts stay unchanged.
+                allow_reasoning = plan["schema_version"] >= 4 and {
+                    "codex_llama_v1", "qwen_code_v8"}.issubset(plan["subject"]["capabilities"])
                 for item in items[self.first_length:]:
+                    if allow_reasoning and _transparent_reasoning(item):
+                        continue
                     if (type(item) is not dict or not (item.get("type") in history_types
                             or item.get("type", "message") == "message" and item.get("role") == "assistant")):
                         raise ProbeError("probe_request_mismatch")

@@ -81,6 +81,11 @@ class CodexLlamaRequest:
         self.value['chat_template_kwargs'] = {'enable_thinking': reasoning.get('effort') != 'none'}
         limit = value.get('max_output_tokens', 8192)
         budget = min(1024, max(1, limit // 2)) if type(limit) is int and limit > 0 else 1024
+        if harness == 'qwen-code.v8':
+            # Keep low-effort local requests from spending the whole host
+            # deadline on thought before producing their first tool call.
+            budget = min(budget, {'minimal': 128, 'low': 256, 'medium': 512}.get(
+                reasoning.get('effort', 'medium'), 1024))
         self.value['reasoning_budget_tokens'] = budget if reasoning.get('effort') != 'none' else 0
         tools = value.get('tools', [])
         if type(tools) is not list or len(tools) > 1024:
