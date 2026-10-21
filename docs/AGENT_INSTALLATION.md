@@ -84,6 +84,35 @@ installation and real qualification remain prerequisites. Installing a skill
 does not establish subscription entitlement or authorize API spending. See
 [support](../SUPPORT.md) and [connection lifetime](CONNECTED_CLIENT_LIFETIME.md).
 
+## Installation troubleshooting
+
+### Installed, but nothing routes
+
+Start a fresh host session so it can load the skill, then explicitly invoke
+Koto to inspect or set up a supported Codex connection. Installation alone does
+not connect the router or intercept the host's requests. Follow the
+[shared setup workflow](SHARED_LOCAL_SETUP.md#use), then inspect
+[connection status](CONNECTED_CLIENT_LIFETIME.md#status-and-disconnect).
+Routing still requires the configured provider access and matching
+[local admission evidence](LOCAL_ROUTE_ADMISSION.md#admission-and-resource-ownership).
+
+### Does skills installation download a model?
+
+No. It may download the repository or installer, but installing these skills
+does not download model weights or start a local engine. The
+[shared setup prerequisites](SHARED_LOCAL_SETUP.md#qualification-and-files)
+require existing verified runtime/model files. Installation also supplies no
+provider authorization or local-model qualification.
+
+### Does installation mean my agent's inference is supported?
+
+No. The [compatibility table](#use-and-compatibility) separates the host that
+loads the skills from the target whose requests Koto can route. Codex is the
+first implemented routing connection, with evidence tied to the listed exact
+versions. Installing skills in Claude Code, Gemini CLI, Copilot CLI, Cursor or
+OpenCode does not give that host a working inference adapter. Those hosts can
+invoke the shared workflow to manage a supported Codex target.
+
 ## Update and remove
 
 | Host | Refresh/update | Remove instructions |
