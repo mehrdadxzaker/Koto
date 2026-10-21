@@ -28,6 +28,7 @@ class LocalHarnessExperimentTests(unittest.TestCase):
             run = tool.Comparison.__new__(tool.Comparison)
             run.root, run.project, run.env = root, root, {}
             run.args = SimpleNamespace(client=Path('/synthetic/codex'))
+            run.reasoning_effort = 'none'
             def process(*args, **kwargs):
                 kwargs['stdout'].write('{"type":"turn.failed"}\n')
                 kwargs['stderr'].write('\n'.join(json.loads((Path(__file__).parent /
