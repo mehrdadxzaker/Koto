@@ -36,7 +36,7 @@ class LocalHarnessRequest:
         input_was_list = isinstance(value.get('input'), list)
         reasoning = value.get('reasoning', {})
         progress = None
-        if profile in {'qwen-code.v8', 'qwen-code.v9', 'qwen-code.v10', 'qwen-code.v11', 'qwen-code.v12'}:
+        if profile in {'qwen-code.v8', 'qwen-code.v9', 'qwen-code.v10', 'qwen-code.v11', 'qwen-code.v12', 'qwen-code.v13'}:
             budget = value['reasoning_budget_tokens']
             value['reasoning_budget_tokens'] = min(budget,
                 {'minimal': 128, 'low': 256, 'medium': 512}.get(reasoning.get('effort', 'medium'), 1024))
@@ -65,8 +65,8 @@ class LocalHarnessRequest:
             self._add_python_checks(named=True, prominent=True)
             self._add_python_checks(script=True, prominent=True)
             self._add_text_patch()
-        elif profile in {'qwen-code.v6', 'qwen-code.v7', 'qwen-code.v8', 'qwen-code.v11', 'qwen-code.v12'}:
-            self._add_python_checks(feedback=profile == 'qwen-code.v7', script=profile in {'qwen-code.v8', 'qwen-code.v11', 'qwen-code.v12'})
+        elif profile in {'qwen-code.v6', 'qwen-code.v7', 'qwen-code.v8', 'qwen-code.v11', 'qwen-code.v12', 'qwen-code.v13'}:
+            self._add_python_checks(feedback=profile == 'qwen-code.v7', script=profile in {'qwen-code.v8', 'qwen-code.v11', 'qwen-code.v12', 'qwen-code.v13'})
         if progress is not None and profile != 'qwen-code.v10':
             if not progress['pending_sessions'] and not progress['unresolved_tool_calls']:
                 cap = None

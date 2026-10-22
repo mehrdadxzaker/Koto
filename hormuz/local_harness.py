@@ -33,12 +33,18 @@ V11_CAPABILITY = 'qwen_code_v11'
 V11_PROFILE = 'qwen-code.v11'
 V12_CAPABILITY = 'qwen_code_v12'
 V12_PROFILE = 'qwen-code.v12'
+V13_CAPABILITY = 'qwen_code_v13'
+V13_PROFILE = 'qwen-code.v13'
 PROFILES = {CAPABILITY: PROFILE, V2_CAPABILITY: V2_PROFILE, V3_CAPABILITY: V3_PROFILE,
             V4_CAPABILITY: V4_PROFILE, V5_CAPABILITY: V5_PROFILE, V6_CAPABILITY: V6_PROFILE,
             V7_CAPABILITY: V7_PROFILE, V8_CAPABILITY: V8_PROFILE, V9_CAPABILITY: V9_PROFILE,
             V10_CAPABILITY: V10_PROFILE, V11_CAPABILITY: V11_PROFILE,
-            V12_CAPABILITY: V12_PROFILE}
+            V12_CAPABILITY: V12_PROFILE, V13_CAPABILITY: V13_PROFILE}
 MODEL = 'Qwen3-14B-Q4_K_M'
+CODER_MODEL = 'Qwen3-Coder-30B-A3B-Instruct-Q4_K_M'
+MODELS = {capability: CODER_MODEL if capability == V13_CAPABILITY else MODEL
+          for capability in PROFILES}
+MODELS_BY_PROFILE = {PROFILES[capability]: model for capability, model in MODELS.items()}
 V8_GUIDANCE = '''Local coding protocol (subordinate to existing host and repository instructions):
 Complete the requested repair through the declared host tools. For other tasks,
 answer the original request without inventing edits or checks.
@@ -383,7 +389,7 @@ def adapt_qwen_request(value, declarations, *, profile=PROFILE, _progress=None):
     instructions = value.get('instructions', '')
     if not isinstance(instructions, str):
         raise ValueError('invalid_harness_instructions')
-    guidance = V12_GUIDANCE if profile == V12_PROFILE else V11_GUIDANCE if profile == V11_PROFILE else V10_GUIDANCE if profile == V10_PROFILE else V9_GUIDANCE if profile == V9_PROFILE else V8_GUIDANCE if profile == V8_PROFILE else V4_GUIDANCE if profile in {V4_PROFILE, V5_PROFILE, V6_PROFILE, V7_PROFILE} else GUIDANCE if profile == PROFILE else V2_GUIDANCE
+    guidance = V12_GUIDANCE if profile in {V12_PROFILE, V13_PROFILE} else V11_GUIDANCE if profile == V11_PROFILE else V10_GUIDANCE if profile == V10_PROFILE else V9_GUIDANCE if profile == V9_PROFILE else V8_GUIDANCE if profile == V8_PROFILE else V4_GUIDANCE if profile in {V4_PROFILE, V5_PROFILE, V6_PROFILE, V7_PROFILE} else GUIDANCE if profile == PROFILE else V2_GUIDANCE
     value['instructions'] = instructions + '\n\n' + guidance
     for item in value.get('input', []):
         if not isinstance(item, dict) or item.get('type') != 'function_call':
@@ -393,13 +399,13 @@ def adapt_qwen_request(value, declarations, *, profile=PROFILE, _progress=None):
         ordered = {key: arguments[key] for key in properties if key in arguments}
         ordered.update(arguments)
         item['arguments'] = json.dumps(ordered, separators=(',', ':'), ensure_ascii=False, allow_nan=False)
-    if profile in {V2_PROFILE, V3_PROFILE, V4_PROFILE, V5_PROFILE, V6_PROFILE, V7_PROFILE, V8_PROFILE, V9_PROFILE, V10_PROFILE, V11_PROFILE, V12_PROFILE} and isinstance(value.get('input'), str):
+    if profile in {V2_PROFILE, V3_PROFILE, V4_PROFILE, V5_PROFILE, V6_PROFILE, V7_PROFILE, V8_PROFILE, V9_PROFILE, V10_PROFILE, V11_PROFILE, V12_PROFILE, V13_PROFILE} and isinstance(value.get('input'), str):
         value['input'] = [{'type': 'message', 'role': 'user', 'content': [
             {'type': 'input_text', 'text': value['input']}]}]
-    if profile in {V2_PROFILE, V3_PROFILE, V4_PROFILE, V5_PROFILE, V6_PROFILE, V7_PROFILE, V8_PROFILE, V9_PROFILE, V10_PROFILE, V11_PROFILE, V12_PROFILE} and isinstance(value.get('input'), list):
+    if profile in {V2_PROFILE, V3_PROFILE, V4_PROFILE, V5_PROFILE, V6_PROFILE, V7_PROFILE, V8_PROFILE, V9_PROFILE, V10_PROFILE, V11_PROFILE, V12_PROFILE, V13_PROFILE} and isinstance(value.get('input'), list):
         # A model-facing reminder, never a fabricated user message, tool result,
         # or extra agent turn. The native transcript remains an exact prefix.
-        checkpoint = (_script_checkpoint(value['input'], declarations, verification_sensitive=profile in {V9_PROFILE, V10_PROFILE}, state=_progress, compact=profile == V10_PROFILE) if profile in {V8_PROFILE, V9_PROFILE, V10_PROFILE, V11_PROFILE, V12_PROFILE} else
+        checkpoint = (_script_checkpoint(value['input'], declarations, verification_sensitive=profile in {V9_PROFILE, V10_PROFILE}, state=_progress, compact=profile == V10_PROFILE) if profile in {V8_PROFILE, V9_PROFILE, V10_PROFILE, V11_PROFILE, V12_PROFILE, V13_PROFILE} else
                       progress_checkpoint(value['input'], declarations, single_line=profile == V5_PROFILE,
                                           typed_checks=profile in {V6_PROFILE, V7_PROFILE},
                                           feedback_checks=profile == V7_PROFILE)

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Bind an opt-in v13 treatment to the existing Qwen Coder 30B model for one
+  separately authorized campaign, retaining all failed 14B qualification evidence.
 - Add opt-in Qwen v11/v12 type-constraint treatments for fresh qualification,
   preserving the failed v11 outcome, older profiles and ordinary coding denial.
 - Support the existing bounded setup-v5 profile in the native acceptance tool,

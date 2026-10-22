@@ -16,7 +16,7 @@ class CodingProbeV8ReasoningWorkflowTests(unittest.TestCase):
     def test_same_public_probe_continues_after_reasoning_and_native_tool_result(self):
         for capability, version, seconds, requests in (
                 ('qwen_code_v8', 5, 180, 2), ('qwen_code_v11', 4, 90, 3),
-                ('qwen_code_v12', 4, 90, 3)):
+                ('qwen_code_v12', 4, 90, 3), ('qwen_code_v13', 4, 90, 3)):
             with self.subTest(capability=capability):
                 self.check_public_continuation(capability, version, seconds, requests)
 
@@ -37,7 +37,8 @@ class CodingProbeV8ReasoningWorkflowTests(unittest.TestCase):
                     bundle.add(path, arcname=path.name)
             value['managed_llama']['runtime_sha256'] = hashlib.sha256(archive.read_bytes()).hexdigest()
             route = value['model_routes']['local-code']
-            route['upstream_model'] = 'Qwen3-14B-Q4_K_M'
+            route['upstream_model'] = ('Qwen3-Coder-30B-A3B-Instruct-Q4_K_M'
+                if capability == 'qwen_code_v13' else 'Qwen3-14B-Q4_K_M')
             route['capabilities'].append(capability)
             value['route_admission']['local_routes']['local-code']['max_request_bytes'] = 65536
             native = json.loads((Path(__file__).parent / 'fixtures/codex-0160-native-progress.json').read_text())

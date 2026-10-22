@@ -108,6 +108,12 @@ assert state == before
             self.assertEqual(cloud_requests, [])
 
     def test_v8_config_requires_exact_local_native_model_and_exclusive_profile(self):
+        for version, model in ((8, 'Qwen3-14B-Q4_K_M'),
+                (13, 'Qwen3-Coder-30B-A3B-Instruct-Q4_K_M')):
+            with self.subTest(version=version):
+                self.check_config_binding(version, model)
+
+    def check_config_binding(self, version, model):
         fixture = app.CodexAppWorkflowTests()
         fixture.setUp()
         self.addCleanup(fixture.doCleanups)
@@ -115,13 +121,13 @@ assert state == before
              destination.provider('UNUSED_CLOUD') as (cloud, cloud_requests):
             original = fixture.configuration(local, cloud)
             route = original['model_routes']['local-code']
-            route['upstream_model'] = 'Qwen3-14B-Q4_K_M'
-            route['capabilities'].append('qwen_code_v8')
+            route['upstream_model'] = model
+            route['capabilities'].append('qwen_code_v' + str(version))
             path = fixture.fixture.root / 'v8.json'
             path.write_text(json.dumps(original))
-            self.assertIn('qwen_code_v8', GatewayConfig.load(path,
+            self.assertIn('qwen_code_v' + str(version), GatewayConfig.load(path,
                 environ=fixture.fixture.environment).model_routes['local-code'].capabilities)
-            for invalid in ['cloud', 'wrong_model', 'missing_transport', *('v' + str(i) for i in range(1, 8))]:
+            for invalid in ['cloud', 'wrong_model', 'missing_transport', *('v' + str(i) for i in range(1, 14) if i != version)]:
                 with self.subTest(invalid=invalid):
                     value = deepcopy(original)
                     route = value['model_routes']['local-code']

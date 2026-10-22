@@ -149,7 +149,7 @@ class CodingProbe:
                 # Existing profile/version history contracts stay unchanged.
                 capabilities = plan["subject"]["capabilities"]
                 allow_reasoning = (plan["schema_version"] >= 4 and "codex_llama_v1" in capabilities
-                    and any(capability in capabilities for capability in ("qwen_code_v8", "qwen_code_v9", "qwen_code_v10", "qwen_code_v11", "qwen_code_v12")))
+                    and any(capability in capabilities for capability in ("qwen_code_v8", "qwen_code_v9", "qwen_code_v10", "qwen_code_v11", "qwen_code_v12", "qwen_code_v13")))
                 for item in items[self.first_length:]:
                     if allow_reasoning and _transparent_reasoning(item):
                         continue
