@@ -18,7 +18,8 @@ from tests import test_connected_client_lifetime_workflow as lifetime
 class CodingProbeV10WorkflowTests(unittest.TestCase):
     def test_two_helpers_round_trip_native_feedback_without_automatic_admission(self):
         for version, model, budgets in ((10, 'Qwen3-14B-Q4_K_M', [256, 256, 256, 256]),
-                (14, 'Qwen3-Coder-30B-A3B-Instruct-Q4_K_M', [32, 64, 16, 16])):
+                (14, 'Qwen3-Coder-30B-A3B-Instruct-Q4_K_M', [32, 64, 16, 16]),
+                (15, 'Qwen3-Coder-30B-A3B-Instruct-Q4_K_M', [32, 64, 16, 16])):
             with self.subTest(version=version):
                 self.check_two_helpers(version, model, budgets)
 
@@ -127,8 +128,9 @@ class CodingProbeV10WorkflowTests(unittest.TestCase):
             captured = [json.loads(line) for line in (engine / 'provider-requests.jsonl').read_text().splitlines()]
             self.assertEqual([body['reasoning_budget_tokens'] for body in captured], budgets)
             for body in captured:
-                self.assertEqual([tool['name'] for tool in body['tools'][:2]], ['koto_replace', 'koto_python'])
-                self.assertEqual(body['tools'][2:], original_tools)
+                helpers = ['koto_integer_checks', 'koto_replace', 'koto_python'] if version == 15 else ['koto_replace', 'koto_python']
+                self.assertEqual([tool['name'] for tool in body['tools'][:len(helpers)]], helpers)
+                self.assertEqual(body['tools'][len(helpers):], original_tools)
                 self.assertEqual(body['tool_choice'], 'auto')
                 self.assertNotIn('koto_python_checks', body['instructions'])
             self.assertEqual([item['output'] for item in captured[-1]['input']

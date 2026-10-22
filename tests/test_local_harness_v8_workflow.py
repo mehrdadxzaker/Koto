@@ -128,7 +128,7 @@ assert state == before
             path.write_text(json.dumps(original))
             self.assertIn('qwen_code_v' + str(version), GatewayConfig.load(path,
                 environ=fixture.fixture.environment).model_routes['local-code'].capabilities)
-            for invalid in ['cloud', 'wrong_model', 'missing_transport', *('v' + str(i) for i in range(1, 15) if i != version)]:
+            for invalid in ['cloud', 'wrong_model', 'missing_transport', *('v' + str(i) for i in range(1, 16) if i != version)]:
                 with self.subTest(invalid=invalid):
                     value = deepcopy(original)
                     route = value['model_routes']['local-code']

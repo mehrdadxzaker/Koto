@@ -27,7 +27,7 @@ class LocalHarnessV13Tests(unittest.TestCase):
     def test_setup_probe_and_receipt_bind_every_profile_to_its_original_model(self):
         for filename in ('local-setup-profile-v5.json', 'coding-probe-plan-v4.json',
                          'local-coding-evidence-v4.json'):
-            for selected in range(1, 15):
+            for selected in range(1, 16):
                 with self.subTest(record=filename, selected=selected):
                     value = json.loads((Path(__file__).parent / 'fixtures' / filename).read_text())
                     subject = value['plan']['subject'] if 'plan' in value else value.get('subject', value)

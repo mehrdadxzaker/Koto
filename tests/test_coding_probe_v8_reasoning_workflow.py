@@ -17,7 +17,8 @@ class CodingProbeV8ReasoningWorkflowTests(unittest.TestCase):
         for capability, version, seconds, requests in (
                 ('qwen_code_v8', 5, 180, 2), ('qwen_code_v11', 4, 90, 3),
                 ('qwen_code_v12', 4, 90, 3), ('qwen_code_v13', 4, 90, 3),
-                ('qwen_code_v14', 4, 90, 3)):
+                ('qwen_code_v14', 4, 90, 3),
+                ('qwen_code_v15', 4, 90, 3)):
             with self.subTest(capability=capability):
                 self.check_public_continuation(capability, version, seconds, requests)
 
@@ -39,7 +40,7 @@ class CodingProbeV8ReasoningWorkflowTests(unittest.TestCase):
             value['managed_llama']['runtime_sha256'] = hashlib.sha256(archive.read_bytes()).hexdigest()
             route = value['model_routes']['local-code']
             route['upstream_model'] = ('Qwen3-Coder-30B-A3B-Instruct-Q4_K_M'
-                if capability in {'qwen_code_v13', 'qwen_code_v14'} else 'Qwen3-14B-Q4_K_M')
+                if capability in {'qwen_code_v13', 'qwen_code_v14', 'qwen_code_v15'} else 'Qwen3-14B-Q4_K_M')
             route['capabilities'].append(capability)
             value['route_admission']['local_routes']['local-code']['max_request_bytes'] = 65536
             native = json.loads((Path(__file__).parent / 'fixtures/codex-0160-native-progress.json').read_text())

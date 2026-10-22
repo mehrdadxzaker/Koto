@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Add opt-in Qwen Coder v15 caller-declared integer checks covering excluded or
+  permitted subclasses and explicit boolean rules through native host commands.
+
 - Wait briefly for native exit after closed output pipes before signaling the
   owned process group; retain bounded cleanup and failed qualification evidence.
 - Restore correlated native patch recovery and offer bounded exact-text/script
