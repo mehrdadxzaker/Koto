@@ -30,19 +30,19 @@ class LocalHarnessV14Tests(unittest.TestCase):
         variants = []
         request = deepcopy(base)
         request['input'][-1]['call_id'] = 'unbound'
-        variants.append(request)
+        variants.append(('unbound', request))
         request = deepcopy(base)
         request['input'].append(deepcopy(request['input'][-1]))
-        variants.append(request)
+        variants.append(('duplicate', request))
         request = deepcopy(base)
         request['input'][-1] = {'role': 'user', 'content': request['input'][-1]['output']}
-        variants.append(request)
+        variants.append(('pasted', request))
         request = deepcopy(base)
         request['input'].append({'type': 'function_call', 'name': 'exec_command',
                                  'call_id': 'pending', 'arguments': '{"cmd":"cat example.py"}'})
-        variants.append(request)
-        for request in variants:
-            with self.subTest(input=request['input'][-1]['type'] if 'type' in request['input'][-1] else 'message'):
+        variants.append(('pending', request))
+        for name, request in variants:
+            with self.subTest(case=name):
                 self.assertNotIn('Native patch recovery', self.adapted(request).value['input'][-1]['content'][0]['text'])
 
     def test_exact_text_and_script_compile_to_original_native_tools_and_reject_extra_authority(self):
