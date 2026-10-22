@@ -24,6 +24,9 @@ and budgets before inference; keep separate denial/cancellation controls.
 Use the existing weights in place. No download, copied model, commercial
 evaluation, live history collection or automatic coding admission is included.
 Dispose of task-created execution environments after preserving compact evidence.
+The isolated coding campaign freezes `--disable-plugin-discovery` in its native
+acceptance operator to avoid marketplace fetching. Plugin activation remains a
+separate full-contract gate; native filesystem permissions and tools stay active.
 Native Codex retains instructions, tools, permissions, sandbox, execution,
 continuations and the agent loop. No solution or independent checker enters
 model instructions. The complete personal-selection, consent, measured benefit,

@@ -10,6 +10,14 @@ automatic-coding qualification claim.
 
 ## Prepare without inference
 
+For an isolated coding campaign that must avoid native marketplace discovery,
+pass `--disable-plugin-discovery`. The freeze records that choice and all capture,
+edit, denial and cancellation invocations reuse native `--disable plugins`.
+Default behavior and older freezes are unchanged. This option does not qualify
+the real plugin activation journey. Native filesystem permissions, tools and
+execution remain active; an outer macOS sandbox can prevent the client's own
+filesystem helper from starting and is not a substitute for those permissions.
+
 Use existing reviewed Codex **0.160.0**, llama.cpp archive/executable and GGUF files,
 a matching local setup profile with no coding receipt, and a built router wheel.
 The profile must permit `code_change` and bound each upstream request to at most

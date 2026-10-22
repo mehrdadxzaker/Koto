@@ -238,6 +238,8 @@ class Session:
             '-c', 'model_reasoning_effort="none"', '-c', 'model_reasoning_summary="none"',
             '-c', 'developer_instructions=' + json.dumps((root / 'private/instructions.txt').read_text()),
             '-c', 'analytics.enabled=false', '-C', str(root / 'project')]
+        if self.manifest.get('native_plugin_discovery_disabled'):
+            args += ['--disable', 'plugins']
         if self.manifest.get('client_instructions_sha256'):
             args += ['-c', 'model_instructions_file=' + json.dumps(str(root / 'private/client-instructions.txt'))]
         if base_url:
@@ -791,6 +793,8 @@ def prepare(args):
         'live_settings': [fingerprint(path) for path in sorted({live_home / '.codex/config.toml', live_codex / 'config.toml'})],
         'scenarios': {name: {'prompt': case['prompt'] + (' Cancellation control.' if name == 'cancel' else '')}
                       for name in ('edit', 'cancel', 'deny')}}
+    if args.disable_plugin_discovery:
+        manifest['native_plugin_discovery_disabled'] = True
     session = Session(root, manifest)
     report = {'stage': 'prepare', 'passed': False}
     try:
@@ -883,6 +887,8 @@ def main():
     prepare_command.add_argument('--case', type=Path, action='append', help='Authored case JSON; repeat before freeze for one shared campaign')
     prepare_command.add_argument('--instructions', type=Path, help='Frozen shared developer guidance, distinct from the task contract')
     prepare_command.add_argument('--client-instructions', type=Path, help='Optional frozen native system instruction file')
+    prepare_command.add_argument('--disable-plugin-discovery', action='store_true',
+        help='Freeze native --disable plugins for isolated coding probes without marketplace discovery; does not qualify plugin activation')
     run_command = commands.add_parser('run', help='Consume one frozen native acceptance scenario')
     run_command.add_argument('--evidence', type=Path, required=True)
     run_command.add_argument('--scenario', choices=('edit', 'cancel', 'deny'), required=True)

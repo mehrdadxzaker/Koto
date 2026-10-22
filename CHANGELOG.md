@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Freeze an explicit native no-plugin-discovery setting for isolated coding
+  acceptance campaigns while retaining native filesystem permissions and tools.
 - Bind an opt-in v13 treatment to the existing Qwen Coder 30B model for one
   separately authorized campaign, retaining all failed 14B qualification evidence.
 - Add opt-in Qwen v11/v12 type-constraint treatments for fresh qualification,

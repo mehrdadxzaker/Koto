@@ -190,6 +190,7 @@ class CodexAcceptanceWorkflowTests(unittest.TestCase):
         frozen = json.loads((self.output / 'freeze.json').read_text())
         self.assertEqual((frozen['schema_id'], frozen['model_requests']), ('koto.codex-acceptance-freeze', 0))
         self.assertEqual(frozen['schema_version'], 1)
+        self.assertNotIn('native_plugin_discovery_disabled', frozen)
         self.assertEqual(frozen['limits'], {'max_requests': 8, 'max_elapsed_seconds': 90, 'max_output_tokens': 512})
         self.assertTrue((self.output / 'installed/hormuz/server.py').is_file())
         self.assertEqual(set(frozen['scenarios']), {'edit', 'cancel', 'deny'})
@@ -204,12 +205,18 @@ class CodexAcceptanceWorkflowTests(unittest.TestCase):
         profile.update(schema_version=5, max_output_tokens=2048)
         self.profile.write_text(json.dumps(profile))
         before = self.settings.read_bytes()
-        self.tool('prepare')
+        self.tool('prepare', '--disable-plugin-discovery')
         frozen = json.loads((self.output / 'freeze.json').read_text())
         self.assertEqual(frozen['schema_version'], 2)
         self.assertEqual(frozen['limits'], {'max_requests': 8, 'max_elapsed_seconds': 90,
                                            'max_output_tokens': 2048})
         self.assertEqual(frozen['model_requests'], 0)
+        self.assertTrue(frozen['native_plugin_discovery_disabled'])
+        captures = list((self.output / 'captures').rglob('argv.json'))
+        self.assertEqual(len(captures), 4)
+        for capture in captures:
+            argv = json.loads(capture.read_text())
+            self.assertEqual(argv[argv.index('plugins') - 1], '--disable')
         self.assertFalse((self.engine.parent / 'calls.jsonl').exists())
         self.assertEqual(self.settings.read_bytes(), before)
 
