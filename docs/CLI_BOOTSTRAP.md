@@ -172,6 +172,22 @@ or bytes arrived before cleanup. These observations do not establish a passing
 task or prove one root cause. That machine remains failed acceptance evidence;
 a result on a larger machine cannot qualify this smaller envelope.
 
+The narrowed engine diagnostic kept the same pinned assets, 8K context, request,
+and 90-second deadline. [Automatic offloading](https://github.com/mehrdadxzaker/Koto/actions/runs/39871388731/job/120146509741)
+returned the checked JSON in 77.665 seconds: 4.954 seconds for the 73-token
+prompt and 72.642 seconds for 28 generated tokens. The log reported Metal layers
+with Flash Attention falling back to CPU. [Explicit CPU execution](https://github.com/mehrdadxzaker/Koto/actions/runs/39871961078/job/120148392735)
+returned the same checked JSON in 47.941 seconds, with the same input/output token
+counts. These are bounded diagnostics on fresh VMs, rather than general hardware
+performance claims or substitutes for the installed-product lifecycle.
+
+The new managed-runtime v5 checks macOS's local `kern.hv_vmm_present` indicator
+once, with a two-second bound. A confirmed VM selects `--n-gpu-layers 0` for the
+text bootstrap. Physical Macs, unavailable/unknown observations, other platforms,
+and historical managed profiles retain automatic device selection. The frozen
+task, output allowance, reasoning, and 90-second task deadline are unchanged.
+The lifecycle evidence records the VM observation and selected device mode.
+
 ## Migration and rollback
 
 Earlier CLIs looked for `koto.json` or `hormuz.json` in the working directory.

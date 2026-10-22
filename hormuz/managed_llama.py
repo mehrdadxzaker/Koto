@@ -370,7 +370,7 @@ class OwnedLlama:
 
 
 def runtime_arguments(profile):
-    """Frozen runtime launch arguments, also usable by offline startup diagnostics."""
+    """Versioned runtime arguments, including the bootstrap's local VM choice."""
     args = [profile.executable, "-m", profile.model_file, "--offline", "--host", "127.0.0.1", "--port", str(profile.port),
         "--alias", profile.alias, "--parallel", "1", "--threads", "4", "--threads-batch", "4", "--threads-http", "2",
         "--ctx-size", str(profile.context_tokens), "--n-predict", str(profile.output_tokens), "--jinja", "--chat-template-kwargs",
@@ -378,6 +378,18 @@ def runtime_arguments(profile):
         "--no-webui", "--no-agent", "--no-slots", "--temp", "0.7", "--top-p", "0.8", "--top-k", "20", "--min-p", "0", "--presence-penalty", "1.5"]
     if profile.schema_version in {2, 4, 5}:
         args.extend(["--reasoning-budget", "1024"])
+    if profile.schema_version == 5 and sys.platform == "darwin":
+        # The default Metal path can be slower than CPU execution on macOS
+        # VMs. Only the new text bootstrap changes its selection, and only
+        # after a positive local observation. Physical/unknown hosts and all
+        # historical profiles keep llama.cpp's automatic device selection.
+        try:
+            virtualized = subprocess.run(["/usr/sbin/sysctl", "-n", "kern.hv_vmm_present"],
+                capture_output=True, text=True, timeout=2, env={"PATH": "/usr/bin:/bin"})
+            if virtualized.returncode == 0 and virtualized.stdout.strip() == "1":
+                args.extend(["--n-gpu-layers", "0"])
+        except (OSError, subprocess.SubprocessError):
+            pass
     return args
 
 
@@ -397,6 +409,8 @@ def _guardian(owner, lease, profile):
         if stopping:
             return
         args = runtime_arguments(profile)
+        if stopping:
+            return
         process = subprocess.Popen(args, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         deadline = time.monotonic() + profile.startup_timeout_seconds
         ready, bound, next_probe, observations, log = False, False, 0, 0, b""

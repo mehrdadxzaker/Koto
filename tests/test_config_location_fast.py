@@ -24,15 +24,17 @@ class ConfigLocationTests(unittest.TestCase):
             self.assertEqual(resolve_config(), expected)
 
     def test_explicit_selection_precedes_environment_and_legacy_configuration(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
+        with tempfile.TemporaryDirectory() as directory, chdir(directory):
+            root = Path.cwd()
             new, old = root / "new.json", root / "old.json"
             cases = [
                 ("new-over-legacy", {"KOTO_CONFIG": str(new), "HORMUZ_CONFIG": str(old)}, {}, new),
                 ("legacy", {"HORMUZ_CONFIG": str(old)}, {}, old),
-                ("explicit-relative", {"KOTO_CONFIG": str(new)}, {"explicit": "./explicit.json"}, Path.cwd() / "explicit.json"),
-                ("project", {"KOTO_CONFIG": str(new)}, {"project": directory}, root / ".koto/config.json"),
-                ("xdg", {"XDG_CONFIG_HOME": directory}, {}, root / "koto/config.json"),
+                ("explicit-relative", {"KOTO_CONFIG": str(new), "HORMUZ_CONFIG": str(old)},
+                 {"explicit": "./explicit.json"}, root / "explicit.json"),
+                ("project", {"KOTO_CONFIG": str(new), "HORMUZ_CONFIG": str(old)},
+                 {"project": str(root)}, root / ".koto/config.json"),
+                ("xdg", {"XDG_CONFIG_HOME": str(root)}, {}, root / "koto/config.json"),
             ]
             for name, environment, options, expected in cases:
                 with self.subTest(name=name), patch.dict(os.environ, environment, clear=True):

@@ -11,10 +11,6 @@ on:
         description: 'Run the full installed-wheel suite on all four supported Python versions'
         type: boolean
         default: false
-      diagnose_task:
-        description: 'Capture one bounded engine request for the retained timeout diagnosis'
-        type: boolean
-        default: false
       clean_install:
         description: 'Run real macOS bootstrap installation, model download, task, interruption, restart and removal'
         type: boolean
@@ -109,7 +105,6 @@ jobs:
           path: dist/
           if-no-files-found: error
           retention-days: 14
-
   required:
     name: CI / required
     if: ${{ always() }}
@@ -167,47 +162,5 @@ jobs:
         with:
           name: koto-clean-install-evidence
           path: ${{ runner.temp }}/koto-clean-install/evidence/
-          if-no-files-found: error
-          retention-days: 14
-
-  diagnose-task:
-    name: Diagnose one original bootstrap task
-    if: github.event_name == 'workflow_dispatch' && inputs.diagnose_task
-    needs: package
-    runs-on: macos-15
-    timeout-minutes: 20
-    env:
-      npm_config_fetch_retries: '2'
-      npm_config_fetch_timeout: '30000'
-      npm_config_maxsockets: '2'
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-        with:
-          python-version: '3.12'
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: koto-router-distributions
-          path: dist/
-      - run: python -m pip install dist/*.whl
-      - run: npm install --prefix "$RUNNER_TEMP/koto-codex" @openai/codex@0.160.0
-      - name: Capture the real engine request outside the source tree
-        run: >-
-          python tools/diagnose_bootstrap_task.py
-          --device cpu
-          --executable "$RUNNER_TEMP/koto-codex/node_modules/.bin/codex"
-          --workspace "$RUNNER_TEMP/koto-task-diagnostic"
-      - name: Preserve original bounded diagnostic output
-        if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: koto-task-diagnostic
-          path: |
-            ${{ runner.temp }}/koto-task-diagnostic/*.json
-            ${{ runner.temp }}/koto-task-diagnostic/*.log
-            ${{ runner.temp }}/koto-task-diagnostic/*.stdout
-            ${{ runner.temp }}/koto-task-diagnostic/*.stderr
           if-no-files-found: error
           retention-days: 14

@@ -187,7 +187,15 @@ def main():
         model = Path(config["managed_llama"]["model_file"])
         model_digest = digest(model)
         run("hardware-memory", ["/usr/sbin/sysctl", "hw.memsize", "hw.ncpu"])
+        run("hardware-virtualization", ["/usr/sbin/sysctl", "-n", "kern.hv_vmm_present"], check=False)
         run("graphics-device", ["/usr/sbin/system_profiler", "SPDisplaysDataType"], timeout=30)
+        _, runtime_output = run("runtime-device-choice", [python, "-c",
+            "import json,sys; from hormuz.config import GatewayConfig; "
+            "from hormuz.managed_llama import runtime_arguments; "
+            "argv=runtime_arguments(GatewayConfig.load(sys.argv[1]).managed_llama); "
+            "print(json.dumps({'gpu_layers':argv[argv.index('--n-gpu-layers')+1] if '--n-gpu-layers' in argv else 'auto'}))",
+            selected])
+        report["runtime_device_choice"] = json.loads(runtime_output)
         prompt = root / "handoff-note.txt"
         prompt.write_text('Extract the responsible person and deadline from this handoff note. '
             'Return only a JSON object with keys "owner" and "due_date" (YYYY-MM-DD), without markdown. '

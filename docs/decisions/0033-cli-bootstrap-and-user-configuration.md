@@ -48,6 +48,15 @@ the starter catalog selects 8,192 context tokens, 2,048 output tokens and a
 bounds. The original timeout remains failed evidence. The acceptance prompt,
 independent check and task deadline stay unchanged for the smaller context.
 
+Narrowed 8K diagnostics found that automatic Metal offloading on the hosted VM
+spent 72.6 seconds generating only 28 answer tokens; the same request with GPU
+layers disabled completed in 47.9 seconds rather than 77.7 seconds. The new
+managed-runtime v5 therefore disables GPU layers when a bounded, read-only macOS
+VM probe positively reports virtualization. Physical Macs and unknown observations
+keep automatic device selection, as do all historical profiles. This changes
+runtime execution rather than extending the frozen task deadline or retrying the
+task. The original failures and both diagnostic outputs remain retained.
+
 Cancellation during startup now restores and stops the exact generation while
 the connection owner's lock remains held. No wrapper can accidentally adopt a
 different generation for cleanup. Assets and configuration remain on ordinary
@@ -60,6 +69,11 @@ independent text check, restarts offline, and verifies disconnect/removal. It
 retains original failures and has bounded resource consumption. Passing routine
 CI does not substitute for running this gate or establish general coding or
 hardware qualification.
+
+Draft development uses fast rules and focused installed-wheel CLI workflows on
+one Python version. Ready PRs and the explicit final checkpoint run the complete
+installed-wheel suite on all four supported Python versions; manual lifecycle
+runs no longer implicitly repeat that matrix.
 
 Existing receipt and journal versions remain valid. Setup-profile v6 / managed
 runtime v4 fixtures freeze the wider startup contract; v7 / v5 fixtures freeze
