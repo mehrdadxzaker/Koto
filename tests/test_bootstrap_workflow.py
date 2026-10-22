@@ -96,6 +96,14 @@ class BootstrapWorkflowTests(unittest.TestCase):
         self.assertEqual(failed.returncode, 2)
         self.assertFalse(self.path.exists())
 
+    def test_disconnect_and_auth_helpers_do_not_depend_on_valid_configuration_overrides(self):
+        poisoned = {**self.environment, "KOTO_CONFIG": "relative.json", "XDG_CONFIG_HOME": "relative",
+                    "KOTO_BOOTSTRAP_TEST_TOKEN": "synthetic-helper-value"}
+        stopped = self.command("off", "--client-home", str(self.client.home), environment=poisoned)
+        self.assertEqual(json.loads(stopped.stdout)["phase"], "disconnected")
+        token = self.command("auth", "token", "--env", "KOTO_BOOTSTRAP_TEST_TOKEN", environment=poisoned)
+        self.assertEqual(token.stdout.strip(), "synthetic-helper-value")
+
     def test_default_first_run_catalog_selects_text_scope_and_blocks_unsupported_clients(self):
         bootstrap = ('import platform; platform.system=lambda:"Darwin"; platform.machine=lambda:"arm64"; '
                      'from hormuz.cli import main; raise SystemExit(main())')

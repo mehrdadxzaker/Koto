@@ -61,6 +61,14 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "contract":
         print(json.dumps(contract_manifest(), indent=2, sort_keys=True))
         return 0
+    # Recovery and credential helpers must remain usable even when a selected
+    # profile or its environment override is broken. Neither needs router JSON.
+    if args.command == "off":
+        return client_commands.run_lifetime(args)
+    if args.command == "auth":
+        if args.auth_command == "local-token":
+            return client_commands.local_token(args)
+        return client_commands._auth_token(args.env)
     try:
         args.config = str(resolve_config(args.config, args.config_project))
     except (ConfigError, OSError, RuntimeError) as error:
@@ -82,11 +90,7 @@ def main(argv: list[str] | None = None) -> int:
         return benchmark_commands.run(args)
     if args.command in {"request", "policy", "model", "usage"}:
         return capability_commands.run(args)
-    if args.command == "auth":
-        if args.auth_command == "local-token":
-            return client_commands.local_token(args)
-        return client_commands._auth_token(args.env)
-    if args.command == "off" or args.command == "client" and args.client_command != "config":
+    if args.command == "client" and args.client_command != "config":
         return client_commands.run_lifetime(args)
     try:
         config = GatewayConfig.load(args.config)
