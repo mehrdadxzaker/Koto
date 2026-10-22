@@ -56,4 +56,3 @@ class LocalHarnessV11Tests(unittest.TestCase):
                         target['capabilities'].append('qwen_code_v' + str(change))
                     with self.assertRaises(ContractValidationError):
                         validate(invalid)
-
