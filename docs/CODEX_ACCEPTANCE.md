@@ -12,8 +12,13 @@ automatic-coding qualification claim.
 
 Use existing reviewed Codex **0.160.0**, llama.cpp archive/executable and GGUF files,
 a matching local setup profile with no coding receipt, and a built router wheel.
-The profile must permit `code_change`, bound output to at most 512 tokens, and
-bound each upstream request to at most 90 seconds. The independent executable
+The profile must permit `code_change` and bound each upstream request to at most
+90 seconds. Legacy profiles allow at most 512 output tokens. The existing
+[setup-v5 profile](BOUNDED_CODING_OUTPUT.md) allows at most 2,048 output tokens;
+the operator records acceptance-freeze v2 with its actual output bound and uses
+the existing schema-4 probe with `managed-llama.v2`. Earlier profiles retain
+acceptance-freeze v1, their schema-2 probe and
+`managed-llama.v1` binding. The independent executable
 checker currently requires the macOS sandbox; there is no unsandboxed fallback.
 
 ```sh
@@ -108,7 +113,8 @@ before any native launch; a failure cannot be rerun in the same evidence root.
 Changed treatment needs a separately frozen campaign and fresh held-out tasks.
 Keep previous campaigns and all failed observations.
 
-- `edit` arms one frozen probe with at most eight submissions and 90 seconds.
+- `edit` arms one frozen probe with at most eight submissions and 90 seconds,
+  retaining the selected profile's frozen output bound.
   Acceptance requires an assertion-failing baseline, safe actual edit, actual
   native tool execution, an unchanged independent checker, normal native exit
   with exactly one completed turn and no errors, preserved work/destination
@@ -169,7 +175,8 @@ Preparation and tamper tests are portable; executable checker workflows run on
 macOS and explicitly skip on Linux CI. The installed-wheel verifier copies this
 maintainer tool alongside the tests; it is not shipped as runtime functionality.
 
-The local `koto.codex-acceptance-freeze` format is version 1 operator evidence,
+The local `koto.codex-acceptance-freeze` format uses version 1 for legacy profiles
+and version 2 for setup v5. These are operator evidence,
 not a runtime contract. A changed tool/interpreter/asset/file inventory or host
 rejects an existing freeze before consuming another case. Keep the frozen tool
 to inspect older evidence; a new tool version requires a new root rather than

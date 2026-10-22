@@ -1,12 +1,44 @@
-"""Pure public classifier and receipt rules; no network, files or processes."""
+"""Pure public prompt, classifier and receipt rules; no network, files or processes."""
 import copy
 import unittest
 
 from hormuz.contracts import ContractValidationError, validate_contract
-from hormuz.personal_selection import predict
+from hormuz.personal_selection import predict, prompt_text
 
 
 class PersonalSelectionFastTests(unittest.TestCase):
+    def test_prompt_features_use_latest_user_text_within_utf8_byte_limit(self):
+        cases = [
+            ("latest user only", {"messages": [
+                {"role": "user", "content": "earlier user text"},
+                {"role": "assistant", "content": "earlier assistant text"},
+                {"role": "user", "content": "latest user text"},
+                {"role": "assistant", "content": "later assistant text"},
+            ]}, "latest user text"),
+            ("ordered text parts ignore image", {"messages": [
+                {"role": "user", "content": [
+                    {"type": "input_text", "text": "first line"},
+                    {"type": "input_image", "image_url": "data:image/png;base64,AA==",
+                     "text": "ignored image text"},
+                    {"type": "text", "text": "second line"},
+                ]},
+            ]}, "first line\nsecond line"),
+            ("ASCII at byte limit", {"input": "a" * 8192}, "a" * 8192),
+            ("ASCII above byte limit", {"input": "a" * 8193}, ""),
+            ("multibyte at byte limit", {"input": "é" * 4096}, "é" * 4096),
+            ("multibyte above byte limit", {"input": "é" * 4097}, ""),
+            ("empty request", {}, ""),
+            ("image only", {"input": [
+                {"type": "input_image", "image_url": "data:image/png;base64,AA=="},
+            ]}, ""),
+            ("assistant only", {"messages": [
+                {"role": "assistant", "content": "not user features"},
+            ]}, ""),
+        ]
+        for name, value, expected in cases:
+            with self.subTest(case=name):
+                self.assertEqual(prompt_text(value), expected)
+
     def test_nearest_model_choice_abstains_for_unknown_ambiguous_or_ineligible_work(self):
         examples = [{"text": "invoice tally seven boxes", "model": "local-fast", "task": "a" * 64},
                     {"text": "inventory report nine crates", "model": "local-code", "task": "b" * 64}]

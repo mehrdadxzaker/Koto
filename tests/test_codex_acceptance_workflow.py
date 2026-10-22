@@ -189,6 +189,7 @@ class CodexAcceptanceWorkflowTests(unittest.TestCase):
         self.tool('prepare')
         frozen = json.loads((self.output / 'freeze.json').read_text())
         self.assertEqual((frozen['schema_id'], frozen['model_requests']), ('koto.codex-acceptance-freeze', 0))
+        self.assertEqual(frozen['schema_version'], 1)
         self.assertEqual(frozen['limits'], {'max_requests': 8, 'max_elapsed_seconds': 90, 'max_output_tokens': 512})
         self.assertTrue((self.output / 'installed/hormuz/server.py').is_file())
         self.assertEqual(set(frozen['scenarios']), {'edit', 'cancel', 'deny'})
@@ -197,6 +198,63 @@ class CodexAcceptanceWorkflowTests(unittest.TestCase):
         repeated = self.tool('prepare', check=False)
         self.assertEqual(repeated.returncode, 2)
         self.assertEqual(json.loads((self.output / 'freeze.json').read_text()), frozen)
+
+    def test_prepare_freezes_the_existing_extended_output_profile_without_inference(self):
+        profile = json.loads(self.profile.read_text())
+        profile.update(schema_version=5, max_output_tokens=2048)
+        self.profile.write_text(json.dumps(profile))
+        before = self.settings.read_bytes()
+        self.tool('prepare')
+        frozen = json.loads((self.output / 'freeze.json').read_text())
+        self.assertEqual(frozen['schema_version'], 2)
+        self.assertEqual(frozen['limits'], {'max_requests': 8, 'max_elapsed_seconds': 90,
+                                           'max_output_tokens': 2048})
+        self.assertEqual(frozen['model_requests'], 0)
+        self.assertFalse((self.engine.parent / 'calls.jsonl').exists())
+        self.assertEqual(self.settings.read_bytes(), before)
+
+    def test_prepare_rejects_output_bounds_before_creating_an_evidence_root(self):
+        profile = json.loads(self.profile.read_text())
+        before = self.settings.read_bytes()
+        for name, version, limit in [('legacy above limit', 2, 513),
+                                     ('extended above limit', 5, 2049),
+                                     ('boolean is not an integer limit', 5, True)]:
+            with self.subTest(case=name):
+                self.profile.write_text(json.dumps({**profile, 'schema_version': version,
+                                                    'max_output_tokens': limit}))
+                result = self.tool('prepare', check=False)
+                self.assertEqual(result.returncode, 2)
+                self.assertIn('bounded code_change', result.stdout)
+                self.assertFalse(self.output.exists())
+                self.assertFalse((self.engine.parent / 'calls.jsonl').exists())
+                self.assertEqual(self.settings.read_bytes(), before)
+
+    @MACOS_CHECKER
+    def test_extended_output_probe_keeps_checked_completion_and_ordinary_denial_separate(self):
+        profile = json.loads(self.profile.read_text())
+        profile.update(schema_version=5, max_output_tokens=2048)
+        self.profile.write_text(json.dumps(profile))
+        before = self.settings.read_bytes()
+        self.tool('prepare')
+        self.tool('run', '--scenario', 'edit')
+        result = json.loads((self.output / 'results/edit/result.json').read_text())
+        plan = json.loads((self.output / 'results/edit/probe-plan.json').read_text())
+        self.assertTrue(result['passed'], result)
+        self.assertEqual(plan['schema_version'], 4)
+        self.assertEqual(plan['subject']['runtime_profile'], 'managed-llama.v2')
+        self.assertEqual(plan['subject']['max_output_tokens'], 2048)
+        self.assertEqual((result['baseline']['exit_code'], result['checker']['exit_code']), (1, 0))
+        self.assertTrue(result['checker']['assertions_completed'])
+        self.assertTrue(result['implementation_changed'])
+        self.assertEqual(result['native']['completed_turns'], 1)
+        self.assertEqual(result['automatic_admission_effect'], 'none')
+        self.assertTrue(result['settings_restored'] and result['owned_listeners_closed'])
+        self.tool('run', '--scenario', 'deny')
+        denied = json.loads((self.output / 'results/deny/result.json').read_text())
+        self.assertTrue(denied['passed'], denied)
+        self.assertEqual(denied['probe_after']['submitted_requests'], 0)
+        self.assertEqual(denied['history']['entries'], [])
+        self.assertEqual(self.settings.read_bytes(), before)
 
     def test_prepare_repeats_the_first_capture_with_a_stable_narrow_arg0_read_exception(self):
         self.tool('prepare')
