@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
-
 
 ATTEMPT_BINDING_COLUMNS = {
     "configured_rate_card_state",

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
-
 
 SNAPSHOT_RECEIPT_TABLE = "gateway_linear_snapshot_receipts"
 SNAPSHOT_CONTEXT_TABLE = "portfolio_linear_snapshot_context_events"

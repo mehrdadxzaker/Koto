@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
-
 
 AUDIT_TABLE = "portfolio_association_audit_events"
 LINK_TABLE = "portfolio_run_work_link_events"

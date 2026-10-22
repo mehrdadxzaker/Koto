@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
-
 
 REGISTRATION_TABLE = "portfolio_finance_account_binding_versions"
 ATTEMPT_BINDING_TABLE = "gateway_finance_attempt_account_bindings"
