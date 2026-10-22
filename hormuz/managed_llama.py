@@ -362,6 +362,18 @@ class OwnedLlama:
             self.process.wait(timeout=7)
 
 
+def runtime_arguments(profile):
+    """Frozen runtime launch arguments, also usable by offline startup diagnostics."""
+    args = [profile.executable, "-m", profile.model_file, "--offline", "--host", "127.0.0.1", "--port", str(profile.port),
+        "--alias", profile.alias, "--parallel", "1", "--threads", "4", "--threads-batch", "4", "--threads-http", "2",
+        "--ctx-size", "32768", "--n-predict", str(profile.output_tokens), "--jinja", "--chat-template-kwargs",
+        '{"enable_thinking":true}' if profile.schema_version == 2 else '{"enable_thinking":false}',
+        "--no-webui", "--no-agent", "--no-slots", "--temp", "0.7", "--top-p", "0.8", "--top-k", "20", "--min-p", "0", "--presence-penalty", "1.5"]
+    if profile.schema_version == 2:
+        args.extend(["--reasoning-budget", "1024"])
+    return args
+
+
 def _guardian(owner, lease, profile):
     process = None
     stopping = False
@@ -377,15 +389,7 @@ def _guardian(owner, lease, profile):
             return
         if stopping:
             return
-        args = [profile.executable, "-m", profile.model_file, "--offline", "--host", "127.0.0.1", "--port", str(profile.port),
-            "--alias", profile.alias, "--parallel", "1", "--threads", "4", "--threads-batch", "4", "--threads-http", "2",
-            "--ctx-size", "32768", "--n-predict", str(profile.output_tokens), "--jinja", "--chat-template-kwargs",
-            '{"enable_thinking":true}' if profile.schema_version == 2 else '{"enable_thinking":false}',
-            "--no-webui", "--no-agent", "--no-slots", "--temp", "0.7", "--top-p", "0.8", "--top-k", "20", "--min-p", "0", "--presence-penalty", "1.5"]
-        if profile.schema_version == 2:
-            # A positive thinking budget keeps reasoning enabled and leaves
-            # output capacity for tool calls and answers within the deadline.
-            args.extend(["--reasoning-budget", "1024"])
+        args = runtime_arguments(profile)
         process = subprocess.Popen(args, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         deadline = time.monotonic() + profile.startup_timeout_seconds
         ready, bound, next_probe, observations, log = False, False, 0, 0, b""

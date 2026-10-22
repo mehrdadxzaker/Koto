@@ -140,6 +140,9 @@ one independently checked extraction task, disconnect, offline restart, closed
 endpoints, and package removal. Native preferences and retained assets are
 checked after removal. The original task output and failed stages are retained;
 there are no model-quality retries or passing synthetic replacements.
+After a runtime-start failure, the checker stops the connection and captures
+one bounded, prompt-free engine diagnostic using the installed startup arguments.
+That diagnostic cannot change the original failed result or submit a task.
 
 One artifact transfer runs at a time. Download and subprocess deadlines remain
 finite; the real acceptance job has a 35-minute bound and always attempts owned

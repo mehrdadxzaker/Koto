@@ -89,6 +89,38 @@ def main():
             raise RuntimeError(label + " failed; original output retained")
         return process.returncode, stdout
 
+    def diagnose_failed_startup():
+        # Diagnostics cannot turn the original failed journey into a pass.
+        # This fresh test machine has only synthetic task data and no account
+        # credentials. Reuse the installed product's exact startup arguments,
+        # capture prompt-free engine output, submit no inference, and stop the
+        # directly owned diagnostic process within a fixed deadline.
+        run("cleanup-before-diagnostics", [cli, "off", "--client-home", client_home], timeout=30, check=False)
+        run("hardware-memory", ["/usr/sbin/sysctl", "-n", "hw.memsize"])
+        _, output = run("runtime-startup-command", [python, "-c",
+            "import json,sys; from hormuz.config import GatewayConfig; "
+            "from hormuz.managed_llama import runtime_arguments; "
+            "print(json.dumps(runtime_arguments(GatewayConfig.load(sys.argv[1]).managed_llama)))", selected])
+        command = json.loads(output)
+        environment_keys = ("PATH", "HOME", "TMPDIR", "LANG", "LC_ALL", "SYSTEMROOT")
+        diagnostic_environment = {key: environment[key] for key in environment_keys if key in environment}
+        with (evidence / "runtime-startup-diagnostic.log").open("wb") as log:
+            process = subprocess.Popen(command, cwd=root, env=diagnostic_environment, stdin=subprocess.DEVNULL,
+                stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
+            try:
+                process.wait(timeout=70)
+            except subprocess.TimeoutExpired:
+                report["diagnostic_alive_after_seconds"] = 70
+            finally:
+                if process.poll() is None:
+                    process.terminate()
+                    try:
+                        process.wait(timeout=10)
+                    except subprocess.TimeoutExpired:
+                        process.kill()
+                        process.wait(timeout=5)
+                report["diagnostic_exit_code"] = process.returncode
+
     setup = [cli, "init", "--yes", "--executable", args.executable]
     try:
         if (platform.system(), platform.machine()) != ("Darwin", "arm64"):
@@ -186,6 +218,11 @@ def main():
                       coding_qualified=False, automatic_selection_enabled=False)
     except BaseException as error:
         report["failure"] = str(error)
+        if selected.is_file() and "resume-and-setup failed" in str(error):
+            try:
+                diagnose_failed_startup()
+            except Exception as diagnostic_error:
+                report["diagnostic_failure"] = str(diagnostic_error)
         raise
     finally:
         if cli.exists():

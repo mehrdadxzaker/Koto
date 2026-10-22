@@ -241,7 +241,24 @@ def acquire_local(args, *, bootstrap=False):
         raise LocalAcquisitionError("directory_unsafe")
     try:
         directory = Path(args.directory).expanduser().absolute()
-        directory = directory.parent.resolve() / directory.name
+        parent, missing = directory.parent, []
+        # Strictly resolve existing ancestry, allowing a bounded number of
+        # missing parents for fresh XDG defaults. Non-strict resolve suppresses
+        # symlink loops on newer Python versions and must not weaken this check.
+        for _ in range(64):
+            try:
+                canonical = parent.resolve(strict=True)
+                break
+            except FileNotFoundError:
+                if parent.is_symlink():
+                    raise LocalAcquisitionError("directory_unsafe")
+                missing.append(parent.name)
+                parent = parent.parent
+        else:
+            raise LocalAcquisitionError("directory_unsafe")
+        if not canonical.is_dir():
+            raise LocalAcquisitionError("directory_unsafe")
+        directory = canonical.joinpath(*reversed(missing), directory.name)
     except (OSError, RuntimeError, ValueError):
         raise LocalAcquisitionError("directory_unsafe") from None
     digest = hashlib.sha256(_bytes(catalog)).hexdigest()
