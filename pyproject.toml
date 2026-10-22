@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "koto-router"
-version = "2.0.0a46"
+version = "2.0.0a47"
 description = "Personal model selection from checked local history for existing coding clients."
 readme = "README.md"
 license = "Apache-2.0"

@@ -2,8 +2,8 @@
 
 ## Unreleased
 
-- Add an opt-in Qwen v11 type-constraint treatment for a fresh qualification
-  campaign, preserving older profiles and blocking unqualified ordinary coding.
+- Add opt-in Qwen v11/v12 type-constraint treatments for fresh qualification,
+  preserving the failed v11 outcome, older profiles and ordinary coding denial.
 - Support the existing bounded setup-v5 profile in the native acceptance tool,
   preserving legacy limits and keeping probes separate from qualification.
 - Cover latest-user prompt extraction and ASCII/multibyte UTF-8 size limits

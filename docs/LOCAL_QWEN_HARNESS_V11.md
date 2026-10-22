@@ -38,6 +38,17 @@ actual saved edit, unchanged passing independent checks and normal native
 completion. A failure or missing outcome does not pass. Preserve the previous
 failed campaign and every new failure; do not tune on held-out outcomes.
 
+The October 22 v11 campaign stopped on its first development case:
+**16 planned, 1 evaluated, 0 passed, 15 unrun**. Its code correctly rejected
+booleans but accepted explicitly excluded integer subclasses. The native client
+completed normally in 75,724 ms; unchanged independent checks failed. This is
+a model correctness failure. The separately versioned
+[v12 treatment](LOCAL_QWEN_HARNESS_V12.md) addresses that distinction as a new,
+unqualified hypothesis; it does not rewrite this outcome or authorize a retry.
+An expanded audit also found older semantic tasks among the unrun held-outs;
+the v11 inventory therefore does not satisfy held-out freshness. None of those
+held-outs ran. The inventory and this additional qualification defect are retained.
+
 No passing receipt, automatic coding activation or release qualification is
 conferred by selecting this profile. Revoke a probe and disconnect before
 changing profiles. Existing configuration is not migrated. Returning to v8

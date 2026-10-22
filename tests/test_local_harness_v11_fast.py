@@ -25,17 +25,26 @@ class LocalHarnessV11Tests(unittest.TestCase):
                 self.assertEqual({k: v for k, v in v11.items() if k != 'instructions'},
                                  {k: v for k, v in v8.items() if k != 'instructions'})
                 self.assertEqual(request, original)
+                v12 = CodexLlamaRequest(request, harness='qwen-code.v12').value
+                self.assertTrue(v12['instructions'].startswith(v11['instructions']))
+                self.assertIn('type(value) is int', v12['instructions'])
+                self.assertIn('still accepts int subclasses', v12['instructions'])
+                self.assertEqual({k: v for k, v in v12.items() if k != 'instructions'},
+                                 {k: v for k, v in v8.items() if k != 'instructions'})
+                self.assertEqual(request, original)
         for profile in (None, *('qwen-code.v' + str(i) for i in range(1, 11))):
             with self.subTest(old_profile=profile):
                 value = CodexLlamaRequest({'input': 'Follow the original task.'}, harness=profile).value
                 self.assertNotIn('bool is a subclass of int', value.get('instructions', ''))
 
     def test_setup_probe_and_receipt_require_the_exact_native_model_and_one_profile(self):
-        for filename in ('local-setup-profile-v5.json', 'coding-probe-plan-v4.json',
-                         'local-coding-evidence-v4.json'):
+        for filename, selected in ((filename, selected)
+                for filename in ('local-setup-profile-v5.json', 'coding-probe-plan-v4.json',
+                                 'local-coding-evidence-v4.json')
+                for selected in (11, 12)):
             value = json.loads((Path(__file__).parent / 'fixtures' / filename).read_text())
             subject = value['plan']['subject'] if 'plan' in value else value.get('subject', value)
-            subject['capabilities'].append('qwen_code_v11')
+            subject['capabilities'].append('qwen_code_v' + str(selected))
             subject['model' if 'model' in subject else 'upstream_model'] = 'Qwen3-14B-Q4_K_M'
 
             def validate(record):
@@ -44,7 +53,8 @@ class LocalHarnessV11Tests(unittest.TestCase):
                 validate_contract(record)
 
             validate(value)
-            for change in ('wrong_model', 'missing_native', *range(1, 11)):
+            for change in ('wrong_model', 'missing_native',
+                           *(i for i in range(1, 13) if i != selected)):
                 with self.subTest(record=filename, invalid=change):
                     invalid = deepcopy(value)
                     target = invalid['plan']['subject'] if 'plan' in invalid else invalid.get('subject', invalid)

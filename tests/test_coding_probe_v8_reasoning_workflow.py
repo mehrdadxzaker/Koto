@@ -15,7 +15,8 @@ from tests import test_connected_client_lifetime_workflow as lifetime
 class CodingProbeV8ReasoningWorkflowTests(unittest.TestCase):
     def test_same_public_probe_continues_after_reasoning_and_native_tool_result(self):
         for capability, version, seconds, requests in (
-                ('qwen_code_v8', 5, 180, 2), ('qwen_code_v11', 4, 90, 3)):
+                ('qwen_code_v8', 5, 180, 2), ('qwen_code_v11', 4, 90, 3),
+                ('qwen_code_v12', 4, 90, 3)):
             with self.subTest(capability=capability):
                 self.check_public_continuation(capability, version, seconds, requests)
 
