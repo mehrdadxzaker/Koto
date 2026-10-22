@@ -2,8 +2,11 @@
 import copy
 import hashlib
 import json
+from dataclasses import dataclass
+from typing import Callable
 
-from .local_harness import adapt_qwen_request
+from .local_harness import apply_profile_guidance
+from .local_harness_profiles import resolve_profile
 from .local_harness_progress import progress_snapshot
 
 
@@ -17,41 +20,60 @@ class LocalHarnessRequestError(ValueError):
     pass
 
 
-class LocalHarnessRequest:
-    """Own profile guidance, admitted helpers and existing compute hints together.
+@dataclass(frozen=True)
+class PreparedRequest:
+    value: dict
+    derived_checks: dict
+    derived_compilers: dict
+    compile_checks: Callable | None = None
+
+
+def prepare_request(value, declarations, identities, original_tool_aliases, *, profile):
+    """Prepare one private translated request using a reviewed immutable profile.
 
     Inputs are the transport's already translated private request and native
     identities. Compiler admission is pure: only the Coding client executes the
     restored calls. Response identities, streams and their bounds remain in the
-    native transport.
+    native transport. Resolve before mutation so an unknown profile changes nothing.
     """
+    manifest = resolve_profile(profile) if profile is not None else None
+    preparation = _RequestPreparation(value, declarations, identities, original_tool_aliases)
+    if manifest is not None:
+        preparation.apply(manifest)
+    return PreparedRequest(value, preparation.derived_checks, preparation.derived_compilers,
+                           getattr(preparation, 'compile_checks', None))
 
-    def __init__(self, value, declarations, identities, original_tool_aliases, *, profile):
+
+class _RequestPreparation:
+    def __init__(self, value, declarations, identities, original_tool_aliases):
         self.value = value
         self.declarations = declarations
         self.identities = identities
         self.original_tool_aliases = original_tool_aliases
         self.derived_checks = {}
         self.derived_compilers = {}
+
+    def apply(self, manifest):
+        value = self.value
         input_was_list = isinstance(value.get('input'), list)
         reasoning = value.get('reasoning', {})
         progress = None
-        if profile in {'qwen-code.v8', 'qwen-code.v9', 'qwen-code.v10', 'qwen-code.v11', 'qwen-code.v12', 'qwen-code.v13', 'qwen-code.v14', 'qwen-code.v15'}:
+        if manifest.compute.effort_limits:
             budget = value['reasoning_budget_tokens']
             value['reasoning_budget_tokens'] = min(budget,
-                {'minimal': 128, 'low': 256, 'medium': 512}.get(reasoning.get('effort', 'medium'), 1024))
+                dict(manifest.compute.effort_limits).get(reasoning.get('effort', 'medium'), 1024))
             if input_was_list or isinstance(value.get('input'), str):
                 # String input becomes one ordinary user message. It has no
                 # native tool observations, and does not gain list-only hints.
-                progress = progress_snapshot(value['input'] if input_was_list else [], declarations, include_attempts=True,
-                                             include_verification=profile in {'qwen-code.v9', 'qwen-code.v10'})
-        if profile:
-            adapt_qwen_request(value, declarations, profile=profile, _progress=progress)
-        if profile in {'qwen-code.v10', 'qwen-code.v14', 'qwen-code.v15'}:
-            self._add_python_checks(script=True, prominent=True, guidance=False)
-            self._add_text_patch(guidance=False)
-            if profile == 'qwen-code.v15':
-                self._add_python_checks(integer=True, prominent=True, guidance=False)
+                progress = progress_snapshot(value['input'] if input_was_list else [], self.declarations, include_attempts=True,
+                                             include_verification=manifest.checkpoint.verification_sensitive)
+        apply_profile_guidance(value, self.declarations, manifest, progress=progress)
+        for helper in manifest.helpers:
+            if helper.kind == 'text_patch':
+                self._add_text_patch(guidance=helper.guidance)
+            else:
+                self._add_python_checks(kind=helper.kind, prominent=helper.prominent, guidance=helper.guidance)
+        if manifest.compact_helper_guidance:
             for alias, binding in self.derived_checks.items():
                 if binding['argument'] == 'script':
                     self.value['instructions'] += (
@@ -63,18 +85,12 @@ class LocalHarnessRequest:
                         'exactly from the latest saved file read, and edit.new_text containing the desired lines. '
                         'The host validates the native patch. On a context mismatch, inspect the actual saved '
                         'text and correct the next edit instead of repeating the rejected context.')
-        elif profile == 'qwen-code.v9':
-            self._add_python_checks(named=True, prominent=True)
-            self._add_python_checks(script=True, prominent=True)
-            self._add_text_patch()
-        elif profile in {'qwen-code.v6', 'qwen-code.v7', 'qwen-code.v8', 'qwen-code.v11', 'qwen-code.v12', 'qwen-code.v13'}:
-            self._add_python_checks(feedback=profile == 'qwen-code.v7', script=profile in {'qwen-code.v8', 'qwen-code.v11', 'qwen-code.v12', 'qwen-code.v13'})
-        if progress is not None and profile != 'qwen-code.v10':
+        if progress is not None and manifest.compute.phase_caps:
             if not progress['pending_sessions'] and not progress['unresolved_tool_calls']:
                 cap = None
                 if (progress['native_patches_saved'] and progress['completed_commands_since_last_native_patch']
                         and progress['last_command_exit'] == 0 and progress['last_attempt_command_succeeded']
-                        and (profile not in {'qwen-code.v9', 'qwen-code.v10'} or progress['latest_command_verification_intent'])):
+                        and (not manifest.checkpoint.verification_sensitive or progress['latest_command_verification_intent'])):
                     cap = 16
                 elif reasoning.get('effort') in {'low', 'minimal'} and input_was_list:
                     if not progress['tool_history_seen']:
@@ -86,7 +102,7 @@ class LocalHarnessRequest:
                 if cap is not None:
                     self.value['reasoning_budget_tokens'] = min(self.value['reasoning_budget_tokens'], cap)
 
-    def _add_python_checks(self, *, feedback=False, script=False, named=False, integer=False, prominent=False, guidance=True):
+    def _add_python_checks(self, *, kind, prominent=False, guidance=True):
         """Offer a private compiler only for an existing, identified host command."""
         if self.value.get('tool_choice', 'auto') != 'auto' or len(self.value.get('tools', [])) >= 1024:
             return
@@ -94,26 +110,27 @@ class LocalHarnessRequest:
         for alias, identity in self.identities.items():
             if alias not in self.original_tool_aliases:
                 continue
-            namespace, name, kind = identity
+            namespace, name, tool_kind = identity
             declaration = self.declarations[alias]
             digest = hashlib.sha256(json.dumps(declaration, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
             native = namespace == 'functions' or namespace is None and digest == PINNED_CODEX_0160_EXEC_SHA256
             schema = declaration.get('parameters', {})
             properties = schema.get('properties', {}) if isinstance(schema, dict) else {}
-            if (native and name == 'exec_command' and kind == 'function' and isinstance(schema, dict)
+            if (native and name == 'exec_command' and tool_kind == 'function' and isinstance(schema, dict)
                     and schema.get('type') == 'object' and isinstance(properties, dict)
                     and isinstance(properties.get('cmd'), dict) and properties['cmd'].get('type') == 'string'
                     and schema.get('required') == ['cmd']):
                 targets.append(alias)
         if len(targets) != 1:
             return
+        integer, script = kind == 'integer', kind == 'script'
         if integer:
             from .local_python_integer_checks import INTEGER_CHECKS_SCHEMA as checks_schema, compile_integer_checks as compiler
         elif script:
             from .local_python_script import SCRIPT_SCHEMA as checks_schema, compile_script as compiler
-        elif named:
+        elif kind == 'named':
             from .local_python_named_checks import NAMED_CHECKS_SCHEMA as checks_schema, compile_named_feedback_checks as compiler
-        elif feedback:
+        elif kind == 'feedback':
             from .local_python_checks import FEEDBACK_CHECKS_SCHEMA as checks_schema, compile_feedback_checks as compiler
         else:
             from .local_python_checks import CHECKS_SCHEMA as checks_schema, compile_checks as compiler
