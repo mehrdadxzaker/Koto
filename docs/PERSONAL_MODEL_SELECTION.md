@@ -84,8 +84,13 @@ A checks file is a JSON array using the existing benchmark `metric`, `kind`,
 
 This checks for a retained text answer of `7`, after trimming surrounding
 whitespace. It does not create a history entry or claim a completed check.
-Authoring and validating this synthetic example needs no real prompts,
-credentials, enabled history, model downloads or provider calls. See the
+You can author this synthetic file, parse its JSON and exercise the public
+`valid_check` / `check_answer` helpers offline without real prompts, credentials,
+enabled history, model downloads or provider calls. Applying it with
+`history feedback ... --checks` is a separate step: collection and learning
+must have been explicitly enabled, learning must still be enabled, and
+`ENTRY_ID` must refer to a retained entry in the active learning generation.
+See the
 [benchmark check-kind reference](MODEL_SCORECARDS.md#create-your-benchmark)
 for the full catalog; history feedback supports only text/JSON checks.
 
