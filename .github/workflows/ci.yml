@@ -10,6 +10,11 @@ on:
         description: 'Run real macOS bootstrap installation, model download, task, interruption, restart and removal'
         type: boolean
         default: false
+      clean_install_runner:
+        description: 'Fresh Mac hardware; xlarge is a billed larger runner when enabled for this repository'
+        type: choice
+        default: macos-15
+        options: [macos-15, macos-15-xlarge]
 
 permissions:
   contents: read
@@ -93,7 +98,7 @@ jobs:
     name: Clean macOS installed-product lifecycle
     if: github.event_name == 'workflow_dispatch' && inputs.clean_install
     needs: package
-    runs-on: macos-15
+    runs-on: ${{ inputs.clean_install_runner || 'macos-15' }}
     timeout-minutes: 35
     env:
       npm_config_fetch_retries: '2'

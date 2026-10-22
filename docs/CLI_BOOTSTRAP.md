@@ -126,7 +126,9 @@ Asset deletion is a separate exact-path action; there is no automatic purge.
 ## Test the installed product on a fresh machine
 
 The optional `clean_install` input of the existing CI workflow starts a fresh
-`macos-15` hosted runner. It installs pinned Codex CLI 0.160.0, creates a new tool
+`macos-15` hosted runner by default. The explicit `clean_install_runner` choice
+also permits `macos-15-xlarge`, a billed 14 GiB accelerated Mac when the account
+enables larger runners. It installs pinned Codex CLI 0.160.0, creates a new tool
 environment, installs the exact build job's wheel, and runs this standalone
 checker outside the repository:
 
@@ -159,6 +161,14 @@ loopback stand-ins, and all normal Python-matrix installed-wheel checks remain
 required. A synthetic pass or an unexecuted acceptance script is not a clean
 machine pass. Real acceptance does not establish broad hardware support,
 autonomous coding quality, provider eligibility or marketplace activation.
+
+The [7 GiB / three-CPU fresh-Mac run](https://github.com/mehrdadxzaker/Koto/actions/runs/39865317567/job/120126450853)
+passed real acquisition, interrupted transfer, setup, offline restart and removal,
+but its original extraction reached the 90-second deadline. The engine remained
+CPU-active, memory compression/swap activity was present, and no provider headers
+or bytes arrived before cleanup. These observations do not establish a passing
+task or prove one root cause. That machine remains failed acceptance evidence;
+a result on a larger machine cannot qualify this smaller envelope.
 
 ## Migration and rollback
 
