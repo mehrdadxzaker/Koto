@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Cover latest-user prompt extraction and ASCII/multibyte UTF-8 size limits
+  through the public prompt-feature boundary.
 - Add a synthetic checked-feedback file example, separating offline check
   validation from applying feedback to consented retained history.
 - Remove unused imports from private identity configuration and retained schema
