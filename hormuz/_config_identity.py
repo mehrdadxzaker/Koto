@@ -5,18 +5,14 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlparse
 
 from ._config_values import (
-    _boolean,
     _environment_name,
-    _integer,
     _object,
     _string,
     _string_tuple,
-    _url,
 )
-from .config import BootstrapAdministrator, ConfigError, Identity, OIDCIssuerConfig
+from .config import ConfigError, Identity, OIDCIssuerConfig
 
 
 @dataclass(frozen=True)

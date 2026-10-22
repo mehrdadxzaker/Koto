@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
-
 
 BINDING_TABLE = "portfolio_linear_source_binding_versions"
 RECEIPT_TABLE = "gateway_linear_delivery_receipts"

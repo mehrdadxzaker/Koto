@@ -7,8 +7,6 @@ the durable shape; only normalized observations and keyed fingerprints fit.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
-
 
 SOURCE_BINDING_TABLE = "portfolio_finance_source_binding_versions"
 COLLECTION_ATTEMPT_TABLE = "portfolio_finance_collection_attempts"

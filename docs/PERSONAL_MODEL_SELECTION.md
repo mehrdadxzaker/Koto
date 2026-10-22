@@ -64,7 +64,9 @@ and learning consent were present at ingress. Older history remains reviewable;
 records without setup identity are not fabricated into training evidence.
 A new history enable/actor selection invalidates prior learning consent.
 
-Assess a retained task explicitly:
+Assess a retained task explicitly. `ENTRY_ID` and the absolute paths below are
+illustrative placeholders. Choose either labelled user feedback (`--result pass`)
+or independent checks (`--checks`):
 
 ```sh
 koto --config /absolute/path/koto.json history feedback ENTRY_ID --result pass
@@ -73,10 +75,32 @@ koto --config /absolute/path/koto.json history learning scorecard
 ```
 
 A checks file is a JSON array using the existing benchmark `metric`, `kind`,
-`value` format. Supported text/JSON checks are evaluated against the retained
-response; tool execution is never reconstructed from history. Checks and their
-expected values stay encrypted locally and are excluded from model requests,
-list/status output and routing headers. User feedback is explicitly labeled;
+`value` format. For a synthetic example, the file at
+`/absolute/path/checks.json` used by the command above would contain:
+
+```json
+[{"metric": "answer", "kind": "text_equals", "value": "7"}]
+```
+
+This checks for a retained text answer of `7`, after trimming surrounding
+whitespace. It does not create a history entry or claim a completed check.
+You can author this synthetic file, parse its JSON and exercise the public
+`valid_check` / `check_answer` helpers offline without real prompts, credentials,
+enabled history, model downloads or provider calls. Applying it with
+`history feedback ... --checks` is a separate step: collection and learning
+must have been explicitly enabled, learning must still be enabled, and
+`ENTRY_ID` must refer to a retained entry in the active learning generation.
+See the
+[benchmark check-kind reference](MODEL_SCORECARDS.md#create-your-benchmark)
+for the full catalog; history feedback supports only text/JSON checks.
+
+Supported checks are evaluated against the retained response; tool execution
+is never reconstructed from history. A passing text check does not establish
+model qualification or general coding readiness. Koto encrypts stored checks
+and their expected values with retained history locally and excludes them from
+model requests, list/status output and routing headers. The input JSON file
+itself is plain text; protect real expected values as confidential local input.
+User feedback is explicitly labeled;
 unchecked tasks stay unknown. Interrupted attempts and responses without a
 verified completed result from the expected model cannot become passing evidence.
 
