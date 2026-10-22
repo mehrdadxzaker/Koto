@@ -286,6 +286,14 @@ class Session:
                         break
             finally:
                 try:
+                    if termination == 'completed':
+                        # EOF can precede the native leader's final exit. Give
+                        # that exit a bounded grace period before signaling;
+                        # group cleanup still verifies/stops any descendants.
+                        try:
+                            process.wait(timeout=1)
+                        except subprocess.TimeoutExpired:
+                            pass
                     stop(process)
                 except (OSError, RuntimeError, subprocess.SubprocessError) as error:
                     cleanup_error = str(error)

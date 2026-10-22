@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Wait briefly for native exit after closed output pipes before signaling the
+  owned process group; retain bounded cleanup and failed qualification evidence.
 - Restore correlated native patch recovery and offer bounded exact-text/script
   compilers in opt-in Qwen Coder v14, preserving earlier profile bytes and gates.
 - Freeze an explicit native no-plugin-discovery setting for isolated coding
