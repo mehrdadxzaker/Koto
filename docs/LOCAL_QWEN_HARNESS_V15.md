@@ -13,7 +13,9 @@ omit subclass rejection. Offline replay reproduces that precise failure.
 V15 adds the bounded `koto_integer_checks` compiler when an original identified
 native command and automatic tool choice are present. The caller supplies a
 saved module callable, valid named integer arguments, and each argument's
-original subclass and boolean policy. The driver checks the normal sample,
+original subclass and boolean policy. Use this helper only when every declared
+rejection requires `TypeError`; other exception contracts require ordinary
+Python script checks. The driver checks the normal sample,
 a same-value int subclass, and True/False only when their rejection is declared.
 It verifies both allowed and forbidden subclasses instead of assuming every
 integer parameter requires an exact built-in type. Unchecked booleans stay

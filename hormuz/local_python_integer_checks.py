@@ -1,4 +1,4 @@
-"""Compile caller-declared integer type checks; execution stays with the host."""
+"""Compile integer checks for TypeError rejection contracts; the host executes."""
 from copy import deepcopy
 import json
 import keyword
@@ -23,7 +23,9 @@ INTEGER_CHECKS_SCHEMA = {
                     'booleans': {'type': 'string', 'enum': ['reject', 'unchecked']}},
                 'required': ['argument', 'subclasses', 'booleans']}}},
     'required': ['module_path', 'function', 'arguments', 'policies'],
-    'description': 'Declare integer type rules from the original task and supply valid named baseline arguments. '
+    'description': 'Use only for integer rules whose declared rejections require TypeError. '
+        'For other exception contracts use ordinary Python script checks. '
+        'Declare rules from the original task and supply valid named baseline arguments. '
         'Each selected argument needs a built-in integer sample. The host checks that baseline, an int subclass '
         'with the same value, and True/False only when rejected. At most eight policies and 32 calls. '
         'These are self-checks, not independent qualification or functional answer checks.'}
@@ -64,7 +66,7 @@ print('KOTO_INTEGER_CHECKS_OK', _count)
 
 
 def compile_integer_checks(spec):
-    """Return one bounded native command without reading or executing the target."""
+    """Compile TypeError rejection checks without reading or executing the target."""
     checks.require(type(spec) is dict and set(spec) == {'module_path', 'function', 'arguments', 'policies'},
                    'invalid_integer_check_fields')
     checks._json_shape(spec)

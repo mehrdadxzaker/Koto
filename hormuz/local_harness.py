@@ -91,8 +91,9 @@ examples. These rules apply only where required by the original task.'''
 
 V15_GUIDANCE = '''Local integer type verification (subordinate to host, repository and user instructions):
 For top-level integer parameters of a saved Python callable, use the declared
-integer-check helper, when offered, after the final edit. For methods or nested values, write
-plain Python assertions with the script helper. Supply a valid named integer sample and the original
+integer-check helper, when offered, after the final edit, only when every declared
+rejection requires TypeError. For other exception contracts, methods or nested
+values, write plain Python assertions with the script helper. Supply a valid named integer sample and the original
 rule for each selected argument: reject subclasses for exact built-in integers;
 allow subclasses only when permitted. Choose booleans=reject only when forbidden,
 otherwise unchecked and verify their permitted behavior separately. The helper

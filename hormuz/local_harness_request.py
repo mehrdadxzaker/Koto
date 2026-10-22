@@ -136,7 +136,7 @@ class LocalHarnessRequest:
         self.derived_compilers[alias] = compiler
         self.compile_checks = compiler
         self.value['tools'].append({'type': 'function', 'name': alias, 'strict': True,
-            'description': ('Check explicit integer type policies against saved code through the existing native command. Supply rules from the original task and valid named baseline arguments; inspect the actual result. These are self-checks, not independent qualification.' if integer else 'Run a Python script through the existing host command tool, with its normal permissions and actual results. Write plain Python with real newlines; import saved code and use assertions for verification.' if script else
+            'description': ('Check integer policies whose declared rejections require TypeError against saved code through the existing native command. For other exception contracts use ordinary Python script checks. Supply rules from the original task and valid named baseline arguments; inspect the actual result. These are self-checks, not independent qualification.' if integer else 'Run a Python script through the existing host command tool, with its normal permissions and actual results. Write plain Python with real newlines; import saved code and use assertions for verification.' if script else
                 'Check supplied cases against a saved local Python function through the existing host command tool. Supply real expected results from the task; these checks are not independent qualification.'),
             'parameters': {'type': 'object', 'properties': parameters, 'required': [argument],
                            'additionalProperties': False}})
