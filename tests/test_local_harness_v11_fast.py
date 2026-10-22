@@ -8,7 +8,6 @@ from hormuz._contract_schemas.local_coding import canonical_digest
 from hormuz.codex_llama import CodexLlamaRequest
 from hormuz.contracts import ContractValidationError, validate_contract
 from tests.test_local_harness_v5_transport_fast import synthetic_requests
-from tests import test_coding_probe_v8_reasoning_fast as probe_fixture
 
 
 class LocalHarnessV11Tests(unittest.TestCase):
@@ -58,17 +57,3 @@ class LocalHarnessV11Tests(unittest.TestCase):
                     with self.assertRaises(ContractValidationError):
                         validate(invalid)
 
-    def test_native_reasoning_stays_bound_and_opaque_state_and_replay_stay_denied(self):
-        fixture = probe_fixture.CodingProbeV8ReasoningTests()
-        probe, continuation, _ = fixture.prepare(version=4, capability='qwen_code_v11')
-        opaque = deepcopy(continuation)
-        opaque['input'][1]['encrypted_content'] = 'opaque-state'
-        from hormuz.coding_probe import ProbeError
-        with self.assertRaisesRegex(ProbeError, '^probe_request_mismatch$'):
-            fixture.submit(probe, opaque)
-        self.assertEqual(probe.count, 1)
-        fixture.submit(probe, continuation)
-        self.assertEqual(probe.count, 2)
-        with self.assertRaisesRegex(ProbeError, '^probe_request_mismatch$'):
-            fixture.submit(probe, continuation)
-        self.assertEqual(probe.count, 2)

@@ -1,4 +1,4 @@
-"""Explicit v8 probes carry native cleartext reasoning without widening admission."""
+"""Explicit native probes carry cleartext reasoning without widening admission."""
 from copy import deepcopy
 import hashlib
 import json
@@ -14,6 +14,12 @@ from tests import test_connected_client_lifetime_workflow as lifetime
 
 class CodingProbeV8ReasoningWorkflowTests(unittest.TestCase):
     def test_same_public_probe_continues_after_reasoning_and_native_tool_result(self):
+        for capability, version, seconds, requests in (
+                ('qwen_code_v8', 5, 180, 2), ('qwen_code_v11', 4, 90, 3)):
+            with self.subTest(capability=capability):
+                self.check_public_continuation(capability, version, seconds, requests)
+
+    def check_public_continuation(self, capability, version, seconds, requests):
         fixture = coding.CodingOutputWorkflowTests()
         fixture.setUp()
         self.addCleanup(fixture.doCleanups)
@@ -31,16 +37,16 @@ class CodingProbeV8ReasoningWorkflowTests(unittest.TestCase):
             value['managed_llama']['runtime_sha256'] = hashlib.sha256(archive.read_bytes()).hexdigest()
             route = value['model_routes']['local-code']
             route['upstream_model'] = 'Qwen3-14B-Q4_K_M'
-            route['capabilities'].append('qwen_code_v8')
+            route['capabilities'].append(capability)
             value['route_admission']['local_routes']['local-code']['max_request_bytes'] = 65536
             native = json.loads((Path(__file__).parent / 'fixtures/codex-0160-native-progress.json').read_text())
             request['tools'] = [native['declarations']['exec_command']]
             request['reasoning'] = {'effort': 'low'}
             evidence = fixture.evidence(value, request)
-            plan = {'schema_id': 'hormuz.coding-probe-plan', 'schema_version': 5,
+            plan = {'schema_id': 'hormuz.coding-probe-plan', 'schema_version': version,
                 'campaign_id': 'synthetic-v8-reasoning', 'plan_sha256': evidence['plan_sha256'],
                 'case_id': 'synthetic-case', 'task_sha256': 'a' * 64, 'checks_sha256': 'b' * 64,
-                'model': 'local-code', 'max_requests': 2, 'max_elapsed_seconds': 180,
+                'model': 'local-code', 'max_requests': requests, 'max_elapsed_seconds': seconds,
                 'first_input_sha256': canonical_digest(coding_input(request['input'], schema_version=4)),
                 'subject': deepcopy(evidence['plan']['subject'])}
             validate_contract(plan)
