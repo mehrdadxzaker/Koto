@@ -607,13 +607,15 @@ def run_frozen(args):
         prior_ids = {item['id'] for item in prior_history['entries']}
         report['prior_history_count'] = prior_history['total']
         profile = read(root / 'profile.json')
+        extended_output = profile['schema_version'] == 5
         subject = {'client_version': profile['client_version'], 'system': platform.system(), 'machine': platform.machine(),
-            'runtime_profile': 'managed-llama.v1', 'runtime_sha256': profile['runtime_sha256'],
+            'runtime_profile': 'managed-llama.v2' if extended_output else 'managed-llama.v1',
+            'runtime_sha256': profile['runtime_sha256'],
             'model_revision': 'sha256:' + profile['model_sha256'], 'upstream_model': profile['model'], 'protocol': 'openai',
             'capabilities': profile['capabilities'], 'max_request_bytes': profile['max_request_bytes'],
             'max_output_tokens': profile['max_output_tokens'], 'upstream_timeout_seconds': profile['upstream_timeout_seconds'],
             'request_profile_sha256': manifest['scenarios'][name]['profile_sha256']}
-        plan = {'schema_id': 'hormuz.coding-probe-plan', 'schema_version': 2,
+        plan = {'schema_id': 'hormuz.coding-probe-plan', 'schema_version': 4 if extended_output else 2,
             'campaign_id': 'codex-acceptance-' + checksum(root / 'freeze.json')[:16], 'plan_sha256': checksum(root / 'freeze.json'),
             'case_id': manifest['case']['id'] + ('' if name == 'edit' else '-' + name),
             'task_sha256': hashlib.sha256(manifest['scenarios'][name]['prompt'].encode()).hexdigest(),
@@ -722,10 +724,14 @@ def prepare(args):
     if args.wheel.suffix != '.whl' or not zipfile.is_zipfile(args.wheel):
         raise RuntimeError('Use an existing built wheel; source builds and dependency downloads are unavailable')
     profile = read(args.qualification)
+    output_limit = 2048 if profile.get('schema_version') == 5 else 512
     if (profile.get('client_version') != '0.160.0' or profile.get('coding_evidence') is not None
-            or 'code_change' not in profile.get('task_types', []) or profile['max_output_tokens'] > 512
+            or 'code_change' not in profile.get('task_types', [])
+            or type(profile.get('max_output_tokens')) is not int
+            or not 1 <= profile['max_output_tokens'] <= output_limit
             or profile['upstream_timeout_seconds'] > 90):
-        raise RuntimeError('Use an unqualified Codex 0.160 profile with bounded code_change')
+        raise RuntimeError('Use an unqualified Codex 0.160 profile with bounded code_change: '
+                           'at most 512 output tokens, or 2048 for setup v5')
     cases = [read(path) for path in args.case] if args.case else [{'id': 'development-add', 'partition': 'development',
         'family': 'arithmetic', 'prompt': PROMPT, 'initial_solution': BASELINE, 'checker': CHECKER}]
     required = {'id', 'partition', 'family', 'prompt', 'initial_solution', 'checker'}
@@ -771,11 +777,13 @@ def prepare(args):
     write(root / 'profile.json', profile)
     live_home = Path(os.environ.get('HOME', str(Path.home())))
     live_codex = Path(os.environ.get('CODEX_HOME', str(live_home / '.codex')))
-    manifest = {'schema_id': 'koto.codex-acceptance-freeze', 'schema_version': 1,
+    manifest = {'schema_id': 'koto.codex-acceptance-freeze',
+        'schema_version': 2 if profile['schema_version'] == 5 else 1,
         'python': str(args.python.expanduser().absolute()), 'model_requests': 0,
         'python_sha256': checksum(args.python), 'host': {'system': platform.system(), 'machine': platform.machine()},
         'client_instructions_sha256': hashlib.sha256(client_instructions.encode()).hexdigest() if client_instructions else None,
-        'limits': {'max_requests': 8, 'max_elapsed_seconds': 90, 'max_output_tokens': 512},
+        'limits': {'max_requests': 8, 'max_elapsed_seconds': 90,
+                   'max_output_tokens': profile['max_output_tokens']},
         'assets': assets,
         'cases': {item['id']: {**{key: item[key] for key in ('id', 'partition', 'family')},
                   'scenarios': {name: {'prompt': item['prompt'] + (' Cancellation control.' if name == 'cancel' else '')}
