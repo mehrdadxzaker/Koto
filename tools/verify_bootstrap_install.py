@@ -186,17 +186,29 @@ def main():
         before = digest(selected)
         model = Path(config["managed_llama"]["model_file"])
         model_digest = digest(model)
+        run("hardware-memory", ["/usr/sbin/sysctl", "hw.memsize", "hw.ncpu"])
+        run("graphics-device", ["/usr/sbin/system_profiler", "SPDisplaysDataType"], timeout=30)
         prompt = root / "handoff-note.txt"
         prompt.write_text('Extract the responsible person and deadline from this handoff note. '
             'Return only a JSON object with keys "owner" and "due_date" (YYYY-MM-DD), without markdown. '
             'Note: Rina will deliver the demo by November 3, 2026. Lee is keeping the old archive. /no_think')
-        _, output = run("useful-extraction-task", [cli, "chat", "ask",
+        task_code, output = run("useful-extraction-task", [cli, "chat", "ask",
             "--model", ready["configuration"]["model"], "--prompt-file", prompt,
-            "--max-output-tokens", "512", "--effort", "low", "--timeout-seconds", "90"], timeout=110, cwd=second)
-        result = json.loads(output)
-        if result["locality"] != "local" or json.loads(result["text"].strip()) != {"owner": "Rina", "due_date": "2026-11-03"}:
-            raise RuntimeError("The original local extraction result failed the frozen independent check")
-        report["task_check"] = "exact independently checked extraction passed"
+            "--max-output-tokens", "512", "--effort", "low", "--timeout-seconds", "90"],
+            timeout=110, cwd=second, check=False)
+        task_passed = False
+        if task_code == 0:
+            try:
+                result = json.loads(output)
+                task_passed = result["locality"] == "local" and json.loads(result["text"].strip()) == {
+                    "owner": "Rina", "due_date": "2026-11-03"}
+            except (ValueError, KeyError, TypeError):
+                pass
+        report["task_check"] = ("exact independently checked extraction passed" if task_passed
+                                else "original extraction failed; no retry")
+        if not task_passed:
+            run("memory-at-task-failure", ["/usr/bin/vm_stat"], check=False)
+            run("process-resources-at-task-failure", ["/bin/ps", "-axo", "pid=,ppid=,%cpu=,rss=,etime=,comm="], check=False)
         # This removes the explicit-chat owner binding as well as its runtime.
         run("disconnect", [cli, "off"], timeout=30)
         if settings.read_text() != original:
@@ -208,6 +220,16 @@ def main():
                                        for route in routing["routes"]):
             raise RuntimeError("Bootstrap unexpectedly enabled automatic coding")
         run("disconnect-after-restart", [cli, "off"], timeout=30)
+        # Read only selected content-free fields after owned cleanup settles.
+        # Do not export credentials, prompts, work records or answer content.
+        run("request-timing-metadata", [python, "-c",
+            "import json,sqlite3,sys; from contextlib import closing; from pathlib import Path; "
+            "queries={'events':'SELECT sequence,state,reason_code FROM gateway_request_attempt_events ORDER BY occurred_at,sequence', "
+            "'metrics':'SELECT provider_status,response_headers_us,first_body_byte_us,total_us,provider_bytes_read,downstream_bytes_sent FROM gateway_provider_attempt_metrics UNION ALL SELECT provider_status,response_headers_us,first_body_byte_us,total_us,provider_bytes_read,downstream_bytes_sent FROM gateway_provider_attempt_metrics_v2'}; "
+            "\nwith closing(sqlite3.connect(Path(sys.argv[1]).as_uri()+'?mode=ro',uri=True,timeout=5)) as db:\n"
+            " db.row_factory=sqlite3.Row\n"
+            " print(json.dumps({key:[dict(row) for row in db.execute(query)] for key,query in queries.items()}))",
+            config["database"]])
         for port in (config["listen"]["port"], urlsplit(config["upstreams"]["local-llama"]["base_url"]).port):
             with socket.socket() as connection:
                 connection.settimeout(2)
@@ -218,8 +240,10 @@ def main():
             raise RuntimeError("Uninstall retained the product entry points")
         if settings.read_text() != original or digest(selected) != before or digest(model) != model_digest:
             raise RuntimeError("Removal changed retained configuration, assets, or client preferences")
-        report.update(passed=True, assets_retained=True, configuration_retained=True,
+        report.update(passed=task_passed, assets_retained=True, configuration_retained=True,
                       coding_qualified=False, automatic_selection_enabled=False)
+        if not task_passed:
+            raise RuntimeError("The original local extraction failed; restart/removal were checked separately")
     except BaseException as error:
         report["failure"] = str(error)
         if selected.is_file() and "resume-and-setup failed" in str(error):

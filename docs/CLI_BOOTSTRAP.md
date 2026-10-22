@@ -146,6 +146,9 @@ there are no automatic task retries or passing synthetic replacements.
 After a runtime-start failure, the checker stops the connection and captures
 one bounded, prompt-free engine diagnostic using the installed startup arguments.
 That diagnostic cannot change the original failed result or submit a task.
+After a text-task failure it retains content-free request timings and resource
+observations, and still checks restart and removal. Those later stages cannot
+turn the failed task or overall journey into a pass.
 
 One artifact transfer runs at a time. Download and subprocess deadlines remain
 finite; the real acceptance job has a 35-minute bound and always attempts owned
