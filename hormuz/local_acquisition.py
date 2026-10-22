@@ -23,6 +23,10 @@ DEFAULT_CATALOGS = {
     "0.160.0": "local-acquisition-codex-0160-llama-b11617-qwen3-4b-v1.json",
     "0.162.0-alpha.17.2": "local-acquisition-codex-app-0162-llama-b11617-qwen3-4b-v3.json",
 }
+BOOTSTRAP_CATALOGS = {
+    "0.160.0": "local-acquisition-codex-0160-llama-b11617-qwen3-4b-text-v1.json",
+    "0.162.0-alpha.17.2": DEFAULT_CATALOGS["0.162.0-alpha.17.2"],
+}
 EXPANSION_LIMIT = 1024**3
 
 
@@ -90,7 +94,7 @@ def _sync(path):
         os.close(descriptor)
 
 
-def _catalog(path, executable, *, download):
+def _catalog(path, executable, *, download, bootstrap=False):
     try:
         client_version = None
         if executable is not None or not path or download:
@@ -100,7 +104,8 @@ def _catalog(path, executable, *, download):
             if program is None:
                 raise ValueError()
             client_version = _qualify_client(program)
-        source = Path(path).expanduser() if path else Path(__file__).with_name(DEFAULT_CATALOGS[client_version])
+        catalogs = BOOTSTRAP_CATALOGS if bootstrap else DEFAULT_CATALOGS
+        source = Path(path).expanduser() if path else Path(__file__).with_name(catalogs[client_version])
         value = strict_json_loads(_safe_file(source, 65536, private=False))
         if type(value) is not dict:
             raise ValueError()
@@ -226,17 +231,17 @@ def _remaining_bytes(catalog, generation):
     return remaining
 
 
-def acquire_local(args):
+def acquire_local(args, *, bootstrap=False):
     if os.name != "posix":
         raise LocalAcquisitionError("platform_unsupported")
-    catalog = _catalog(args.catalog, args.executable, download=args.download)
+    catalog = _catalog(args.catalog, args.executable, download=args.download, bootstrap=bootstrap)
     if (catalog["profile"]["system"], catalog["profile"]["machine"]) != (platform.system(), platform.machine()):
         raise LocalAcquisitionError("platform_unsupported")
     if not 1 <= len(args.directory) <= 4096 or any(ord(c) < 32 or ord(c) == 127 for c in args.directory):
         raise LocalAcquisitionError("directory_unsafe")
     try:
         directory = Path(args.directory).expanduser().absolute()
-        directory = directory.parent.resolve(strict=True) / directory.name
+        directory = directory.parent.resolve() / directory.name
     except (OSError, RuntimeError, ValueError):
         raise LocalAcquisitionError("directory_unsafe") from None
     digest = hashlib.sha256(_bytes(catalog)).hexdigest()
@@ -274,7 +279,10 @@ def _acquire_locked(args, catalog, directory, digest, lock_descriptor):
         setup = _verify(catalog, generation)
     total = (_remaining_bytes(catalog, generation) if inspect else
              sum(catalog[role]["size_bytes"] for role in ("runtime", "model")))
-    available = shutil.disk_usage(directory if directory.exists() else directory.parent).free
+    storage_parent = directory
+    while not storage_parent.exists():
+        storage_parent = storage_parent.parent
+    available = shutil.disk_usage(storage_parent).free
     required = 0 if setup else total + EXPANSION_LIMIT + 64 * 1024**2
     result = {"schema_id": "hormuz.local-acquisition", "schema_version": 1,
               "catalog_id": catalog["catalog_id"], "catalog_sha256": digest,

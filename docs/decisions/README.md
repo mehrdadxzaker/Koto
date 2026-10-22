@@ -36,6 +36,10 @@ reviewed acquisition catalogs, explicit private asset directories and retained
 generations, with removal remaining a separate inspected action. Its contract
 leaves implementation and production qualification as separate gates.
 
+[ADR 0033](0033-cli-bootstrap-and-user-configuration.md) adds guided runtime/model
+installation, a directory-independent user configuration, explicit project
+selection, and a separate installed-product lifecycle gate on a fresh Mac.
+
 Earlier records remain historical evidence. Their enterprise/UI product scope
 is superseded by ADR 0018; retaining a record does not reactivate its product or
 acceptance gates. Do not rewrite accepted rationale; supersede it with a new

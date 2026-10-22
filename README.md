@@ -47,6 +47,33 @@ implementation. See [product scope](docs/ROUTER_SCOPE.md) and
 [shared setup](docs/SHARED_LOCAL_SETUP.md). Plugin installation alone does not
 activate routing, download models or establish provider access.
 
+## First run from the CLI
+
+After installing the source or a reviewed wheel, use the guided bootstrap on
+Darwin arm64 with Codex CLI 0.160.0 (or the explicitly selected pinned app engine):
+
+```sh
+koto init --dry-run
+koto init
+koto chat ask --prompt-file /absolute/path/to/handoff-note.txt --effort low --max-output-tokens 512
+koto status
+koto off
+```
+
+The wizard installs a verified llama.cpp runtime and pinned Qwen3-4B model into
+private user storage, then starts a private connection for explicit text tasks.
+Normal Codex settings stay unchanged. Model download is about 2.51 GB and needs
+confirmation; use `--yes` for unattended setup. Coding qualification and
+automatic selection remain disabled.
+
+Configuration defaults to `~/.config/koto/config.json` (or `XDG_CONFIG_HOME`).
+It works after changing directories. `koto config path` prints the selected
+path; `koto --project /absolute/project ...` explicitly selects that project's
+`.koto/config.json`. Existing configs remain usable with `--config` or an
+absolute `KOTO_CONFIG`; working-directory JSON files are no longer auto-loaded.
+See [bootstrap, restart, removal and clean-machine acceptance](docs/CLI_BOOTSTRAP.md)
+for prerequisites, overrides, privacy choices and experimental support limits.
+
 ## Install in your agent
 
 The plugin manifests and shared CLI implementation are included in this source.

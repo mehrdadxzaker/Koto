@@ -13,6 +13,7 @@ from .connected_client import ConnectedClientError, ConnectedClientLifetime
 from .contracts import validate_contract
 from .local_transport import open_local_upstream
 from .chat_owner import register_owner
+from .config_location import router_home
 
 MAX_PROMPT = 65536
 MAX_RESPONSE = 2 * 1024 * 1024
@@ -34,7 +35,7 @@ def add_commands(commands):
     route.add_argument('--timeout-seconds', type=int, default=90, choices=range(1, 361), metavar='1..360')
     for name in ('models', 'ask', 'propose'):
         command = operations.add_parser(name)
-        command.add_argument('--router-home', required=True, help='Separate, already connected Koto control home')
+        command.add_argument('--router-home', help='Separate connected Koto home; default is this configuration\'s bootstrap home')
         if name in {'ask', 'propose'}:
             command.add_argument('--model', required=name == 'propose',
                 help='Explicit qualified local alias' if name == 'propose' else
@@ -108,7 +109,7 @@ def run(args):
             if not raw.strip() or len(raw) > MAX_PROMPT:
                 raise ChatTaskError('prompt_limit')
             prompt = raw.decode('utf-8')
-        home = Path(args.router_home).expanduser().resolve()
+        home = (Path(args.router_home).expanduser() if args.router_home else router_home(args.config)).resolve()
         if home == (Path.home() / '.codex').resolve() or home == Path(os.environ.get('CODEX_HOME', '~/.codex')).expanduser().resolve():
             raise ChatTaskError('separate_router_home_required')
         lifetime = ConnectedClientLifetime(home)
