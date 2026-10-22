@@ -96,6 +96,16 @@ gate, status, trust limits and migration rules.
 
 ## Creation, reuse and recovery
 
+The [CLI first run](CLI_BOOTSTRAP.md) additionally uses setup-profile version 6
+and managed-runtime version 4. They retain the interactive local transport with
+a bounded 120-second startup allowance, after a fresh hosted Mac exceeded the
+historical 60-second limit. Version 6 requires explicit interactive work and
+absent coding evidence; earlier profiles keep their existing limits. Disconnect
+before downgrading, since older readers reject the new versions. The
+[setup-profile](../tests/fixtures/local-setup-profile-v6.json) and
+[managed-runtime](../tests/fixtures/managed-llama-profile-v4.json) fixtures freeze
+the new input boundary; connection receipts and journals do not change.
+
 Setup creates a mode-0600 configuration and a sibling `<config>.state`
 directory with mode 0700 for local usage/work SQLite files. An exclusive,
 bounded setup lock serializes callers targeting the same configuration.

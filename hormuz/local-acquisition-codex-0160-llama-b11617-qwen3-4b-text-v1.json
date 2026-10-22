@@ -4,7 +4,7 @@
   "catalog_id": "codex0160-llamab11617-qwen3-4b-bootstrap-text-v1",
   "profile": {
     "schema_id": "hormuz.local-setup-profile",
-    "schema_version": 3,
+    "schema_version": 6,
     "qualification_id": "codex0160-llamab11617-qwen3-4b-bootstrap-text-v1",
     "client_version": "0.160.0",
     "system": "Darwin",
@@ -28,7 +28,7 @@
       "interactive"
     ],
     "upstream_timeout_seconds": 360,
-    "startup_timeout_seconds": 60,
+    "startup_timeout_seconds": 120,
     "coding_evidence": null
   },
   "runtime": {

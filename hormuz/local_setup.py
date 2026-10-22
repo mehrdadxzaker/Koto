@@ -231,7 +231,7 @@ def setup_local(lifetime, args):
         model_file=_absolute(args.model_file), model_sha256=profile["model_sha256"],
         startup_timeout_seconds=profile["startup_timeout_seconds"], port=1,
         alias=profile["model"], output_tokens=profile["max_output_tokens"],
-        schema_version={3:2, 5:3}.get(profile["schema_version"], 1),
+        schema_version={3:2, 5:3, 6:4}.get(profile["schema_version"], 1),
     )
     try:
         managed.verify()

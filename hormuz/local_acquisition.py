@@ -25,7 +25,7 @@ DEFAULT_CATALOGS = {
 }
 BOOTSTRAP_CATALOGS = {
     "0.160.0": "local-acquisition-codex-0160-llama-b11617-qwen3-4b-text-v1.json",
-    "0.162.0-alpha.17.2": DEFAULT_CATALOGS["0.162.0-alpha.17.2"],
+    "0.162.0-alpha.17.2": "local-acquisition-codex-app-0162-llama-b11617-qwen3-4b-text-v1.json",
 }
 EXPANSION_LIMIT = 1024**3
 

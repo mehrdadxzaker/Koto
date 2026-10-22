@@ -77,6 +77,7 @@ from ._contract_schemas.local_setup import (validate_profile as _validate_local_
     validate_profile_v3 as _validate_local_setup_profile_v3,
     validate_profile_v4 as _validate_local_setup_profile_v4,
     validate_profile_v5 as _validate_local_setup_profile_v5,
+    validate_profile_v6 as _validate_local_setup_profile_v6,
     validate_setup as _validate_local_setup, validate_setup_v2 as _validate_local_setup_v2,
     validate_setup_v3 as _validate_local_setup_v3)
 from ._contract_schemas.local_acquisition import (CATALOG_FIELDS as ACQUISITION_CATALOG_FIELDS,
@@ -595,7 +596,7 @@ def contract_manifest() -> dict[str, object]:
                 ["schema_id", "schema_version", "qualification_id", "client_version", "system", "machine",
                  "runtime_sha256", "model_sha256", "model", "capabilities", "max_request_bytes",
                  "max_output_tokens", "task_types", "upstream_timeout_seconds", "startup_timeout_seconds"]
-                 + (["coding_evidence"] if version >= 2 else [])) for version in (1, 2, 3, 4, 5)],
+                 + (["coding_evidence"] if version >= 2 else [])) for version in (1, 2, 3, 4, 5, 6)],
         ],
         "policy_action_semantics": {
             "allowed": "The requested route was allowed without a route substitution or output cap.",
@@ -669,6 +670,7 @@ def validate_contract(value: Mapping[str, Any]) -> None:
         (LOCAL_SETUP_PROFILE_SCHEMA_ID, 3): _validate_local_setup_profile_v3,
         (LOCAL_SETUP_PROFILE_SCHEMA_ID, 4): _validate_local_setup_profile_v4,
         (LOCAL_SETUP_PROFILE_SCHEMA_ID, 5): _validate_local_setup_profile_v5,
+        (LOCAL_SETUP_PROFILE_SCHEMA_ID, 6): _validate_local_setup_profile_v6,
         (CONNECTED_CLIENT_STATUS_SCHEMA_ID, CONNECTED_CLIENT_STATUS_SCHEMA_VERSION): _validate_connected_client_status,
         (CONNECTED_CLIENT_PREVIEW_SCHEMA_ID, CONNECTED_CLIENT_PREVIEW_SCHEMA_VERSION): _validate_connected_client_preview,
         (CONNECTED_CLIENT_STATUS_SCHEMA_ID, 2): _validate_connected_client_status_v2,

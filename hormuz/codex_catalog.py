@@ -41,7 +41,7 @@ def qualified_models(config, aliases):
         })
         if ('codex_llama_v1' in route.capabilities
                 and (config.managed_llama is None or config.managed_llama.route != alias
-                     or config.managed_llama.schema_version == 2)):
+                     or config.managed_llama.schema_version in {2, 4})):
             result[-1].update(supports_search_tool=True, supports_reasoning_summary_parameter=True,
                 default_reasoning_summary='auto', default_reasoning_level='medium',
                 include_skills_usage_instructions=True, include_plugin_usage_instructions=True,

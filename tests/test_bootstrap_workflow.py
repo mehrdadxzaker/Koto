@@ -2,6 +2,7 @@
 import json
 import hashlib
 import os
+import platform
 from pathlib import Path
 import signal
 import subprocess
@@ -12,6 +13,7 @@ import time
 import unittest
 
 import hormuz
+from hormuz.config import ConfigError, GatewayConfig
 from hormuz.contracts import validate_contract
 from tests import test_local_acquisition_workflow as acquisition_workflow
 
@@ -101,6 +103,8 @@ class BootstrapWorkflowTests(unittest.TestCase):
                     "KOTO_BOOTSTRAP_TEST_TOKEN": "synthetic-helper-value"}
         stopped = self.command("off", "--client-home", str(self.client.home), environment=poisoned)
         self.assertEqual(json.loads(stopped.stdout)["phase"], "disconnected")
+        disconnected = self.command("client", "disconnect", "codex", "--client-home", str(self.client.home), environment=poisoned)
+        self.assertEqual(json.loads(disconnected.stdout)["phase"], "disconnected")
         token = self.command("auth", "token", "--env", "KOTO_BOOTSTRAP_TEST_TOKEN", environment=poisoned)
         self.assertEqual(token.stdout.strip(), "synthetic-helper-value")
 
@@ -108,7 +112,7 @@ class BootstrapWorkflowTests(unittest.TestCase):
         bootstrap = ('import platform; platform.system=lambda:"Darwin"; platform.machine=lambda:"arm64"; '
                      'from hormuz.cli import main; raise SystemExit(main())')
         for version, expected in (("0.160.0", "codex0160-llamab11617-qwen3-4b-bootstrap-text-v1"),
-                                  ("0.162.0-alpha.17.2", "codex-app0162-llamab11617-qwen3-4b-interactive-review-360s-v3"),
+                                  ("0.162.0-alpha.17.2", "codex-app0162-llamab11617-qwen3-4b-bootstrap-text-v1"),
                                   ("0.147.0", None), ("0.163.0-alpha.11", None)):
             with self.subTest(version=version):
                 (self.root / "client-version.txt").write_text(version)
@@ -158,6 +162,40 @@ class BootstrapWorkflowTests(unittest.TestCase):
             self.assertEqual(json.loads(self.command("status").stdout)["router"], "stopped")
             self.assertEqual((self.client.home / "config.toml").read_bytes(), original)
             self.assertEqual([path for path, _ in requests], ["/runtime", "/model"])
+
+    def test_version_six_startup_budget_reaches_the_owned_runtime_without_coding_admission(self):
+        value, payloads = self.prepare()
+        profile = json.loads((Path(__file__).parent / "fixtures/local-setup-profile-v6.json").read_text())
+        profile.update(system=platform.system(), machine=platform.machine(),
+                       runtime_sha256=value["managed_llama"]["runtime_sha256"],
+                       model_sha256=value["managed_llama"]["model_sha256"])
+        (self.root / "qualification.json").write_text(json.dumps(profile))
+        (self.root / "client-version.txt").write_text("0.160.0")
+        self.addCleanup(lambda: self.command("off", check=False))
+        with artifacts(payloads) as (origin, _, _):
+            self.fixture.catalog(value, origin)
+            self.command("init", "--yes", "--executable", str(self.client.executable),
+                         "--catalog", str(self.root / "catalog.json"))
+            configuration = json.loads(self.path.read_text())
+            managed = configuration["managed_llama"]
+            self.assertEqual((managed["schema_version"], managed["startup_timeout_seconds"]), (4, 120))
+            self.assertEqual(json.loads(self.command("chat", "models").stdout)["models"], ["local-code"])
+            routing = json.loads(self.command("status", "--routing").stdout)
+            self.assertTrue(routing["routes"])
+            self.assertTrue(all(route["coding_readiness"] == "unknown" and not route["automatic_task_types"]
+                                for route in routing["routes"]))
+            self.command("off")
+            # Readers of historical managed versions keep rejecting the wider
+            # startup bound; there is no silent migration of an old profile.
+            configuration["managed_llama"]["schema_version"] = 2
+            self.path.write_text(json.dumps(configuration))
+            with self.assertRaises(ConfigError):
+                GatewayConfig.load(self.path)
+            failed = self.command("client", "connect", "codex", "--executable", str(self.client.executable),
+                "--client-home", str(self.path.with_name(self.path.name + ".codex")), check=False)
+            self.assertEqual(failed.returncode, 2)
+            self.assertEqual(json.loads(failed.stderr)["error"]["code"], "connected_client_setup_unavailable")
+            self.assertEqual(json.loads(self.command("status").stdout)["router"], "stopped")
 
     def test_download_setup_task_disconnect_and_offline_restart_across_directories(self):
         value, payloads = self.prepare()

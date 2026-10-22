@@ -21,6 +21,7 @@ def main():
         required = {'koto/__init__.py', 'koto/__main__.py',
                     'hormuz/commands/bootstrap.py', 'hormuz/config_location.py',
                     'hormuz/local-acquisition-codex-0160-llama-b11617-qwen3-4b-text-v1.json',
+                    'hormuz/local-acquisition-codex-app-0162-llama-b11617-qwen3-4b-text-v1.json',
                     'hormuz/codex-0160-base-instructions.json', 'hormuz/codex-0160-LICENSE.txt',
                     'hormuz/local-setup-codex-0160-llama-b11617-qwen3-4b-v1.json',
                     'hormuz/local-setup-codex-app-0162-llama-b11617-qwen3-4b-v3.json'}

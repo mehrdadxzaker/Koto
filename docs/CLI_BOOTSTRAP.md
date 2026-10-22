@@ -162,10 +162,15 @@ Use `koto --config /absolute/path/to/that.json ...` or set an absolute
 only when explicitly requested; it does not import or rewrite a repository file.
 Never copy a generated JSON without its private credential/state references.
 
-No public JSON schema or existing journal version changes. Init returns the
-existing acquisition receipt during preview and the existing shared-setup
-receipt after activation. The new text catalog uses the existing version-3
-setup profile with the same verified runtime/model bytes; older catalogs and
-generations remain available unchanged. Disconnect with the owning version
-before rollback, retain user files, and pass the absolute config path when
-using an earlier CLI whose defaults differ.
+Acquisition/setup receipts and connection journals retain their existing
+versions. The new text catalog uses a version-6 setup profile and managed
+runtime version 4, with the same verified runtime/model bytes and a 120-second
+startup limit. Fresh hosted Mac loading exceeded the earlier 60-second limit;
+the historical profiles retain that earlier bound. Compatibility inputs are
+frozen in the [setup fixture](../tests/fixtures/local-setup-profile-v6.json) and
+[managed-runtime fixture](../tests/fixtures/managed-llama-profile-v4.json).
+Version 6 permits only explicit interactive text work with absent coding
+evidence. Older readers reject these versions instead of reinterpreting them.
+Disconnect with the owning version before rollback and retain user files. Use
+an older reviewed profile in a separate config when downgrading; pass its
+absolute path to earlier CLIs whose defaults differ.

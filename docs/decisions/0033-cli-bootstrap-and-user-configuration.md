@@ -28,11 +28,18 @@ tasks resolve that same profile; `off` reuses the existing generation-bound chat
 owner. An owner conflict stops the newly created connection. The existing CLI
 client lifetime defaults and plugin behavior remain available separately.
 
-Bootstrap selects a separate 0.160.0 text catalog based on the existing v3 local
+Bootstrap selects a separate 0.160.0 text catalog based on the existing local
 transport and existing verified llama.cpp/Qwen3-4B bytes. The old 0.160 coding
 catalog stays reproducible. Interactive task selection does not supply coding
 evidence or automatic routing permission. Unsupported clients block before
 transfer. History and learning keep their existing separate consent.
+
+Real fresh-machine evidence found loading took about 66.5 seconds on a 7 GiB
+hosted Mac, exceeding the historical 60-second startup budget. A version-6
+setup profile and managed-runtime version 4 permit up to 120 seconds for this
+text-only first run. Earlier profile versions retain their bounds; version 6
+requires interactive tasks and absent coding evidence. Runtime arguments,
+request bounds, and inference timeouts otherwise remain unchanged.
 
 Cancellation during startup now restores and stops the exact generation while
 the connection owner's lock remains held. No wrapper can accidentally adopt a
@@ -47,7 +54,9 @@ retains original failures and has bounded resource consumption. Passing routine
 CI does not substitute for running this gate or establish general coding or
 hardware qualification.
 
-No public or durable schema version changes. Existing receipt/profile fixtures
-remain valid. Before rollback, disconnect through the current owner and retain
-the generated files; older CLI versions require an explicit absolute config.
+Existing receipt and journal versions remain valid. New setup-profile v6 and
+managed-runtime v4 compatibility fixtures freeze the wider bounded startup
+contract; older readers reject them. Before rollback, disconnect through the
+current owner and retain generated files. Use an earlier reviewed setup profile
+in a separate config; older CLIs require an explicit absolute config path.
 See [CLI bootstrap](../CLI_BOOTSTRAP.md) for the exact user flow and boundaries.

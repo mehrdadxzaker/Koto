@@ -69,6 +69,8 @@ def main(argv: list[str] | None = None) -> int:
         if args.auth_command == "local-token":
             return client_commands.local_token(args)
         return client_commands._auth_token(args.env)
+    if args.command == "client" and args.client_command in {"acquire", "disconnect", "status", "qualify"}:
+        return client_commands.run_lifetime(args)
     try:
         args.config = str(resolve_config(args.config, args.config_project))
     except (ConfigError, OSError, RuntimeError) as error:

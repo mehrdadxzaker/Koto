@@ -66,9 +66,9 @@ These catalogs reuse the same previously reviewed artifact pins and their exact
 existing setup profiles. Separate catalog digests keep their generations apart.
 None supplies passing coding evidence or enables automatic model selection.
 
-The [CLI bootstrap](CLI_BOOTSTRAP.md) separately selects a version-3 text-task
+The [CLI bootstrap](CLI_BOOTSTRAP.md) separately selects a version-6 text-task
 catalog for Codex 0.160.0, using the same verified assets and existing local
-transport. It permits explicit interactive text tasks with absent coding
+transport and a bounded 120-second startup allowance. It permits explicit interactive text tasks with absent coding
 evidence. The historical `client acquire` catalogs above remain unchanged.
 
 The bundled [version-1 catalog](../hormuz/local-acquisition-codex-0147-llama-b11617-qwen3-4b-v1.json)

@@ -273,7 +273,7 @@ def build_managed_llama(raw, routes, upstreams, admission):
         return None
     fields = {"schema_version", "route", "executable", "runtime_archive", "runtime_sha256", "model_file", "model_sha256", "startup_timeout_seconds"}
     try:
-        if type(value) is not dict or set(value) != fields or type(value["schema_version"]) is not int or value["schema_version"] not in {1, 2, 3}:
+        if type(value) is not dict or set(value) != fields or type(value["schema_version"]) is not int or value["schema_version"] not in {1, 2, 3, 4}:
             raise ValueError()
         for key in ("executable", "runtime_archive", "model_file"):
             if type(value[key]) is not str or not 1 <= len(value[key]) <= 4096 or not Path(value[key]).is_absolute():
@@ -281,7 +281,7 @@ def build_managed_llama(raw, routes, upstreams, admission):
         for key in ("runtime_sha256", "model_sha256"):
             if type(value[key]) is not str or re.fullmatch(r"[a-f0-9]{64}", value[key]) is None:
                 raise ValueError()
-        if type(value["startup_timeout_seconds"]) is not int or not 1 <= value["startup_timeout_seconds"] <= 60:
+        if type(value["startup_timeout_seconds"]) is not int or not 1 <= value["startup_timeout_seconds"] <= (120 if value["schema_version"] == 4 else 60):
             raise ValueError()
         route = routes[value["route"]]
         destination = upstreams[route.destination_id]
@@ -292,7 +292,7 @@ def build_managed_llama(raw, routes, upstreams, admission):
                 or endpoint.scheme != "http" or endpoint.hostname != "127.0.0.1" or endpoint.port is None
                 or endpoint.path not in {"", "/", "/v1"} or endpoint.query or endpoint.fragment or endpoint.username
                 or route.model_revision != "sha256:" + value["model_sha256"]
-                or qualification.max_output_tokens > {1:512, 2:8192, 3:2048}[value["schema_version"]]):
+                or qualification.max_output_tokens > {1:512, 2:8192, 3:2048, 4:8192}[value["schema_version"]]):
             raise ValueError()
         return ManagedLlamaProfile(**{key: value[key] for key in fields - {"schema_version"}},
             port=endpoint.port, alias=route.upstream_model, output_tokens=qualification.max_output_tokens,
@@ -367,9 +367,9 @@ def runtime_arguments(profile):
     args = [profile.executable, "-m", profile.model_file, "--offline", "--host", "127.0.0.1", "--port", str(profile.port),
         "--alias", profile.alias, "--parallel", "1", "--threads", "4", "--threads-batch", "4", "--threads-http", "2",
         "--ctx-size", "32768", "--n-predict", str(profile.output_tokens), "--jinja", "--chat-template-kwargs",
-        '{"enable_thinking":true}' if profile.schema_version == 2 else '{"enable_thinking":false}',
+        '{"enable_thinking":true}' if profile.schema_version in {2, 4} else '{"enable_thinking":false}',
         "--no-webui", "--no-agent", "--no-slots", "--temp", "0.7", "--top-p", "0.8", "--top-k", "20", "--min-p", "0", "--presence-penalty", "1.5"]
-    if profile.schema_version == 2:
+    if profile.schema_version in {2, 4}:
         args.extend(["--reasoning-budget", "1024"])
     return args
 
