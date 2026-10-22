@@ -7,8 +7,9 @@ transport, native tools, script compiler, checkpoints and compute controls.
 The only treatment change is a separately bound model. Earlier profiles remain
 bound to Qwen3-14B-Q4_K_M and retain their previous behavior and failures.
 
-The two October 22 14B campaigns failed their first development correctness
-case. V12 also failed normal native completion. The older October 19 Coder
+The October 22 v11 and v12 campaigns failed their first development correctness
+case. V12 also failed normal native completion. The earlier v8 failure is also
+retained. The older October 19 Coder
 canary passed its unchanged independent checker but exhausted eight requests
 before normal completion. None establishes qualification for this candidate.
 
