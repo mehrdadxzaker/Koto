@@ -17,10 +17,13 @@ class LocalHarnessV15Tests(unittest.TestCase):
         tools = adapter.value['tools']
         self.assertEqual([tool['name'] for tool in tools[:3]],
                          ['koto_integer_checks', 'koto_replace', 'koto_python'])
-        for description in (tools[0]['description'],
-                tools[0]['parameters']['properties']['checks']['description'], adapter.value['instructions']):
-            self.assertIn('rejections require TypeError', description.replace('rejection requires', 'rejections require'))
-            self.assertIn('other exception contracts', description)
+        for name, description in (
+                ('tool', tools[0]['description']),
+                ('schema', tools[0]['parameters']['properties']['checks']['description']),
+                ('instructions', adapter.value['instructions'])):
+            with self.subTest(case=name):
+                self.assertIn('rejections require TypeError', description.replace('rejection requires', 'rejections require'))
+                self.assertIn('other exception contracts', description)
         self.assertEqual(tools[3:], CodexLlamaRequest(original).value['tools'])
         spec = {'module_path': 'solution.py', 'function': 'transform', 'arguments': {'value': 3},
                 'policies': [{'argument': 'value', 'subclasses': 'reject', 'booleans': 'reject'}]}
