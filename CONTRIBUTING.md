@@ -29,9 +29,12 @@ python -m unittest discover -s tests -p 'test_*fast.py' -v
 python -m unittest tests.test_model_benchmark_workflow -v
 ```
 
-Choose the workflow module for the behavior being changed. For final
-verification, build one candidate and run both layers against its installed
-wheel outside the source checkout:
+Choose the workflow module for the behavior being changed. For a packaged
+development check, use `python tools/verify_router_wheel.py dist/koto_router-*.whl
+--focused`. That runs fast rules plus the public CLI/bootstrap/task workflows
+outside the checkout. Add an affected module with the repeatable
+`--workflow-module tests.test_NAME_workflow` option. For final verification,
+build one candidate and run both complete layers against its installed wheel:
 
 ```sh
 python -m build
@@ -39,10 +42,13 @@ python tools/verify_router_wheel.py dist/koto_router-*.whl
 ```
 
 Install the pinned build frontend with `python -m pip install build==1.3.0` if
-needed. CI builds the distributions once, then tests the same wheel outside the
-source checkout on Python 3.11–3.14, with at most four test jobs in flight. The
-source scope check runs in the build job, and `CI / required` requires the build
-and both test layers on every Python version to pass. The wheel verifier reports
+needed. CI builds the distributions once. Draft PR updates and ordinary manual
+runs use focused installed-wheel checks on Python 3.12. Ready PRs, main pushes,
+and manual runs with `full_checkpoint=true` run both complete test layers on
+Python 3.11–3.14, with at most four test jobs in flight. Marking a PR ready starts
+that full checkpoint automatically. `CI / required` requires the build and the
+appropriate test job; a focused pass cannot satisfy a ready PR's checkpoint.
+The source scope check runs in the build job. The wheel verifier reports
 the 20 slowest tests in each layer on Python 3.12 and newer, including fixture
 setup and cleanup; Python 3.11 runs both layers without that newer reporting
 option.

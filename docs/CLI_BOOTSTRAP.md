@@ -126,7 +126,9 @@ Asset deletion is a separate exact-path action; there is no automatic purge.
 ## Test the installed product on a fresh machine
 
 The optional `clean_install` input of the existing CI workflow starts a fresh
-`macos-15` hosted runner by default. The explicit `clean_install_runner` choice
+`macos-15` hosted runner by default, independently of the full Python matrix.
+Development runs use focused checks; set `full_checkpoint=true` for the final
+matrix, which also runs automatically when a PR is marked ready. The explicit `clean_install_runner` choice
 also permits `macos-15-xlarge`, a billed 14 GiB accelerated Mac when the account
 enables larger runners. It installs pinned Codex CLI 0.160.0, creates a new tool
 environment, installs the exact build job's wheel, and runs this standalone
@@ -157,8 +159,8 @@ finite; the real acceptance job has a 35-minute bound and always attempts owned
 cleanup. It retains the result and original logs in
 `koto-clean-install-evidence` for 14 days. This is opt-in because it downloads
 real model weights and executes a model. Routine tests continue to use bounded
-loopback stand-ins, and all normal Python-matrix installed-wheel checks remain
-required. A synthetic pass or an unexecuted acceptance script is not a clean
+loopback stand-ins, and the complete Python matrix remains the final checkpoint.
+A synthetic pass or an unexecuted acceptance script is not a clean
 machine pass. Real acceptance does not establish broad hardware support,
 autonomous coding quality, provider eligibility or marketplace activation.
 

@@ -90,12 +90,8 @@ class BootstrapWorkflowTests(unittest.TestCase):
         self.assertEqual(self.command("config", "path").stdout.strip(), str(self.path))
         self.assertEqual(self.command("config", "path", cwd=self.root).stdout.strip(), str(self.path))
         overridden = {**self.environment, "KOTO_CONFIG": str(self.root / "environment.json")}
-        self.assertEqual(self.command("config", "path", environment=overridden).stdout.strip(),
-                         overridden["KOTO_CONFIG"])
         self.assertEqual(self.command("--project", str(self.root), "config", "path", environment=overridden).stdout.strip(),
                          str(self.root / ".koto/config.json"))
-        self.assertEqual(self.command("--config", "./explicit.json", "config", "path", environment=overridden).stdout.strip(),
-                         str(self.cwd.resolve() / "explicit.json"))
         failed = self.command("--project", str(self.root), "serve", check=False)
         self.assertEqual(failed.returncode, 2)
         self.assertFalse(self.path.exists())

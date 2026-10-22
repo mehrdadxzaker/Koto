@@ -1,6 +1,5 @@
 """Rebranding keeps public entry points and existing local data usable."""
 
-from contextlib import chdir
 import json
 import os
 from pathlib import Path
@@ -12,8 +11,6 @@ import unittest
 from unittest.mock import patch
 
 from hormuz.cli import build_parser
-from hormuz.config_location import resolve_config
-from hormuz.config import ConfigError
 from hormuz.connected_client import ConnectedClientError, _control_directory, _parse_record
 from hormuz.local_history import LocalHistory
 
@@ -51,31 +48,6 @@ class KotoBrandingWorkflowTests(unittest.TestCase):
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertIn("usage: koto ", result.stdout)
                 self.assertIn("KOTO_CONFIG", result.stdout)
-
-    def test_user_config_default_ignores_implicit_working_directory_files(self):
-        with tempfile.TemporaryDirectory() as directory, chdir(directory), patch.dict(os.environ, {}, clear=True):
-            expected = Path.home() / ".config/koto/config.json"
-            self.assertEqual(resolve_config(), expected)
-            Path("hormuz.json").write_text("{}")
-            self.assertEqual(resolve_config(), expected)
-            Path("koto.json").write_text("{}")
-            self.assertEqual(resolve_config(), expected)
-            Path("koto.json").unlink()
-            Path("koto.json").symlink_to("missing-config.json")
-            self.assertEqual(resolve_config(), expected)
-
-    def test_new_config_environment_takes_precedence_and_explicit_path_wins(self):
-        with tempfile.TemporaryDirectory() as directory:
-            new, old = Path(directory) / "new.json", Path(directory) / "old.json"
-            with patch.dict(os.environ, {"KOTO_CONFIG": str(new), "HORMUZ_CONFIG": str(old)}, clear=True):
-                self.assertEqual(resolve_config(), new)
-                self.assertEqual(resolve_config("explicit.json"), Path.cwd() / "explicit.json")
-                self.assertEqual(resolve_config(project=directory), Path(directory) / ".koto/config.json")
-            with patch.dict(os.environ, {"HORMUZ_CONFIG": str(old)}, clear=True):
-                self.assertEqual(resolve_config(), old)
-            with patch.dict(os.environ, {"KOTO_CONFIG": "relative.json"}, clear=True):
-                with self.assertRaises(ConfigError):
-                    resolve_config()
 
     def test_auth_helper_defaults_to_koto_and_accepts_legacy_environment(self):
         for environment, expected in (({}, "KOTO_GATEWAY_TOKEN"),

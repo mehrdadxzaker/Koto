@@ -1,4 +1,4 @@
-"""Run the approved public workflow against an installed wheel outside the source tree."""
+"""Test an installed wheel outside the source tree, with focused or full workflows."""
 from pathlib import Path
 import argparse
 import os
@@ -14,7 +14,16 @@ ROOT = Path(__file__).resolve().parents[1]
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('wheel', type=Path)
+    parser.add_argument('--focused', action='store_true',
+                        help='Run fast rules and the CLI/bootstrap/task workflows; reserve the full suite for a checkpoint')
+    parser.add_argument('--workflow-module', action='append', default=[], metavar='tests.test_NAME_workflow',
+                        help='Additional affected workflow module in focused mode (repeatable)')
     args = parser.parse_args()
+    if args.workflow_module and not args.focused:
+        parser.error('--workflow-module requires --focused; the default already runs every workflow')
+    if any(not name.startswith('tests.test_') or not name.endswith('_workflow')
+           or not all(part.isidentifier() for part in name.split('.')) for name in args.workflow_module):
+        parser.error('Workflow modules must be named tests.test_NAME_workflow')
     wheel = args.wheel.resolve()
     with zipfile.ZipFile(wheel) as archive:
         names = archive.namelist()
@@ -59,14 +68,17 @@ def main():
         # unittest timings include setup and cleanup. Python 3.11 runs the same
         # complete suite without the duration flag introduced in Python 3.12.
         durations = ['--durations', '20'] if sys.version_info >= (3, 12) else []
-        for pattern, timeout in (('test_*fast.py', 60), ('test_*workflow.py', 1500)):
-            print(f'Running installed-wheel tests: {pattern}', flush=True)
-            subprocess.run([sys.executable, '-m', 'unittest', 'discover', '-s', 'tests',
-                            '-p', pattern, '-f', '-v', *durations],
-                           # Both layers must pass; retain a finite deadline for
-                           # each and main's encompassing 27-minute job cap.
+        workflows = list(dict.fromkeys(['tests.test_koto_branding_workflow',
+            'tests.test_bootstrap_workflow', 'tests.test_chat_task_workflow', *args.workflow_module]))
+        layers = [(['discover', '-s', 'tests', '-p', 'test_*fast.py'], 60),
+                  (workflows if args.focused else ['discover', '-s', 'tests', '-p', 'test_*workflow.py'],
+                   300 if args.focused else 1500)]
+        for selection, timeout in layers:
+            print('Running installed-wheel tests: ' + ' '.join(selection), flush=True)
+            subprocess.run([sys.executable, '-m', 'unittest', *selection, '-f', '-v', *durations],
                            cwd=temporary, env=environment, check=True, timeout=timeout)
-    print('Installed-wheel fast tests and workflows passed outside the source checkout')
+    print('Installed-wheel ' + ('focused' if args.focused else 'full')
+          + ' checks passed outside the source checkout')
 
 
 if __name__ == '__main__':
