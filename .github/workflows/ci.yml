@@ -196,6 +196,7 @@ jobs:
       - name: Capture the real engine request outside the source tree
         run: >-
           python tools/diagnose_bootstrap_task.py
+          --device cpu
           --executable "$RUNNER_TEMP/koto-codex/node_modules/.bin/codex"
           --workspace "$RUNNER_TEMP/koto-task-diagnostic"
       - name: Preserve original bounded diagnostic output
