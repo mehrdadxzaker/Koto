@@ -758,6 +758,11 @@ class ConnectedClientLifetime:
                 # Clean up this exact generation while still holding the
                 # lifecycle lock. A wrapper must not disconnect a newer owner.
                 try:
+                    if process is not None and process.poll() is None:
+                        # During model loading the control socket does not yet
+                        # exist. Closing this owned host releases the guardian's
+                        # owner pipe, so it can stop the engine before we settle.
+                        process.terminate()
                     self._disconnect_record(record)
                 finally:
                     if process is not None and process.poll() is None:

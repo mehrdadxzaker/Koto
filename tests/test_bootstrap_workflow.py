@@ -61,6 +61,8 @@ class BootstrapWorkflowTests(unittest.TestCase):
         managed = value["managed_llama"]
         executable = Path(managed["executable"])
         source = executable.read_text()
+        source = source.replace('args=sys.argv[1:]', 'args=sys.argv[1:]\n'
+            f'pathlib.Path({str(self.root / "runtime-argv.json")!r}).write_text(json.dumps(args))')
         # Runtime files are immutable, including after execution. The external
         # stand-in writes its test observations outside the installed runtime.
         for marker in ("inference-count", "stopped"):
@@ -197,6 +199,32 @@ class BootstrapWorkflowTests(unittest.TestCase):
             self.assertEqual(json.loads(failed.stderr)["error"]["code"], "connected_client_setup_unavailable")
             self.assertEqual(json.loads(self.command("status").stdout)["router"], "stopped")
 
+    def test_version_seven_context_reaches_the_engine_and_does_not_fit_legacy_managed_readers(self):
+        value, payloads = self.prepare()
+        profile = json.loads((Path(__file__).parent / "fixtures/local-setup-profile-v7.json").read_text())
+        profile.update(system=platform.system(), machine=platform.machine(),
+                       runtime_sha256=value["managed_llama"]["runtime_sha256"],
+                       model_sha256=value["managed_llama"]["model_sha256"])
+        (self.root / "qualification.json").write_text(json.dumps(profile))
+        (self.root / "client-version.txt").write_text("0.160.0")
+        self.addCleanup(lambda: self.command("off", check=False))
+        with artifacts(payloads) as (origin, _, _):
+            self.fixture.catalog(value, origin)
+            self.command("init", "--yes", "--executable", str(self.client.executable),
+                         "--catalog", str(self.root / "catalog.json"))
+            configuration = json.loads(self.path.read_text())
+            managed = configuration["managed_llama"]
+            self.assertEqual((managed["schema_version"], managed["startup_timeout_seconds"], managed["context_tokens"]),
+                             (5, 120, 8192))
+            arguments = json.loads((self.root / "runtime-argv.json").read_text())
+            self.assertEqual(arguments[arguments.index("--ctx-size") + 1], "8192")
+            self.assertEqual(json.loads(self.command("chat", "models").stdout)["models"], ["local-code"])
+            self.command("off")
+            configuration["managed_llama"]["schema_version"] = 4
+            self.path.write_text(json.dumps(configuration))
+            with self.assertRaises(ConfigError):
+                GatewayConfig.load(self.path)
+
     def test_download_setup_task_disconnect_and_offline_restart_across_directories(self):
         value, payloads = self.prepare()
         original = (self.client.home / "config.toml").read_bytes()
@@ -284,6 +312,12 @@ class BootstrapWorkflowTests(unittest.TestCase):
 
     def test_interrupted_startup_restores_client_settings_and_restarts_offline(self):
         value, payloads = self.prepare(delayed_start=True)
+        profile = json.loads((Path(__file__).parent / "fixtures/local-setup-profile-v6.json").read_text())
+        profile.update(system=platform.system(), machine=platform.machine(),
+                       runtime_sha256=value["managed_llama"]["runtime_sha256"],
+                       model_sha256=value["managed_llama"]["model_sha256"])
+        (self.root / "qualification.json").write_text(json.dumps(profile))
+        (self.root / "client-version.txt").write_text("0.160.0")
         original = (self.client.home / "config.toml").read_bytes()
         with artifacts(payloads) as (origin, _, _):
             self.fixture.catalog(value, origin)

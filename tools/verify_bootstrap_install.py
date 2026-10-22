@@ -58,7 +58,8 @@ def main():
     venv = root / "installed-product"
     python = venv / "bin/python"
     cli = venv / "bin/koto"
-    report = {"wheel_sha256": digest(wheel), "system": platform.system(), "machine": platform.machine(),
+    report = {"wheel_sha256": digest(wheel), "source_revision": os.environ.get("GITHUB_SHA"),
+              "system": platform.system(), "machine": platform.machine(),
               "os_version": platform.mac_ver()[0],
               "requested_real_assets": True, "synthetic_client_or_model": False, "stages": [], "passed": False}
 
@@ -179,6 +180,9 @@ def main():
         if ready["connection"]["router"] != "ready" or ready["connection"]["local_runtime"]["state"] != "ready":
             raise RuntimeError("Setup did not verify the owned runtime")
         config = json.loads(selected.read_text())
+        report["runtime_context_tokens"] = config["managed_llama"]["context_tokens"]
+        if report["runtime_context_tokens"] != 8192:
+            raise RuntimeError("The declared starter context was not installed")
         before = digest(selected)
         model = Path(config["managed_llama"]["model_file"])
         model_digest = digest(model)

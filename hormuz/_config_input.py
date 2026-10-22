@@ -338,7 +338,7 @@ def _validate_configuration_schema(raw: dict[str, Any]) -> None:
     _schema_object(raw, _ROOT_CONFIGURATION_FIELDS)
     _schema_optional_object(raw, "managed_llama", frozenset({
         "schema_version", "route", "executable", "runtime_archive", "runtime_sha256",
-        "model_file", "model_sha256", "startup_timeout_seconds",
+        "model_file", "model_sha256", "startup_timeout_seconds", "context_tokens",
     }))
     _schema_optional_object(raw, "route_admission", frozenset({"mode", "local_routes", "scorecard"}))
     _schema_optional_object(raw, "shadow_router", frozenset({

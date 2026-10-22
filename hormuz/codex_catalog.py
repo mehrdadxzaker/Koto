@@ -41,11 +41,13 @@ def qualified_models(config, aliases):
         })
         if ('codex_llama_v1' in route.capabilities
                 and (config.managed_llama is None or config.managed_llama.route != alias
-                     or config.managed_llama.schema_version in {2, 4})):
+                     or config.managed_llama.schema_version in {2, 4, 5})):
             result[-1].update(supports_search_tool=True, supports_reasoning_summary_parameter=True,
                 default_reasoning_summary='auto', default_reasoning_level='medium',
                 include_skills_usage_instructions=True, include_plugin_usage_instructions=True,
-                include_apps_usage_instructions=True, apply_patch_tool_type='freeform', context_window=32768,
+                include_apps_usage_instructions=True, apply_patch_tool_type='freeform',
+                context_window=(config.managed_llama.context_tokens if config.managed_llama is not None
+                                and config.managed_llama.route == alias else 32768),
                 supported_reasoning_levels=[{'effort': level, 'description': 'Local model reasoning; native effort semantics apply.'}
                                            for level in ('none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max')])
         if ('codex_llama_v1' in route.capabilities and config.managed_llama is not None

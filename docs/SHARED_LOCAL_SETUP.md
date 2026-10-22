@@ -105,6 +105,13 @@ before downgrading, since older readers reject the new versions. The
 [setup-profile](../tests/fixtures/local-setup-profile-v6.json) and
 [managed-runtime](../tests/fixtures/managed-llama-profile-v4.json) fixtures freeze
 the new input boundary; connection receipts and journals do not change.
+The current starter catalogs use setup version 7 / managed version 5 to declare
+an explicit 8,192-token context. Existing versions retain their 32K context;
+the new context field is rejected by their readers. The
+[v7 profile](../tests/fixtures/local-setup-profile-v7.json) and
+[v5 runtime](../tests/fixtures/managed-llama-profile-v5.json) fixtures freeze this
+additional boundary. The startup limit stays at 120 seconds and coding remains
+unqualified.
 
 Setup creates a mode-0600 configuration and a sibling `<config>.state`
 directory with mode 0700 for local usage/work SQLite files. An exclusive,

@@ -49,6 +49,9 @@ koto init --offline --yes
 ```
 
 The text command reports the actual local model and execution destination.
+The starter profile uses an 8,192-token context and at most 2,048 output tokens
+for short text tasks; it does not reserve the historical 32K context on a small
+machine. The independent acceptance task keeps its original 90-second deadline.
 Connection health and a completed response are separate from task quality.
 The bootstrap text profile leaves coding evidence absent and automatic coding
 disabled. History collection and learning remain separate opt-ins; init
@@ -139,7 +142,7 @@ preview, interruption of a real model transfer, resume and runtime installation,
 one independently checked extraction task, disconnect, offline restart, closed
 endpoints, and package removal. Native preferences and retained assets are
 checked after removal. The original task output and failed stages are retained;
-there are no model-quality retries or passing synthetic replacements.
+there are no automatic task retries or passing synthetic replacements.
 After a runtime-start failure, the checker stops the connection and captures
 one bounded, prompt-free engine diagnostic using the installed startup arguments.
 That diagnostic cannot change the original failed result or submit a task.
@@ -163,14 +166,15 @@ only when explicitly requested; it does not import or rewrite a repository file.
 Never copy a generated JSON without its private credential/state references.
 
 Acquisition/setup receipts and connection journals retain their existing
-versions. The new text catalog uses a version-6 setup profile and managed
-runtime version 4, with the same verified runtime/model bytes and a 120-second
-startup limit. Fresh hosted Mac loading exceeded the earlier 60-second limit;
-the historical profiles retain that earlier bound. Compatibility inputs are
-frozen in the [setup fixture](../tests/fixtures/local-setup-profile-v6.json) and
-[managed-runtime fixture](../tests/fixtures/managed-llama-profile-v4.json).
-Version 6 permits only explicit interactive text work with absent coding
-evidence. Older readers reject these versions instead of reinterpreting them.
+versions. The new text catalogs use setup-profile version 7 and managed-runtime
+version 5, with an explicit bounded `context_tokens` declaration, the same
+verified runtime/model bytes and a 120-second startup limit. Earlier profiles
+keep their bounds and 32K context. Version 6 / managed version 4 retain the
+startup-only extension; the original fresh-Mac task timeout at 32K is preserved.
+Compatibility inputs are frozen in the [setup fixture](../tests/fixtures/local-setup-profile-v7.json)
+and [managed-runtime fixture](../tests/fixtures/managed-llama-profile-v5.json).
+Versions 6 and 7 permit only explicit interactive text work with absent coding
+evidence. Older readers reject new versions instead of reinterpreting them.
 Disconnect with the owning version before rollback and retain user files. Use
 an older reviewed profile in a separate config when downgrading; pass its
 absolute path to earlier CLIs whose defaults differ.

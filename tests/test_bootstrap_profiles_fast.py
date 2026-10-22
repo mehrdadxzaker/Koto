@@ -26,3 +26,11 @@ class BootstrapProfileTests(unittest.TestCase):
                 validate_contract(profile)
                 with self.assertRaises(ContractValidationError):
                     validate_contract({**profile, "startup_timeout_seconds": 61})
+
+    def test_version_seven_binds_a_smaller_context_and_rejects_invalid_or_legacy_shapes(self):
+        profile = self.profile(7)
+        validate_contract(profile)
+        for change in ({"context_tokens": 0}, {"context_tokens": True}, {"context_tokens": 32769},
+                       {"max_output_tokens": 8192, "context_tokens": 4096}, {"schema_version": 6}):
+            with self.subTest(change=change), self.assertRaises(ContractValidationError):
+                validate_contract({**profile, **change})

@@ -4,7 +4,7 @@
   "catalog_id": "codex-app0162-llamab11617-qwen3-4b-bootstrap-text-v1",
   "profile": {
     "schema_id": "hormuz.local-setup-profile",
-    "schema_version": 6,
+    "schema_version": 7,
     "qualification_id": "codex-app0162-llamab11617-qwen3-4b-bootstrap-text-v1",
     "client_version": "0.162.0-alpha.17.2",
     "system": "Darwin",
@@ -22,14 +22,15 @@
       "codex_llama_v1",
       "structured_output"
     ],
-    "max_request_bytes": 2097152,
-    "max_output_tokens": 8192,
+    "max_request_bytes": 65536,
+    "max_output_tokens": 2048,
     "task_types": [
       "interactive"
     ],
     "upstream_timeout_seconds": 360,
     "startup_timeout_seconds": 120,
-    "coding_evidence": null
+    "coding_evidence": null,
+    "context_tokens": 8192
   },
   "runtime": {
     "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11617/llama-b11617-bin-macos-arm64.tar.gz",

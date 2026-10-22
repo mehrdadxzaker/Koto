@@ -17,7 +17,8 @@ def _tag(value, key):
 
 
 def validate_profile(value, *, extended=False, namespaces=False, output_limit=512, startup_limit=60):
-    _exact_keys(value, PROFILE_FIELDS | ({"coding_evidence"} if value["schema_version"] >= 2 else set()))
+    _exact_keys(value, PROFILE_FIELDS | ({"coding_evidence"} if value["schema_version"] >= 2 else set())
+                | ({"context_tokens"} if value["schema_version"] == 7 else set()))
     if value["schema_version"] >= 2 and value["coding_evidence"] is not None:
         from .local_coding import validate_evidence
         validate_evidence(value["coding_evidence"])
@@ -68,6 +69,13 @@ def validate_profile_v6(value):
     validate_profile(value, extended=True, startup_limit=120)
     if value["coding_evidence"] is not None or value["task_types"] != ["interactive"]:
         raise ContractValidationError("bootstrap startup profile permits explicit text work only")
+
+
+def validate_profile_v7(value):
+    validate_profile_v6(value)
+    context = value["context_tokens"]
+    if type(context) is not int or not 2048 <= context <= 32768 or value["max_output_tokens"] > context:
+        raise ContractValidationError("invalid bootstrap context limit")
 
 
 def validate_setup(value):

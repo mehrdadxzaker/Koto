@@ -41,6 +41,13 @@ text-only first run. Earlier profile versions retain their bounds; version 6
 requires interactive tasks and absent coding evidence. Runtime arguments,
 request bounds, and inference timeouts otherwise remain unchanged.
 
+The 32K case subsequently reached its unchanged 90-second text-task deadline.
+Version-7 setup and managed-runtime version 5 make `context_tokens` explicit;
+the starter catalog selects 8,192 context tokens, 2,048 output tokens and a
+64 KiB request envelope. Earlier versions retain their original context and
+bounds. The original timeout remains failed evidence. The acceptance prompt,
+independent check and task deadline stay unchanged for the smaller context.
+
 Cancellation during startup now restores and stops the exact generation while
 the connection owner's lock remains held. No wrapper can accidentally adopt a
 different generation for cleanup. Assets and configuration remain on ordinary
@@ -54,9 +61,9 @@ retains original failures and has bounded resource consumption. Passing routine
 CI does not substitute for running this gate or establish general coding or
 hardware qualification.
 
-Existing receipt and journal versions remain valid. New setup-profile v6 and
-managed-runtime v4 compatibility fixtures freeze the wider bounded startup
-contract; older readers reject them. Before rollback, disconnect through the
+Existing receipt and journal versions remain valid. Setup-profile v6 / managed
+runtime v4 fixtures freeze the wider startup contract; v7 / v5 fixtures freeze
+the explicit context contract. Older readers reject new versions. Before rollback, disconnect through the
 current owner and retain generated files. Use an earlier reviewed setup profile
 in a separate config; older CLIs require an explicit absolute config path.
 See [CLI bootstrap](../CLI_BOOTSTRAP.md) for the exact user flow and boundaries.
