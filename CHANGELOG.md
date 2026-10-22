@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Restore correlated native patch recovery and offer bounded exact-text/script
+  compilers in opt-in Qwen Coder v14, preserving earlier profile bytes and gates.
 - Freeze an explicit native no-plugin-discovery setting for isolated coding
   acceptance campaigns while retaining native filesystem permissions and tools.
 - Bind an opt-in v13 treatment to the existing Qwen Coder 30B model for one

@@ -36,7 +36,7 @@ class LocalHarnessRequest:
         input_was_list = isinstance(value.get('input'), list)
         reasoning = value.get('reasoning', {})
         progress = None
-        if profile in {'qwen-code.v8', 'qwen-code.v9', 'qwen-code.v10', 'qwen-code.v11', 'qwen-code.v12', 'qwen-code.v13'}:
+        if profile in {'qwen-code.v8', 'qwen-code.v9', 'qwen-code.v10', 'qwen-code.v11', 'qwen-code.v12', 'qwen-code.v13', 'qwen-code.v14'}:
             budget = value['reasoning_budget_tokens']
             value['reasoning_budget_tokens'] = min(budget,
                 {'minimal': 128, 'low': 256, 'medium': 512}.get(reasoning.get('effort', 'medium'), 1024))
@@ -47,7 +47,7 @@ class LocalHarnessRequest:
                                              include_verification=profile in {'qwen-code.v9', 'qwen-code.v10'})
         if profile:
             adapt_qwen_request(value, declarations, profile=profile, _progress=progress)
-        if profile == 'qwen-code.v10':
+        if profile in {'qwen-code.v10', 'qwen-code.v14'}:
             self._add_python_checks(script=True, prominent=True, guidance=False)
             self._add_text_patch(guidance=False)
             for alias, binding in self.derived_checks.items():

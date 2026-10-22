@@ -27,13 +27,13 @@ class LocalHarnessV13Tests(unittest.TestCase):
     def test_setup_probe_and_receipt_bind_every_profile_to_its_original_model(self):
         for filename in ('local-setup-profile-v5.json', 'coding-probe-plan-v4.json',
                          'local-coding-evidence-v4.json'):
-            for selected in range(1, 14):
+            for selected in range(1, 15):
                 with self.subTest(record=filename, selected=selected):
                     value = json.loads((Path(__file__).parent / 'fixtures' / filename).read_text())
                     subject = value['plan']['subject'] if 'plan' in value else value.get('subject', value)
                     field = 'model' if 'model' in subject else 'upstream_model'
                     subject['capabilities'].append('qwen_code_v' + str(selected))
-                    subject[field] = CODER if selected == 13 else 'Qwen3-14B-Q4_K_M'
+                    subject[field] = CODER if selected >= 13 else 'Qwen3-14B-Q4_K_M'
 
                     def validate(record):
                         if 'plan' in record:
@@ -41,13 +41,13 @@ class LocalHarnessV13Tests(unittest.TestCase):
                         validate_contract(record)
 
                     validate(value)
-                    for wrong in ('another-model', 'Qwen3-14B-Q4_K_M' if selected == 13 else CODER):
+                    for wrong in ('another-model', 'Qwen3-14B-Q4_K_M' if selected >= 13 else CODER):
                         invalid = deepcopy(value)
                         target = invalid['plan']['subject'] if 'plan' in invalid else invalid.get('subject', invalid)
                         target[field] = wrong
                         with self.assertRaises(ContractValidationError):
                             validate(invalid)
-                    for change in ('missing_native', 'qwen_code_v12' if selected == 13 else 'qwen_code_v13'):
+                    for change in ('missing_native', 'qwen_code_v12' if selected >= 13 else 'qwen_code_v13'):
                         invalid = deepcopy(value)
                         target = invalid['plan']['subject'] if 'plan' in invalid else invalid.get('subject', invalid)
                         if change == 'missing_native':

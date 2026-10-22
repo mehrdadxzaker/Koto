@@ -54,7 +54,7 @@ class LocalHarnessV11Tests(unittest.TestCase):
 
             validate(value)
             for change in ('wrong_model', 'missing_native',
-                           *(i for i in range(1, 14) if i != selected)):
+                           *(i for i in range(1, 15) if i != selected)):
                 with self.subTest(record=filename, invalid=change):
                     invalid = deepcopy(value)
                     target = invalid['plan']['subject'] if 'plan' in invalid else invalid.get('subject', invalid)

@@ -12,7 +12,8 @@ from tests import test_connected_client_lifetime_workflow as lifetime
 class LocalHarnessV11WorkflowTests(unittest.TestCase):
     def test_explicit_setup_reports_unknown_blocks_inference_and_restores_settings(self):
         for version, model in ((11, 'Qwen3-14B-Q4_K_M'),
-                (13, 'Qwen3-Coder-30B-A3B-Instruct-Q4_K_M')):
+                (13, 'Qwen3-Coder-30B-A3B-Instruct-Q4_K_M'),
+                (14, 'Qwen3-Coder-30B-A3B-Instruct-Q4_K_M')):
             with self.subTest(version=version):
                 self.check_unqualified_setup(version, model)
 

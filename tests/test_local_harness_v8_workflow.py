@@ -109,7 +109,8 @@ assert state == before
 
     def test_v8_config_requires_exact_local_native_model_and_exclusive_profile(self):
         for version, model in ((8, 'Qwen3-14B-Q4_K_M'),
-                (13, 'Qwen3-Coder-30B-A3B-Instruct-Q4_K_M')):
+                (13, 'Qwen3-Coder-30B-A3B-Instruct-Q4_K_M'),
+                (14, 'Qwen3-Coder-30B-A3B-Instruct-Q4_K_M')):
             with self.subTest(version=version):
                 self.check_config_binding(version, model)
 
@@ -127,7 +128,7 @@ assert state == before
             path.write_text(json.dumps(original))
             self.assertIn('qwen_code_v' + str(version), GatewayConfig.load(path,
                 environ=fixture.fixture.environment).model_routes['local-code'].capabilities)
-            for invalid in ['cloud', 'wrong_model', 'missing_transport', *('v' + str(i) for i in range(1, 14) if i != version)]:
+            for invalid in ['cloud', 'wrong_model', 'missing_transport', *('v' + str(i) for i in range(1, 15) if i != version)]:
                 with self.subTest(invalid=invalid):
                     value = deepcopy(original)
                     route = value['model_routes']['local-code']
