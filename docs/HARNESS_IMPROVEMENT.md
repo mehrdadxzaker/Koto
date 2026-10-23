@@ -30,6 +30,10 @@ observations and does not retry the failed episodes. V1 supports `qwen-code.v8`
 and `qwen-code.v10` as draft bases; the exact base guidance is hash-bound. Older
 traces can suggest a hypothesis for that base, but cannot demonstrate its effect.
 
+The [retained review bundle](local-harness/improvement-from-retained-traces-20261022/EXPERIENCE.md)
+was generated from these three files. It preserves 38 archived observations and
+records zero new executions; it supplies no measured candidate improvement.
+
 The bundle contains:
 
 | File | Purpose |

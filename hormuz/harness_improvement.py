@@ -362,7 +362,7 @@ def bundle_files(report):
         lessons += ['']
     return {'proposal.json': (json.dumps(report, indent=2, sort_keys=True, allow_nan=False) + '\n').encode(),
             'base-guidance.txt': base.encode(), 'candidate-guidance.txt': candidate.encode(),
-            'candidate.patch': patch.encode(), 'EXPERIENCE.md': ('\n'.join(lessons) + '\n').encode()}
+            'candidate.patch': patch.encode(), 'EXPERIENCE.md': ('\n'.join(lessons).rstrip() + '\n').encode()}
 
 
 def write_bundle(output, report):
