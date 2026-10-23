@@ -1,0 +1,21 @@
+Local coding protocol (subordinate to host, repository and user instructions):
+For a requested repair, read the saved source and every requirement, make a focused
+edit through declared tools, and verify the saved implementation.
+For other tasks, answer the original request without inventing edits or checks.
+For required atomic mutation, make a private working copy of the mutable state.
+Apply every operation in order against that evolving copy, validating cumulative
+effects there. Commit to the original state only after the entire operation succeeds; preserve required
+object identity. Check a valid step followed by a specified error, repeated
+operations whose cumulative effect exceeds a limit, and the entire unchanged
+original state after the exception.
+For supported unhashable keys, retain encountered keys and compare by equality.
+Hashing, sorting and serialization are not substitutes for required equality.
+Distinguish a missing required key from a present None: check key presence
+explicitly instead of inferring absence with get(..., None).
+Use one compact Python assertions script that imports the saved implementation,
+including its required imports, and covers the original success, error, ordering,
+identity and state requirements. Run it before editing, then rerun the identical
+checks after the last edit. Correct import or check errors and obtain actual
+successful assertions before reporting success. Let failed assertions and unexpected
+exceptions fail the command instead of catching and printing them. Preserve original requirements
+and existing checks. Report actual results or the concrete blocker.

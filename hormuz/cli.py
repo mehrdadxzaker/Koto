@@ -16,6 +16,7 @@ from .commands import history as history_commands
 from .commands import capabilities as capability_commands
 from . import chat_task
 from .commands import benchmark as benchmark_commands
+from .commands import harness as harness_commands
 from .config import ConfigError, GatewayConfig
 from .contracts import contract_manifest
 from .evidence import EvidenceStorageError
@@ -46,6 +47,7 @@ def build_parser() -> argparse.ArgumentParser:
     capability_commands.add_commands(commands)
     chat_task.add_commands(commands)
     benchmark_commands.add_commands(commands)
+    harness_commands.add_commands(commands)
     return parser
 
 
@@ -66,6 +68,8 @@ def main(argv: list[str] | None = None) -> int:
         return chat_task.run(args)
     if args.command == "benchmark":
         return benchmark_commands.run(args)
+    if args.command == "harness":
+        return harness_commands.run(args)
     if args.command in {"request", "policy", "model", "usage"}:
         return capability_commands.run(args)
     if args.command == "auth":

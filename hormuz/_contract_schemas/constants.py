@@ -218,6 +218,7 @@ _CURRENT_SCHEMA_VERSIONS = {
     "koto.personal-selection-feedback": 1, "koto.personal-selection-validation": 1,
     "koto.personal-selection-evaluation": 1, "koto.model-selection": 1,
     "hormuz.chat-task": 1,
+    "hormuz.harness-improvement": 1,
     "hormuz.chat-models": 1,
     "hormuz.chat-error": 1,
     "hormuz.chat-owner": 1,
