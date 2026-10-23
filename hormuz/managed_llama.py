@@ -25,8 +25,9 @@ import zlib
 
 
 class ManagedLlamaError(RuntimeError):
-    def __init__(self, reason):
+    def __init__(self, reason, diagnostic_reason=None):
         self.reason = reason
+        self.diagnostic_reason = diagnostic_reason
         super().__init__(reason)
 
 
@@ -301,22 +302,31 @@ def build_managed_llama(raw, routes, upstreams, admission):
         raise ConfigError("managed_llama_invalid") from None
 
 
-def _healthy(port):
+def _health_reason(port):
     connection = http.client.HTTPConnection("127.0.0.1", port, timeout=0.5)
     try:
         connection.request("GET", "/health")
         response = connection.getresponse()
         body = response.read(4097)
-        return response.status == 200 and len(body) <= 4096 and json.loads(body) == {"status": "ok"}
-    except (OSError, ValueError, http.client.HTTPException):
-        return False
+        if response.status != 200 or len(body) > 4096 or json.loads(body) != {"status": "ok"}:
+            return "health_invalid"
+        return None
+    except OSError:
+        return "health_unreachable"
+    except (ValueError, http.client.HTTPException):
+        return "health_invalid"
     finally:
         connection.close()
+
+
+def _healthy(port):
+    return _health_reason(port) is None
 
 
 class OwnedLlama:
     """The pipe, inherited lease and process handle are ownership authority."""
     def __init__(self, profile, lease):
+        from .contracts import RUNTIME_CHECK_ACTIONS
         self.profile, self.process, self.owner = profile, None, None
         read_fd, self.owner = os.pipe()
         try:
@@ -335,14 +345,25 @@ class OwnedLlama:
             while b"\n" not in data:
                 remaining = deadline - time.monotonic()
                 if remaining <= 0 or not select.select([self.process.stdout], [], [], remaining)[0]:
-                    raise ManagedLlamaError("runtime_start_failed")
+                    raise ManagedLlamaError("runtime_start_failed", "startup_deadline")
                 chunk = os.read(self.process.stdout.fileno(), 1025 - len(data))
-                if not chunk or len(data) + len(chunk) > 1024:
-                    raise ManagedLlamaError("runtime_start_failed")
+                if not chunk:
+                    raise ManagedLlamaError("runtime_start_failed",
+                        "guardian_response_invalid" if data else "guardian_unavailable")
+                if len(data) + len(chunk) > 1024:
+                    raise ManagedLlamaError("runtime_start_failed", "guardian_response_invalid")
                 data.extend(chunk)
-            reply = json.loads(data)
+            try:
+                reply = json.loads(data)
+            except (ValueError, UnicodeError):
+                raise ManagedLlamaError("runtime_start_failed", "guardian_response_invalid") from None
             if reply != {"state": "ready"}:
-                raise ManagedLlamaError(reply.get("error", "runtime_start_failed"))
+                if (type(reply) is not dict or set(reply) != {"error", "reason"}
+                        or reply["error"] != "runtime_start_failed" or type(reply["reason"]) is not str
+                        or reply["reason"] not in RUNTIME_CHECK_ACTIONS
+                        or reply["reason"] in {"ready", "stopped", "not_configured"}):
+                    raise ManagedLlamaError("runtime_start_failed", "guardian_response_invalid")
+                raise ManagedLlamaError("runtime_start_failed", reply["reason"])
         except BaseException:
             self.close()
             raise
@@ -365,6 +386,8 @@ class OwnedLlama:
 def _guardian(owner, lease, profile):
     process = None
     stopping = False
+    ready = False
+    stage = "verification"
     def stop(*_):
         nonlocal stopping
         stopping = True
@@ -372,6 +395,7 @@ def _guardian(owner, lease, profile):
     signal.signal(signal.SIGINT, stop)
     try:
         profile.verify()
+        stage = "startup"
         profile.require_free_endpoint()
         if select.select([owner], [], [], 0)[0] and not os.read(owner, 1):
             return
@@ -389,15 +413,17 @@ def _guardian(owner, lease, profile):
         process = subprocess.Popen(args, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         deadline = time.monotonic() + profile.startup_timeout_seconds
         ready, bound, next_probe, observations, log = False, False, 0, 0, b""
+        health_reason = None
         marker = f"llama_server: listening on http://127.0.0.1:{profile.port}".encode()
         with selectors.DefaultSelector() as selector:
             selector.register(owner, selectors.EVENT_READ, "owner")
             selector.register(process.stdout, selectors.EVENT_READ, "log")
             while not stopping:
                 if process.poll() is not None:
-                    raise ManagedLlamaError("runtime_start_failed")
+                    raise ManagedLlamaError("runtime_start_failed", "process_exited")
                 if not ready and time.monotonic() >= deadline:
-                    raise ManagedLlamaError("runtime_start_failed")
+                    raise ManagedLlamaError("runtime_start_failed",
+                        "listening_marker_missing" if not bound else health_reason or "startup_deadline")
                 for key, _ in selector.select(timeout=0.2):
                     data = os.read(key.fd, 4096)
                     if key.data == "owner" and not data:
@@ -410,14 +436,18 @@ def _guardian(owner, lease, profile):
                         log = combined[-4096:]
                 if not ready and not stopping and bound and time.monotonic() >= next_probe:
                     observations += 1
-                    if _healthy(profile.port) and process.poll() is None:
+                    health_reason = _health_reason(profile.port)
+                    if health_reason is None and process.poll() is None:
                         ready = True
                         print(json.dumps({"state": "ready"}), flush=True)
                     elif observations >= 30:
-                        raise ManagedLlamaError("runtime_start_failed")
+                        raise ManagedLlamaError("runtime_start_failed", health_reason or "startup_deadline")
                     next_probe = time.monotonic() + 2
-    except (ManagedLlamaError, OSError, ValueError, tarfile.TarError):
-        print(json.dumps({"error": "runtime_start_failed"}), flush=True)
+    except (ManagedLlamaError, OSError, ValueError, tarfile.TarError) as error:
+        if not ready:
+            reason = error.diagnostic_reason if isinstance(error, ManagedLlamaError) else None
+            print(json.dumps({"error": "runtime_start_failed", "reason": reason or (
+                "verification_failed" if stage == "verification" else "not_observed")}), flush=True)
     finally:
         if process is not None:
             try:

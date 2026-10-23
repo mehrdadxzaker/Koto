@@ -1,0 +1,15 @@
+{
+  "schema_id": "hormuz.connected-client-error",
+  "schema_version": 2,
+  "error": {
+    "code": "connected_client_version_unsupported",
+    "action": "select_supported_client"
+  },
+  "diagnostic": {
+    "schema_id": "hormuz.client-check",
+    "schema_version": 1,
+    "reason": "version_unqualified",
+    "action": "select_supported_client",
+    "observed_version": "0.160.1"
+  }
+}

@@ -13,9 +13,7 @@ from pathlib import Path
 import pwd
 import re
 import secrets
-import selectors
 import shutil
-import signal
 import socket
 import stat
 import subprocess
@@ -25,7 +23,7 @@ import time
 import tomllib
 from urllib.parse import urlsplit
 
-from .client_versions import CODEX_VERSION_PATTERN, SUPPORTED_CODEX_VERSIONS
+from .client_versions import CODEX_VERSION_PATTERN
 from .config import GatewayConfig
 from .compaction_formats import strict_json_loads
 from .contracts import (
@@ -42,14 +40,21 @@ JOURNAL_SCHEMA_VERSION = 1
 
 
 class ConnectedClientError(RuntimeError):
-    def __init__(self, code: str):
+    def __init__(self, code: str, *, diagnostic=None):
         self.code = "connected_client_" + code
         self.action = CONNECTED_CLIENT_ERROR_ACTIONS[self.code]
+        self.diagnostic = diagnostic
         super().__init__(self.code)
 
 
 def lifetime_error(error):
     code = error.code if isinstance(error, ConnectedClientError) else "connected_client_setup_unavailable"
+    if isinstance(error, ConnectedClientError) and error.diagnostic is not None:
+        result = {"schema_id": CONNECTED_CLIENT_ERROR_SCHEMA_ID, "schema_version": 2,
+                  "error": {"code": code, "action": error.diagnostic["action"]},
+                  "diagnostic": error.diagnostic}
+        validate_contract(result)
+        return result
     return contract_envelope(CONNECTED_CLIENT_ERROR_SCHEMA_ID,
         {"error": {"code": code, "action": CONNECTED_CLIENT_ERROR_ACTIONS[code]}})
 
@@ -155,56 +160,31 @@ def _lock_descriptor(path):
 
 
 def _qualify_client(program):
-    environment = {}
-    for variable in ("PATH", "HOME", "USER", "TMPDIR", "LANG", "LC_ALL", "SYSTEMROOT"):
-        value = os.environ.get(variable)
-        if value is not None:
-            environment[variable] = value
-    process = subprocess.Popen([program, "--version"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-                               stdin=subprocess.DEVNULL, env=environment, start_new_session=True)
-    deadline = time.monotonic() + 3
-    output = bytearray()
+    from .connection_diagnostics import inspect_client
+    observation = inspect_client(program)
+    if observation.reason != 'version_supported':
+        raise ConnectedClientError(observation.legacy_error, diagnostic=observation.receipt())
+    return observation.observed_version
+
+
+def _startup_diagnostic(stream, generation):
+    from .connection_diagnostics import runtime_check
+    from .contracts import RUNTIME_CHECK_ACTIONS
+    reason = 'not_observed'
     try:
-        with selectors.DefaultSelector() as selector:
-            selector.register(process.stdout, selectors.EVENT_READ)
-            while True:
-                remaining = deadline - time.monotonic()
-                if remaining <= 0 or not selector.select(timeout=remaining):
-                    raise ConnectedClientError("version_unsupported")
-                data = os.read(process.stdout.fileno(), 4097 - len(output))
-                if not data:
-                    break
-                output.extend(data)
-                if len(output) > 4096:
-                    raise ConnectedClientError("version_unsupported")
-        versions = {("codex-cli " + version).encode("ascii"): version for version in SUPPORTED_CODEX_VERSIONS}
-        version = versions.get(bytes(output).strip())
-        if process.wait(timeout=max(0.01, deadline - time.monotonic())) or version is None:
-            raise ConnectedClientError("version_unsupported")
-        return version
-    finally:
-        process.stdout.close()
-        # The direct executable can exit while a descendant keeps stdout open.
-        # Only this new session's process group belongs to the version check.
-        try:
-            os.killpg(process.pid, signal.SIGTERM)
-        except ProcessLookupError:
-            pass
-        try:
-            process.wait(timeout=1)
-        except subprocess.TimeoutExpired:
-            pass
-        try:
-            os.killpg(process.pid, 0)
-        except ProcessLookupError:
-            pass
-        else:
-            time.sleep(1)
-            try:
-                os.killpg(process.pid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass
-        process.wait(timeout=1)
+        os.set_blocking(stream.fileno(), False)
+        data = os.read(stream.fileno(), 513)
+        value = strict_json_loads(data.decode('ascii'))
+        if (len(data) <= 512 and type(value) is dict
+                and set(value) == {'schema_version', 'generation', 'reason'}
+                and type(value['schema_version']) is int and value['schema_version'] == 1
+                and value['generation'] == generation
+                and value['reason'] in RUNTIME_CHECK_ACTIONS
+                and value['reason'] not in {'not_observed', 'not_configured', 'ready', 'stopped'}):
+            reason = value['reason']
+    except (OSError, ValueError, TypeError, KeyError, RecursionError):
+        pass
+    return runtime_check(reason)
 
 
 def _read(path: Path, *, private=False) -> str | None:
@@ -732,23 +712,30 @@ class ConnectedClientLifetime:
             self._save(record)
             _write(self.config_path, text, expected=original_text, compare=True)
             process = subprocess.Popen([sys.executable, "-m", "hormuz.connected_client_runtime", str(self.record_path), generation],
-                stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                stdin=subprocess.DEVNULL, stdout=subprocess.PIPE if managed is not None else subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
                 start_new_session=True)
             deadline = time.monotonic() + (managed.verification_timeout_seconds() + managed.startup_timeout_seconds + 5
                                          if managed is not None else 5)
-            while _control(record, "status") != "ready":
-                if process.poll() is not None or time.monotonic() >= deadline:
-                    if process.poll() is None:
-                        process.terminate()
-                        process.wait(timeout=5)
-                    cleanup_deadline = time.monotonic() + 7
-                    while managed is not None and self._runtime_active() and time.monotonic() < cleanup_deadline:
-                        time.sleep(0.05)
-                    self._restore(record)
-                    record["phase"] = "disconnecting" if self._runtime_active() else "disconnected"
-                    self._save(record)
-                    raise ConnectedClientError("runtime_start_failed" if managed is not None else "router_start_failed")
-                time.sleep(0.05)
+            try:
+                while _control(record, "status") != "ready":
+                    if process.poll() is not None or time.monotonic() >= deadline:
+                        if process.poll() is None:
+                            process.terminate()
+                            process.wait(timeout=5)
+                        cleanup_deadline = time.monotonic() + 7
+                        while managed is not None and self._runtime_active() and time.monotonic() < cleanup_deadline:
+                            time.sleep(0.05)
+                        self._restore(record)
+                        record["phase"] = "disconnecting" if self._runtime_active() else "disconnected"
+                        self._save(record)
+                        diagnostic = _startup_diagnostic(process.stdout, generation) if managed is not None else None
+                        raise ConnectedClientError("runtime_start_failed" if managed is not None else "router_start_failed",
+                                                   diagnostic=diagnostic)
+                    time.sleep(0.05)
+            finally:
+                if process.stdout is not None:
+                    process.stdout.close()
             record["phase"] = "connected"
             self._save(record)
             return self._status(record)

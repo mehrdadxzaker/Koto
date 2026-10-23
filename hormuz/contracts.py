@@ -57,8 +57,15 @@ from ._contract_schemas.connected_client import (
     _validate_status as _validate_connected_client_status,
     _validate_preview as _validate_connected_client_preview,
     _validate_error as _validate_connected_client_error,
+    _validate_error_v2 as _validate_connected_client_error_v2,
     _validate_status_v2 as _validate_connected_client_status_v2,
     _validate_preview_v2 as _validate_connected_client_preview_v2,
+)
+from ._contract_schemas.diagnostics import (
+    validate_client_check as _validate_client_check,
+    validate_runtime_check as _validate_runtime_check,
+    validate_diagnosis as _validate_client_diagnosis,
+    DIAGNOSIS_FIELDS,
 )
 from ._contract_schemas.local_coding import EVIDENCE_FIELDS, validate_evidence as _validate_coding_evidence
 from ._contract_schemas.coding_probe import (PLAN_FIELDS as PROBE_PLAN_FIELDS, STATUS_FIELDS as PROBE_STATUS_FIELDS,
@@ -559,6 +566,16 @@ def contract_manifest() -> dict[str, object]:
                 "client_version", "settings", "changes", "local_runtime"]),
             _manifest_schema(CONNECTED_CLIENT_ERROR_SCHEMA_ID, CONNECTED_CLIENT_ERROR_SCHEMA_VERSION,
                 "cli-output", "hormuz", ["schema_id", "schema_version", "error"]),
+            _manifest_schema(CONNECTED_CLIENT_ERROR_SCHEMA_ID, 2,
+                "cli-output", "hormuz", ["schema_id", "schema_version", "error", "diagnostic"]),
+            _manifest_schema(CLIENT_DIAGNOSIS_SCHEMA_ID, 1,
+                "cli-output", "hormuz", sorted(DIAGNOSIS_FIELDS), legacy=True),
+            _manifest_schema(CLIENT_DIAGNOSIS_SCHEMA_ID, 2,
+                "cli-output", "hormuz", sorted(DIAGNOSIS_FIELDS | {"client_check", "runtime_check"})),
+            _manifest_schema(CLIENT_CHECK_SCHEMA_ID, 1,
+                "cli-output", "hormuz", ["schema_id", "schema_version", "reason", "action", "observed_version"]),
+            _manifest_schema(RUNTIME_CHECK_SCHEMA_ID, 1,
+                "cli-output", "hormuz", ["schema_id", "schema_version", "reason", "action"]),
             _manifest_schema("hormuz.local-acquisition-catalog", 1, "durable-evidence", "hormuz", sorted(ACQUISITION_CATALOG_FIELDS)),
             _manifest_schema("hormuz.codex-app-bridge-install", 1, "cli-output", "hormuz", sorted(APP_BRIDGE_FIELDS)),
             _manifest_schema("hormuz.chat-task", 1, "cli-output", "hormuz", sorted(CHAT_TASK_FIELDS)),
@@ -632,6 +649,10 @@ def validate_contract(value: Mapping[str, Any]) -> None:
     schema_id = _value_string(value, "schema_id")
     schema_version = _value_integer(value, "schema_version")
     validator = {
+        (CLIENT_CHECK_SCHEMA_ID, 1): _validate_client_check,
+        (RUNTIME_CHECK_SCHEMA_ID, 1): _validate_runtime_check,
+        (CLIENT_DIAGNOSIS_SCHEMA_ID, 1): _validate_client_diagnosis,
+        (CLIENT_DIAGNOSIS_SCHEMA_ID, 2): _validate_client_diagnosis,
         **{(schema, 1): _validate_benchmark for schema in BENCHMARK_FIELDS},
         **{(schema, 1): _validate_selection for schema in SELECTION_FIELDS},
         **{(schema, 1): _validate_native_task for schema in NATIVE_TASK_FIELDS},
@@ -674,6 +695,7 @@ def validate_contract(value: Mapping[str, Any]) -> None:
         (CONNECTED_CLIENT_STATUS_SCHEMA_ID, 2): _validate_connected_client_status_v2,
         (CONNECTED_CLIENT_PREVIEW_SCHEMA_ID, 2): _validate_connected_client_preview_v2,
         (CONNECTED_CLIENT_ERROR_SCHEMA_ID, CONNECTED_CLIENT_ERROR_SCHEMA_VERSION): _validate_connected_client_error,
+        (CONNECTED_CLIENT_ERROR_SCHEMA_ID, 2): _validate_connected_client_error_v2,
         (ROUTE_ADMISSION_SCHEMA_ID, 1): _validate_route_admission,
         (ROUTE_ADMISSION_SCHEMA_ID, 2): _validate_route_admission,
         (ROUTE_ADMISSION_SCHEMA_ID, 3): _validate_route_admission,

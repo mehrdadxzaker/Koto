@@ -1,4 +1,4 @@
-# Plugin capability contract, version 1
+# Plugin capability contracts
 
 The 0.2.1 skills-only plugin adds focused diagnosis, explanation, qualification,
 recommendation, privacy/budget, insights and maintenance workflows. All hosts
@@ -14,14 +14,20 @@ commands, bounds, activation, output privacy and unsupported scope.
 CLI JSON receipts have a schema identifier and integer version. These receipts
 use version 1 unless stated otherwise:
 
-- `hormuz.client-diagnosis`: connection receipt, compatibility, scope, routing
+- `hormuz.client-diagnosis` **v2**: connection receipt, compatibility, scope, routing
   mode, qualification count, unobserved model/task state and recovery action.
   Its additive `override_diagnosis` contains `hormuz.client-overrides` v1:
   pinned client version, selected-context scope, applied/inactive/ignored layers,
   conflict source/key names, effective-routing comparisons and explicit
   unobserved running-session state. Inspection failures retain connection state
   and return unknown routing with a fixed error code. Values, prompts and
-  credentials are omitted. Existing readers may ignore this nested receipt.
+  credentials are omitted. Required `client_check` and `runtime_check` v1
+  receipts distinguish executable/version failures and current owned-runtime
+  observations. The top-level recovery action reflects the observed failure.
+  An unqualified observed version remains separate from the supported profile
+  and cannot admit a client. Complete diagnosis v1 remains readable. See
+  [client/runtime diagnostics](CLIENT_RUNTIME_DIAGNOSTICS.md) for reason/action
+  vocabularies, limits and rollback.
 - `hormuz.request-explanation`: retained metadata, observed policy/fallback,
   explicitly unobserved optimization and retained-opt-in coverage.
 - `hormuz.policy-proposal`: changed public fields, inactive/reconnect state,
@@ -47,7 +53,15 @@ use version 1 unless stated otherwise:
   period, metadata-only observations and no measured savings.
 - `hormuz.capability-error`: content-free fixed error code, exit 2.
 
-Required-field compatibility fixtures live in the plugin-capabilities fixture. New receipt
+Lifecycle failures with diagnostic detail use `hormuz.connected-client-error`
+v2: legacy code, reason-specific recovery action and one strict diagnostic
+receipt. Ordinary errors remain v1. Startup detail is a bounded, content-free,
+generation-bound one-shot observation; later diagnosis reports current status
+and does not reconstruct a past failure. Existing status/preview v1/v2 and
+private journal v1–v3 are unchanged.
+
+Required-field compatibility fixtures retain `plugin-capabilities-v1.json`
+alongside the current `plugin-capabilities-v2.json`. New receipt
 versions must be handled explicitly; the commands do not consume arbitrary
 future qualification-report versions. Unknown/missing evidence is not success.
 Qualification readers validate required fields, exact types, check consistency,
@@ -57,6 +71,11 @@ malformed reports return `qualification_invalid`. Router generation changes
 also require requalification. Older readers reject v2 reports, so downgrade
 requires fresh qualification with the older version; reports grant no routing
 authority and are never rewritten automatically.
+
+Diagnosis consumers must accept v2 explicitly; older readers reject unsupported
+versions. Before rolling back the executable, complete normal disconnect with
+the current binary and resolve retained restoration conflicts. Diagnosis adds
+no journal migration and does not rewrite qualification reports or history.
 
 ## History compatibility
 

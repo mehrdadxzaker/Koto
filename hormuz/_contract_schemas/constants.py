@@ -26,6 +26,44 @@ CONNECTED_CLIENT_ERROR_SCHEMA_ID = "hormuz.connected-client-error"
 
 CONNECTED_CLIENT_ERROR_SCHEMA_VERSION = 1
 
+CLIENT_DIAGNOSIS_SCHEMA_ID = "hormuz.client-diagnosis"
+CLIENT_DIAGNOSIS_SCHEMA_VERSION = 2
+CLIENT_CHECK_SCHEMA_ID = "hormuz.client-check"
+RUNTIME_CHECK_SCHEMA_ID = "hormuz.runtime-check"
+
+# The observation vocabulary is independent of the admission allowlist.
+CLIENT_CHECK_VERSION_PATTERN = (
+    r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)"
+    r"(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?"
+    r"(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?"
+)
+CLIENT_CHECK_ACTIONS = {
+    "not_checked": "check_selected_executable",
+    "executable_missing": "select_client_executable",
+    "executable_unlaunchable": "inspect_client_executable",
+    "version_timeout": "inspect_client_process",
+    "version_output_too_large": "inspect_client_version_output",
+    "version_command_failed": "inspect_client_version_command",
+    "version_malformed": "inspect_client_version_output",
+    "version_unqualified": "select_supported_client",
+    "version_supported": "none",
+}
+RUNTIME_CHECK_ACTIONS = {
+    "not_observed": "inspect_owned_runtime",
+    "not_configured": "none",
+    "ready": "none",
+    "stopped": "preview_connection",
+    "owner_unavailable": "inspect_owned_runtime",
+    "process_exited": "inspect_runtime_executable",
+    "listening_marker_missing": "inspect_runtime_startup",
+    "health_unreachable": "inspect_runtime_health",
+    "health_invalid": "inspect_runtime_health",
+    "startup_deadline": "inspect_runtime_startup",
+    "guardian_unavailable": "inspect_owned_runtime",
+    "guardian_response_invalid": "inspect_owned_runtime",
+    "verification_failed": "inspect_runtime_files",
+}
+
 LOCAL_SETUP_SCHEMA_ID = "hormuz.local-setup"
 LOCAL_SETUP_PROFILE_SCHEMA_ID = "hormuz.local-setup-profile"
 
@@ -212,6 +250,9 @@ PUBLIC_ERROR_CODES = frozenset({*PUBLIC_ERROR_CODES_V2, "hormuz_custody_restrict
                               *ROUTE_ADMISSION_ERROR_CODES, *CONNECTED_CLIENT_ERROR_ACTIONS})
 
 _CURRENT_SCHEMA_VERSIONS = {
+    CLIENT_DIAGNOSIS_SCHEMA_ID: CLIENT_DIAGNOSIS_SCHEMA_VERSION,
+    CLIENT_CHECK_SCHEMA_ID: 1,
+    RUNTIME_CHECK_SCHEMA_ID: 1,
     "koto.native-task": 1,
     "koto.native-task-error": 1,
     "koto.personal-selection-status": 1, "koto.personal-scorecard": 1,
