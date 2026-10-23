@@ -12,6 +12,36 @@ import zipfile
 
 
 TOOL = Path(__file__).resolve().parents[1] / "tools/package_plugin.py"
+FIXTURE = Path(__file__).resolve().parent / "fixtures/plugin-bundle-v1.json"
+
+
+class FrozenPluginCompatibilityTests(unittest.TestCase):
+    def test_frozen_v1_bundle_remains_verifiable_with_its_original_versions_and_inventory(self):
+        fixture = json.loads(FIXTURE.read_text())
+        with tempfile.TemporaryDirectory(prefix="koto-frozen-plugin-") as temporary:
+            root = Path(temporary)
+            archive = root / "frozen-plugin.zip"
+            with zipfile.ZipFile(archive, "w") as bundle:
+                for name, text in fixture["entries_utf8"].items():
+                    row = zipfile.ZipInfo(name, (1980, 1, 1, 0, 0, 0))
+                    row.create_system = 3
+                    row.external_attr = (stat.S_IFREG | 0o644) << 16
+                    bundle.writestr(row, text.encode("utf-8"))
+                row = zipfile.ZipInfo("koto-plugin-manifest.json", (1980, 1, 1, 0, 0, 0))
+                row.create_system = 3
+                row.external_attr = (stat.S_IFREG | 0o644) << 16
+                bundle.writestr(row, json.dumps(fixture["manifest"]).encode("utf-8"))
+            result = subprocess.run([sys.executable, str(TOOL), "--root", str(root / "no-checkout"),
+                "--verify", str(archive), "--version", "0.4.0"],
+                cwd=root, capture_output=True, text=True, timeout=15)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            receipt = json.loads(result.stdout)
+            self.assertEqual(receipt, fixture["manifest"])
+            self.assertEqual((receipt["schema_version"], receipt["plugin_version"], receipt["runtime_version"],
+                              receipt["runtime_requirement"], len(receipt["files"])),
+                             (1, "0.4.0", "2.0.0a1", "==2.0.0a1", 7))
+            self.assertFalse((root / "skills").exists())
+            self.assertFalse((root / "no-checkout").exists())
 
 
 class PluginPackagingWorkflowTests(unittest.TestCase):

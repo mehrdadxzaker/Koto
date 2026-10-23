@@ -1,0 +1,60 @@
+{
+  "fixture_description": "Frozen synthetic koto.plugin-bundle v1 compatibility inventory; source, versions and payload are illustrative, not a release or qualification.",
+  "entries_utf8": {
+    ".agents/plugins/marketplace.json": "{\"name\":\"koto\",\"plugins\":[{\"name\":\"koto\",\"source\":{\"source\":\"local\",\"path\":\"./\"}}]}\n",
+    ".claude-plugin/marketplace.json": "{\"name\":\"koto\",\"plugins\":[{\"name\":\"koto\",\"source\":\"./\"}]}\n",
+    ".claude-plugin/plugin.json": "{\"name\":\"koto\",\"version\":\"0.4.0\"}\n",
+    "LICENSE": "Apache License\nVersion 2.0, January 2004\n",
+    "gemini-extension.json": "{\"name\":\"koto\",\"version\":\"0.4.0\"}\n",
+    "plugin.json": "{\"name\":\"koto\",\"version\":\"0.4.0\",\"repository\":\"https://github.com/example/koto\",\"license\":\"Apache-2.0\",\"extensions\":{\"com.openai\":{\"onboardingSkill\":\"./skills/koto/SKILL.md\"}}}\n",
+    "skills/koto/SKILL.md": "---\nname: koto\ndescription: Synthetic frozen compatibility skill.\n---\n\n# Koto fixture\n\nThis fixture neither runs a model nor grants qualification.\n"
+  },
+  "manifest": {
+    "schema_id": "koto.plugin-bundle",
+    "schema_version": 1,
+    "name": "koto",
+    "source_commit": "1111111111111111111111111111111111111111",
+    "plugin_version": "0.4.0",
+    "runtime_version": "2.0.0a1",
+    "runtime_requirement": "==2.0.0a1",
+    "repository": "https://github.com/example/koto",
+    "license": "Apache-2.0",
+    "files": [
+      {
+        "path": ".agents/plugins/marketplace.json",
+        "size_bytes": 84,
+        "sha256": "24284493747fd6ad11b3545fc630edff38e418866db415c8f839cd0a233de010"
+      },
+      {
+        "path": ".claude-plugin/marketplace.json",
+        "size_bytes": 58,
+        "sha256": "72c9620b90c28e413ea30f08fb1d95764a1c951111296e829f05ee2512c68fc0"
+      },
+      {
+        "path": ".claude-plugin/plugin.json",
+        "size_bytes": 34,
+        "sha256": "cb84a01e981a1f209647ab521cfd194d2de7fedd3a27bfc9bfda208ab465e249"
+      },
+      {
+        "path": "LICENSE",
+        "size_bytes": 41,
+        "sha256": "da0a45ba8ade58d6156fe561dbaa8ea664725ab65ec9c9dfc0812b1a1c815b1d"
+      },
+      {
+        "path": "gemini-extension.json",
+        "size_bytes": 34,
+        "sha256": "cb84a01e981a1f209647ab521cfd194d2de7fedd3a27bfc9bfda208ab465e249"
+      },
+      {
+        "path": "plugin.json",
+        "size_bytes": 177,
+        "sha256": "1d3244baaf330006b412fd3d56ca50c2675d3d0a019b8d1e17a3607f3f7fb1c1"
+      },
+      {
+        "path": "skills/koto/SKILL.md",
+        "size_bytes": 147,
+        "sha256": "113f1856d7897d9beef9bfcafad7dba1c55423c0070872f4f6d959d757c3a737"
+      }
+    ]
+  }
+}

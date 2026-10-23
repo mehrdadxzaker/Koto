@@ -1,0 +1,50 @@
+{
+  "fixture_id": "synthetic-release-candidate-v1",
+  "description": "Frozen synthetic v1 reader-compatibility bundle. Bytes and expected results are literal test inputs, independent of the current candidate writer. Not installable release evidence or publication approval.",
+  "files_base64": {
+    "SHA256SUMS": "NWQ0OTEwMTAxZGY5ODQ5MWFjODZhMDRjNjllZDI3Mzc3Yzc0M2Y1MGMzNjg2ODY2YTZlZjVkN2VlMjFkMzg2OCAga290b19yb3V0ZXItMi4wLjBhMS1weTMtbm9uZS1hbnkud2hsCjNiNzg2ZjA1NjUzMWQxN2M1YmJjODAwYjI1MDNkYzcxMmFmYmI0MjVmYjA3N2YwODAzMGMzNmRiYWU4ZTkxNzQgIGtvdG9fcm91dGVyLTIuMC4wYTEudGFyLmd6CjBjOGQ5MTM5NWY3NzcwMGQzMzVkODk1NGRiMzIzNTliZDU5NjBhNjYzZjFlOGU1ODcyMmJkZWVjZTBmOTk3MTUgIG1hbmlmZXN0Lmpzb24KNmU3OGUyMjE4ZGQ5YTAxZTk2NjgwNDNhNWM2NzFiMzg5Mzk0NGQ4OGRmMzZmNWY3Mjk0OGI3NDc1Mzk3ZDU4NCAgcmVsZWFzZS1ub3Rlcy5tZAo=",
+    "koto_router-2.0.0a1-py3-none-any.whl": "UEsDBBQAAAAAAAAAIQCjKzyKOgAAADoAAAAmAAAAa290b19yb3V0ZXItMi4wLjBhMS5kaXN0LWluZm8vTUVUQURBVEFNZXRhZGF0YS1WZXJzaW9uOiAyLjQKTmFtZToga290by1yb3V0ZXIKVmVyc2lvbjogMi4wLjBhMQoKUEsDBBQAAAAAAAAAIQBSzY+zOAAAADgAAAAQAAAAa290by9fX2luaXRfXy5weSMgU3ludGhldGljIG1ldGFkYXRhIGZpeHR1cmU7IG5ldmVyIGluc3RhbGwgb3IgZXhlY3V0ZS4KUEsBAhQDFAAAAAAAAAAhAKMrPIo6AAAAOgAAACYAAAAAAAAAAAAAAKSBAAAAAGtvdG9fcm91dGVyLTIuMC4wYTEuZGlzdC1pbmZvL01FVEFEQVRBUEsBAhQDFAAAAAAAAAAhAFLNj7M4AAAAOAAAABAAAAAAAAAAAAAAAKSBfgAAAGtvdG8vX19pbml0X18ucHlQSwUGAAAAAAIAAgCSAAAA5AAAAAAA",
+    "koto_router-2.0.0a1.tar.gz": "H4sIAAAAAAACA+3SMQoCMRCF4dQ5RS6QmA1BYQ+giLha2UrAFLJoIJu9v3EtFGvRwv9rZnhTTPP6VNIxp7HErJ2xxoZmtt+s9Lpb7sSH2Gru/TSr92ntwj33e944VyNlxReMQwm5vhf/aRtLOIUS9CHm4ZyurXLGyy5cYqv62g396IZ8OU8lkVIAAAAAAAAAAAAAAAAAAH7oBo0LTAcAKAAA",
+    "manifest.json": "ewogICJhcnRpZmFjdHMiOiBbCiAgICB7CiAgICAgICJuYW1lIjogImtvdG9fcm91dGVyLTIuMC4wYTEtcHkzLW5vbmUtYW55LndobCIsCiAgICAgICJzaGEyNTYiOiAiNWQ0OTEwMTAxZGY5ODQ5MWFjODZhMDRjNjllZDI3Mzc3Yzc0M2Y1MGMzNjg2ODY2YTZlZjVkN2VlMjFkMzg2OCIsCiAgICAgICJzaXplX2J5dGVzIjogMzk2CiAgICB9LAogICAgewogICAgICAibmFtZSI6ICJrb3RvX3JvdXRlci0yLjAuMGExLnRhci5neiIsCiAgICAgICJzaGEyNTYiOiAiM2I3ODZmMDU2NTMxZDE3YzViYmM4MDBiMjUwM2RjNzEyYWZiYjQyNWZiMDc3ZjA4MDMwYzM2ZGJhZThlOTE3NCIsCiAgICAgICJzaXplX2J5dGVzIjogMTYyCiAgICB9CiAgXSwKICAiY2hhbm5lbCI6ICJhbHBoYSIsCiAgImNvbXBvbmVudCI6ICJydW50aW1lIiwKICAiZGlzcGxheV92ZXJzaW9uIjogIjIuMC4wLWFscGhhLjEiLAogICJkaXN0cmlidXRpb24iOiAia290by1yb3V0ZXIiLAogICJnaXRodWJfcHJlcmVsZWFzZSI6IHRydWUsCiAgIm1ha2VfbGF0ZXN0IjogZmFsc2UsCiAgIm5vdGVzIjogewogICAgIm5hbWUiOiAicmVsZWFzZS1ub3Rlcy5tZCIsCiAgICAic2hhMjU2IjogIjZlNzhlMjIxOGRkOWEwMWU5NjY4MDQzYTVjNjcxYjM4OTM5NDRkODhkZjM2ZjVmNzI5NDhiNzQ3NTM5N2Q1ODQiLAogICAgInNpemVfYnl0ZXMiOiA4OQogIH0sCiAgInB1Ymxpc2hpbmdfYXBwcm92ZWQiOiBmYWxzZSwKICAic2NoZW1hX2lkIjogImtvdG8ucmVsZWFzZS1jYW5kaWRhdGUiLAogICJzY2hlbWFfdmVyc2lvbiI6IDEsCiAgInNvdXJjZV9jb21taXQiOiAiMDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2NyIsCiAgInRhZyI6ICJ2Mi4wLjBhMSIsCiAgInZlcnNpb24iOiAiMi4wLjBhMSIKfQo=",
+    "release-notes.md": "IyBTeW50aGV0aWMgY29tcGF0aWJpbGl0eSBmaXh0dXJlCgpOb3QgYSByZWxlYXNlLCBxdWFsaWZpY2F0aW9uIG9yIHB1YmxpY2F0aW9uIGFwcHJvdmFsLgo="
+  },
+  "expected_manifest": {
+    "schema_id": "koto.release-candidate",
+    "schema_version": 1,
+    "component": "runtime",
+    "version": "2.0.0a1",
+    "display_version": "2.0.0-alpha.1",
+    "channel": "alpha",
+    "tag": "v2.0.0a1",
+    "github_prerelease": true,
+    "make_latest": false,
+    "source_commit": "0123456789abcdef0123456789abcdef01234567",
+    "distribution": "koto-router",
+    "publishing_approved": false,
+    "artifacts": [
+      {
+        "name": "koto_router-2.0.0a1-py3-none-any.whl",
+        "size_bytes": 396,
+        "sha256": "5d4910101df98491ac86a04c69ed27377c743f50c3686866a6ef5d7ee21d3868"
+      },
+      {
+        "name": "koto_router-2.0.0a1.tar.gz",
+        "size_bytes": 162,
+        "sha256": "3b786f056531d17c5bbc800b2503dc712afbb425fb077f08030c36dbae8e9174"
+      }
+    ],
+    "notes": {
+      "name": "release-notes.md",
+      "size_bytes": 89,
+      "sha256": "6e78e2218dd9a01e9668043a5c671b3893944d88df36f5f72948b7475397d584"
+    }
+  },
+  "expected_report": {
+    "status": "verified",
+    "component": "runtime",
+    "version": "2.0.0a1",
+    "source_commit": "0123456789abcdef0123456789abcdef01234567",
+    "tag": "v2.0.0a1",
+    "publishing_approved": false
+  }
+}

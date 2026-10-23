@@ -2,6 +2,7 @@
 from pathlib import Path
 import copy
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -41,11 +42,8 @@ class ReleaseCIWorkflowTests(unittest.TestCase):
     def test_full_exact_main_ci_admits_a_candidate_without_granting_publication(self):
         result = self.command()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual(json.loads(result.stdout), {
-            'schema_id': 'koto.release-ci', 'schema_version': 1, 'repository': 'example/koto',
-            'source_commit': SOURCE, 'ci_run_id': 42, 'run_attempt': 1,
-            'status': 'passed', 'publishing_approved': False,
-        })
+        fixture = Path(__file__).with_name('fixtures') / 'release-ci-v1.json'
+        self.assertEqual(json.loads(result.stdout), json.loads(fixture.read_text(encoding='utf-8')))
 
     def test_other_repository_or_mixed_run_jobs_cannot_supply_release_evidence(self):
         self.run['repository']['full_name'] = 'someone-else/koto'
@@ -77,6 +75,19 @@ class ReleaseCIWorkflowTests(unittest.TestCase):
                 self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
                 self.assertEqual(result.stdout, '')
                 self.assertNotIn('Traceback', result.stderr)
+
+    @unittest.skipUnless(hasattr(os, 'mkfifo'), 'named pipes require POSIX')
+    def test_named_pipe_evidence_is_refused_without_waiting_for_a_writer(self):
+        pipe = self.root / 'run.fifo'
+        os.mkfifo(pipe)
+        jobs = self.root / 'jobs.json'
+        jobs.write_text(json.dumps(self.jobs), encoding='utf-8')
+        result = subprocess.run(
+            [sys.executable, str(TOOL), '--repository', 'example/koto', '--source', SOURCE,
+             str(pipe), str(jobs)], cwd=self.root, capture_output=True, text=True, timeout=2)
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn('regular file', result.stderr)
+        self.assertEqual(result.stdout, '')
 
 
 if __name__ == '__main__':

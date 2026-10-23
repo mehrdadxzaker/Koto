@@ -2,7 +2,9 @@
 from pathlib import Path
 import argparse
 import json
+import os
 import re
+import stat
 
 
 REQUIRED = {'Build router distributions', 'CI / required',
@@ -52,7 +54,11 @@ def main():
     try:
         documents = []
         for path in (args.run, args.jobs):
-            with path.open('rb') as handle:
+            descriptor = os.open(path, os.O_RDONLY | os.O_NONBLOCK | getattr(os, 'O_NOFOLLOW', 0))
+            with os.fdopen(descriptor, 'rb') as handle:
+                info = os.fstat(handle.fileno())
+                if not stat.S_ISREG(info.st_mode) or path.is_symlink():
+                    raise ValueError('CI evidence must be a regular file')
                 content = handle.read(2 * 1024 * 1024 + 1)
             if len(content) > 2 * 1024 * 1024:
                 raise ValueError('CI evidence exceeds the 2 MiB file limit')

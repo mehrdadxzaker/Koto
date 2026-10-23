@@ -116,3 +116,9 @@ versions are rejected. Regenerate a candidate after changing its source or
 format; never relabel existing evidence. Removing these source tools and the
 candidate workflow restores the previous manual release process without a
 runtime or user-data migration. Keep previously published records intact.
+
+Synthetic frozen compatibility fixtures preserve the accepted
+[candidate](../tests/fixtures/release-candidate-v1.json),
+[plugin inventory](../tests/fixtures/plugin-bundle-v1.json) and
+[CI result](../tests/fixtures/release-ci-v1.json) contracts. The verifier tests
+read the frozen candidates independently of the current candidate writers.

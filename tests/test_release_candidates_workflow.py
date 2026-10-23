@@ -1,5 +1,6 @@
 """Release candidate commands exercised through disposable public CLI boundaries."""
 from pathlib import Path
+import base64
 import hashlib
 import io
 import json
@@ -57,6 +58,17 @@ class ReleaseCandidateWorkflowTests(unittest.TestCase):
             "channel": "alpha", "tag": "v2.0.0a2", "github_prerelease": True, "make_latest": False,
         })
         self.assertEqual({p.relative_to(self.root): p.read_bytes() for p in self.root.rglob("*") if p.is_file()}, before)
+
+    def test_current_reader_accepts_frozen_v1_candidate_bytes_without_a_source_checkout(self):
+        fixture_path = Path(__file__).parent / "fixtures" / "release-candidate-v1.json"
+        fixture = json.loads(fixture_path.read_text())
+        output = self.base / "frozen-v1-candidate"
+        output.mkdir()
+        for name, encoded in fixture["files_base64"].items():
+            (output / name).write_bytes(base64.b64decode(encoded, validate=True))
+        self.assertEqual(json.loads((output / "manifest.json").read_text()), fixture["expected_manifest"])
+        self.root = self.base / "absent-source-checkout"
+        self.assertEqual(self.command("verify", str(output)), fixture["expected_report"])
 
     def test_release_channels_keep_all_experimental_artifacts_out_of_latest(self):
         examples = (

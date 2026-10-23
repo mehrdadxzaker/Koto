@@ -1,0 +1,10 @@
+{
+  "schema_id": "koto.release-ci",
+  "schema_version": 1,
+  "repository": "example/koto",
+  "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "ci_run_id": 42,
+  "run_attempt": 1,
+  "status": "passed",
+  "publishing_approved": false
+}
