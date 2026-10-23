@@ -136,10 +136,12 @@ class BootstrapWorkflowTests(unittest.TestCase):
         original = (self.client.home / "config.toml").read_bytes()
         with artifacts(payloads) as (origin, requests, _):
             self.fixture.catalog(value, origin)
-            preview = self.init("--dry-run")
+            preview = self.init("--dry-run", "--directory", str(self.root / "missing" / ".." / "selected-assets"))
             receipt = json.loads(preview.stdout)
             validate_contract(receipt)
             self.assertEqual(receipt["state"], "planned")
+            self.assertEqual(Path(receipt["directory"]).parent, self.root.resolve() / "selected-assets")
+            self.assertFalse((self.root / "missing").exists())
             self.assertIn(str(self.path), preview.stderr)
             declined = self.init(check=False)
             self.assertEqual(declined.returncode, 2)
@@ -158,7 +160,11 @@ class BootstrapWorkflowTests(unittest.TestCase):
             missing_transport.update(system=platform.system(), machine=platform.machine(),
                 runtime_sha256=value["managed_llama"]["runtime_sha256"],
                 model_sha256=value["managed_llama"]["model_sha256"], capabilities=["responses", "text"])
-            for name, profile in (("historical", catalog["profile"]), ("missing_transport", missing_transport)):
+            oversized_v6 = json.loads((Path(__file__).parent / "fixtures/local-setup-profile-v6.json").read_text())
+            oversized_v6.update(system=platform.system(), machine=platform.machine(),
+                runtime_sha256=value["managed_llama"]["runtime_sha256"], model_sha256=value["managed_llama"]["model_sha256"])
+            for name, profile in (("historical", catalog["profile"]), ("missing_transport", missing_transport),
+                                  ("oversized_v6", oversized_v6)):
                 with self.subTest(catalog=name):
                     catalog["profile"] = profile
                     (self.root / "catalog.json").write_text(json.dumps(catalog))
@@ -176,6 +182,66 @@ class BootstrapWorkflowTests(unittest.TestCase):
                     self.assertEqual(json.loads(legacy.stdout)["state"], "planned")
                     self.assertFalse((self.root / "legacy-assets").exists())
                     self.assertEqual(requests, [])
+
+    def test_missing_asset_parent_replaced_at_creation_cannot_redirect_writes(self):
+        value, payloads = self.prepare()
+        parent, target = self.root / "asset-parent", self.root / "redirect-target"
+        parent.mkdir(mode=0o700)
+        target.mkdir(mode=0o700)
+        parent, target = parent.resolve(), target.resolve()
+        sentinel = target / "keep.txt"
+        sentinel.write_text("unrelated data")
+        first, selected = parent / "new", parent / "new/assets"
+        marker = self.root / "race-injected"
+        original = (self.client.home / "config.toml").read_bytes()
+        # Control the filesystem boundary to insert the link after path
+        # validation but immediately before the actual creation syscall.
+        replaced_parent = f'''import os, pathlib, sys
+original_mkdir = os.mkdir
+parent = pathlib.Path({str(parent)!r})
+first = pathlib.Path({str(first)!r})
+selected = pathlib.Path({str(selected)!r})
+target = pathlib.Path({str(target)!r})
+marker = pathlib.Path({str(marker)!r})
+def mkdir(path, mode=0o777, *, dir_fd=None):
+    candidate = pathlib.Path(path)
+    inject = candidate in (selected, first)
+    if dir_fd is not None and str(candidate) == first.name:
+        actual, expected = os.fstat(dir_fd), parent.stat()
+        inject = inject or (actual.st_dev, actual.st_ino) == (expected.st_dev, expected.st_ino)
+    if inject and not marker.exists():
+        first.symlink_to(target, target_is_directory=True)
+        marker.touch()
+    return original_mkdir(path, mode, dir_fd=dir_fd)
+os.mkdir = mkdir
+from hormuz.cli import main
+raise SystemExit(main())
+'''
+        with artifacts(payloads) as (origin, requests, _):
+            self.fixture.catalog(value, origin)
+            failed = subprocess.run([sys.executable, "-c", replaced_parent, "init", "--yes",
+                "--directory", str(selected), "--client-home", str(self.client.home),
+                "--executable", str(self.client.executable), "--catalog", str(self.root / "catalog.json")],
+                env=self.environment, cwd=self.cwd, stdin=subprocess.DEVNULL,
+                capture_output=True, text=True, timeout=25)
+            self.assertTrue(marker.exists(), failed.stderr)
+            self.assertEqual(sorted(path.name for path in target.iterdir()), ["keep.txt"],
+                             f"returncode={failed.returncode}, requests={[path for path, _ in requests]}")
+            self.assertEqual(failed.returncode, 2, failed.stderr)
+            self.assertEqual(json.loads(failed.stderr.splitlines()[-1])["error"]["code"], "directory_unsafe")
+            self.assertEqual(requests, [])
+            self.assertEqual(sentinel.read_text(), "unrelated data")
+            self.assertFalse(self.path.exists())
+            self.assertEqual((self.client.home / "config.toml").read_bytes(), original)
+
+            shared = self.root / "unprotected-asset-parent"
+            shared.mkdir(mode=0o700)
+            shared.chmod(0o777)
+            rejected = self.init("--yes", "--directory", str(shared / "missing/assets"), check=False)
+            self.assertEqual(rejected.returncode, 2, rejected.stderr)
+            self.assertEqual(json.loads(rejected.stderr.splitlines()[-1])["error"]["code"], "directory_unsafe")
+            self.assertFalse((shared / "missing").exists())
+            self.assertEqual(requests, [])
 
     def test_default_private_home_preserves_native_settings_and_off_finds_the_owner(self):
         value, payloads = self.prepare()
@@ -275,7 +341,7 @@ raise SystemExit(main())
         profile = json.loads((Path(__file__).parent / "fixtures/local-setup-profile-v6.json").read_text())
         profile.update(system=platform.system(), machine=platform.machine(),
                        runtime_sha256=value["managed_llama"]["runtime_sha256"],
-                       model_sha256=value["managed_llama"]["model_sha256"])
+                       model_sha256=value["managed_llama"]["model_sha256"], max_request_bytes=16384)
         (self.root / "qualification.json").write_text(json.dumps(profile))
         (self.root / "client-version.txt").write_text("0.160.0")
         self.addCleanup(lambda: self.command("off", check=False))
@@ -435,7 +501,7 @@ raise SystemExit(main())
         profile = json.loads((Path(__file__).parent / "fixtures/local-setup-profile-v6.json").read_text())
         profile.update(system=platform.system(), machine=platform.machine(),
                        runtime_sha256=value["managed_llama"]["runtime_sha256"],
-                       model_sha256=value["managed_llama"]["model_sha256"])
+                       model_sha256=value["managed_llama"]["model_sha256"], max_request_bytes=16384)
         (self.root / "qualification.json").write_text(json.dumps(profile))
         (self.root / "client-version.txt").write_text("0.160.0")
         original = (self.client.home / "config.toml").read_bytes()

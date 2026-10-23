@@ -1,5 +1,5 @@
 """Private digest-bound asset generations feeding the existing shared setup owner."""
-from contextlib import contextmanager
+from contextlib import ExitStack, contextmanager
 import hashlib
 import json
 import os
@@ -58,7 +58,40 @@ def _file_info(stream, limit, *, private=True):
 
 def _directory(path, *, create=False):
     if create:
-        path.mkdir(mode=0o700, parents=True, exist_ok=True)
+        try:
+            if not path.is_absolute() or len(path.parts) > 128:
+                raise ValueError()
+            # Keep directory handles until the complete chain is checked.
+            # Creation is relative to verified handles, never a missing path
+            # reconstructed beneath an ancestor that can become a symlink.
+            with ExitStack() as handles:
+                def open_directory(name, parent=None):
+                    descriptor = os.open(name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_NONBLOCK,
+                                         dir_fd=parent)
+                    handles.callback(os.close, descriptor)
+                    info = os.fstat(descriptor)
+                    if (info.st_uid not in {0, os.getuid()}
+                            or info.st_mode & 0o022 and not info.st_mode & stat.S_ISVTX):
+                        raise ValueError()
+                    return descriptor
+
+                descriptor = open_directory(path.anchor)
+                for part in path.parts[1:]:
+                    try:
+                        child = open_directory(part, descriptor)
+                    except FileNotFoundError:
+                        try:
+                            os.mkdir(part, mode=0o700, dir_fd=descriptor)
+                        except FileExistsError:
+                            pass
+                        child = open_directory(part, descriptor)
+                    descriptor = child
+                opened, observed = os.fstat(descriptor), path.lstat()
+                if (path.resolve(strict=True) != path
+                        or (opened.st_dev, opened.st_ino) != (observed.st_dev, observed.st_ino)):
+                    raise ValueError()
+        except (OSError, RuntimeError, ValueError):
+            raise LocalAcquisitionError("directory_unsafe") from None
     info = path.lstat()
     if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid() or info.st_mode & 0o077:
         raise LocalAcquisitionError("directory_unsafe")
@@ -118,6 +151,8 @@ def _catalog(path, executable, *, download, bootstrap=False):
                           or profile.get("coding_evidence") is not None
                           or not {"responses", "text", "streaming", "codex_http",
                                   "codex_http_0160", "codex_llama_v1"} <= set(profile["capabilities"])):
+            raise ValueError()
+        if bootstrap and profile["max_request_bytes"] + profile["max_output_tokens"] + 1024 > profile.get("context_tokens", 32768):
             raise ValueError()
         target = value["profile"]["client_version"]
         if target not in SUPPORTED_CODEX_VERSIONS or (client_version and target != client_version):
@@ -265,7 +300,7 @@ def acquire_local(args, *, bootstrap=False):
             raise LocalAcquisitionError("directory_unsafe")
         if not canonical.is_dir():
             raise LocalAcquisitionError("directory_unsafe")
-        directory = canonical.joinpath(*reversed(missing), directory.name)
+        directory = Path(os.path.normpath(canonical.joinpath(*reversed(missing), directory.name)))
     except (OSError, RuntimeError, ValueError):
         raise LocalAcquisitionError("directory_unsafe") from None
     digest = hashlib.sha256(_bytes(catalog)).hexdigest()
