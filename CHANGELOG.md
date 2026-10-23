@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+- Add opt-in Qwen Coder v15 caller-declared integer checks covering excluded or
+  permitted subclasses and explicit boolean rules for TypeError rejection
+  contracts through native host commands.
+
+- Wait briefly for native exit after closed output pipes before signaling the
+  owned process group; retain bounded cleanup and failed qualification evidence.
+- Restore correlated native patch recovery and offer bounded exact-text/script
+  compilers in opt-in Qwen Coder v14, preserving earlier profile bytes and gates.
+- Freeze an explicit native no-plugin-discovery setting for isolated coding
+  acceptance campaigns while retaining native filesystem permissions and tools.
+- Bind an opt-in v13 treatment to the existing Qwen Coder 30B model for one
+  separately authorized campaign, retaining all failed 14B qualification evidence.
+- Add opt-in Qwen v11/v12 type-constraint treatments for fresh qualification,
+  preserving the failed v11 outcome, older profiles and ordinary coding denial.
 - Support the existing bounded setup-v5 profile in the native acceptance tool,
   preserving legacy limits and keeping probes separate from qualification.
 - Cover latest-user prompt extraction and ASCII/multibyte UTF-8 size limits

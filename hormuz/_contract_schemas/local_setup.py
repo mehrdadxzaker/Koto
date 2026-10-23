@@ -2,7 +2,7 @@
 import re
 
 from .common import ContractValidationError, _exact_keys, _value_mapping, _value_string
-from ..local_harness import MODEL, PROFILES
+from ..local_harness import MODELS, PROFILES
 
 
 PROFILE_FIELDS = {"schema_id", "schema_version", "qualification_id", "client_version", "system", "machine",
@@ -49,7 +49,7 @@ def validate_profile(value, *, extended=False, namespaces=False, output_limit=51
         raise ContractValidationError("local setup requires text Responses")
     harnesses = set(PROFILES).intersection(value['capabilities'])
     if harnesses and (len(harnesses) != 1 or 'codex_llama_v1' not in value['capabilities']
-            or value['model'] != MODEL):
+            or value['model'] != MODELS[next(iter(harnesses))]):
         raise ContractValidationError('invalid Qwen harness setup')
 
 

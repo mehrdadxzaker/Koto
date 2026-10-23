@@ -29,11 +29,27 @@ V9_CAPABILITY = 'qwen_code_v9'
 V9_PROFILE = 'qwen-code.v9'
 V10_CAPABILITY = 'qwen_code_v10'
 V10_PROFILE = 'qwen-code.v10'
+V11_CAPABILITY = 'qwen_code_v11'
+V11_PROFILE = 'qwen-code.v11'
+V12_CAPABILITY = 'qwen_code_v12'
+V12_PROFILE = 'qwen-code.v12'
+V13_CAPABILITY = 'qwen_code_v13'
+V13_PROFILE = 'qwen-code.v13'
+V14_CAPABILITY = 'qwen_code_v14'
+V14_PROFILE = 'qwen-code.v14'
+V15_CAPABILITY = 'qwen_code_v15'
+V15_PROFILE = 'qwen-code.v15'
 PROFILES = {CAPABILITY: PROFILE, V2_CAPABILITY: V2_PROFILE, V3_CAPABILITY: V3_PROFILE,
             V4_CAPABILITY: V4_PROFILE, V5_CAPABILITY: V5_PROFILE, V6_CAPABILITY: V6_PROFILE,
             V7_CAPABILITY: V7_PROFILE, V8_CAPABILITY: V8_PROFILE, V9_CAPABILITY: V9_PROFILE,
-            V10_CAPABILITY: V10_PROFILE}
+            V10_CAPABILITY: V10_PROFILE, V11_CAPABILITY: V11_PROFILE,
+            V12_CAPABILITY: V12_PROFILE, V13_CAPABILITY: V13_PROFILE,
+            V14_CAPABILITY: V14_PROFILE, V15_CAPABILITY: V15_PROFILE}
 MODEL = 'Qwen3-14B-Q4_K_M'
+CODER_MODEL = 'Qwen3-Coder-30B-A3B-Instruct-Q4_K_M'
+MODELS = {capability: CODER_MODEL if capability in {V13_CAPABILITY, V14_CAPABILITY, V15_CAPABILITY} else MODEL
+          for capability in PROFILES}
+MODELS_BY_PROFILE = {PROFILES[capability]: model for capability, model in MODELS.items()}
 V8_GUIDANCE = '''Local coding protocol (subordinate to existing host and repository instructions):
 Complete the requested repair through the declared host tools. For other tasks,
 answer the original request without inventing edits or checks.
@@ -53,6 +69,39 @@ definition, or failed command does not establish passing assertions. Do not
 weaken the specification or existing checks. Finish with the repair and checks
 that actually ran, or the concrete blocker. Native patch hunks use plain @@
 and correctly prefixed lines, without unified-diff line-number ranges.'''
+
+V11_GUIDANCE = V8_GUIDANCE + '''
+Before editing, turn every stated type and error constraint into a compact
+assertion against the saved function. In Python, bool is a subclass of int:
+isinstance(value, int) accepts True and False. Reject booleans or require an
+exact built-in type only when the task requires it; preserve other permitted
+types. Include specified excluded types and distinguish missing, None, False
+and zero where required. Run those assertions after the final edit, together
+with the normal and boundary cases. Do not weaken an explicit constraint to
+make a check pass.'''
+
+V12_GUIDANCE = V11_GUIDANCE + '''
+Exact type and type-family requirements are different. In Python,
+isinstance(value, int) with a separate bool rejection still accepts int subclasses.
+When the task excludes subclasses, use type(value) is int; test a locally defined
+int subclass as well as bool. When integer subclasses are explicitly allowed,
+preserve them and reject only excluded types. Derive checks for each specified
+accepted and rejected category instead of inferring full coverage from normal
+examples. These rules apply only where required by the original task.'''
+
+V15_GUIDANCE = '''Local integer type verification (subordinate to host, repository and user instructions):
+For top-level integer parameters of a saved Python callable, use the declared
+integer-check helper, when offered, after the final edit, only when every declared
+rejection requires TypeError. For other exception contracts, methods or nested
+values, write plain Python assertions with the script helper. Supply a valid named integer sample and the original
+rule for each selected argument: reject subclasses for exact built-in integers;
+allow subclasses only when permitted. Choose booleans=reject only when forbidden,
+otherwise unchecked and verify their permitted behavior separately. The helper
+constructs a same-value int subclass and rejected boolean checks against the saved
+function. A boolean-only guard does not reject other int subclasses. Inspect its
+actual exit result and repair failures. Also run concise functional assertions;
+type checks alone do not prove task correctness. Never invent a type restriction.
+''' + V8_GUIDANCE
 
 V9_GUIDANCE = V8_GUIDANCE.replace('''For Python verification, use the declared
 Python script helper (script parameter) when offered. Its script is ordinary
@@ -359,7 +408,7 @@ def adapt_qwen_request(value, declarations, *, profile=PROFILE, _progress=None):
     instructions = value.get('instructions', '')
     if not isinstance(instructions, str):
         raise ValueError('invalid_harness_instructions')
-    guidance = V10_GUIDANCE if profile == V10_PROFILE else V9_GUIDANCE if profile == V9_PROFILE else V8_GUIDANCE if profile == V8_PROFILE else V4_GUIDANCE if profile in {V4_PROFILE, V5_PROFILE, V6_PROFILE, V7_PROFILE} else GUIDANCE if profile == PROFILE else V2_GUIDANCE
+    guidance = V15_GUIDANCE if profile == V15_PROFILE else V12_GUIDANCE if profile in {V12_PROFILE, V13_PROFILE, V14_PROFILE} else V11_GUIDANCE if profile == V11_PROFILE else V10_GUIDANCE if profile == V10_PROFILE else V9_GUIDANCE if profile == V9_PROFILE else V8_GUIDANCE if profile == V8_PROFILE else V4_GUIDANCE if profile in {V4_PROFILE, V5_PROFILE, V6_PROFILE, V7_PROFILE} else GUIDANCE if profile == PROFILE else V2_GUIDANCE
     value['instructions'] = instructions + '\n\n' + guidance
     for item in value.get('input', []):
         if not isinstance(item, dict) or item.get('type') != 'function_call':
@@ -369,13 +418,13 @@ def adapt_qwen_request(value, declarations, *, profile=PROFILE, _progress=None):
         ordered = {key: arguments[key] for key in properties if key in arguments}
         ordered.update(arguments)
         item['arguments'] = json.dumps(ordered, separators=(',', ':'), ensure_ascii=False, allow_nan=False)
-    if profile in {V2_PROFILE, V3_PROFILE, V4_PROFILE, V5_PROFILE, V6_PROFILE, V7_PROFILE, V8_PROFILE, V9_PROFILE, V10_PROFILE} and isinstance(value.get('input'), str):
+    if profile in {V2_PROFILE, V3_PROFILE, V4_PROFILE, V5_PROFILE, V6_PROFILE, V7_PROFILE, V8_PROFILE, V9_PROFILE, V10_PROFILE, V11_PROFILE, V12_PROFILE, V13_PROFILE, V14_PROFILE, V15_PROFILE} and isinstance(value.get('input'), str):
         value['input'] = [{'type': 'message', 'role': 'user', 'content': [
             {'type': 'input_text', 'text': value['input']}]}]
-    if profile in {V2_PROFILE, V3_PROFILE, V4_PROFILE, V5_PROFILE, V6_PROFILE, V7_PROFILE, V8_PROFILE, V9_PROFILE, V10_PROFILE} and isinstance(value.get('input'), list):
+    if profile in {V2_PROFILE, V3_PROFILE, V4_PROFILE, V5_PROFILE, V6_PROFILE, V7_PROFILE, V8_PROFILE, V9_PROFILE, V10_PROFILE, V11_PROFILE, V12_PROFILE, V13_PROFILE, V14_PROFILE, V15_PROFILE} and isinstance(value.get('input'), list):
         # A model-facing reminder, never a fabricated user message, tool result,
         # or extra agent turn. The native transcript remains an exact prefix.
-        checkpoint = (_script_checkpoint(value['input'], declarations, verification_sensitive=profile in {V9_PROFILE, V10_PROFILE}, state=_progress, compact=profile == V10_PROFILE) if profile in {V8_PROFILE, V9_PROFILE, V10_PROFILE} else
+        checkpoint = (_script_checkpoint(value['input'], declarations, verification_sensitive=profile in {V9_PROFILE, V10_PROFILE}, state=_progress, compact=profile == V10_PROFILE) if profile in {V8_PROFILE, V9_PROFILE, V10_PROFILE, V11_PROFILE, V12_PROFILE, V13_PROFILE, V14_PROFILE, V15_PROFILE} else
                       progress_checkpoint(value['input'], declarations, single_line=profile == V5_PROFILE,
                                           typed_checks=profile in {V6_PROFILE, V7_PROFILE},
                                           feedback_checks=profile == V7_PROFILE)
@@ -385,7 +434,7 @@ def adapt_qwen_request(value, declarations, *, profile=PROFILE, _progress=None):
                 repeated_advice=V6_REPEATED_PATCH if profile in {V6_PROFILE, V7_PROFILE} else V4_REPEATED_PATCH)
         elif profile == V3_PROFILE:
             checkpoint += _patch_recovery(value['input'], declarations)
-        elif profile in {V9_PROFILE, V10_PROFILE}:
+        elif profile in {V9_PROFILE, V10_PROFILE, V14_PROFILE, V15_PROFILE}:
             checkpoint += _patch_recovery(value['input'], declarations,
                 repeated_advice=V6_REPEATED_PATCH, latest_only=True, state=_progress)
         value['input'].append({'type': 'message', 'role': 'developer', 'content': [
