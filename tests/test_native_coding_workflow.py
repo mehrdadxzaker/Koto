@@ -132,7 +132,7 @@ class NativeCodingWorkflowTests(unittest.TestCase):
             self.assertEqual(receipt['schema_version'], 2)
             self.assertEqual(receipt['context']['task_type'], 'code_change')
             self.assertEqual(receipt['context']['sandbox_mode'], 'workspace-write')
-            self.assertFalse(receipt['context']['tool_network_access'])
+            self.assertFalse(receipt['context']['sandbox_network_access'])
             self.assertEqual((receipt['model'], receipt['locality']), ('cloud-code', 'cloud'))
             self.assertEqual((self.project / 'changed.py').read_text(), 'answer = 7\n')
             self.assertEqual((self.project / 'original.txt').read_text(), 'keep this project')
@@ -168,6 +168,17 @@ class NativeCodingWorkflowTests(unittest.TestCase):
                 self.assertEqual(result.returncode, 2)
                 self.assertIn('native_workspace_invalid', result.stderr or result.stdout)
                 self.assertFalse((self.fixture.home / 'requests.jsonl').exists())
+
+    def test_private_control_storage_cannot_be_inside_the_native_writable_workspace(self):
+        self.fixture.environment['TMPDIR'] = str(self.project)
+        with workflow.provider('UNUSED') as (local, local_calls), workflow.provider('UNUSED') as (cloud, cloud_calls):
+            self.fixture.configure(local, cloud)
+            result = self.command()
+            self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+            self.assertIn('native_workspace_invalid', result.stderr or result.stdout)
+            self.assertFalse((self.fixture.home / 'requests.jsonl').exists())
+            self.assertFalse((self.project / 'changed.py').exists())
+            self.assertEqual((local_calls, cloud_calls), ([], []))
 
     def test_unverified_native_sandbox_cannot_start_a_coding_turn(self):
         (self.fixture.home / 'fixture-mode').write_text('unsafe-sandbox')
@@ -238,18 +249,23 @@ class NativeCodingWorkflowTests(unittest.TestCase):
 
     def test_changed_native_wire_profile_is_denied_before_model_inference_or_edits(self):
         with lifetime.provider('UNUSED') as (cloud, cloud_calls):
-            _, _, engine = self.configure_coding(cloud)
+            value, _, engine = self.configure_coding(cloud)
+            value['route_admission']['local_routes']['local-code']['task_types'] = ['summarization', 'code_change']
+            self.fixture.path.write_text(json.dumps(value))
             wire = self.fixture.home / 'native-wire.json'
             request = json.loads(wire.read_text())
             request['instructions'] = 'Different unqualified coding instructions.'
             wire.write_text(json.dumps(request))
-            result = self.command('--model', 'local-code')
-            self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
-            receipt = json.loads(result.stdout)
-            self.assertEqual(receipt['error'], 'native_turn_failed')
-            self.assertFalse(receipt['execution']['verified'])
-            self.assertFalse((engine / 'inference-count').exists())
-            self.assertFalse((self.project / 'changed.py').exists())
+            for prompt in ('Fix the Python answer function and run its tests.', 'Summarize invoice tally seven boxes'):
+                with self.subTest(prompt=prompt):
+                    self.fixture.prompt.write_text(prompt)
+                    result = self.command('--model', 'local-code')
+                    self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+                    receipt = json.loads(result.stdout)
+                    self.assertEqual(receipt['error'], 'native_turn_failed')
+                    self.assertFalse(receipt['execution']['verified'])
+                    self.assertFalse((engine / 'inference-count').exists())
+                    self.assertFalse((self.project / 'changed.py').exists())
             self.assertEqual(cloud_calls, [])
 
     def test_legacy_route_stays_read_only_and_uses_a_different_learning_context(self):

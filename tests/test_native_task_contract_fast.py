@@ -62,8 +62,9 @@ class NativeTaskContractFastTests(unittest.TestCase):
         validate_contract_manifest(contract_manifest())
         for field, invalid in (("domain", "codex-app-server-host.v1"), ("task_type", "code_review"),
                                ("workspace_sha256", "/private/workspace"), ("sandbox_mode", "read-only"),
-                               ("tool_network_access", True), ("tool_network_access", 0),
-                               ("approval_policy", "on-request"), ("extra_permission", True)):
+                               ("sandbox_network_access", True), ("sandbox_network_access", 0),
+                               ("approval_policy", "on-request"), ("extra_permission", True),
+                               ("tool_network_access", False)):
             with self.subTest(field=field, invalid=invalid):
                 changed = deepcopy(value)
                 changed["context"][field] = invalid

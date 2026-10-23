@@ -65,7 +65,7 @@
     "task_type": "code_change",
     "workspace_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
     "sandbox_mode": "workspace-write",
-    "tool_network_access": false,
+    "sandbox_network_access": false,
     "approval_policy": "never"
   }
 }

@@ -403,7 +403,9 @@ class RouteAdmission:
         if required is not None:
             required.add(capability)
         limit = 0 if endpoint == "/v1/messages/count_tokens" else value.get(output_field)
-        hint = request_characteristics(value)["task_hint"]
+        # A private native coding router serves an explicitly writable task.
+        # Prompt wording cannot downgrade its requests to a text-only envelope.
+        hint = "code_change" if getattr(handler.server, "native_coding", False) else request_characteristics(value)["task_hint"]
         inherited_task = getattr(handler, "_work_task_hint", "unknown")
         handler._route_admission_coding_required = not proposal and (hint == "code_change"
             or continuation and inherited_task == "code_change")

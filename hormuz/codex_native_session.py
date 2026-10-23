@@ -74,7 +74,7 @@ def workspace_context(workspace):
         raise NativeSessionError('native_workspace_invalid')
     return {'domain': 'codex-app-server-host.v2', 'task_type': 'code_change',
             'workspace_sha256': _digest({'path': str(path), 'device': info.st_dev, 'inode': info.st_ino}),
-            'sandbox_mode': 'workspace-write', 'tool_network_access': False, 'approval_policy': 'never'}
+            'sandbox_mode': 'workspace-write', 'sandbox_network_access': False, 'approval_policy': 'never'}
 
 
 def _binary_snapshot(path, deadline):

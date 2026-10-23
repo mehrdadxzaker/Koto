@@ -66,6 +66,7 @@ def run(args):
     try:
         coding = args.chat_command == 'code'
         context = workspace_context(args.workspace) if coding else None
+        task_workspace = Path(args.workspace).expanduser().resolve() if coding else None
         selected['context'] = context
         if args.prompt_file == '-':
             raw = sys.stdin.buffer.read(65537)
@@ -167,14 +168,17 @@ def run(args):
             return override
 
         with tempfile.TemporaryDirectory(prefix='koto-native-task-') as workspace:
+            control_workspace = Path(workspace).resolve()
+            if coding and (task_workspace == control_workspace or task_workspace in control_workspace.parents):
+                raise NativeSessionError('native_workspace_invalid')
             needs_router = bool(config.route_admission.local_routes) and config.route_admission.mode != 'configured'
             tokens = resolve_static_identity_tokens((identity,), os.environ) if needs_router else {}
             gateway_token = next(iter(tokens), None)
             if needs_router and gateway_token is None:
                 raise NativeSessionError('native_gateway_identity_required')
             deadline = time.monotonic() + args.timeout_seconds
-            with owned_router(config, workspace, deadline) if needs_router else nullcontext() as server:
-                result = run_session(executable, home, Path(args.workspace).expanduser().resolve() if coding else workspace, prompt,
+            with owned_router(config, workspace, deadline, coding=coding) if needs_router else nullcontext() as server:
+                result = run_session(executable, home, task_workspace if coding else workspace, prompt,
                     timeout_seconds=args.timeout_seconds, select=select,
                     gateway_environment={'KOTO_SESSION_GATEWAY_TOKEN': gateway_token} if needs_router else None,
                     execution_context=context)

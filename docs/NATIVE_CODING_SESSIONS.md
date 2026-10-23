@@ -27,16 +27,21 @@ and a workspace containing the selected native home. Symlinks resolve to their
 canonical directory. The directory identity is checked again before the native
 thread and turn start. Native files can still be read according to Codex's own
 sandbox; this is not a filesystem-read isolation boundary.
+The session also rejects private control storage inside the writable workspace;
+choose a `TMPDIR` outside that workspace for router ledgers and the local catalog.
 
 This first workflow accepts terminal Codex CLI **0.160.0**. The desktop app
 engine is excluded from this coding surface. Codex owns authentication, model
 execution, tools, file edits and its agent loop. Koto launches app-server with
-`workspace-write`, tool network access disabled, temporary-directory write
+`workspace-write`, shell sandbox network access disabled, temporary-directory write
 exceptions disabled and approval policy `never`. Both thread and turn use the
 same canonical workspace. Koto requires the returned thread sandbox, cwd and
 approval policy to match before submitting the task. An absent or different
 sandbox report stops with `native_sandbox_unverified`. This protocol check does
 not prove that a real host enforces the operating-system sandbox.
+The sandbox network setting covers native shell commands. Hosted search, apps
+and configured MCP tools retain Codex's existing policy; they do not inherit
+this shell network boundary. The receipt makes no claim about their networking.
 
 `--actor`, `--model`, prompt-file `-` and the bounded `--timeout-seconds` options
 work as on `chat route`. Saved client settings and authentication files are not
@@ -66,6 +71,8 @@ context cannot authorize changed instructions, tools or limits. A rejected
 request causes no local inference. Actual local execution needs settled owned
 router receipts; a native completion alone leaves it unverified. A local failure
 never triggers an automatic commercial retry.
+Every request in this owned coding router requires the coding envelope, including
+tasks whose prompt happens to resemble a summary or another text task.
 
 ## Check outcomes and handle interruption
 
@@ -98,7 +105,7 @@ object has these exact fields:
 | `task_type` | `code_change`, established by the explicit command |
 | `workspace_sha256` | SHA-256 of canonical path, device and directory inode |
 | `sandbox_mode` | `workspace-write` |
-| `tool_network_access` | `false` |
+| `sandbox_network_access` | `false`, for the native shell sandbox |
 | `approval_policy` | `never` |
 
 The [v2 compatibility fixture](../tests/fixtures/native-task-v2.json) defines

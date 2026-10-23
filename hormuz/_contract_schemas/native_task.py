@@ -101,10 +101,10 @@ def validate(value):
     if coding:
         context = value['context']
         _exact_keys(context, {'domain', 'task_type', 'workspace_sha256', 'sandbox_mode',
-                              'tool_network_access', 'approval_policy'})
+                              'sandbox_network_access', 'approval_policy'})
         _require(context['domain'] == 'codex-app-server-host.v2' and context['task_type'] == 'code_change'
                  and _hash(context['workspace_sha256']) and context['sandbox_mode'] == 'workspace-write'
-                 and context['tool_network_access'] is False and context['approval_policy'] == 'never')
+                 and context['sandbox_network_access'] is False and context['approval_policy'] == 'never')
     if schema == "koto.native-task-error":
         _exact_keys(value["error"], {"code"})
         _require(_error(value["error"]["code"]))
