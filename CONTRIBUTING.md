@@ -47,7 +47,9 @@ runs use focused installed-wheel checks on Python 3.12. Ready PRs, main pushes,
 and manual runs with `full_checkpoint=true` run both complete test layers on
 Python 3.11–3.14, with at most four test jobs in flight. Marking a PR ready starts
 that full checkpoint automatically. `CI / required` requires the build and the
-appropriate test job; a focused pass cannot satisfy a ready PR's checkpoint.
+appropriate full test job. Focused runs report `CI / focused` and cannot satisfy
+the protected `CI / required` context. Drafts gain that required context when
+the full checkpoint runs.
 The source scope check runs in the build job. The wheel verifier reports
 the 20 slowest tests in each layer on Python 3.12 and newer, including fixture
 setup and cleanup; Python 3.11 runs both layers without that newer reporting

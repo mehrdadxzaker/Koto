@@ -106,7 +106,7 @@ jobs:
           if-no-files-found: error
           retention-days: 14
   required:
-    name: CI / required
+    name: ${{ (github.event_name == 'push' || (github.event_name == 'pull_request' && !github.event.pull_request.draft) || inputs.full_checkpoint) && 'CI / required' || 'CI / focused' }}
     if: ${{ always() }}
     needs: [workflow, focused, package]
     runs-on: ubuntu-latest

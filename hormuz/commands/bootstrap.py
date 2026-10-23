@@ -116,7 +116,12 @@ def run(args):
                 raise
         print(json.dumps(result, sort_keys=True))
         _say("Local connection ready. Task quality and coding qualification remain separate.")
-        _say("Try a text task: koto chat ask --prompt-file /absolute/path/to/note.txt --effort low --max-output-tokens 512")
+        if home.resolve() not in {normal_home, (Path.home() / ".codex").resolve()}:
+            _say("Try a text task: " + shlex.join(["koto", "--config", args.config, "chat", "ask",
+                "--router-home", str(home), "--prompt-file", "/absolute/path/to/note.txt",
+                "--effort", "low", "--max-output-tokens", "512"]))
+        else:
+            _say("Use the configured Codex client for tasks in this client home.")
         _say("Status: " + shlex.join(["koto", "client", "status", "codex", "--client-home", str(home)]))
         _say("Disconnect before uninstalling: " + shlex.join(["koto", "off", "--client-home", str(home)]))
         return 0

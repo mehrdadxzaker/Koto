@@ -4,6 +4,7 @@ import hashlib
 import os
 import platform
 from pathlib import Path
+import shlex
 import signal
 import subprocess
 import sys
@@ -161,6 +162,36 @@ class BootstrapWorkflowTests(unittest.TestCase):
             self.assertEqual((self.client.home / "config.toml").read_bytes(), original)
             self.assertEqual([path for path, _ in requests], ["/runtime", "/model"])
 
+    def test_suggested_task_keeps_the_selected_project_and_explicit_control_home(self):
+        value, payloads = self.prepare()
+        profile = json.loads((Path(__file__).parent / "fixtures/local-setup-profile-v7.json").read_text())
+        profile.update(system=platform.system(), machine=platform.machine(),
+                       runtime_sha256=value["managed_llama"]["runtime_sha256"],
+                       model_sha256=value["managed_llama"]["model_sha256"])
+        (self.root / "qualification.json").write_text(json.dumps(profile))
+        (self.root / "client-version.txt").write_text("0.160.0")
+        project, home = self.root / "project with 'quote", self.root / "control home with 'quote"
+        prompt = self.root / "handoff note.txt"
+        prompt.write_text("Summarize the synthetic handoff.")
+        original = (self.client.home / "config.toml").read_bytes()
+        self.addCleanup(lambda: self.command("off", check=False))
+        with artifacts(payloads) as (origin, requests, _):
+            self.fixture.catalog(value, origin)
+            ready = self.command("--project", str(project), "init", "--yes", "--client-home", str(home),
+                "--catalog", str(self.root / "catalog.json"), "--executable", str(self.client.executable))
+            suggestion = next(line.removeprefix("Try a text task: ") for line in ready.stderr.splitlines()
+                              if line.startswith("Try a text task: "))
+            arguments = shlex.split(suggestion)
+            self.assertEqual(arguments[0], "koto")
+            arguments[arguments.index("--prompt-file") + 1] = str(prompt)
+            task = self.command(*arguments[1:], cwd=self.root)
+            result = json.loads(task.stdout)
+            self.assertEqual((result["text"], result["locality"]), ("MANAGED_LOCAL", "local"))
+            self.assertFalse(self.path.exists())
+            self.assertEqual((self.client.home / "config.toml").read_bytes(), original)
+            self.assertEqual(json.loads(self.command("off").stdout)["phase"], "disconnected")
+            self.assertEqual([path for path, _ in requests], ["/runtime", "/model"])
+
     def test_version_six_startup_budget_reaches_the_owned_runtime_without_coding_admission(self):
         value, payloads = self.prepare()
         profile = json.loads((Path(__file__).parent / "fixtures/local-setup-profile-v6.json").read_text())
@@ -226,7 +257,9 @@ class BootstrapWorkflowTests(unittest.TestCase):
         original = (self.client.home / "config.toml").read_bytes()
         with artifacts(payloads) as (origin, requests, _):
             self.fixture.catalog(value, origin)
-            first = json.loads(self.init("--yes").stdout)
+            initialized = self.init("--yes")
+            first = json.loads(initialized.stdout)
+            self.assertNotIn("Try a text task:", initialized.stderr)
             validate_contract(first)
             self.assertEqual(first["connection"]["router"], "ready")
             self.assertTrue(self.path.is_file())
