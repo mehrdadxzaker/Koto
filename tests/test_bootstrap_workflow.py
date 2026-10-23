@@ -176,12 +176,52 @@ class BootstrapWorkflowTests(unittest.TestCase):
                     self.assertFalse((self.root / "data").exists())
                     self.assertEqual((self.client.home / "config.toml").read_bytes(), original)
                     self.assertEqual(requests, [])
+
                     legacy = self.command("client", "acquire", "codex", "--dry-run",
                         "--executable", str(self.client.executable), "--catalog", str(self.root / "catalog.json"),
                         "--directory", str(self.root / "legacy-assets"))
                     self.assertEqual(json.loads(legacy.stdout)["state"], "planned")
                     self.assertFalse((self.root / "legacy-assets").exists())
                     self.assertEqual(requests, [])
+
+    def test_catalog_changed_while_consent_is_pending_cannot_start_transfer(self):
+        value, payloads = self.prepare()
+        original = (self.client.home / "config.toml").read_bytes()
+        transcript = self.root / "interactive-consent.stderr"
+        with artifacts(payloads) as (origin, requests, _):
+            catalog = self.fixture.catalog(value, origin)
+            master, slave = os.openpty()
+            process = None
+            try:
+                with transcript.open("wb") as stderr:
+                    process = subprocess.Popen(self.invocation("init", "--executable", str(self.client.executable),
+                        "--catalog", str(self.root / "catalog.json"), "--client-home", str(self.client.home)),
+                        cwd=self.cwd, env=self.environment, stdin=slave, stdout=subprocess.PIPE, stderr=stderr)
+                    os.close(slave)
+                    slave = None
+                    deadline = time.monotonic() + 8
+                    while "[y/N]" not in transcript.read_text() and process.poll() is None and time.monotonic() < deadline:
+                        time.sleep(0.05)
+                    self.assertIn("[y/N]", transcript.read_text())
+                    catalog["model"]["license"] = "MIT"
+                    (self.root / "catalog.json").write_text(json.dumps(catalog))
+                    os.write(master, b"y\n")
+                    stdout, _ = process.communicate(timeout=25)
+                self.assertEqual(process.returncode, 2, transcript.read_text())
+                self.assertFalse(stdout)
+                self.assertEqual(json.loads(transcript.read_text().splitlines()[-1])["error"]["code"], "installation_changed")
+                self.assertEqual(requests, [])
+                self.assertFalse(self.path.exists())
+                self.assertFalse((self.root / "data").exists())
+                self.assertEqual((self.client.home / "config.toml").read_bytes(), original)
+            finally:
+                if process is not None:
+                    if process.poll() is None:
+                        process.terminate()
+                    process.communicate(timeout=10)
+                os.close(master)
+                if slave is not None:
+                    os.close(slave)
 
     def test_missing_asset_parent_replaced_at_creation_cannot_redirect_writes(self):
         value, payloads = self.prepare()

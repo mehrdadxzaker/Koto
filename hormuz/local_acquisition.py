@@ -279,6 +279,10 @@ def acquire_local(args, *, bootstrap=False):
     catalog = _catalog(args.catalog, args.executable, download=args.download, bootstrap=bootstrap)
     if (catalog["profile"]["system"], catalog["profile"]["machine"]) != (platform.system(), platform.machine()):
         raise LocalAcquisitionError("platform_unsupported")
+    digest = hashlib.sha256(_bytes(catalog)).hexdigest()
+    expected = getattr(args, "expected_catalog_sha256", None)
+    if expected is not None and expected != digest:
+        raise LocalAcquisitionError("installation_changed")
     if not 1 <= len(args.directory) <= 4096 or any(ord(c) < 32 or ord(c) == 127 for c in args.directory):
         raise LocalAcquisitionError("directory_unsafe")
     try:
@@ -303,7 +307,6 @@ def acquire_local(args, *, bootstrap=False):
         directory = Path(os.path.normpath(canonical.joinpath(*reversed(missing), directory.name)))
     except (OSError, RuntimeError, ValueError):
         raise LocalAcquisitionError("directory_unsafe") from None
-    digest = hashlib.sha256(_bytes(catalog)).hexdigest()
     generation = directory / digest
     if directory.exists() or directory.is_symlink():
         _directory(directory)

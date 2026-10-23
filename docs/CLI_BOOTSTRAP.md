@@ -36,6 +36,8 @@ establish available RAM or model quality.
 
 Interactive setup asks once before downloading and changing the private control
 home. For unattended setup, review `--dry-run`, then explicitly use `--yes`.
+The transfer is bound to the catalog shown before consent; a changed catalog
+stops setup before writing or downloading, so it can be reviewed again.
 Without a terminal or `--yes`, init stops without downloading or changing
 settings. Completed assets are verified and reused. `--offline --yes` requires
 the matching verified assets and never downloads.

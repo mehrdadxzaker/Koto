@@ -74,6 +74,7 @@ def run(args):
             download=False, offline=False, timeout_seconds=args.timeout_seconds,
         )
         acquisition = acquire_local(acquisition_args, bootstrap=True)
+        acquisition_args.expected_catalog_sha256 = acquisition["catalog_sha256"]
         _plan(args, acquisition, home)
         if args.dry_run:
             print(json.dumps(acquisition, sort_keys=True))
