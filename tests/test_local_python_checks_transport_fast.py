@@ -9,7 +9,6 @@ import unittest
 from unittest.mock import Mock, patch
 
 from hormuz.codex_llama import CodexLlamaError, CodexLlamaRequest
-from hormuz.local_harness import PROFILES
 
 
 class LocalPythonChecksTransportTests(unittest.TestCase):
@@ -24,7 +23,6 @@ class LocalPythonChecksTransportTests(unittest.TestCase):
         self.compiler = module.compile_checks
         self.addCleanup(patch.stopall)
         patch.dict('sys.modules', {'hormuz.local_python_checks': module}).start()
-        patch.dict(PROFILES, {'qwen_code_v6': 'qwen-code.v6'}).start()
 
     def request(self, *, namespace='functions', choice='auto'):
         tool = {'type': 'function', 'name': 'exec_command', 'description': 'Native host command.',
