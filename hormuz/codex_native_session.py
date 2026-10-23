@@ -447,7 +447,7 @@ def run_session(executable, client_home, cwd, prompt, model=None, provider=None,
             thread_parameters['sandbox'] = 'workspace-write'
         thread = _rpc(child, 4, 'thread/start', thread_parameters, notifications)
         if execution_context is not None and (thread.get('cwd') != str(cwd)
-                or thread.get('approvalPolicy') != 'never' or thread.get('sandbox') != sandbox):
+                or thread.get('approvalPolicy') != 'never' or _digest(thread.get('sandbox')) != _digest(sandbox)):
             raise NativeSessionError('native_sandbox_unverified')
         thread_id = thread['thread']['id']
         if (not _label(thread_id) or not _label(thread.get('modelProvider'), 128)

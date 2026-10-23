@@ -27,6 +27,9 @@ NATIVE = personal.NATIVE.replace(
    if params.get('sandbox')=='workspace-write' else {'type':'readOnly'})
   result.update(cwd=params['cwd'],approvalPolicy=params['approvalPolicy'],sandbox=sandbox)
   if mode=='unsafe-sandbox': result['sandbox']['networkAccess']=True
+  if mode=='numeric-network': result['sandbox']['networkAccess']=0
+  if mode=='numeric-tmpdir': result['sandbox']['excludeTmpdirEnvVar']=1
+  if mode=='numeric-slash-tmp': result['sandbox']['excludeSlashTmp']=1
   if mode=='replace-workspace':
    pathlib.Path(params['cwd']).rename(params['cwd']+'-replaced')
    pathlib.Path(params['cwd']).mkdir()
@@ -181,17 +184,21 @@ class NativeCodingWorkflowTests(unittest.TestCase):
             self.assertEqual((local_calls, cloud_calls), ([], []))
 
     def test_unverified_native_sandbox_cannot_start_a_coding_turn(self):
-        (self.fixture.home / 'fixture-mode').write_text('unsafe-sandbox')
         with workflow.provider('UNUSED') as (local, local_calls), workflow.provider('UNUSED') as (cloud, cloud_calls):
             self.fixture.configure(local, cloud)
-            result = self.command()
-            self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
-            receipt = json.loads(result.stdout)
-            self.assertEqual(receipt['error'], 'native_sandbox_unverified')
-            self.assertFalse(receipt['execution']['verified'])
-            requests = [json.loads(line) for line in (self.fixture.home / 'requests.jsonl').read_text().splitlines()]
-            self.assertNotIn('turn/start', [row.get('method') for row in requests])
-            self.assertFalse((self.project / 'changed.py').exists())
+            for mode in ('unsafe-sandbox', 'numeric-network', 'numeric-tmpdir', 'numeric-slash-tmp'):
+                with self.subTest(mode=mode):
+                    (self.fixture.home / 'fixture-mode').write_text(mode)
+                    log = self.fixture.home / 'requests.jsonl'
+                    log.unlink(missing_ok=True)
+                    result = self.command()
+                    self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+                    receipt = json.loads(result.stdout)
+                    self.assertEqual(receipt['error'], 'native_sandbox_unverified')
+                    self.assertFalse(receipt['execution']['verified'])
+                    requests = [json.loads(line) for line in log.read_text().splitlines()]
+                    self.assertNotIn('turn/start', [row.get('method') for row in requests])
+                    self.assertFalse((self.project / 'changed.py').exists())
             self.assertEqual((local_calls, cloud_calls), ([], []))
 
     def test_replaced_workspace_and_unsupported_callback_fail_without_edits_or_replay(self):
