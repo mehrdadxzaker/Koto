@@ -71,6 +71,11 @@ def main(argv: list[str] | None = None) -> int:
         return client_commands._auth_token(args.env)
     if args.command == "client" and args.client_command in {"acquire", "disconnect", "status", "qualify"}:
         return client_commands.run_lifetime(args)
+    if args.command == "status" and args.client_home is not None:
+        return client_commands.run_lifetime(args)
+    if (args.command == "chat" and args.chat_command in {"ask", "models", "propose"}
+            and args.router_home is not None):
+        return chat_task.run(args)
     try:
         args.config = str(resolve_config(args.config, args.config_project))
     except (ConfigError, OSError, RuntimeError) as error:

@@ -40,6 +40,10 @@ Without a terminal or `--yes`, init stops without downloading or changing
 settings. Completed assets are verified and reused. `--offline --yes` requires
 the matching verified assets and never downloads.
 
+An explicit `--catalog` must declare the supported client transport and an
+interactive profile with no coding evidence. Other reviewed catalogs remain available through `client acquire`;
+init rejects them before downloading or changing settings.
+
 ```sh
 koto init --yes
 koto chat ask --prompt-file /absolute/path/to/handoff-note.txt --effort low --max-output-tokens 512
@@ -105,6 +109,9 @@ Advanced `init --client-home PATH` deliberately selects another client home.
 Use the returned status/disconnect commands and `chat ask --router-home PATH`
 for that override. Existing `client setup/connect/status/disconnect` commands
 retain their own client-home defaults and historical catalogs.
+Status with an explicit `--client-home`, and `chat ask/models/propose` with an
+explicit `--router-home`, use that connection directly. Unused configuration
+environment overrides cannot block those commands.
 
 ## Interruption, restart and removal
 

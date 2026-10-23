@@ -112,6 +112,13 @@ def _catalog(path, executable, *, download, bootstrap=False):
         validate_contract(value)
         if value["schema_id"] != "hormuz.local-acquisition-catalog":
             raise ValueError()
+        profile = value["profile"]
+        if bootstrap and (profile["client_version"] not in BOOTSTRAP_CATALOGS
+                          or profile["task_types"] != ["interactive"]
+                          or profile.get("coding_evidence") is not None
+                          or not {"responses", "text", "streaming", "codex_http",
+                                  "codex_http_0160", "codex_llama_v1"} <= set(profile["capabilities"])):
+            raise ValueError()
         target = value["profile"]["client_version"]
         if target not in SUPPORTED_CODEX_VERSIONS or (client_version and target != client_version):
             raise ValueError()

@@ -27,7 +27,7 @@ def add_commands(commands):
     command.add_argument("--executable", default="codex", help="Existing supported Codex executable")
     command.add_argument("--client-home", help="Explicit Codex home; default is a private home alongside the selected Koto config")
     command.add_argument("--directory", help="Private asset directory (default XDG_DATA_HOME/koto/assets)")
-    command.add_argument("--catalog", help="Explicit reviewed acquisition catalog; default matches the client")
+    command.add_argument("--catalog", help="Explicit reviewed catalog for interactive text tasks; default matches the client")
     mode = command.add_mutually_exclusive_group()
     mode.add_argument("--dry-run", action="store_true", help="Preview downloads and paths without writing or connecting")
     mode.add_argument("--offline", action="store_true", help="Reuse verified assets without downloading")
@@ -133,8 +133,11 @@ def run(args):
     except (LocalAcquisitionError, AssetDownloadError, ManagedLlamaError, ContractValidationError,
             ConnectedClientError, ConfigError, OSError, ValueError, KeyError, TypeError,
             subprocess.SubprocessError, KeyboardInterrupt, EOFError) as error:
-        if isinstance(error, LocalAcquisitionError) and error.code == "catalog_invalid" and not args.catalog:
-            _say("No matching reviewed first-run profile. Use Codex CLI 0.160.0 or the pinned 0.162.0-alpha.17.2 engine via --executable.")
+        if isinstance(error, LocalAcquisitionError) and error.code == "catalog_invalid":
+            if args.catalog:
+                _say("Select a reviewed interactive text catalog for the supported client; other catalogs use client acquire.")
+            else:
+                _say("No matching reviewed first-run profile. Use Codex CLI 0.160.0 or the pinned 0.162.0-alpha.17.2 engine via --executable.")
         if isinstance(error, (ConnectedClientError, ConfigError)):
             result = lifetime_error(error)
         else:

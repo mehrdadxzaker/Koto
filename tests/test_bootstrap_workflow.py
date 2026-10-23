@@ -82,8 +82,10 @@ class BootstrapWorkflowTests(unittest.TestCase):
         payloads["/runtime"] = archive.read_bytes()
         managed["runtime_sha256"] = hashlib.sha256(payloads["/runtime"]).hexdigest()
         qualification = self.root / "qualification.json"
-        profile = json.loads(qualification.read_text())
-        profile["runtime_sha256"] = managed["runtime_sha256"]
+        profile = json.loads((Path(__file__).parent / "fixtures/local-setup-profile-v7.json").read_text())
+        profile.update(system=platform.system(), machine=platform.machine(),
+                       runtime_sha256=managed["runtime_sha256"], model_sha256=managed["model_sha256"])
+        (self.root / "client-version.txt").write_text("0.160.0")
         qualification.write_text(json.dumps(profile))
         return value, payloads
 
@@ -147,6 +149,34 @@ class BootstrapWorkflowTests(unittest.TestCase):
             self.assertEqual(requests, [])
             self.assertEqual((self.client.home / "config.toml").read_bytes(), original)
 
+    def test_old_reviewed_catalog_stops_before_transfer_but_remains_available_to_client_acquire(self):
+        value, payloads = self.fixture.prepare()
+        original = (self.client.home / "config.toml").read_bytes()
+        with artifacts(payloads) as (origin, requests, _):
+            catalog = self.fixture.catalog(value, origin)
+            missing_transport = json.loads((Path(__file__).parent / "fixtures/local-setup-profile-v7.json").read_text())
+            missing_transport.update(system=platform.system(), machine=platform.machine(),
+                runtime_sha256=value["managed_llama"]["runtime_sha256"],
+                model_sha256=value["managed_llama"]["model_sha256"], capabilities=["responses", "text"])
+            for name, profile in (("historical", catalog["profile"]), ("missing_transport", missing_transport)):
+                with self.subTest(catalog=name):
+                    catalog["profile"] = profile
+                    (self.root / "catalog.json").write_text(json.dumps(catalog))
+                    (self.root / "client-version.txt").write_text(profile["client_version"])
+                    failed = self.init("--yes", check=False)
+                    self.assertEqual(failed.returncode, 2, failed.stderr)
+                    self.assertEqual(json.loads(failed.stderr.splitlines()[-1])["error"]["code"], "catalog_invalid")
+                    self.assertFalse(self.path.exists())
+                    self.assertFalse((self.root / "data").exists())
+                    self.assertEqual((self.client.home / "config.toml").read_bytes(), original)
+                    self.assertEqual(requests, [])
+                    legacy = self.command("client", "acquire", "codex", "--dry-run",
+                        "--executable", str(self.client.executable), "--catalog", str(self.root / "catalog.json"),
+                        "--directory", str(self.root / "legacy-assets"))
+                    self.assertEqual(json.loads(legacy.stdout)["state"], "planned")
+                    self.assertFalse((self.root / "legacy-assets").exists())
+                    self.assertEqual(requests, [])
+
     def test_default_private_home_preserves_native_settings_and_off_finds_the_owner(self):
         value, payloads = self.prepare()
         original = (self.client.home / "config.toml").read_bytes()
@@ -187,6 +217,15 @@ class BootstrapWorkflowTests(unittest.TestCase):
             task = self.command(*arguments[1:], cwd=self.root)
             result = json.loads(task.stdout)
             self.assertEqual((result["text"], result["locality"]), ("MANAGED_LOCAL", "local"))
+            poisoned = {**self.environment, "KOTO_CONFIG": "relative.json", "HORMUZ_CONFIG": "relative.json",
+                        "XDG_CONFIG_HOME": "relative"}
+            status = self.command("status", "--client-home", str(home), environment=poisoned)
+            self.assertEqual(json.loads(status.stdout)["router"], "ready")
+            models = self.command("chat", "models", "--router-home", str(home), environment=poisoned)
+            self.assertEqual(json.loads(models.stdout)["models"], ["local-code"])
+            explicit = self.command("chat", "ask", "--router-home", str(home), "--prompt-file", str(prompt),
+                                    "--effort", "low", "--max-output-tokens", "512", environment=poisoned)
+            self.assertEqual(json.loads(explicit.stdout)["text"], "MANAGED_LOCAL")
             self.assertFalse(self.path.exists())
             self.assertEqual((self.client.home / "config.toml").read_bytes(), original)
             self.assertEqual(json.loads(self.command("off").stdout)["phase"], "disconnected")
