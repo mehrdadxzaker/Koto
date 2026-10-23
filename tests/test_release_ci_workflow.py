@@ -56,6 +56,22 @@ class ReleaseCIWorkflowTests(unittest.TestCase):
         self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
         self.assertEqual(result.stdout, '')
 
+    def test_focused_failed_stale_and_incomplete_checkpoints_are_not_release_evidence(self):
+        original_run, original_jobs = copy.deepcopy(self.run), copy.deepcopy(self.jobs)
+        for invalid in ('focused', 'failed_matrix', 'other_commit', 'incomplete_jobs'):
+            with self.subTest(invalid=invalid):
+                self.run, self.jobs = copy.deepcopy(original_run), copy.deepcopy(original_jobs)
+                if invalid == 'focused':
+                    self.jobs['jobs'][1]['name'] = 'CI / focused'
+                elif invalid == 'failed_matrix':
+                    self.jobs['jobs'][2]['conclusion'] = 'failure'
+                elif invalid == 'other_commit':
+                    self.run['head_sha'] = 'b' * 40
+                else:
+                    self.jobs['total_count'] = 7
+                result = self.command()
+                self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+                self.assertEqual(result.stdout, '')
     def test_malformed_identifiers_and_repeated_jobs_cannot_certify_ci(self):
         original_run, original_jobs = copy.deepcopy(self.run), copy.deepcopy(self.jobs)
         for invalid in ('boolean_run', 'boolean_attempt', 'duplicate_job', 'short_commit'):
