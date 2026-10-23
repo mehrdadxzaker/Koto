@@ -81,7 +81,12 @@ jobs:
           path: dist/
       - run: python -m pip install dist/*.whl
       - name: Test fast rules and focused CLI workflows from the installed wheel
-        run: python tools/verify_router_wheel.py dist/*.whl --focused
+        run: >-
+          python tools/verify_router_wheel.py dist/*.whl --focused
+          --workflow-module tests.test_release_versioning_workflow
+          --workflow-module tests.test_release_candidates_workflow
+          --workflow-module tests.test_plugin_packaging_workflow
+          --workflow-module tests.test_release_ci_workflow
 
   package:
     name: Build router distributions

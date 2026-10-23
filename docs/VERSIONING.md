@@ -77,6 +77,32 @@ The tool never commits, tags or publishes. Existing release/tag protections and
 release review still apply; this tool does not establish that a number is
 available on an external registry.
 
+## Release identities and channels
+
+The active runtime is the breaking **2.0 alpha** line. Historical `v1.8.0`
+artifacts belong to the retired Hormuz product and remain immutable. Do not
+restart numbering or advertise those desktop downloads as the current router.
+Repository source, an installed command, a candidate and a published release are
+different observations; compare `koto --version` with the selected artifact.
+
+`python tools/release.py plan runtime` reports the canonical package version,
+its readable SemVer equivalent, release channel, immutable tag and GitHub flags.
+For example, Python `2.0.0a52` displays as `2.0.0-alpha.52` and uses tag
+`v2.0.0a52`. Beta and release-candidate displays use `-beta.N` and `-rc.N`.
+The Python spelling remains canonical for wheel metadata and runtime tags.
+
+`python tools/release.py plan plugin` uses tag `plugin-vMAJOR.MINOR.PATCH`.
+Plugin manifests keep their host-required numeric format. Plugin `0.x` releases
+are marked as development prereleases on GitHub; the numeric host format does
+not imply a stable plugin contract. Only a stable runtime sets `make_latest` to
+true. Runtime prereleases and all plugin releases leave the repository's latest
+stable runtime pointer unchanged.
+
+Version changes are prepared in reviewed PRs. Source tools, tests and CI changes
+do not manufacture a new runtime release number. Prepare a candidate from the
+exact accepted source and promote the same verified bytes after its release
+gates pass. See [releasing](RELEASING.md) for candidate tooling and publication.
+
 ## Other versioned records
 
 Schema and durable-record integer versions describe individual compatibility

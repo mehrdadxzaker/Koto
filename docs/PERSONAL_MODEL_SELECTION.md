@@ -236,12 +236,14 @@ Preserve the encrypted files and key rather than silently downgrading records.
 - Product epic #523 and completion map #536: deliver this personal selection loop.
 - Closure gate #543: require the supported end-to-end journey, checked held-out
   quality, measured benefit and truthful fallback/status before release claims.
-- Compatibility #569: retain failed evidence and resolve only blockers to
-  admitting useful local candidates. The separately authorized bounded
+- Compatibility #569 is closed; its failed canary does not qualify a local
+  coding model. Retain the evidence and address useful coding admission through
+  #543. The separately authorized bounded
   [harness development studies](LOCAL_QWEN_HARNESS_V8.md) do not replace ordinary
   coding qualification; additional qualification requires its own bounded plan.
 - Acquisition #542 / merged #568: supporting setup work, not a separate product.
-- Operations #494–501: separate maintenance, outside this product's critical path.
+- Operations #494–501 are closed as not planned; their historical acceptance
+  evidence is retained in the [separate cleanup record](OPERATIONS_CLEANUP.md).
 
 The primary TDD seam remains connect → request through the actual router →
 inspect result/status → disconnect. Synthetic tests cover multiple local classes

@@ -20,6 +20,7 @@ defines the current evidence and version boundaries.
 | Migrate an existing installation | [2.0 migration](MIGRATION_2.md) and [Koto migration notes](KOTO_REBRAND.md) |
 | Make a first contribution | [First-contribution guide](FIRST_CONTRIBUTION.md) |
 | Find work and its acceptance gates | [Roadmap](ROADMAP.md) |
+| Understand versions and prepare a release | [Versioning](VERSIONING.md) and [releasing](RELEASING.md) |
 
 Plugin installation is separate from routing support. Installation does not
 start a router, fetch a model or qualify a local coding route. Learning starts

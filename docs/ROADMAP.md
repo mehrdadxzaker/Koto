@@ -9,11 +9,16 @@ Read [product scope](ROUTER_SCOPE.md) before proposing a new direction.
 
 | Track | Goal and remaining evidence | Tracker |
 | --- | --- | --- |
-| Personal selection | Complete the consented history, checked outcomes and local multiclass selection loop | [Product epic #523](https://github.com/mehrdadxzaker/Koto/issues/523), [completion map #536](https://github.com/mehrdadxzaker/Koto/issues/536) |
+| Personal selection | Source loop delivered; establish consented representative checked history and real held-out benefit | [Product epic #523](https://github.com/mehrdadxzaker/Koto/issues/523), [completion map #536](https://github.com/mehrdadxzaker/Koto/issues/536) |
 | End-to-end validation | Prove the supported journey, held-out quality, measured benefit and truthful fallback/status before release claims | [Closure gate #543](https://github.com/mehrdadxzaker/Koto/issues/543) |
-| Local coding compatibility | Resolve blockers to admitting useful qualified local candidates while retaining failed evidence | [Compatibility #569](https://github.com/mehrdadxzaker/Koto/issues/569) |
+| Supported coding journey | Complete and qualify the native coding workflow; the current native learning surface is read-only text | [Closure gate #543](https://github.com/mehrdadxzaker/Koto/issues/543), [native session limits](NATIVE_PERSONAL_SESSIONS.md#session-limits) |
+| Release engineering | Prepare reproducible runtime and plugin candidates from verified source, with accurate channels and support claims | [Versioning](VERSIONING.md), [release guide](RELEASING.md) |
 | Contributor experience | Improve docs, synthetic reproductions and focused public-workflow tests | [Good first issues](https://github.com/mehrdadxzaker/Koto/issues?q=is%3Aissue%20is%3Aopen%20label%3A%22good%20first%20issue%22), [help wanted](https://github.com/mehrdadxzaker/Koto/issues?q=is%3Aissue%20is%3Aopen%20label%3A%22help%20wanted%22) |
-| Operational cleanup | Separately retire obsolete external resources and accounts | [Operations #494](https://github.com/mehrdadxzaker/Koto/issues/494), [cleanup scope](OPERATIONS_CLEANUP.md) |
+
+Compatibility [#569](https://github.com/mehrdadxzaker/Koto/issues/569) is closed;
+its failed canary remains evidence, not a qualified local coding setup.
+Obsolete operations [#494–501](OPERATIONS_CLEANUP.md) are closed as not planned,
+without a claim that all external resources or accounts were retired.
 
 ## Contribution boundaries
 

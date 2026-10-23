@@ -1,0 +1,92 @@
+name: Release candidate
+
+on:
+  workflow_dispatch:
+    inputs:
+      component:
+        description: Artifact to prepare; this workflow does not publish
+        type: choice
+        options: [runtime, plugin]
+        required: true
+      ci_run_id:
+        description: Successful full CI push run for this exact main commit
+        type: string
+        required: true
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: release-candidate-${{ inputs.component }}-${{ github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  candidate:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PIP_DISABLE_PIP_VERSION_CHECK: '1'
+      PIP_NO_INPUT: '1'
+      PIP_RETRIES: '3'
+      PIP_TIMEOUT: '30'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - name: Require full CI for the same source
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CI_RUN_ID: ${{ inputs.ci_run_id }}
+        run: |
+          python - <<'PY'
+          import os
+          value = os.environ['CI_RUN_ID']
+          if not value.isascii() or not value.isdecimal() or len(value) > 20:
+              raise SystemExit('ci_run_id must be a numeric GitHub Actions run ID')
+          PY
+          mkdir -p "$RUNNER_TEMP/koto-release-evidence"
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$CI_RUN_ID" > "$RUNNER_TEMP/koto-release-evidence/run.json"
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$CI_RUN_ID/jobs?per_page=100" > "$RUNNER_TEMP/koto-release-evidence/jobs.json"
+          python tools/verify_release_ci.py \
+            --repository "$GITHUB_REPOSITORY" --source "$GITHUB_SHA" \
+            "$RUNNER_TEMP/koto-release-evidence/run.json" \
+            "$RUNNER_TEMP/koto-release-evidence/jobs.json" \
+            > "$RUNNER_TEMP/koto-release-evidence/verification.json"
+      - name: Download the already tested distributions
+        if: inputs.component == 'runtime'
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: koto-router-distributions
+          path: dist/
+          run-id: ${{ inputs.ci_run_id }}
+          github-token: ${{ github.token }}
+      - name: Check release identities
+        run: |
+          python tools/version.py check
+          python tools/release.py plan runtime
+          python tools/release.py plan plugin
+      - name: Prepare the candidate without publishing
+        env:
+          COMPONENT: ${{ inputs.component }}
+        run: |
+          if test "$COMPONENT" = runtime; then
+            python tools/release.py prepare runtime --artifacts dist --notes CHANGELOG.md --output candidate
+          else
+            python tools/release.py prepare plugin --notes CHANGELOG.md --output candidate
+          fi
+          python tools/release.py verify candidate
+          mkdir -p release-output
+          mv candidate release-output/candidate
+          cp -R "$RUNNER_TEMP/koto-release-evidence" release-output/ci-evidence
+      - name: Preserve candidate and exact-source CI evidence
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: koto-${{ inputs.component }}-candidate-${{ github.sha }}
+          path: release-output/
+          if-no-files-found: error
+          retention-days: 30

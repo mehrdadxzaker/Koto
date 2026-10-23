@@ -49,6 +49,13 @@ activate routing, download models or establish provider access.
 
 ## First run from the CLI
 
+The active Koto router is the **2.0 alpha development line**. The historical
+`v1.8.0` release belongs to the earlier Hormuz product; its desktop downloads
+are not the current router. Runtime and skills-plugin versions are independent.
+Read the [versioning policy](docs/VERSIONING.md) and
+[release status and preparation guide](docs/RELEASING.md) before choosing an
+artifact. A development version does not establish model or client qualification.
+
 After installing the source or a reviewed wheel, use the guided bootstrap on
 Darwin arm64 with Codex CLI 0.160.0 (or the explicitly selected pinned app engine):
 

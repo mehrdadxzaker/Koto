@@ -80,7 +80,7 @@ def main():
         if (ROOT / name).exists():
             raise SystemExit('Retired product source: ' + name)
     workflows = sorted(p.name for p in (ROOT / '.github/workflows').glob('*.yml'))
-    if workflows != ['ci.yml']:
+    if workflows != ['ci.yml', 'release-candidate.yml']:
         raise SystemExit('Unscoped delivery workflow')
     metadata = tomllib.loads((ROOT / 'pyproject.toml').read_text())
     if 'optional-dependencies' in metadata['project']:

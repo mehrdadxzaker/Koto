@@ -98,6 +98,9 @@ mirrors. Preview a release change with
 for the intended compatibility change. Omit `--dry-run` only to apply that
 reviewed metadata change. CI and test-only PRs do not automatically bump a
 release; schema versions, client pins and historical evidence stay independent.
+Use `python tools/release.py plan runtime` or `plan plugin` to inspect the
+component's tag and channel. The [release guide](docs/RELEASING.md) describes
+verified candidates, portable skills packages and the separate publication gate.
 
 ## Pick a useful first change
 

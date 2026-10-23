@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Add versioned release planning, verified runtime/plugin candidate bundles and
+  reproducible portable skills archives with source identity and checksums.
+- Prepare candidates from successful full CI on the exact main commit without
+  publishing, rebuilding tested runtime artifacts or granting qualification.
+- Distinguish the active 2.0 alpha router from historical 1.8 desktop releases;
+  document independent plugin tags and future marketplace distribution boundaries.
+- Reconcile the roadmap with closed compatibility and obsolete cleanup tickets,
+  retaining the full personal-selection acceptance contract and failed evidence.
+
 - Add opt-in Qwen Coder v15 caller-declared integer checks covering excluded or
   permitted subclasses and explicit boolean rules for TypeError rejection
   contracts through native host commands.
