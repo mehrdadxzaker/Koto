@@ -36,7 +36,8 @@ _ERROR_CODES = frozenset({
     'native_router_storage_unavailable',
     'native_secret_detected', 'native_secret_policy_invalid', 'native_selection_changed', 'native_selection_invalid',
     'native_terminal_invalid', 'native_thread_invalid', 'native_turn_failed', 'native_turn_invalid',
-    'native_version_unsupported',
+    'native_version_unsupported', 'native_workspace_invalid', 'native_workspace_changed',
+    'native_sandbox_unverified',
 })
 
 
@@ -57,6 +58,23 @@ def _label(value, maximum=256):
 def _digest(value):
     return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(',', ':'),
                                      ensure_ascii=False, allow_nan=False).encode()).hexdigest()
+
+
+def workspace_context(workspace):
+    """Identify an explicitly selected coding root without disclosing its path."""
+    path = Path(workspace).expanduser()
+    if not path.is_absolute():
+        raise NativeSessionError('native_workspace_invalid')
+    try:
+        path = path.resolve(strict=True)
+        info = path.stat(follow_symlinks=False)
+    except OSError:
+        raise NativeSessionError('native_workspace_invalid') from None
+    if not stat.S_ISDIR(info.st_mode) or path == Path(path.anchor):
+        raise NativeSessionError('native_workspace_invalid')
+    return {'domain': 'codex-app-server-host.v2', 'task_type': 'code_change',
+            'workspace_sha256': _digest({'path': str(path), 'device': info.st_dev, 'inode': info.st_ino}),
+            'sandbox_mode': 'workspace-write', 'tool_network_access': False, 'approval_policy': 'never'}
 
 
 def _binary_snapshot(path, deadline):
@@ -290,7 +308,8 @@ def _rpc(child, identifier, method, params, notifications):
 
 
 def run_session(executable, client_home, cwd, prompt, model=None, provider=None,
-                provider_config=None, timeout_seconds=90, select=None, gateway_environment=None):
+                provider_config=None, timeout_seconds=90, select=None, gateway_environment=None,
+                execution_context=None):
     """Run one fresh native turn without reading credentials or editing native settings.
 
     This is a native task observation, not a Responses provider. Native cache,
@@ -313,6 +332,12 @@ def run_session(executable, client_home, cwd, prompt, model=None, provider=None,
             raise NativeSessionError('native_binary_invalid')
         cwd = Path(cwd).expanduser().resolve(strict=True)
         home = Path(client_home).expanduser().resolve(strict=True)
+        if execution_context is not None and (workspace_context(cwd) != execution_context
+                or cwd == home or cwd in home.parents):
+            raise NativeSessionError('native_workspace_invalid')
+        sandbox = ({'type': 'workspaceWrite', 'writableRoots': [str(cwd)], 'networkAccess': False,
+                    'excludeTmpdirEnvVar': True, 'excludeSlashTmp': True}
+                   if execution_context is not None else {'type': 'readOnly'})
         environment = {key: os.environ[key] for key in ('HOME', 'PATH', 'TMPDIR', 'LANG', 'LC_ALL', 'SYSTEMROOT') if key in os.environ}
         environment.update(CODEX_HOME=str(home), OTEL_SDK_DISABLED='true')
         gateway_environment = {} if gateway_environment is None else gateway_environment
@@ -334,11 +359,19 @@ def run_session(executable, client_home, cwd, prompt, model=None, provider=None,
                 raise KeyboardInterrupt
         if version not in (SUPPORTED_CODEX_VERSION, SUPPORTED_CODEX_APP_VERSION):
             raise NativeSessionError('native_version_unsupported')
+        if execution_context is not None and version != SUPPORTED_CODEX_VERSION:
+            raise NativeSessionError('native_version_unsupported')
         if _binary_snapshot(executable, deadline) != binary:
             raise NativeSessionError('native_binary_changed')
         environment.update(gateway_environment)
-        child = _Child([str(executable), '-c', 'approval_policy="never"', '-c', 'sandbox_mode="read-only"',
-                        'app-server'], environment, cwd, deadline)
+        arguments = [str(executable), '-c', 'approval_policy="never"', '-c',
+                     'sandbox_mode="workspace-write"' if execution_context is not None else 'sandbox_mode="read-only"']
+        if execution_context is not None:
+            arguments.extend(['-c', 'sandbox_workspace_write.network_access=false',
+                '-c', 'sandbox_workspace_write.exclude_tmpdir_env_var=true',
+                '-c', 'sandbox_workspace_write.exclude_slash_tmp=true',
+                '-c', 'sandbox_workspace_write.writable_roots=' + json.dumps([str(cwd)])])
+        child = _Child([*arguments, 'app-server'], environment, cwd, deadline)
         notifications = []
         _rpc(child, 1, 'initialize', {'clientInfo': {'name': 'koto_native_session', 'title': 'Koto', 'version': '1'}}, notifications)
         child.send({'method': 'initialized', 'params': {}})
@@ -373,6 +406,8 @@ def run_session(executable, client_home, cwd, prompt, model=None, provider=None,
         result['requested'] = {'provider': selected_provider, 'model': selected_model}
         controls = {key: configuration.get(key) for key in ('model', 'model_provider', 'model_reasoning_effort', 'model_reasoning_summary')}
         controls.update(approval_policy='never', sandbox_mode='read-only')
+        if execution_context is not None:
+            controls.update(sandbox_mode='workspace-write', execution_context=execution_context, sandbox_policy=sandbox)
         if _binary_snapshot(executable, deadline) != binary:
             raise NativeSessionError('native_binary_changed')
         result['facts'] = {'native_binary': str(executable), 'native_sha256': binary[1], 'client_version': version,
@@ -403,9 +438,17 @@ def run_session(executable, client_home, cwd, prompt, model=None, provider=None,
         result['requested'] = {'provider': selected_provider, 'model': selected_model}
         result['context_controls_digest'] = _digest({'native': result['facts']['declared_controls_digest'],
             'selection': result['requested'], 'config': configuration_overrides})
-        thread = _rpc(child, 4, 'thread/start', {'model': selected_model, 'modelProvider': selected_provider,
+        thread_parameters = {'model': selected_model, 'modelProvider': selected_provider,
             'cwd': str(cwd), 'approvalPolicy': 'never', 'ephemeral': True,
-            'config': configuration_overrides}, notifications)
+            'config': configuration_overrides}
+        if execution_context is not None:
+            if workspace_context(cwd) != execution_context:
+                raise NativeSessionError('native_workspace_changed')
+            thread_parameters['sandbox'] = 'workspace-write'
+        thread = _rpc(child, 4, 'thread/start', thread_parameters, notifications)
+        if execution_context is not None and (thread.get('cwd') != str(cwd)
+                or thread.get('approvalPolicy') != 'never' or thread.get('sandbox') != sandbox):
+            raise NativeSessionError('native_sandbox_unverified')
         thread_id = thread['thread']['id']
         if (not _label(thread_id) or not _label(thread.get('modelProvider'), 128)
                 or not _label(thread.get('model'))):
@@ -413,9 +456,11 @@ def run_session(executable, client_home, cwd, prompt, model=None, provider=None,
         result.update(thread_id=thread_id, provider=thread['modelProvider'], model=thread['model'])
         if result['provider'] != selected_provider or selected_model is not None and result['model'] != selected_model:
             raise NativeSessionError('native_selection_changed')
+        if execution_context is not None and workspace_context(cwd) != execution_context:
+            raise NativeSessionError('native_workspace_changed')
         turn = _rpc(child, 5, 'turn/start', {'threadId': result['thread_id'],
             'input': [{'type': 'text', 'text': prompt}], 'approvalPolicy': 'never',
-            'sandboxPolicy': {'type': 'readOnly'}}, notifications)
+            'sandboxPolicy': sandbox}, notifications)
         turn_id = turn['turn']['id']
         if not _label(turn_id):
             raise NativeSessionError('native_turn_invalid')

@@ -14,6 +14,7 @@ defines the current evidence and version boundaries.
 | Install the skills plugin | [Agent installation and compatibility](AGENT_INSTALLATION.md) |
 | Understand history, learning and selection | [Personal model selection](PERSONAL_MODEL_SELECTION.md) |
 | Use an explicitly launched native Codex session | [Native personal sessions](NATIVE_PERSONAL_SESSIONS.md) |
+| Explicitly run an experimental native coding task in a chosen workspace | [Native coding sessions](NATIVE_CODING_SESSIONS.md) |
 | Inspect setup and safe restoration | [Shared local setup](SHARED_LOCAL_SETUP.md) and [connection lifetime](CONNECTED_CLIENT_LIFETIME.md) |
 | Review retained history and privacy controls | [Local history](LOCAL_HISTORY.md) |
 | Understand local-model qualification | [Route admission](LOCAL_ROUTE_ADMISSION.md) and [bounded coding probes](BOUNDED_CODING_PROBES.md) |

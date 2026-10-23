@@ -5,7 +5,9 @@ Koto's consented local history. Codex keeps its existing ChatGPT authentication,
 model execution, tools, permissions and agent loop. Koto does not read or copy
 the native account credential into a router credential or an API configuration.
 
-The session surface is limited to fresh, read-only text work. It preserves the
+The `chat route` surface is limited to fresh, read-only text work. For an
+explicitly chosen writable repository, see the experimental
+[native coding sessions](NATIVE_CODING_SESSIONS.md) command. This text surface preserves the
 normal client settings and startup path; it does not activate the retired
 [desktop startup bridge](CODEX_APP_BRIDGE.md). Continuing a conversation does
 not authorize moving its provider state to another model or account.
@@ -86,7 +88,7 @@ remains required before automatic local selection.
 
 ## Session limits
 
-This command runs one ephemeral, fresh text turn in a temporary workspace, with
+`chat route` runs one ephemeral, fresh text turn in a temporary workspace, with
 read-only sandboxing and approval policy `never`. It is not a coding UI or a
 repository repair workflow. Codex owns its tools; a tool action requiring an
 unimplemented client callback stops with an explicit unknown result rather than

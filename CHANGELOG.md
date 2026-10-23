@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Prepare runtime `2.0.0a53` and skills plugin `0.6.0` with explicit
+  `chat code --workspace` native coding sessions. Preserve native tool ownership,
+  require existing coding qualification before local overrides and retain final
+  router request checks. Synthetic coverage does not expand qualified support.
+- Add native-task v2 coding receipts and host-context v2 workspace binding;
+  preserve legacy v1 text receipts and existing encrypted history. See
+  [migration and rollback](docs/NATIVE_CODING_SESSIONS.md#contract-migration-and-rollback).
+
 - Add opt-in Qwen Coder v15 caller-declared integer checks covering excluded or
   permitted subclasses and explicit boolean rules for TypeError rejection
   contracts through native host commands.
