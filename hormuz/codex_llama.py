@@ -5,7 +5,7 @@ import json
 import re
 from .compaction_formats import strict_json_loads
 from .local_harness import PROFILES
-from .local_harness_request import (LocalHarnessRequest, LocalHarnessRequestError,
+from .local_harness_request import (prepare_request, LocalHarnessRequestError,
     PINNED_CODEX_0160_EXEC_SHA256, PINNED_CODEX_0160_PATCH_SHA256)
 
 CAPABILITY = 'codex_llama_v1'
@@ -115,13 +115,13 @@ class CodexLlamaRequest:
         if isinstance(self.value.get('input'), list):
             self.value['input'] = [self._input(item) for item in self.value['input']]
         try:
-            shaped = LocalHarnessRequest(self.value, self.declarations, self.identities,
-                                         self.original_tool_aliases, profile=harness)
+            shaped = prepare_request(self.value, self.declarations, self.identities,
+                                     self.original_tool_aliases, profile=harness)
         except LocalHarnessRequestError as error:
             raise CodexLlamaError(str(error)) from error
         self.derived_checks = shaped.derived_checks
         self.derived_compilers = shaped.derived_compilers
-        if hasattr(shaped, 'compile_checks'):
+        if shaped.compile_checks is not None:
             self.compile_checks = shaped.compile_checks
 
     def _derived_identity(self, item):

@@ -1,143 +1,17 @@
-"""Versioned request shaping; the host retains instructions and execution.
-
-Inspired by Open Interpreter's Apache-2.0 Qwen request builder at commit
-ac1fcc8fe57aba51fcc3c79afd57a0883237fe87, core/src/harness/qwen_code.rs.
-This is an independent, transport-only adaptation, not its complete harness.
-"""
-from .compaction_formats import strict_json_loads
-from .local_harness_progress import GUIDANCE as V4_GUIDANCE, REPEATED_PATCH_ADVICE as V4_REPEATED_PATCH, progress_checkpoint, progress_snapshot
+"""Apply a reviewed local treatment; the host retains instructions and execution."""
 import json
 import re
 
-CAPABILITY = 'qwen_code_v1'
-PROFILE = 'qwen-code.v1'
-V2_CAPABILITY = 'qwen_code_v2'
-V2_PROFILE = 'qwen-code.v2'
-V3_CAPABILITY = 'qwen_code_v3'
-V3_PROFILE = 'qwen-code.v3'
-V4_CAPABILITY = 'qwen_code_v4'
-V4_PROFILE = 'qwen-code.v4'
-V5_CAPABILITY = 'qwen_code_v5'
-V5_PROFILE = 'qwen-code.v5'
-V6_CAPABILITY = 'qwen_code_v6'
-V6_PROFILE = 'qwen-code.v6'
-V7_CAPABILITY = 'qwen_code_v7'
-V7_PROFILE = 'qwen-code.v7'
-V8_CAPABILITY = 'qwen_code_v8'
-V8_PROFILE = 'qwen-code.v8'
-V9_CAPABILITY = 'qwen_code_v9'
-V9_PROFILE = 'qwen-code.v9'
-V10_CAPABILITY = 'qwen_code_v10'
-V10_PROFILE = 'qwen-code.v10'
-V11_CAPABILITY = 'qwen_code_v11'
-V11_PROFILE = 'qwen-code.v11'
-V12_CAPABILITY = 'qwen_code_v12'
-V12_PROFILE = 'qwen-code.v12'
-V13_CAPABILITY = 'qwen_code_v13'
-V13_PROFILE = 'qwen-code.v13'
-V14_CAPABILITY = 'qwen_code_v14'
-V14_PROFILE = 'qwen-code.v14'
-V15_CAPABILITY = 'qwen_code_v15'
-V15_PROFILE = 'qwen-code.v15'
-PROFILES = {CAPABILITY: PROFILE, V2_CAPABILITY: V2_PROFILE, V3_CAPABILITY: V3_PROFILE,
-            V4_CAPABILITY: V4_PROFILE, V5_CAPABILITY: V5_PROFILE, V6_CAPABILITY: V6_PROFILE,
-            V7_CAPABILITY: V7_PROFILE, V8_CAPABILITY: V8_PROFILE, V9_CAPABILITY: V9_PROFILE,
-            V10_CAPABILITY: V10_PROFILE, V11_CAPABILITY: V11_PROFILE,
-            V12_CAPABILITY: V12_PROFILE, V13_CAPABILITY: V13_PROFILE,
-            V14_CAPABILITY: V14_PROFILE, V15_CAPABILITY: V15_PROFILE}
-MODEL = 'Qwen3-14B-Q4_K_M'
-CODER_MODEL = 'Qwen3-Coder-30B-A3B-Instruct-Q4_K_M'
-MODELS = {capability: CODER_MODEL if capability in {V13_CAPABILITY, V14_CAPABILITY, V15_CAPABILITY} else MODEL
-          for capability in PROFILES}
-MODELS_BY_PROFILE = {PROFILES[capability]: model for capability, model in MODELS.items()}
-V8_GUIDANCE = '''Local coding protocol (subordinate to existing host and repository instructions):
-Complete the requested repair through the declared host tools. For other tasks,
-answer the original request without inventing edits or checks.
-Read the source and every requirement. For Python verification, use the declared
-Python script helper (script parameter) when offered. Its script is ordinary
-Python with real newlines, not a shell command or JSON test cases. Import and
-call the saved function; do not redefine the implementation in a check. Use
-assertions, including errors and boundaries.
-If an error must leave state unchanged, validate all operations using private
-proposed state before committing any mutation. Test a valid step followed by a
-failing step, cumulative repeated operations, and the complete state after the
-exception. If values may be unhashable, compare them by equality rather than
-using a set or dictionary as the sole deduplication mechanism.
-Run focused checks, repair the actual saved code, then rerun the same checks
-after the last edit. Inspect actual host results. A printout, saved patch, test
-definition, or failed command does not establish passing assertions. Do not
-weaken the specification or existing checks. Finish with the repair and checks
-that actually ran, or the concrete blocker. Native patch hunks use plain @@
-and correctly prefixed lines, without unified-diff line-number ranges.'''
-
-V11_GUIDANCE = V8_GUIDANCE + '''
-Before editing, turn every stated type and error constraint into a compact
-assertion against the saved function. In Python, bool is a subclass of int:
-isinstance(value, int) accepts True and False. Reject booleans or require an
-exact built-in type only when the task requires it; preserve other permitted
-types. Include specified excluded types and distinguish missing, None, False
-and zero where required. Run those assertions after the final edit, together
-with the normal and boundary cases. Do not weaken an explicit constraint to
-make a check pass.'''
-
-V12_GUIDANCE = V11_GUIDANCE + '''
-Exact type and type-family requirements are different. In Python,
-isinstance(value, int) with a separate bool rejection still accepts int subclasses.
-When the task excludes subclasses, use type(value) is int; test a locally defined
-int subclass as well as bool. When integer subclasses are explicitly allowed,
-preserve them and reject only excluded types. Derive checks for each specified
-accepted and rejected category instead of inferring full coverage from normal
-examples. These rules apply only where required by the original task.'''
-
-V15_GUIDANCE = '''Local integer type verification (subordinate to host, repository and user instructions):
-For top-level integer parameters of a saved Python callable, use the declared
-integer-check helper, when offered, after the final edit, only when every declared
-rejection requires TypeError. For other exception contracts, methods or nested
-values, write plain Python assertions with the script helper. Supply a valid named integer sample and the original
-rule for each selected argument: reject subclasses for exact built-in integers;
-allow subclasses only when permitted. Choose booleans=reject only when forbidden,
-otherwise unchecked and verify their permitted behavior separately. The helper
-constructs a same-value int subclass and rejected boolean checks against the saved
-function. A boolean-only guard does not reject other int subclasses. Inspect its
-actual exit result and repair failures. Also run concise functional assertions;
-type checks alone do not prove task correctness. Never invent a type restriction.
-''' + V8_GUIDANCE
-
-V9_GUIDANCE = V8_GUIDANCE.replace('''For Python verification, use the declared
-Python script helper (script parameter) when offered. Its script is ordinary
-Python with real newlines, not a shell command or JSON test cases. Import and
-call the saved function; do not redefine the implementation in a check. Use
-assertions, including errors and boundaries.''', '''For saved Python functions, prefer the declared function-case helper when
-offered. Supply small cases with an arguments object keyed by the saved function's
-parameter names and expected values or exceptions,
-plus required identity and state-preservation checks. Opt into batch composition
-only when the original specification requires its sequential-rejection property.
-The plain Python script helper remains available for checks case data cannot
-express. Import the saved function; do not redefine it in a check. Let assertions
-and unexpected exceptions fail the command rather than catching and printing them.''')
-
-
-V10_GUIDANCE = '''Local coding protocol (subordinate to host, repository and user instructions):
-For a requested repair, read the saved source and every requirement, make a focused
-edit through declared tools, and verify the saved implementation.
-For other tasks, answer the original request without inventing edits or checks.
-For required atomic mutation, make a private working copy of the mutable state.
-Apply every operation in order against that evolving copy, validating cumulative
-effects there. Commit to the original state only after the entire operation succeeds; preserve required
-object identity. Check a valid step followed by a specified error, repeated
-operations whose cumulative effect exceeds a limit, and the entire unchanged
-original state after the exception.
-For supported unhashable keys, retain encountered keys and compare by equality.
-Hashing, sorting and serialization are not substitutes for required equality.
-Distinguish a missing required key from a present None: check key presence
-explicitly instead of inferring absence with get(..., None).
-Use one compact Python assertions script that imports the saved implementation,
-including its required imports, and covers the original success, error, ordering,
-identity and state requirements. Run it before editing, then rerun the identical
-checks after the last edit. Correct import or check errors and obtain actual
-successful assertions before reporting success. Let failed assertions and unexpected
-exceptions fail the command instead of catching and printing them. Preserve original requirements
-and existing checks. Report actual results or the concrete blocker.'''
+from .compaction_formats import strict_json_loads
+from .local_harness_progress import progress_checkpoint, progress_snapshot
+from .local_harness_profiles import (
+    CAPABILITY, PROFILE, V2_CAPABILITY, V2_PROFILE, V3_CAPABILITY, V3_PROFILE, V4_CAPABILITY, V4_PROFILE,
+    V5_CAPABILITY, V5_PROFILE, V6_CAPABILITY, V6_PROFILE, V7_CAPABILITY, V7_PROFILE, V8_CAPABILITY,
+    V8_PROFILE, V9_CAPABILITY, V9_PROFILE, V10_CAPABILITY, V10_PROFILE, V11_CAPABILITY, V11_PROFILE,
+    V12_CAPABILITY, V12_PROFILE, V13_CAPABILITY, V13_PROFILE, V14_CAPABILITY, V14_PROFILE, V15_CAPABILITY,
+    V15_PROFILE, PROFILES, MODEL, CODER_MODEL, MODELS, MODELS_BY_PROFILE, V8_GUIDANCE, V11_GUIDANCE,
+    V12_GUIDANCE, V15_GUIDANCE, V9_GUIDANCE, V10_GUIDANCE, GUIDANCE, V2_GUIDANCE, V2_CHECKPOINT,
+    V3_PATCH_RECOVERY, V3_REPEATED_PATCH, V4_GUIDANCE, V4_REPEATED_PATCH, V6_REPEATED_PATCH, resolve_profile)
 
 
 def _last_failed_command_output(items, declarations, state):
@@ -237,97 +111,6 @@ def _script_checkpoint(items, declarations, *, verification_sensitive=False, sta
                 'Changing quoting or repeating the same expectation does not resolve a value mismatch. '
                 'Keep check scripts and the final status concise.')
     return message
-GUIDANCE = '''Local coding guidance (subordinate to all existing host and repository instructions):
-Read the relevant source and nearby tests before editing. Follow existing project
-conventions and verify available dependencies. Identify all required return values,
-ordering, mutation, boundaries and exceptions. Make a focused change covering each
-requirement. Use only the tools declared by the host, with their exact parameter
-names; do not invent tools or claim an edit without a successful tool result.
-After editing, run the relevant checks through an available host tool. Reconcile
-failures with the specification before changing code or expectations. Do not repeat
-an unchanged failed call. Once the latest edit passes the relevant checks, finish
-with a concise factual status, including checks that could not run.'''
-
-V2_GUIDANCE = '''Local verification protocol (subordinate to all existing host and repository instructions):
-For a requested coding edit, complete it through the existing host tools. For
-other tasks, follow the original request without inventing edits or checks.
-For coding work, do not stop at a plan
-or a claim that the implementation works. Use only declared tools and parameters.
-1. Read the relevant source and specification. Turn every requirement into a short
-executable assertion, including boundaries, ordering, missing inputs and errors.
-2. Check the available interpreter or test runner through a host tool. For Python,
-try python3; do not assume the command python exists. If only the source file may
-be changed, run assertions in an inline script instead of adding test files.
-3. Exercise failure paths before editing. If failure must leave state unchanged,
-save a copy, put a failing operation after a valid operation, and assert the full
-state is unchanged after the exception. Cover repeated operations on the same
-item. Check equality separately from hashing: when unhashable values are allowed,
-include equal list or dictionary values. Distinguish a missing key from a present
-key whose value is None. Use the task specification, not assumptions about types.
-4. Execute those assertions against the current implementation and inspect the
-actual failure. Then make the focused edit and execute the assertions again after
-the last edit. Also run existing relevant tests when available. Repair failures
-in the implementation; do not weaken requirements or existing checks.
-5. A saved edit is not verification. Before a success report, obtain a successful
-host tool result for the final implementation's assertions. If verification is
-blocked or incomplete, say so and report the actual command and failure. Finish
-with the edit and checks that actually ran, not future intentions.'''
-
-V2_CHECKPOINT = '''Local verification protocol checkpoint (subordinate to all host and repository instructions):
-Apply this checkpoint to requested coding edits; follow other tasks as requested.
-Use the declared tools. If applying a native patch, follow its exact grammar:
-*** Begin Patch, *** Update File: path, then @@ without unified-diff line numbers.
-Every hunk line starts with a space for context, - for removal, or + for addition;
-finish with *** End Patch. Never send an unprefixed source line in a hunk.
-Before reporting success, execute compact assertions against the latest saved
-code through a host tool (python3 for Python). For required atomic behavior, test
-a valid step followed by a failing step and unchanged original state, including
-repeated items. For equality supporting unhashable values, test equal lists and
-dictionaries. Inspect actual failures, repair the code, and rerun the assertions.
-For required no-mutation-on-error behavior, adapt this assertion pattern to the
-task and execute it, including a batch whose repeated operations exceed a limit:
-    before = copy.deepcopy(state)
-    try:
-        function(state, invalid_batch)
-    except RequiredError:
-        pass
-    else:
-        raise AssertionError("expected rejection")
-    assert state == before
-Use the real function, inputs and specified exception; import copy if needed.
-A printout of a normal example is not verification. Use assert to check specified
-results and failure invariants. Perform requested checks within host permissions;
-do not end by offering to test later. Report actual results or a concrete blocker.'''
-
-V3_PATCH_RECOVERY = '''Native patch recovery (subordinate to all host instructions):
-The host rejected a native apply_patch containing a unified-diff range header.
-Do not repeat the rejected patch or reread the unchanged file to fix this syntax.
-Use a plain @@ on its own line. This is a complete FORMAT example only; use the
-actual file, context and required edit from the task:
-*** Begin Patch
-*** Update File: path/to/file.py
-@@
--old
-+new
-*** End Patch
-Keep the existing host tool's exact argument names. After the successful edit,
-execute the task's assertions through an available host tool before finishing.'''
-
-V3_REPEATED_PATCH = '''The identical malformed patch has already failed more than once.
-Change approach through another declared host editing tool if the host instructions
-allow it. For example, an available exec_command takes cmd and can write the
-required complete file with a safely quoted heredoc. Use only available tools and
-stay inside the permitted workspace. Do not repeat the rejected patch again.
-Then execute the assertions with python3 for Python, inspect the result, and fix
-any failure before reporting success. If a later host tool already saved and
-verified the edit, report those actual results. If no allowed approach exists,
-report it.'''
-
-V6_REPEATED_PATCH = '''The identical malformed patch has failed more than once.
-Use a correctly formed native patch or another declared host editing tool within
-host permissions. Do not repeat the rejected patch or relax the sandbox. Check
-the saved function with the declared Python check helper when available; follow
-the actual result before reporting completion.'''
 
 
 def _patch_recovery(items, declarations, *, repeated_advice=V3_REPEATED_PATCH, latest_only=False, state=None):
@@ -401,15 +184,12 @@ def profile_for_capabilities(capabilities):
     return selected[0] if selected else None
 
 
-def adapt_qwen_request(value, declarations, *, profile=PROFILE, _progress=None):
-    """Mutate only a private translated copy; preserve every argument value."""
-    if profile not in PROFILES.values():
-        raise ValueError('unsupported_local_harness')
+def apply_profile_guidance(value, declarations, manifest, *, progress=None):
+    """Shape guidance from the resolved manifest, never from version membership."""
     instructions = value.get('instructions', '')
     if not isinstance(instructions, str):
         raise ValueError('invalid_harness_instructions')
-    guidance = V15_GUIDANCE if profile == V15_PROFILE else V12_GUIDANCE if profile in {V12_PROFILE, V13_PROFILE, V14_PROFILE} else V11_GUIDANCE if profile == V11_PROFILE else V10_GUIDANCE if profile == V10_PROFILE else V9_GUIDANCE if profile == V9_PROFILE else V8_GUIDANCE if profile == V8_PROFILE else V4_GUIDANCE if profile in {V4_PROFILE, V5_PROFILE, V6_PROFILE, V7_PROFILE} else GUIDANCE if profile == PROFILE else V2_GUIDANCE
-    value['instructions'] = instructions + '\n\n' + guidance
+    value['instructions'] = instructions + '\n\n' + manifest.guidance
     for item in value.get('input', []):
         if not isinstance(item, dict) or item.get('type') != 'function_call':
             continue
@@ -418,24 +198,29 @@ def adapt_qwen_request(value, declarations, *, profile=PROFILE, _progress=None):
         ordered = {key: arguments[key] for key in properties if key in arguments}
         ordered.update(arguments)
         item['arguments'] = json.dumps(ordered, separators=(',', ':'), ensure_ascii=False, allow_nan=False)
-    if profile in {V2_PROFILE, V3_PROFILE, V4_PROFILE, V5_PROFILE, V6_PROFILE, V7_PROFILE, V8_PROFILE, V9_PROFILE, V10_PROFILE, V11_PROFILE, V12_PROFILE, V13_PROFILE, V14_PROFILE, V15_PROFILE} and isinstance(value.get('input'), str):
+    policy = manifest.checkpoint
+    if policy.kind == 'none':
+        return
+    if isinstance(value.get('input'), str):
         value['input'] = [{'type': 'message', 'role': 'user', 'content': [
             {'type': 'input_text', 'text': value['input']}]}]
-    if profile in {V2_PROFILE, V3_PROFILE, V4_PROFILE, V5_PROFILE, V6_PROFILE, V7_PROFILE, V8_PROFILE, V9_PROFILE, V10_PROFILE, V11_PROFILE, V12_PROFILE, V13_PROFILE, V14_PROFILE, V15_PROFILE} and isinstance(value.get('input'), list):
-        # A model-facing reminder, never a fabricated user message, tool result,
-        # or extra agent turn. The native transcript remains an exact prefix.
-        checkpoint = (_script_checkpoint(value['input'], declarations, verification_sensitive=profile in {V9_PROFILE, V10_PROFILE}, state=_progress, compact=profile == V10_PROFILE) if profile in {V8_PROFILE, V9_PROFILE, V10_PROFILE, V11_PROFILE, V12_PROFILE, V13_PROFILE, V14_PROFILE, V15_PROFILE} else
-                      progress_checkpoint(value['input'], declarations, single_line=profile == V5_PROFILE,
-                                          typed_checks=profile in {V6_PROFILE, V7_PROFILE},
-                                          feedback_checks=profile == V7_PROFILE)
-                      if profile in {V4_PROFILE, V5_PROFILE, V6_PROFILE, V7_PROFILE} else V2_CHECKPOINT)
-        if profile in {V4_PROFILE, V5_PROFILE, V6_PROFILE, V7_PROFILE}:
+    if isinstance(value.get('input'), list):
+        # A model-facing reminder; native history stays an exact prefix.
+        if policy.kind == 'script':
+            checkpoint = _script_checkpoint(value['input'], declarations,
+                verification_sensitive=policy.verification_sensitive, state=progress, compact=policy.compact)
+        elif policy.kind == 'progress':
+            checkpoint = progress_checkpoint(value['input'], declarations, single_line=policy.single_line,
+                typed_checks=policy.typed_checks, feedback_checks=policy.feedback_checks)
+        else:
+            checkpoint = V2_CHECKPOINT
+        if policy.patch_recovery != 'none':
             checkpoint += _patch_recovery(value['input'], declarations,
-                repeated_advice=V6_REPEATED_PATCH if profile in {V6_PROFILE, V7_PROFILE} else V4_REPEATED_PATCH)
-        elif profile == V3_PROFILE:
-            checkpoint += _patch_recovery(value['input'], declarations)
-        elif profile in {V9_PROFILE, V10_PROFILE, V14_PROFILE, V15_PROFILE}:
-            checkpoint += _patch_recovery(value['input'], declarations,
-                repeated_advice=V6_REPEATED_PATCH, latest_only=True, state=_progress)
+                repeated_advice=policy.repeated_patch_advice, latest_only=policy.patch_recovery == 'latest', state=progress)
         value['input'].append({'type': 'message', 'role': 'developer', 'content': [
             {'type': 'input_text', 'text': checkpoint}]})
+
+
+def adapt_qwen_request(value, declarations, *, profile=PROFILE, _progress=None):
+    """Retain the earlier guidance-only interface for existing callers."""
+    apply_profile_guidance(value, declarations, resolve_profile(profile), progress=_progress)
