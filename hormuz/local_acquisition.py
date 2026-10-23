@@ -1,5 +1,5 @@
 """Private digest-bound asset generations feeding the existing shared setup owner."""
-from contextlib import contextmanager
+from contextlib import ExitStack, contextmanager
 import hashlib
 import json
 import os
@@ -22,6 +22,10 @@ DEFAULT_CATALOGS = {
     "0.147.0": "local-acquisition-codex-0147-llama-b11617-qwen3-4b-v1.json",
     "0.160.0": "local-acquisition-codex-0160-llama-b11617-qwen3-4b-v1.json",
     "0.162.0-alpha.17.2": "local-acquisition-codex-app-0162-llama-b11617-qwen3-4b-v3.json",
+}
+BOOTSTRAP_CATALOGS = {
+    "0.160.0": "local-acquisition-codex-0160-llama-b11617-qwen3-4b-text-v1.json",
+    "0.162.0-alpha.17.2": "local-acquisition-codex-app-0162-llama-b11617-qwen3-4b-text-v1.json",
 }
 EXPANSION_LIMIT = 1024**3
 
@@ -54,7 +58,40 @@ def _file_info(stream, limit, *, private=True):
 
 def _directory(path, *, create=False):
     if create:
-        path.mkdir(mode=0o700, parents=True, exist_ok=True)
+        try:
+            if not path.is_absolute() or len(path.parts) > 128:
+                raise ValueError()
+            # Keep directory handles until the complete chain is checked.
+            # Creation is relative to verified handles, never a missing path
+            # reconstructed beneath an ancestor that can become a symlink.
+            with ExitStack() as handles:
+                def open_directory(name, parent=None):
+                    descriptor = os.open(name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_NONBLOCK,
+                                         dir_fd=parent)
+                    handles.callback(os.close, descriptor)
+                    info = os.fstat(descriptor)
+                    if (info.st_uid not in {0, os.getuid()}
+                            or info.st_mode & 0o022 and not info.st_mode & stat.S_ISVTX):
+                        raise ValueError()
+                    return descriptor
+
+                descriptor = open_directory(path.anchor)
+                for part in path.parts[1:]:
+                    try:
+                        child = open_directory(part, descriptor)
+                    except FileNotFoundError:
+                        try:
+                            os.mkdir(part, mode=0o700, dir_fd=descriptor)
+                        except FileExistsError:
+                            pass
+                        child = open_directory(part, descriptor)
+                    descriptor = child
+                opened, observed = os.fstat(descriptor), path.lstat()
+                if (path.resolve(strict=True) != path
+                        or (opened.st_dev, opened.st_ino) != (observed.st_dev, observed.st_ino)):
+                    raise ValueError()
+        except (OSError, RuntimeError, ValueError):
+            raise LocalAcquisitionError("directory_unsafe") from None
     info = path.lstat()
     if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid() or info.st_mode & 0o077:
         raise LocalAcquisitionError("directory_unsafe")
@@ -90,7 +127,7 @@ def _sync(path):
         os.close(descriptor)
 
 
-def _catalog(path, executable, *, download):
+def _catalog(path, executable, *, download, bootstrap=False):
     try:
         client_version = None
         if executable is not None or not path or download:
@@ -100,12 +137,22 @@ def _catalog(path, executable, *, download):
             if program is None:
                 raise ValueError()
             client_version = _qualify_client(program)
-        source = Path(path).expanduser() if path else Path(__file__).with_name(DEFAULT_CATALOGS[client_version])
+        catalogs = BOOTSTRAP_CATALOGS if bootstrap else DEFAULT_CATALOGS
+        source = Path(path).expanduser() if path else Path(__file__).with_name(catalogs[client_version])
         value = strict_json_loads(_safe_file(source, 65536, private=False))
         if type(value) is not dict:
             raise ValueError()
         validate_contract(value)
         if value["schema_id"] != "hormuz.local-acquisition-catalog":
+            raise ValueError()
+        profile = value["profile"]
+        if bootstrap and (profile["client_version"] not in BOOTSTRAP_CATALOGS
+                          or profile["task_types"] != ["interactive"]
+                          or profile.get("coding_evidence") is not None
+                          or not {"responses", "text", "streaming", "codex_http",
+                                  "codex_http_0160", "codex_llama_v1"} <= set(profile["capabilities"])):
+            raise ValueError()
+        if bootstrap and profile["max_request_bytes"] + profile["max_output_tokens"] + 1024 > profile.get("context_tokens", 32768):
             raise ValueError()
         target = value["profile"]["client_version"]
         if target not in SUPPORTED_CODEX_VERSIONS or (client_version and target != client_version):
@@ -226,20 +273,40 @@ def _remaining_bytes(catalog, generation):
     return remaining
 
 
-def acquire_local(args):
+def acquire_local(args, *, bootstrap=False):
     if os.name != "posix":
         raise LocalAcquisitionError("platform_unsupported")
-    catalog = _catalog(args.catalog, args.executable, download=args.download)
+    catalog = _catalog(args.catalog, args.executable, download=args.download, bootstrap=bootstrap)
     if (catalog["profile"]["system"], catalog["profile"]["machine"]) != (platform.system(), platform.machine()):
         raise LocalAcquisitionError("platform_unsupported")
+    digest = hashlib.sha256(_bytes(catalog)).hexdigest()
+    expected = getattr(args, "expected_catalog_sha256", None)
+    if expected is not None and expected != digest:
+        raise LocalAcquisitionError("installation_changed")
     if not 1 <= len(args.directory) <= 4096 or any(ord(c) < 32 or ord(c) == 127 for c in args.directory):
         raise LocalAcquisitionError("directory_unsafe")
     try:
         directory = Path(args.directory).expanduser().absolute()
-        directory = directory.parent.resolve(strict=True) / directory.name
+        parent, missing = directory.parent, []
+        # Strictly resolve existing ancestry, allowing a bounded number of
+        # missing parents for fresh XDG defaults. Non-strict resolve suppresses
+        # symlink loops on newer Python versions and must not weaken this check.
+        for _ in range(64):
+            try:
+                canonical = parent.resolve(strict=True)
+                break
+            except FileNotFoundError:
+                if parent.is_symlink():
+                    raise LocalAcquisitionError("directory_unsafe")
+                missing.append(parent.name)
+                parent = parent.parent
+        else:
+            raise LocalAcquisitionError("directory_unsafe")
+        if not canonical.is_dir():
+            raise LocalAcquisitionError("directory_unsafe")
+        directory = Path(os.path.normpath(canonical.joinpath(*reversed(missing), directory.name)))
     except (OSError, RuntimeError, ValueError):
         raise LocalAcquisitionError("directory_unsafe") from None
-    digest = hashlib.sha256(_bytes(catalog)).hexdigest()
     generation = directory / digest
     if directory.exists() or directory.is_symlink():
         _directory(directory)
@@ -274,7 +341,10 @@ def _acquire_locked(args, catalog, directory, digest, lock_descriptor):
         setup = _verify(catalog, generation)
     total = (_remaining_bytes(catalog, generation) if inspect else
              sum(catalog[role]["size_bytes"] for role in ("runtime", "model")))
-    available = shutil.disk_usage(directory if directory.exists() else directory.parent).free
+    storage_parent = directory
+    while not storage_parent.exists():
+        storage_parent = storage_parent.parent
+    available = shutil.disk_usage(storage_parent).free
     required = 0 if setup else total + EXPANSION_LIMIT + 64 * 1024**2
     result = {"schema_id": "hormuz.local-acquisition", "schema_version": 1,
               "catalog_id": catalog["catalog_id"], "catalog_sha256": digest,

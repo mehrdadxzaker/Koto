@@ -16,8 +16,9 @@ def _tag(value, key):
         raise ContractValidationError("invalid local setup identifier")
 
 
-def validate_profile(value, *, extended=False, namespaces=False, output_limit=512):
-    _exact_keys(value, PROFILE_FIELDS | ({"coding_evidence"} if value["schema_version"] >= 2 else set()))
+def validate_profile(value, *, extended=False, namespaces=False, output_limit=512, startup_limit=60):
+    _exact_keys(value, PROFILE_FIELDS | ({"coding_evidence"} if value["schema_version"] >= 2 else set())
+                | ({"context_tokens"} if value["schema_version"] == 7 else set()))
     if value["schema_version"] >= 2 and value["coding_evidence"] is not None:
         from .local_coding import validate_evidence
         validate_evidence(value["coding_evidence"])
@@ -28,7 +29,7 @@ def validate_profile(value, *, extended=False, namespaces=False, output_limit=51
             raise ContractValidationError("invalid local setup digest")
     for key, maximum in (("max_request_bytes", 2 * 1024 * 1024 if extended else 65536),
                          ("max_output_tokens", 8192 if extended else output_limit),
-                         ("upstream_timeout_seconds", 360 if extended else 90), ("startup_timeout_seconds", 60)):
+                         ("upstream_timeout_seconds", 360 if extended else 90), ("startup_timeout_seconds", startup_limit)):
         if type(value[key]) is not int or not 1 <= value[key] <= maximum:
             raise ContractValidationError("invalid local setup limit")
     choices = {
@@ -62,6 +63,23 @@ def validate_profile_v4(value):
 
 def validate_profile_v5(value):
     validate_profile(value, namespaces=True, output_limit=2048)
+
+
+def validate_profile_v6(value):
+    validate_profile(value, extended=True, startup_limit=120)
+    if value["coding_evidence"] is not None or value["task_types"] != ["interactive"]:
+        raise ContractValidationError("bootstrap startup profile permits explicit text work only")
+
+
+def validate_profile_v7(value):
+    validate_profile_v6(value)
+    context = value["context_tokens"]
+    if type(context) is not int or not 2048 <= context <= 32768 or value["max_output_tokens"] > context:
+        raise ContractValidationError("invalid bootstrap context limit")
+    # Byte-level tokenization cannot require more input tokens than serialized
+    # UTF-8 bytes. Keep additional room for the runtime's chat template.
+    if value["max_request_bytes"] + value["max_output_tokens"] + 1024 > context:
+        raise ContractValidationError("bootstrap request and output exceed the context envelope")
 
 
 def validate_setup(value):

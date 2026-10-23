@@ -16,7 +16,9 @@ from .commands import history as history_commands
 from .commands import capabilities as capability_commands
 from . import chat_task
 from .commands import benchmark as benchmark_commands
+from .commands import bootstrap as bootstrap_commands
 from .config import ConfigError, GatewayConfig
+from .config_location import resolve_config, router_home
 from .contracts import contract_manifest
 from .evidence import EvidenceStorageError
 from .server import GatewayServer
@@ -26,12 +28,10 @@ from .store import StorageSchemaError
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="koto", description="Koto: local routing for existing coding clients.")
     parser.add_argument("--version", action="version", version=__version__)
-    default_config = (os.environ.get("KOTO_CONFIG") or os.environ.get("HORMUZ_CONFIG")
-                      or ("hormuz.json" if not os.path.lexists("koto.json")
-                          and os.path.exists("hormuz.json")
-                          else "koto.json"))
-    parser.add_argument("--config", default=default_config,
-                        help="Router JSON configuration path (default: koto.json or KOTO_CONFIG)")
+    configuration = parser.add_mutually_exclusive_group()
+    configuration.add_argument("--config", help="Explicit router JSON; overrides KOTO_CONFIG and the user default")
+    configuration.add_argument("--project", dest="config_project",
+                               help="Explicit project override: DIR/.koto/config.json; no automatic directory search")
     parser.add_argument("--verbose", action="store_true", help="Enable content-free request logs")
     commands = parser.add_subparsers(dest="command")
     commands.add_parser("serve", help="Run the customer-local router")
@@ -46,6 +46,7 @@ def build_parser() -> argparse.ArgumentParser:
     capability_commands.add_commands(commands)
     chat_task.add_commands(commands)
     benchmark_commands.add_commands(commands)
+    bootstrap_commands.add_commands(commands)
     return parser
 
 
@@ -60,6 +61,34 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "contract":
         print(json.dumps(contract_manifest(), indent=2, sort_keys=True))
         return 0
+    # Recovery and credential helpers must remain usable even when a selected
+    # profile or its environment override is broken. Neither needs router JSON.
+    if args.command == "off":
+        return client_commands.run_lifetime(args)
+    if args.command == "auth":
+        if args.auth_command == "local-token":
+            return client_commands.local_token(args)
+        return client_commands._auth_token(args.env)
+    if args.command == "client" and args.client_command in {"acquire", "disconnect", "status", "qualify"}:
+        return client_commands.run_lifetime(args)
+    if args.command == "status" and args.client_home is not None:
+        return client_commands.run_lifetime(args)
+    if (args.command == "chat" and args.chat_command in {"ask", "models", "propose"}
+            and args.router_home is not None):
+        return chat_task.run(args)
+    try:
+        args.config = str(resolve_config(args.config, args.config_project))
+    except (ConfigError, OSError, RuntimeError) as error:
+        print(f"configuration error: {error}", file=sys.stderr)
+        return 2
+    if args.command == "config":
+        print(args.config)
+        return 0
+    if args.command == "init":
+        return bootstrap_commands.run(args)
+    if args.command == "status":
+        args.client_home = args.client_home or str(router_home(args.config))
+        return client_commands.run_lifetime(args)
     if args.command == "history":
         return history_commands.run(args)
     if args.command == "chat":
@@ -68,11 +97,7 @@ def main(argv: list[str] | None = None) -> int:
         return benchmark_commands.run(args)
     if args.command in {"request", "policy", "model", "usage"}:
         return capability_commands.run(args)
-    if args.command == "auth":
-        if args.auth_command == "local-token":
-            return client_commands.local_token(args)
-        return client_commands._auth_token(args.env)
-    if args.command == "off" or args.command == "client" and args.client_command != "config":
+    if args.command == "client" and args.client_command != "config":
         return client_commands.run_lifetime(args)
     try:
         config = GatewayConfig.load(args.config)

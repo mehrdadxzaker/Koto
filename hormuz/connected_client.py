@@ -729,29 +729,50 @@ class ConnectedClientLifetime:
                                     "provider_table": "add"}, "router": "not_started",
                         **({"local_runtime": {"ownership": "planned", "state": "not_started"}}
                            if managed is not None else {})}, managed is not None)
-            self._save(record)
-            _write(self.config_path, text, expected=original_text, compare=True)
-            process = subprocess.Popen([sys.executable, "-m", "hormuz.connected_client_runtime", str(self.record_path), generation],
-                stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                start_new_session=True)
-            deadline = time.monotonic() + (managed.verification_timeout_seconds() + managed.startup_timeout_seconds + 5
-                                         if managed is not None else 5)
-            while _control(record, "status") != "ready":
-                if process.poll() is not None or time.monotonic() >= deadline:
-                    if process.poll() is None:
+            process = None
+            try:
+                self._save(record)
+                _write(self.config_path, text, expected=original_text, compare=True)
+                process = subprocess.Popen([sys.executable, "-m", "hormuz.connected_client_runtime", str(self.record_path), generation],
+                    stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                    start_new_session=True)
+                deadline = time.monotonic() + (managed.verification_timeout_seconds() + managed.startup_timeout_seconds + 5
+                                             if managed is not None else 5)
+                while _control(record, "status") != "ready":
+                    if process.poll() is not None or time.monotonic() >= deadline:
+                        if process.poll() is None:
+                            process.terminate()
+                            process.wait(timeout=5)
+                        cleanup_deadline = time.monotonic() + 7
+                        while managed is not None and self._runtime_active() and time.monotonic() < cleanup_deadline:
+                            time.sleep(0.05)
+                        self._restore(record)
+                        record["phase"] = "disconnecting" if self._runtime_active() else "disconnected"
+                        self._save(record)
+                        raise ConnectedClientError("runtime_start_failed" if managed is not None else "router_start_failed")
+                    time.sleep(0.05)
+                record["phase"] = "connected"
+                self._save(record)
+                return self._status(record)
+            except KeyboardInterrupt:
+                # Clean up this exact generation while still holding the
+                # lifecycle lock. A wrapper must not disconnect a newer owner.
+                try:
+                    if process is not None and process.poll() is None:
+                        # During model loading the control socket does not yet
+                        # exist. Closing this owned host releases the guardian's
+                        # owner pipe, so it can stop the engine before we settle.
                         process.terminate()
-                        process.wait(timeout=5)
-                    cleanup_deadline = time.monotonic() + 7
-                    while managed is not None and self._runtime_active() and time.monotonic() < cleanup_deadline:
-                        time.sleep(0.05)
-                    self._restore(record)
-                    record["phase"] = "disconnecting" if self._runtime_active() else "disconnected"
-                    self._save(record)
-                    raise ConnectedClientError("runtime_start_failed" if managed is not None else "router_start_failed")
-                time.sleep(0.05)
-            record["phase"] = "connected"
-            self._save(record)
-            return self._status(record)
+                    self._disconnect_record(record)
+                finally:
+                    if process is not None and process.poll() is None:
+                        process.terminate()
+                        try:
+                            process.wait(timeout=5)
+                        except subprocess.TimeoutExpired:
+                            process.kill()
+                            process.wait(timeout=2)
+                raise
 
     def _restore(self, record):
         current = _read(self.config_path)
@@ -783,33 +804,37 @@ class ConnectedClientLifetime:
                 raise ConnectedClientError("generation_mismatch")
             if record is None or record["phase"] == "disconnected":
                 return self._status(record)
-            record["phase"] = "disconnecting"
-            self._save(record)
-            restoration_error = None
-            try:
-                self._restore(record)
-            except Exception as error:
-                # Restoration must never bypass process cleanup, including an
-                # unexpected semantic document shape. Keep output content-free.
-                restoration_error = error if isinstance(error, (ConnectedClientError, OSError)) else ConnectedClientError("restoration_unavailable")
-            _control(record, "stop")
-            deadline = time.monotonic() + (12 if record.get("managed_llama") else 7)
-            while self._runtime_active():
-                if time.monotonic() >= deadline:
-                    self._save(record)
-                    if restoration_error is not None:
-                        raise restoration_error
-                    return self._status(record)
-                time.sleep(0.05)
-            try:
-                info = Path(record["control"]).lstat()
-            except FileNotFoundError:
-                pass
-            else:
-                if stat.S_ISSOCK(info.st_mode) and info.st_uid == os.getuid():
-                    Path(record["control"]).unlink()
-            record["phase"] = "restore_required" if restoration_error is not None else "disconnected"
-            self._save(record)
-            if restoration_error is not None:
-                raise restoration_error
-            return self._status(record)
+            return self._disconnect_record(record)
+
+    def _disconnect_record(self, record):
+        """Stop and restore an owned generation under the existing transaction."""
+        record["phase"] = "disconnecting"
+        self._save(record)
+        restoration_error = None
+        try:
+            self._restore(record)
+        except Exception as error:
+            # Restoration must never bypass process cleanup, including an
+            # unexpected semantic document shape. Keep output content-free.
+            restoration_error = error if isinstance(error, (ConnectedClientError, OSError)) else ConnectedClientError("restoration_unavailable")
+        _control(record, "stop")
+        deadline = time.monotonic() + (12 if record.get("managed_llama") else 7)
+        while self._runtime_active():
+            if time.monotonic() >= deadline:
+                self._save(record)
+                if restoration_error is not None:
+                    raise restoration_error
+                return self._status(record)
+            time.sleep(0.05)
+        try:
+            info = Path(record["control"]).lstat()
+        except FileNotFoundError:
+            pass
+        else:
+            if stat.S_ISSOCK(info.st_mode) and info.st_uid == os.getuid():
+                Path(record["control"]).unlink()
+        record["phase"] = "restore_required" if restoration_error is not None else "disconnected"
+        self._save(record)
+        if restoration_error is not None:
+            raise restoration_error
+        return self._status(record)

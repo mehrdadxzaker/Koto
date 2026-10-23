@@ -138,6 +138,9 @@ def _ports(existing):
 def _configuration(path, profile, managed, credential_env, listen_port, *, credential_file=None):
     revision = "sha256:" + profile["model_sha256"]
     state = path.with_name(path.name + ".state")
+    runtime_only_fields = {"port", "alias", "output_tokens", "schema_version"}
+    if managed.schema_version != 5:
+        runtime_only_fields.add("context_tokens")
     value = {
         "listen": {"host": "127.0.0.1", "port": listen_port},
         "database": str(state / "usage.sqlite3"),
@@ -158,7 +161,7 @@ def _configuration(path, profile, managed, credential_env, listen_port, *, crede
             "max_request_bytes": profile["max_request_bytes"], "max_output_tokens": profile["max_output_tokens"],
             "task_types": profile["task_types"]}}},
         "managed_llama": {"schema_version": managed.schema_version, **{key: value for key, value in asdict(managed).items()
-                                               if key not in {"port", "alias", "output_tokens", "schema_version"}}},
+                                               if key not in runtime_only_fields}},
         "ai_work": {"enabled": True, "database": str(state / "work.sqlite3"),
                     "tool_capable_aliases": [profile["model"]] if "tools" in profile["capabilities"] else []},
     }
@@ -231,7 +234,8 @@ def setup_local(lifetime, args):
         model_file=_absolute(args.model_file), model_sha256=profile["model_sha256"],
         startup_timeout_seconds=profile["startup_timeout_seconds"], port=1,
         alias=profile["model"], output_tokens=profile["max_output_tokens"],
-        schema_version={3:2, 5:3}.get(profile["schema_version"], 1),
+        schema_version={3:2, 5:3, 6:4, 7:5}.get(profile["schema_version"], 1),
+        context_tokens=profile.get("context_tokens", 32768),
     )
     try:
         managed.verify()

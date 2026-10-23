@@ -4,7 +4,22 @@ on:
   push:
     branches: [main]
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
   workflow_dispatch:
+    inputs:
+      full_checkpoint:
+        description: 'Run the full installed-wheel suite on all four supported Python versions'
+        type: boolean
+        default: false
+      clean_install:
+        description: 'Run real macOS bootstrap installation, model download, task, interruption, restart and removal'
+        type: boolean
+        default: false
+      clean_install_runner:
+        description: 'Fresh Mac hardware; xlarge is a billed larger runner when enabled for this repository'
+        type: choice
+        default: macos-15
+        options: [macos-15, macos-15-xlarge]
 
 permissions:
   contents: read
@@ -22,6 +37,7 @@ env:
 jobs:
   workflow:
     name: Router workflow (Python ${{ matrix.python }})
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && !github.event.pull_request.draft) || inputs.full_checkpoint
     needs: package
     runs-on: ubuntu-latest
     timeout-minutes: 27
@@ -46,6 +62,27 @@ jobs:
       - name: Test fast rules and critical workflows from the installed wheel
         run: python tools/verify_router_wheel.py dist/*.whl
 
+  focused:
+    name: Focused installed-product checks (Python 3.12)
+    if: github.event_name != 'push' && (github.event_name != 'pull_request' || github.event.pull_request.draft) && !inputs.full_checkpoint
+    needs: package
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: koto-router-distributions
+          path: dist/
+      - run: python -m pip install dist/*.whl
+      - name: Test fast rules and focused CLI workflows from the installed wheel
+        run: python tools/verify_router_wheel.py dist/*.whl --focused
+
   package:
     name: Build router distributions
     runs-on: ubuntu-latest
@@ -68,18 +105,62 @@ jobs:
           path: dist/
           if-no-files-found: error
           retention-days: 14
-
   required:
-    name: CI / required
+    name: ${{ (github.event_name == 'push' || (github.event_name == 'pull_request' && !github.event.pull_request.draft) || inputs.full_checkpoint) && 'CI / required' || 'CI / focused' }}
     if: ${{ always() }}
-    needs: [workflow, package]
+    needs: [workflow, focused, package]
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
-      - name: Require every workflow and package check
+      - name: Require the appropriate checkpoint and package check
         env:
+          FULL_CHECKPOINT: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && !github.event.pull_request.draft) || inputs.full_checkpoint }}
           WORKFLOW_RESULT: ${{ needs.workflow.result }}
+          FOCUSED_RESULT: ${{ needs.focused.result }}
           PACKAGE_RESULT: ${{ needs.package.result }}
         run: |
-          test "$WORKFLOW_RESULT" = success
           test "$PACKAGE_RESULT" = success
+          if test "$FULL_CHECKPOINT" = true; then
+            test "$WORKFLOW_RESULT" = success
+            test "$FOCUSED_RESULT" = skipped
+          else
+            test "$FOCUSED_RESULT" = success
+            test "$WORKFLOW_RESULT" = skipped
+          fi
+
+  clean-install:
+    name: Clean macOS installed-product lifecycle
+    if: github.event_name == 'workflow_dispatch' && inputs.clean_install
+    needs: package
+    runs-on: ${{ inputs.clean_install_runner || 'macos-15' }}
+    timeout-minutes: 35
+    env:
+      npm_config_fetch_retries: '2'
+      npm_config_fetch_timeout: '30000'
+      npm_config_maxsockets: '2'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: koto-router-distributions
+          path: dist/
+      - name: Install the pinned coding-client prerequisite
+        run: npm install --prefix "$RUNNER_TEMP/koto-codex" @openai/codex@0.160.0
+      - name: Exercise the installed wheel with real assets outside the checkout
+        run: >-
+          python tools/verify_bootstrap_install.py dist/*.whl
+          --executable "$RUNNER_TEMP/koto-codex/node_modules/.bin/codex"
+          --workspace "$RUNNER_TEMP/koto-clean-install"
+      - name: Retain original lifecycle results, including failures
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: koto-clean-install-evidence
+          path: ${{ runner.temp }}/koto-clean-install/evidence/
+          if-no-files-found: error
+          retention-days: 14

@@ -10,7 +10,9 @@ owner or activate routing.
 
 ## Preview, download and reuse
 
-Choose a private directory with an existing parent. The default invocation is
+Choose a private directory. Missing parent directories are created only by an
+explicit download; preview measures disk space at the nearest existing ancestor.
+The default invocation is
 an offline preview, and `--dry-run` is an equivalent explicit spelling:
 
 ```sh
@@ -63,6 +65,12 @@ The existing setup owner checks the executable again before connection.
 These catalogs reuse the same previously reviewed artifact pins and their exact
 existing setup profiles. Separate catalog digests keep their generations apart.
 None supplies passing coding evidence or enables automatic model selection.
+
+The [CLI bootstrap](CLI_BOOTSTRAP.md) separately selects version-7 text-task
+catalog for Codex 0.160.0, using the same verified assets and existing local
+transport, an explicit 8K context and a bounded 120-second startup allowance.
+It permits explicit interactive text tasks with absent coding
+evidence. The historical `client acquire` catalogs above remain unchanged.
 
 The bundled [version-1 catalog](../hormuz/local-acquisition-codex-0147-llama-b11617-qwen3-4b-v1.json)
 retains the [existing experimental row](qualifications/codex-0147-llama-b11617-qwen3-4b.md):
