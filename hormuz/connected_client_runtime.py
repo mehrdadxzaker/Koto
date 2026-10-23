@@ -14,7 +14,8 @@ import subprocess
 from .connected_client import _read, _parse_record, _lock_descriptor
 from .config import GatewayConfig
 from .server import GatewayServer, _STORAGE_FAILURES
-from .managed_llama import OwnedLlama
+from .managed_llama import ManagedLlamaError, OwnedLlama
+from .contracts import RUNTIME_CHECK_ACTIONS
 
 
 class _OwnedGatewayServer(GatewayServer):
@@ -91,7 +92,13 @@ def main(record_path, generation):
         if _read(Path(record["gateway_config"])) != source:
             return
         if config.managed_llama is not None:
-            engine = OwnedLlama(config.managed_llama, lock)
+            try:
+                engine = OwnedLlama(config.managed_llama, lock)
+            except ManagedLlamaError as error:
+                if error.diagnostic_reason in RUNTIME_CHECK_ACTIONS:
+                    print(json.dumps({"schema_version": 1, "generation": generation,
+                                      "reason": error.diagnostic_reason}), flush=True)
+                raise
         server = _OwnedGatewayServer(config)
         current = _parse_record(_read(Path(record_path), private=True))
         if current["generation"] != record["generation"] or current["phase"] not in {"prepared", "connected"}:

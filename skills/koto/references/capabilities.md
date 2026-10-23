@@ -8,9 +8,29 @@ development package version strings alone do not establish these commands.
 
 `koto --config CONFIG client diagnose codex --client-home HOME` inspects
 configuration and connected-client status without probing models or changing
-routing. An optional `--executable PATH` performs the existing bounded version
-check. Compatibility without that check and model/task readiness are explicitly
-unobserved. The public action is the next recovery step, not permission to edit.
+routing. It emits `hormuz.client-diagnosis` v2 with required `client_check` and
+`runtime_check` v1 receipts. An optional `--executable PATH` performs the existing
+three-second, 4,096-byte version check. Compatibility without that check and
+model/task readiness are explicitly unobserved. The public action is the next
+recovery step, not permission to edit.
+
+Read the fixed reason/action pair: missing or unlaunchable executables, timeout,
+oversized output, unsuccessful exit, malformed version and valid unqualified
+version have distinct actions. A valid unqualified `observed_version` does not
+replace `supported_client_version` or pass the exact allowlist. Raw standard
+output, standard error and launch exception text are omitted; probe cleanup
+stops only its owned process group. See the
+[diagnostic contract](../../../docs/CLIENT_RUNTIME_DIAGNOSTICS.md) for all
+reason/action pairs and limits.
+
+Managed startup failures may return `hormuz.connected-client-error` v2 with a
+`diagnostic` receipt and the unchanged legacy error code. Its generation-bound,
+one-shot startup detail is not stored as history. Missing detail stays
+`not_observed`; later diagnosis reports current status and cannot recover an
+earlier startup cause. Errors without diagnostic detail remain v1. Consumers
+must handle v2 explicitly. Before executable rollback, complete normal
+disconnect and restoration with the current binary; no journal migration or
+qualification-evidence rewrite is required.
 
 Select the project with `--project DIRECTORY` (default current directory). For
 known launch settings, supply each argument separately, for example:

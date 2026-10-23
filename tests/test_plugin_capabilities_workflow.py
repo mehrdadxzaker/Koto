@@ -37,7 +37,7 @@ class PluginCapabilitiesWorkflowTests(unittest.TestCase):
         self.assertEqual(result.returncode, expected, result.stderr or result.stdout)
         value = json.loads(result.stdout)
         self.assertNotIn('fixture-coding-client-credential', result.stdout)
-        compatibility = json.loads((Path(__file__).parent / 'fixtures/plugin-capabilities-v1.json').read_text())
+        compatibility = json.loads((Path(__file__).parent / 'fixtures/plugin-capabilities-v2.json').read_text())
         fields = compatibility['required_fields'].get(value.get('schema_id'))
         if fields and 'error' not in value:
             self.assertEqual(value['schema_version'], compatibility.get('schema_versions', {}).get(value['schema_id'], compatibility['schema_version']))

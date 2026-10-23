@@ -1,0 +1,14 @@
+{
+  "schema_id": "hormuz.connected-client-error",
+  "schema_version": 2,
+  "error": {
+    "code": "connected_client_runtime_start_failed",
+    "action": "inspect_runtime_health"
+  },
+  "diagnostic": {
+    "schema_id": "hormuz.runtime-check",
+    "schema_version": 1,
+    "reason": "health_invalid",
+    "action": "inspect_runtime_health"
+  }
+}

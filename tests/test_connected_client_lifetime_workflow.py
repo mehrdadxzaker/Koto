@@ -1708,18 +1708,18 @@ class ConnectedClientLifetimeWorkflowTests(unittest.TestCase):
         with self.configured():
             self.command("connect")
             self.assertEqual(self.client()["status"], 200)
-            (self.root / "client-version.txt").write_text("0.0.0")
+            (self.root / "client-version.txt").write_text("0.160.1")
             failed = self.command("connect", check=False)
             self.assertEqual(failed.returncode, 2)
             receipt = json.loads(failed.stderr)
-            self.assertEqual(receipt, json.loads((Path(__file__).parent / "fixtures/connected-client-error-v1.json").read_text()))
+            self.assertEqual(receipt, json.loads((Path(__file__).parent / "fixtures/connected-client-error-v2.json").read_text()))
             self.command("disconnect")
             self.assertEqual(self.client()["provider"], "original")
             self.assertEqual((receipt.get("schema_id"), receipt["schema_version"], receipt["error"]),
-                ("hormuz.connected-client-error", 1, {"code": "connected_client_version_unsupported",
-                "action": "use_pinned_client_or_disconnect"}))
+                ("hormuz.connected-client-error", 2, {"code": "connected_client_version_unsupported",
+                "action": "select_supported_client"}))
             validate_contract(receipt)
-            for malformed in ({**receipt, "schema_version": 2}, {**receipt, "unexpected": "field"},
+            for malformed in ({**receipt, "schema_version": 3}, {**receipt, "unexpected": "field"},
                               {**receipt, "error": {**receipt["error"], "code": "connected_client_invented"}},
                               {**receipt, "error": {**receipt["error"], "action": "invented"}}):
                 with self.assertRaises(ContractValidationError):
@@ -1729,6 +1729,8 @@ class ConnectedClientLifetimeWorkflowTests(unittest.TestCase):
             self.assertEqual(manifest.returncode, 0, manifest.stderr)
             discovery = json.loads(manifest.stdout)
             self.assertIn(("hormuz.connected-client-error", 1),
+                {(item["schema_id"], item["schema_version"]) for item in discovery["schemas"]})
+            self.assertIn(("hormuz.connected-client-error", 2),
                 {(item["schema_id"], item["schema_version"]) for item in discovery["schemas"]})
             self.assertIn("connected_client_version_unsupported", discovery["error_codes"])
 

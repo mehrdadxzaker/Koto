@@ -9,7 +9,7 @@ from ..client_versions import CODEX_VERSION_PATTERN
 from .common import (
     ContractValidationError, _exact_keys, _value_mapping, _value_string, _value_string_list,
 )
-from .constants import CONNECTED_CLIENT_ERROR_ACTIONS
+from .constants import CONNECTED_CLIENT_ERROR_ACTIONS, CLIENT_CHECK_SCHEMA_ID, RUNTIME_CHECK_SCHEMA_ID
 
 
 def _validate_status(value: Mapping[str, Any]) -> None:
@@ -84,6 +84,31 @@ def _validate_error(value: Mapping[str, Any]) -> None:
     code = _value_string(error, "code")
     if code not in CONNECTED_CLIENT_ERROR_ACTIONS or _value_string(error, "action") != CONNECTED_CLIENT_ERROR_ACTIONS[code]:
         raise ContractValidationError("invalid connected-client error or recovery action")
+
+
+def _validate_error_v2(value: Mapping[str, Any]) -> None:
+    from ..contracts import validate_contract
+
+    _exact_keys(value, {"schema_id", "schema_version", "error", "diagnostic"})
+    error = _value_mapping(value, "error")
+    _exact_keys(error, {"code", "action"}, path="error")
+    code = _value_string(error, "code", path="error")
+    diagnostic = _value_mapping(value, "diagnostic")
+    if _value_string(diagnostic, "schema_id") not in {CLIENT_CHECK_SCHEMA_ID, RUNTIME_CHECK_SCHEMA_ID}:
+        raise ContractValidationError("invalid connected-client diagnostic kind")
+    validate_contract(diagnostic)
+    reason = diagnostic["reason"]
+    if diagnostic["schema_id"] == CLIENT_CHECK_SCHEMA_ID:
+        if (code not in {"connected_client_client_unavailable", "connected_client_version_unsupported",
+                         "connected_client_setup_unavailable"}
+                or reason in {"not_checked", "version_supported"}
+                or code == "connected_client_client_unavailable" and reason != "executable_missing"):
+            raise ContractValidationError("client diagnostic disagrees with lifecycle failure")
+    elif (code != "connected_client_runtime_start_failed"
+          or reason in {"not_configured", "ready", "stopped"}):
+        raise ContractValidationError("runtime diagnostic disagrees with lifecycle failure")
+    if _value_string(error, "action", path="error") != diagnostic["action"]:
+        raise ContractValidationError("lifecycle recovery action disagrees with diagnostic")
 
 
 def _validate_status_v2(value: Mapping[str, Any]) -> None:

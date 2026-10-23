@@ -1,0 +1,54 @@
+{
+  "schema_id": "hormuz.client-diagnosis",
+  "schema_version": 2,
+  "connection": {
+    "schema_id": "hormuz.connected-client-status",
+    "schema_version": 1,
+    "phase": "disconnected",
+    "router": "stopped",
+    "retained_settings": [],
+    "scope": "codex_user_defaults",
+    "configuration": "not_owned"
+  },
+  "client_compatibility": "unobserved",
+  "supported_client_version": "0.160.0",
+  "configuration_binding": "unowned",
+  "routing_mode": "configured",
+  "qualified_local_routes": 0,
+  "model_readiness": "unobserved",
+  "task_completion": "unobserved",
+  "scope": "codex_user_defaults",
+  "project_overrides": "none",
+  "override_diagnosis": {
+    "schema_id": "hormuz.client-overrides",
+    "schema_version": 1,
+    "supported_client_version": "0.160.0",
+    "scope": "selected_project_and_supplied_launch",
+    "project_state": "none",
+    "layers": [],
+    "conflicts": [],
+    "launch_state": "none",
+    "effective_routing": {
+      "model": "matches",
+      "model_provider": "matches",
+      "model_providers": "matches",
+      "web_search": "matches",
+      "openai_base_url": "matches"
+    },
+    "running_session": "unobserved"
+  },
+  "client_check": {
+    "schema_id": "hormuz.client-check",
+    "schema_version": 1,
+    "reason": "not_checked",
+    "action": "check_selected_executable",
+    "observed_version": null
+  },
+  "runtime_check": {
+    "schema_id": "hormuz.runtime-check",
+    "schema_version": 1,
+    "reason": "not_configured",
+    "action": "none"
+  },
+  "action": "preview_connection"
+}

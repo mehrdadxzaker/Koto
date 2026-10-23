@@ -280,9 +280,12 @@ def run_lifetime(args: argparse.Namespace) -> int:
         return 0
     except (ConnectedClientError, ConfigError, OSError, subprocess.SubprocessError) as error:
         if args.client_command == "diagnose":
-            print(json.dumps({"schema_id": "hormuz.client-diagnosis", "schema_version": 1,
-                              "error": {"code": "configuration_invalid" if isinstance(error, ConfigError)
-                                        else "diagnosis_unavailable"}}))
+            from ..contracts import validate_contract
+            result = {"schema_id": "hormuz.client-diagnosis", "schema_version": 2,
+                      "error": {"code": "configuration_invalid" if isinstance(error, ConfigError)
+                                else "diagnosis_unavailable"}}
+            validate_contract(result)
+            print(json.dumps(result))
             return 2
         print(json.dumps(lifetime_error(error)), file=sys.stderr)
         return 2
