@@ -1,0 +1,708 @@
+{
+  "applied": false,
+  "base_guidance_sha256": "6467bd63ab5a6d1c386db75a9107dc6df30022f9480855c1870798a854b35a79",
+  "base_profile": "qwen-code.v10",
+  "candidates": [
+    {
+      "guidance": "Use the declared interpreter or host Python helper for checks. A missing generic python command is an invocation failure; it does not establish that Python is absent. If no declared executable is available, report that concrete environment blocker.\nFor multiline Python checks, prefer a declared script helper and supply literal newlines in its script argument. When only a shell tool is available, use a script file with the declared interpreter. Inspect the parser error before correcting quoting; do not repeatedly escape the same command.\nResolve the latest failed check invocation before treating it as verification. Read its actual exit status and error; a printed test definition or success message cannot replace successful assertions.\nAfter the same command fails twice, stop submitting identical command text. Inspect the concrete error, make a focused correction within the existing host budget, or report the blocker.",
+      "rules": [
+        "interpreter_unavailable",
+        "shell_syntax_failed",
+        "command_failed",
+        "repeated_command_failed"
+      ],
+      "scope": "execution"
+    },
+    {
+      "guidance": "Before reporting a repair, run the unchanged original checks against the saved implementation after the final edit. Preserve failing requirements and report remaining failures explicitly.\nAfter verification, finish the native turn with a concise report of the saved change, actual check result, and any blocker. Passing saved checks alone does not establish completion of the native episode.",
+      "rules": [
+        "independent_check_failed",
+        "native_completion_missing"
+      ],
+      "scope": "verification"
+    }
+  ],
+  "composed_guidance": "Use the declared interpreter or host Python helper for checks. A missing generic python command is an invocation failure; it does not establish that Python is absent. If no declared executable is available, report that concrete environment blocker.\nFor multiline Python checks, prefer a declared script helper and supply literal newlines in its script argument. When only a shell tool is available, use a script file with the declared interpreter. Inspect the parser error before correcting quoting; do not repeatedly escape the same command.\nResolve the latest failed check invocation before treating it as verification. Read its actual exit status and error; a printed test definition or success message cannot replace successful assertions.\nAfter the same command fails twice, stop submitting identical command text. Inspect the concrete error, make a focused correction within the existing host budget, or report the blocker.\n\nBefore reporting a repair, run the unchanged original checks against the saved implementation after the final edit. Preserve failing requirements and report remaining failures explicitly.\nAfter verification, finish the native turn with a concise report of the saved change, actual check result, and any blocker. Passing saved checks alone does not establish completion of the native episode.",
+  "execution": {
+    "commands": 0,
+    "model_requests": 0
+  },
+  "findings": [
+    {
+      "count": 2,
+      "references": [
+        {
+          "pointer": "/native_events/7",
+          "source_sha256": "7a44ffb976b1f90bcc2018d9d8e6733377339114cfb01434d9729c867c6799bd"
+        },
+        {
+          "pointer": "/native_events/9",
+          "source_sha256": "7a44ffb976b1f90bcc2018d9d8e6733377339114cfb01434d9729c867c6799bd"
+        }
+      ],
+      "rule": "interpreter_unavailable"
+    },
+    {
+      "count": 2,
+      "references": [
+        {
+          "pointer": "/native_events/7",
+          "source_sha256": "d7ad24c75abc111c0f6a7056f030d91a3ab81894890a05c180631d478e6ac805"
+        },
+        {
+          "pointer": "/native_events/9",
+          "source_sha256": "d7ad24c75abc111c0f6a7056f030d91a3ab81894890a05c180631d478e6ac805"
+        }
+      ],
+      "rule": "shell_syntax_failed"
+    },
+    {
+      "count": 10,
+      "references": [
+        {
+          "pointer": "/episodes/7",
+          "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+        },
+        {
+          "pointer": "/episodes/11",
+          "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+        },
+        {
+          "pointer": "/episodes/22",
+          "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+        },
+        {
+          "pointer": "/episodes/31",
+          "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+        },
+        {
+          "pointer": "/episodes/34",
+          "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+        },
+        {
+          "pointer": "/episodes/35",
+          "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+        },
+        {
+          "pointer": "/native_events/7",
+          "source_sha256": "7a44ffb976b1f90bcc2018d9d8e6733377339114cfb01434d9729c867c6799bd"
+        },
+        {
+          "pointer": "/native_events/9",
+          "source_sha256": "7a44ffb976b1f90bcc2018d9d8e6733377339114cfb01434d9729c867c6799bd"
+        },
+        {
+          "pointer": "/native_events/7",
+          "source_sha256": "d7ad24c75abc111c0f6a7056f030d91a3ab81894890a05c180631d478e6ac805"
+        },
+        {
+          "pointer": "/native_events/9",
+          "source_sha256": "d7ad24c75abc111c0f6a7056f030d91a3ab81894890a05c180631d478e6ac805"
+        }
+      ],
+      "rule": "command_failed"
+    },
+    {
+      "count": 1,
+      "references": [
+        {
+          "pointer": "/native_events/9",
+          "source_sha256": "d7ad24c75abc111c0f6a7056f030d91a3ab81894890a05c180631d478e6ac805"
+        }
+      ],
+      "rule": "repeated_command_failed"
+    },
+    {
+      "count": 23,
+      "references": [
+        {
+          "pointer": "/episodes/0",
+          "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+        },
+        {
+          "pointer": "/episodes/1",
+          "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+        },
+        {
+          "pointer": "/episodes/2",
+          "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+        },
+        {
+          "pointer": "/episodes/3",
+          "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+        },
+        {
+          "pointer": "/episodes/4",
+          "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+        },
+        {
+          "pointer": "/episodes/5",
+          "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+        },
+        {
+          "pointer": "/episodes/7",
+          "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+        },
+        {
+          "pointer": "/episodes/8",
+          "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+        },
+        {
+          "pointer": "/episodes/13",
+          "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+        },
+        {
+          "pointer": "/episodes/14",
+          "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+        },
+        {
+          "pointer": "/episodes/16",
+          "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+        },
+        {
+          "pointer": "/episodes/17",
+          "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+        },
+        {
+          "pointer": "/episodes/18",
+          "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+        },
+        {
+          "pointer": "/episodes/19",
+          "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+        },
+        {
+          "pointer": "/episodes/20",
+          "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+        },
+        {
+          "pointer": "/episodes/24",
+          "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+        }
+      ],
+      "rule": "independent_check_failed"
+    },
+    {
+      "count": 23,
+      "references": [
+        {
+          "pointer": "/episodes/0",
+          "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+        },
+        {
+          "pointer": "/episodes/1",
+          "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+        },
+        {
+          "pointer": "/episodes/2",
+          "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+        },
+        {
+          "pointer": "/episodes/3",
+          "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+        },
+        {
+          "pointer": "/episodes/4",
+          "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+        },
+        {
+          "pointer": "/episodes/5",
+          "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+        },
+        {
+          "pointer": "/episodes/7",
+          "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+        },
+        {
+          "pointer": "/episodes/8",
+          "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+        },
+        {
+          "pointer": "/episodes/11",
+          "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+        },
+        {
+          "pointer": "/episodes/14",
+          "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+        },
+        {
+          "pointer": "/episodes/16",
+          "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+        },
+        {
+          "pointer": "/episodes/17",
+          "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+        },
+        {
+          "pointer": "/episodes/18",
+          "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+        },
+        {
+          "pointer": "/episodes/20",
+          "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+        },
+        {
+          "pointer": "/episodes/22",
+          "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+        },
+        {
+          "pointer": "/episodes/24",
+          "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+        }
+      ],
+      "rule": "native_completion_missing"
+    }
+  ],
+  "limits": {
+    "events_per_file": 4096,
+    "file_bytes": 1048576,
+    "files": 8,
+    "guidance_bytes": 4096,
+    "observations": 128,
+    "references_per_rule": 16,
+    "total_bytes": 4194304
+  },
+  "observations": [
+    {
+      "case_id": "adjacent-groups",
+      "command_failures": 0,
+      "full_success": false,
+      "native_tool_errors": 5,
+      "normal_native_completion": false,
+      "pointer": "/episodes/0",
+      "profile": "qwen-code.v10",
+      "saved_checker_pass": false,
+      "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+    },
+    {
+      "case_id": "atomic-stock",
+      "command_failures": 0,
+      "full_success": false,
+      "native_tool_errors": 4,
+      "normal_native_completion": false,
+      "pointer": "/episodes/1",
+      "profile": "qwen-code.v10",
+      "saved_checker_pass": false,
+      "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+    },
+    {
+      "case_id": "interval-union",
+      "command_failures": 0,
+      "full_success": false,
+      "native_tool_errors": 0,
+      "normal_native_completion": false,
+      "pointer": "/episodes/2",
+      "profile": "qwen-code.v10",
+      "saved_checker_pass": false,
+      "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+    },
+    {
+      "case_id": "literal-first",
+      "command_failures": 0,
+      "full_success": false,
+      "native_tool_errors": 5,
+      "normal_native_completion": false,
+      "pointer": "/episodes/3",
+      "profile": "qwen-code.v10",
+      "saved_checker_pass": false,
+      "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+    },
+    {
+      "case_id": "signed-ceiling",
+      "command_failures": 0,
+      "full_success": false,
+      "native_tool_errors": 5,
+      "normal_native_completion": false,
+      "pointer": "/episodes/4",
+      "profile": "qwen-code.v10",
+      "saved_checker_pass": false,
+      "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+    },
+    {
+      "case_id": "stable-key-unique",
+      "command_failures": 0,
+      "full_success": false,
+      "native_tool_errors": 4,
+      "normal_native_completion": false,
+      "pointer": "/episodes/5",
+      "profile": "qwen-code.v10",
+      "saved_checker_pass": false,
+      "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+    },
+    {
+      "case_id": "adjacent-groups",
+      "command_failures": 0,
+      "full_success": true,
+      "native_tool_errors": 0,
+      "normal_native_completion": true,
+      "pointer": "/episodes/6",
+      "profile": "qwen-code.v8",
+      "saved_checker_pass": true,
+      "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+    },
+    {
+      "case_id": "atomic-stock",
+      "command_failures": 3,
+      "full_success": false,
+      "native_tool_errors": 3,
+      "normal_native_completion": false,
+      "pointer": "/episodes/7",
+      "profile": "qwen-code.v8",
+      "saved_checker_pass": false,
+      "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+    },
+    {
+      "case_id": "interval-union",
+      "command_failures": 0,
+      "full_success": false,
+      "native_tool_errors": 0,
+      "normal_native_completion": false,
+      "pointer": "/episodes/8",
+      "profile": "qwen-code.v8",
+      "saved_checker_pass": false,
+      "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+    },
+    {
+      "case_id": "literal-first",
+      "command_failures": 0,
+      "full_success": true,
+      "native_tool_errors": 0,
+      "normal_native_completion": true,
+      "pointer": "/episodes/9",
+      "profile": "qwen-code.v8",
+      "saved_checker_pass": true,
+      "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+    },
+    {
+      "case_id": "signed-ceiling",
+      "command_failures": 0,
+      "full_success": true,
+      "native_tool_errors": 0,
+      "normal_native_completion": true,
+      "pointer": "/episodes/10",
+      "profile": "qwen-code.v8",
+      "saved_checker_pass": true,
+      "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+    },
+    {
+      "case_id": "stable-key-unique",
+      "command_failures": 1,
+      "full_success": false,
+      "native_tool_errors": 1,
+      "normal_native_completion": false,
+      "pointer": "/episodes/11",
+      "profile": "qwen-code.v8",
+      "saved_checker_pass": true,
+      "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+    },
+    {
+      "case_id": "adjacent-groups",
+      "command_failures": 0,
+      "full_success": true,
+      "native_tool_errors": 1,
+      "normal_native_completion": true,
+      "pointer": "/episodes/12",
+      "profile": "qwen-code.v10",
+      "saved_checker_pass": true,
+      "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+    },
+    {
+      "case_id": "atomic-stock",
+      "command_failures": 0,
+      "full_success": false,
+      "native_tool_errors": 1,
+      "normal_native_completion": true,
+      "pointer": "/episodes/13",
+      "profile": "qwen-code.v10",
+      "saved_checker_pass": false,
+      "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+    },
+    {
+      "case_id": "interval-union",
+      "command_failures": 0,
+      "full_success": false,
+      "native_tool_errors": 0,
+      "normal_native_completion": false,
+      "pointer": "/episodes/14",
+      "profile": "qwen-code.v10",
+      "saved_checker_pass": false,
+      "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+    },
+    {
+      "case_id": "literal-first",
+      "command_failures": 0,
+      "full_success": true,
+      "native_tool_errors": 1,
+      "normal_native_completion": true,
+      "pointer": "/episodes/15",
+      "profile": "qwen-code.v10",
+      "saved_checker_pass": true,
+      "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+    },
+    {
+      "case_id": "signed-ceiling",
+      "command_failures": 0,
+      "full_success": false,
+      "native_tool_errors": 5,
+      "normal_native_completion": false,
+      "pointer": "/episodes/16",
+      "profile": "qwen-code.v10",
+      "saved_checker_pass": false,
+      "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+    },
+    {
+      "case_id": "stable-key-unique",
+      "command_failures": 0,
+      "full_success": false,
+      "native_tool_errors": 5,
+      "normal_native_completion": false,
+      "pointer": "/episodes/17",
+      "profile": "qwen-code.v10",
+      "saved_checker_pass": false,
+      "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+    },
+    {
+      "case_id": "adjacent-groups",
+      "command_failures": 0,
+      "full_success": false,
+      "native_tool_errors": 3,
+      "normal_native_completion": false,
+      "pointer": "/episodes/18",
+      "profile": "qwen-code.v8",
+      "saved_checker_pass": false,
+      "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+    },
+    {
+      "case_id": "atomic-stock",
+      "command_failures": 0,
+      "full_success": false,
+      "native_tool_errors": 0,
+      "normal_native_completion": true,
+      "pointer": "/episodes/19",
+      "profile": "qwen-code.v8",
+      "saved_checker_pass": false,
+      "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+    },
+    {
+      "case_id": "interval-union",
+      "command_failures": 0,
+      "full_success": false,
+      "native_tool_errors": 0,
+      "normal_native_completion": false,
+      "pointer": "/episodes/20",
+      "profile": "qwen-code.v8",
+      "saved_checker_pass": false,
+      "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+    },
+    {
+      "case_id": "literal-first",
+      "command_failures": 0,
+      "full_success": true,
+      "native_tool_errors": 0,
+      "normal_native_completion": true,
+      "pointer": "/episodes/21",
+      "profile": "qwen-code.v8",
+      "saved_checker_pass": true,
+      "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+    },
+    {
+      "case_id": "signed-ceiling",
+      "command_failures": 2,
+      "full_success": false,
+      "native_tool_errors": 2,
+      "normal_native_completion": false,
+      "pointer": "/episodes/22",
+      "profile": "qwen-code.v8",
+      "saved_checker_pass": true,
+      "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+    },
+    {
+      "case_id": "stable-key-unique",
+      "command_failures": 0,
+      "full_success": true,
+      "native_tool_errors": 0,
+      "normal_native_completion": true,
+      "pointer": "/episodes/23",
+      "profile": "qwen-code.v8",
+      "saved_checker_pass": true,
+      "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+    },
+    {
+      "case_id": "adjacent-groups",
+      "command_failures": 0,
+      "full_success": false,
+      "native_tool_errors": 4,
+      "normal_native_completion": false,
+      "pointer": "/episodes/24",
+      "profile": "qwen-code.v10",
+      "saved_checker_pass": false,
+      "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+    },
+    {
+      "case_id": "atomic-stock",
+      "command_failures": 0,
+      "full_success": false,
+      "native_tool_errors": 4,
+      "normal_native_completion": false,
+      "pointer": "/episodes/25",
+      "profile": "qwen-code.v10",
+      "saved_checker_pass": false,
+      "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+    },
+    {
+      "case_id": "interval-union",
+      "command_failures": 0,
+      "full_success": false,
+      "native_tool_errors": 0,
+      "normal_native_completion": false,
+      "pointer": "/episodes/26",
+      "profile": "qwen-code.v10",
+      "saved_checker_pass": false,
+      "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+    },
+    {
+      "case_id": "literal-first",
+      "command_failures": 0,
+      "full_success": true,
+      "native_tool_errors": 1,
+      "normal_native_completion": true,
+      "pointer": "/episodes/27",
+      "profile": "qwen-code.v10",
+      "saved_checker_pass": true,
+      "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+    },
+    {
+      "case_id": "signed-ceiling",
+      "command_failures": 0,
+      "full_success": false,
+      "native_tool_errors": 4,
+      "normal_native_completion": false,
+      "pointer": "/episodes/28",
+      "profile": "qwen-code.v10",
+      "saved_checker_pass": false,
+      "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+    },
+    {
+      "case_id": "stable-key-unique",
+      "command_failures": 0,
+      "full_success": false,
+      "native_tool_errors": 4,
+      "normal_native_completion": false,
+      "pointer": "/episodes/29",
+      "profile": "qwen-code.v10",
+      "saved_checker_pass": false,
+      "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+    },
+    {
+      "case_id": "adjacent-groups",
+      "command_failures": 0,
+      "full_success": true,
+      "native_tool_errors": 0,
+      "normal_native_completion": true,
+      "pointer": "/episodes/30",
+      "profile": "qwen-code.v8",
+      "saved_checker_pass": true,
+      "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+    },
+    {
+      "case_id": "atomic-stock",
+      "command_failures": 1,
+      "full_success": false,
+      "native_tool_errors": 1,
+      "normal_native_completion": true,
+      "pointer": "/episodes/31",
+      "profile": "qwen-code.v8",
+      "saved_checker_pass": false,
+      "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+    },
+    {
+      "case_id": "interval-union",
+      "command_failures": 0,
+      "full_success": false,
+      "native_tool_errors": 0,
+      "normal_native_completion": false,
+      "pointer": "/episodes/32",
+      "profile": "qwen-code.v8",
+      "saved_checker_pass": false,
+      "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+    },
+    {
+      "case_id": "literal-first",
+      "command_failures": 0,
+      "full_success": true,
+      "native_tool_errors": 0,
+      "normal_native_completion": true,
+      "pointer": "/episodes/33",
+      "profile": "qwen-code.v8",
+      "saved_checker_pass": true,
+      "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+    },
+    {
+      "case_id": "signed-ceiling",
+      "command_failures": 2,
+      "full_success": false,
+      "native_tool_errors": 2,
+      "normal_native_completion": false,
+      "pointer": "/episodes/34",
+      "profile": "qwen-code.v8",
+      "saved_checker_pass": false,
+      "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+    },
+    {
+      "case_id": "stable-key-unique",
+      "command_failures": 2,
+      "full_success": false,
+      "native_tool_errors": 2,
+      "normal_native_completion": false,
+      "pointer": "/episodes/35",
+      "profile": "qwen-code.v8",
+      "saved_checker_pass": true,
+      "source_sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+    },
+    {
+      "case_id": "atomic-stock",
+      "command_failures": 2,
+      "full_success": null,
+      "native_tool_errors": 2,
+      "normal_native_completion": null,
+      "pointer": "/native_events",
+      "profile": null,
+      "saved_checker_pass": null,
+      "source_sha256": "7a44ffb976b1f90bcc2018d9d8e6733377339114cfb01434d9729c867c6799bd"
+    },
+    {
+      "case_id": "trace",
+      "command_failures": 2,
+      "full_success": null,
+      "native_tool_errors": 2,
+      "normal_native_completion": null,
+      "pointer": "/native_events",
+      "profile": null,
+      "saved_checker_pass": null,
+      "source_sha256": "d7ad24c75abc111c0f6a7056f030d91a3ab81894890a05c180631d478e6ac805"
+    }
+  ],
+  "qualification": "unqualified",
+  "quality": "unmeasured",
+  "recipe_version": 1,
+  "review_required": true,
+  "schema_id": "hormuz.harness-improvement",
+  "schema_version": 1,
+  "sources": [
+    {
+      "format": "audited-episodes.v1",
+      "observations": 36,
+      "sha256": "2c95e7b5d3b34c4b9aa42410acac5858572966a313e6b91304c340eb853cb720"
+    },
+    {
+      "format": "native-trace.v1",
+      "observations": 1,
+      "sha256": "7a44ffb976b1f90bcc2018d9d8e6733377339114cfb01434d9729c867c6799bd"
+    },
+    {
+      "format": "native-jsonl.v1",
+      "observations": 1,
+      "sha256": "d7ad24c75abc111c0f6a7056f030d91a3ab81894890a05c180631d478e6ac805"
+    }
+  ]
+}

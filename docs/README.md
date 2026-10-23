@@ -17,6 +17,7 @@ defines the current evidence and version boundaries.
 | Inspect setup and safe restoration | [Shared local setup](SHARED_LOCAL_SETUP.md) and [connection lifetime](CONNECTED_CLIENT_LIFETIME.md) |
 | Review retained history and privacy controls | [Local history](LOCAL_HISTORY.md) |
 | Understand local-model qualification | [Route admission](LOCAL_ROUTE_ADMISSION.md) and [bounded coding probes](BOUNDED_CODING_PROBES.md) |
+| Draft guidance from retained failed traces | [Offline harness improvement](HARNESS_IMPROVEMENT.md) |
 | Migrate an existing installation | [2.0 migration](MIGRATION_2.md) and [Koto migration notes](KOTO_REBRAND.md) |
 | Make a first contribution | [First-contribution guide](FIRST_CONTRIBUTION.md) |
 | Find work and its acceptance gates | [Roadmap](ROADMAP.md) |
