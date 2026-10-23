@@ -76,6 +76,13 @@ def _sha(data):
     return hashlib.sha256(data).hexdigest()
 
 
+def _text_sha(value):
+    try:
+        return _sha(value.encode('utf-8'))
+    except UnicodeError:
+        raise ImprovementError('invalid_evidence') from None
+
+
 def _integer(value, minimum=None):
     return type(value) is int and (minimum is None or minimum <= value <= 1000000)
 
@@ -123,7 +130,7 @@ def _trace(value, source, findings):
         _require(value['arm'] in ('baseline', 'adapted'))
     if 'source_sha256' in value:
         _require(type(value.get('source_after')) is str and
-                 _sha(value['source_after'].encode()) == value['source_sha256'], 'source_digest_mismatch')
+                 _text_sha(value['source_after']) == value['source_sha256'], 'source_digest_mismatch')
     failures, tool_errors, repeated = 0, 0, {}
     for index, event in enumerate(events):
         _require(type(event) is dict and type(event.get('type')) is str)
@@ -147,7 +154,7 @@ def _trace(value, source, findings):
             findings.append(('interpreter_unavailable', source, pointer))
         if re.search(r'parse error near|SyntaxError: (?:unexpected character after line continuation|unterminated string)', output):
             findings.append(('shell_syntax_failed', source, pointer))
-        command_hash = _sha(item['command'].encode())
+        command_hash = _text_sha(item['command'])
         repeated[command_hash] = repeated.get(command_hash, 0) + 1
         if repeated[command_hash] == 2:
             findings.append(('repeated_command_failed', source, pointer))

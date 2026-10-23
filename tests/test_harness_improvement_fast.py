@@ -67,6 +67,10 @@ class HarnessImprovementTests(unittest.TestCase):
                    encoded({'case_id': 'x', 'arm': 'adapted', 'native_events': [
                        {'type': 'item.completed', 'item': {'type': 'command_execution',
                         'exit_code': True, 'status': 'failed', 'aggregated_output': '', 'command': 'x'}}]})]
+        surrogate_command = trace()
+        surrogate_command['native_events'][0]['item']['command'] = '\ud800'
+        invalid += [encoded(surrogate_command), encoded({**trace(), 'source_after': '\udfff',
+                                                       'source_sha256': '0' * 64})]
         for raw in invalid:
             with self.subTest(raw=raw), self.assertRaises(ImprovementError):
                 build_proposal([raw], 'qwen-code.v10')

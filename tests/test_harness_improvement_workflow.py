@@ -110,6 +110,13 @@ class HarnessImprovementWorkflowTests(unittest.TestCase):
             self.assertEqual(invalid.returncode, 2)
             self.assertNotIn('DO_NOT_ECHO', invalid.stderr + invalid.stdout)
             self.assertFalse(output.exists())
+            malformed = trace()
+            malformed['native_events'][0]['item']['command'] = '\ud800'
+            evidence.write_bytes(encoded(malformed))
+            refused = command('improve', '--evidence', str(evidence), '--output', str(output))
+            self.assertEqual(refused.returncode, 2)
+            self.assertEqual(json.loads(refused.stderr)['error']['code'], 'invalid_evidence')
+            self.assertFalse(output.exists())
             evidence.write_bytes(encoded(trace()))
             self.assertEqual(command('improve', '--evidence', str(evidence), '--output', str(output)).returncode, 0)
             evidence.write_bytes(encoded({**trace(), 'case_id': 'changed-source'}))
