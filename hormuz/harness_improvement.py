@@ -114,6 +114,10 @@ def _parse(raw):
             return 'audited-episodes.v1', value
         if 'outcomes' in value and _digest(value.get('frozen_plan_sha256')):
             return 'comparison.v1', value
+        if type(value.get('type')) is str and value['type'] in (
+                'thread.started', 'turn.started', 'turn.completed', 'turn.failed',
+                'item.started', 'item.completed', 'item.updated', 'error'):
+            return 'native-jsonl.v1', {'native_events': [value]}
         raise ImprovementError('unsupported_evidence')
     except (UnicodeError, ValueError, RecursionError, TypeError) as error:
         if isinstance(error, ImprovementError):
@@ -410,8 +414,8 @@ def write_bundle(output, report):
 def verify_bundle(bundle, evidence):
     """Regenerate every artifact against unchanged evidence and the exact base guidance."""
     path = Path(bundle)
-    _require(not path.is_symlink() and path.is_dir(), 'bundle_mismatch')
     try:
+        _require(not path.is_symlink() and path.is_dir(), 'bundle_mismatch')
         _require({entry.name for entry in path.iterdir()} == set(FILES), 'bundle_mismatch')
         report = strict_json_loads(read_evidence(path / 'proposal.json').decode('utf-8'))
         validate_proposal(report)

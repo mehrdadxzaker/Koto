@@ -14,7 +14,7 @@ import io
 
 import hormuz
 from hormuz.cli import main
-from hormuz.harness_improvement import ImprovementError, build_proposal, write_bundle
+from hormuz.harness_improvement import ImprovementError, build_proposal, verify_bundle, write_bundle
 from tests.test_harness_improvement_fast import encoded, trace
 
 
@@ -43,6 +43,9 @@ class HarnessImprovementWorkflowTests(unittest.TestCase):
             with patch.object(os, 'open', side_effect=fail_one_file), self.assertRaises(ImprovementError):
                 write_bundle(broken, build_proposal([evidence.read_bytes()]))
             self.assertFalse(broken.exists())
+            with patch.object(Path, 'is_symlink', side_effect=PermissionError('synthetic denied stat')), \
+                    self.assertRaises(ImprovementError):
+                verify_bundle(root / 'unreadable', [evidence.read_bytes()])
 
     def test_cli_preserves_sources_configuration_and_qualification_and_detects_tampering(self):
         with tempfile.TemporaryDirectory() as directory:

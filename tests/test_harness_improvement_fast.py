@@ -112,6 +112,9 @@ class HarnessImprovementTests(unittest.TestCase):
         raw = b'\n'.join(encoded(event) for event in value['native_events']) + b'\n'
         proposal = build_proposal([raw], 'qwen-code.v10')
         self.assertEqual(proposal['sources'][0]['format'], 'native-jsonl.v1')
+        single = build_proposal([encoded(value['native_events'][0])], 'qwen-code.v10')
+        self.assertEqual(single['sources'][0]['format'], 'native-jsonl.v1')
+        self.assertEqual(single['observations'][0]['command_failures'], 1)
         with self.assertRaisesRegex(ImprovementError, 'no_supported_failure'):
             build_proposal([encoded({'case_id': 'ok', 'arm': 'baseline',
                                      'native_events': [{'type': 'turn.completed'}]})], 'qwen-code.v10')
