@@ -18,7 +18,7 @@
     "codex_llama_v1",
     "structured_output"
   ],
-  "max_request_bytes": 65536,
+  "max_request_bytes": 4096,
   "max_output_tokens": 2048,
   "task_types": [
     "interactive"

@@ -34,9 +34,12 @@ class BootstrapProfileTests(unittest.TestCase):
         profile = self.profile(7)
         validate_contract(profile)
         for change in ({"context_tokens": 0}, {"context_tokens": True}, {"context_tokens": 32769},
-                       {"max_output_tokens": 8192, "context_tokens": 4096}, {"schema_version": 6}):
+                       {"max_output_tokens": 8192, "context_tokens": 4096}, {"schema_version": 6},
+                       {"max_request_bytes": 5121}, {"max_request_bytes": 4096, "max_output_tokens": 3073}):
             with self.subTest(change=change), self.assertRaises(ContractValidationError):
                 validate_contract({**profile, **change})
+        validate_contract({**profile, "max_request_bytes": 5120})
+        validate_contract({**profile, "max_request_bytes": 4096, "max_output_tokens": 3072})
 
     def test_only_the_new_bootstrap_runtime_avoids_gpu_offload_on_confirmed_macos_vms(self):
         cases = [("bootstrap-vm", 5, "darwin", "1\n", True),

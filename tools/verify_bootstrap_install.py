@@ -24,6 +24,46 @@ def digest(path):
         return hashlib.file_digest(stream, "sha256").hexdigest()
 
 
+def run_stage(label, command, *, evidence, report, environment, cwd, timeout=60, check=True):
+    print(label, flush=True)
+    started = time.monotonic()
+    process = subprocess.Popen([str(item) for item in command], cwd=cwd, env=environment,
+        stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True)
+    stdout = stderr = b""
+    failure = None
+    try:
+        try:
+            stdout, stderr = process.communicate(timeout=timeout)
+        except BaseException as error:
+            failure = type(error).__name__
+            if isinstance(error, subprocess.TimeoutExpired):
+                stdout, stderr = error.output or b"", error.stderr or b""
+            if process.poll() is None:
+                try:
+                    os.killpg(process.pid, signal.SIGTERM)
+                except ProcessLookupError:
+                    pass
+            try:
+                stdout, stderr = process.communicate(timeout=20)
+            except subprocess.TimeoutExpired:
+                try:
+                    os.killpg(process.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                stdout, stderr = process.communicate(timeout=5)
+            raise
+    finally:
+        (evidence / (label + ".stdout")).write_bytes(stdout)
+        (evidence / (label + ".stderr")).write_bytes(stderr)
+        report["stages"].append({"name": label, "returncode": process.returncode,
+                                 "seconds": round(time.monotonic() - started, 3),
+                                 **({"failure": failure} if failure else {})})
+        (evidence / "result.json").write_text(json.dumps(report, indent=2) + "\n")
+    if check and process.returncode:
+        raise RuntimeError(label + " failed; original output retained")
+    return process.returncode, stdout
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("wheel", type=Path)
@@ -67,28 +107,8 @@ def main():
         (evidence / "result.json").write_text(json.dumps(report, indent=2) + "\n")
 
     def run(label, command, *, timeout=60, cwd=first, check=True):
-        print(label, flush=True)
-        started = time.monotonic()
-        process = subprocess.Popen([str(item) for item in command], cwd=cwd, env=environment,
-            stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True)
-        try:
-            stdout, stderr = process.communicate(timeout=timeout)
-        except BaseException:
-            os.killpg(process.pid, signal.SIGTERM)
-            try:
-                process.communicate(timeout=20)
-            except subprocess.TimeoutExpired:
-                os.killpg(process.pid, signal.SIGKILL)
-                process.communicate(timeout=5)
-            raise
-        (evidence / (label + ".stdout")).write_bytes(stdout)
-        (evidence / (label + ".stderr")).write_bytes(stderr)
-        report["stages"].append({"name": label, "returncode": process.returncode,
-                                 "seconds": round(time.monotonic() - started, 3)})
-        save()
-        if check and process.returncode:
-            raise RuntimeError(label + " failed; original output retained")
-        return process.returncode, stdout
+        return run_stage(label, command, evidence=evidence, report=report, environment=environment,
+                         cwd=cwd, timeout=timeout, check=check)
 
     def diagnose_failed_startup():
         # Diagnostics cannot turn the original failed journey into a pass.

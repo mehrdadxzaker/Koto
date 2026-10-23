@@ -51,7 +51,12 @@ koto init --offline --yes
 The text command reports the actual local model and execution destination.
 The starter profile uses an 8,192-token context and at most 2,048 output tokens
 for short text tasks; it does not reserve the historical 32K context on a small
-machine. The independent acceptance task keeps its original 90-second deadline.
+machine. It admits at most 4,096 serialized provider-request bytes, conservatively
+budgeted as one input token per byte, plus the output allowance and additional
+chat-template headroom. Oversized requests stop before model submission. Version
+7 validates that request bytes plus output tokens leave at least 1,024 context
+tokens for that framing; historical profiles keep their previous limits.
+The independent acceptance task keeps its original 90-second deadline.
 Connection health and a completed response are separate from task quality.
 The bootstrap text profile leaves coding evidence absent and automatic coding
 disabled. History collection and learning remain separate opt-ins; init

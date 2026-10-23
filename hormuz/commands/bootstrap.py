@@ -101,30 +101,35 @@ def run(args):
         )
         _say("Creating/reusing configuration and starting the owned local runtime.")
         lifetime = ConnectedClientLifetime(home)
-        result = setup_local(lifetime, setup_args)
-        connection = result["connection"]
-        if (connection.get("phase"), connection.get("router"), connection.get("configuration"),
-                connection.get("local_runtime", {}).get("state")) != ("connected", "ready", "installed", "ready"):
-            raise ConnectedClientError("runtime_start_failed")
-        normal_home = Path(os.environ.get("CODEX_HOME", "~/.codex")).expanduser().resolve()
-        if home.resolve() != normal_home:
-            from ..chat_owner import register_owner
-            try:
+        result = None
+        completed = False
+        try:
+            result = setup_local(lifetime, setup_args)
+            connection = result["connection"]
+            if (connection.get("phase"), connection.get("router"), connection.get("configuration"),
+                    connection.get("local_runtime", {}).get("state")) != ("connected", "ready", "installed", "ready"):
+                raise ConnectedClientError("runtime_start_failed")
+            normal_home = Path(os.environ.get("CODEX_HOME", "~/.codex")).expanduser().resolve()
+            if home.resolve() != normal_home:
+                from ..chat_owner import register_owner
                 register_owner(normal_home, home.resolve(), connection["generation"])
-            except BaseException:
-                lifetime.disconnect(generation=connection["generation"])
-                raise
-        print(json.dumps(result, sort_keys=True))
-        _say("Local connection ready. Task quality and coding qualification remain separate.")
-        if home.resolve() not in {normal_home, (Path.home() / ".codex").resolve()}:
-            _say("Try a text task: " + shlex.join(["koto", "--config", args.config, "chat", "ask",
-                "--router-home", str(home), "--prompt-file", "/absolute/path/to/note.txt",
-                "--effort", "low", "--max-output-tokens", "512"]))
-        else:
-            _say("Use the configured Codex client for tasks in this client home.")
-        _say("Status: " + shlex.join(["koto", "client", "status", "codex", "--client-home", str(home)]))
-        _say("Disconnect before uninstalling: " + shlex.join(["koto", "off", "--client-home", str(home)]))
-        return 0
+            print(json.dumps(result, sort_keys=True), flush=True)
+            _say("Local connection ready. Task quality and coding qualification remain separate.")
+            if home.resolve() not in {normal_home, (Path.home() / ".codex").resolve()}:
+                _say("Try a text task: " + shlex.join(["koto", "--config", args.config, "chat", "ask",
+                    "--router-home", str(home), "--prompt-file", "/absolute/path/to/note.txt",
+                    "--effort", "low", "--max-output-tokens", "512"]))
+            else:
+                _say("Use the configured Codex client for tasks in this client home.")
+            _say("Status: " + shlex.join(["koto", "client", "status", "codex", "--client-home", str(home)]))
+            _say("Disconnect before uninstalling: " + shlex.join(["koto", "off", "--client-home", str(home)]))
+            completed = True
+            return 0
+        finally:
+            if not completed and result is not None:
+                generation = result["connection"].get("generation")
+                if generation is not None:
+                    lifetime.disconnect(generation=generation)
     except (LocalAcquisitionError, AssetDownloadError, ManagedLlamaError, ContractValidationError,
             ConnectedClientError, ConfigError, OSError, ValueError, KeyError, TypeError,
             subprocess.SubprocessError, KeyboardInterrupt, EOFError) as error:

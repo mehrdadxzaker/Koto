@@ -76,6 +76,10 @@ def validate_profile_v7(value):
     context = value["context_tokens"]
     if type(context) is not int or not 2048 <= context <= 32768 or value["max_output_tokens"] > context:
         raise ContractValidationError("invalid bootstrap context limit")
+    # Byte-level tokenization cannot require more input tokens than serialized
+    # UTF-8 bytes. Keep additional room for the runtime's chat template.
+    if value["max_request_bytes"] + value["max_output_tokens"] + 1024 > context:
+        raise ContractValidationError("bootstrap request and output exceed the context envelope")
 
 
 def validate_setup(value):

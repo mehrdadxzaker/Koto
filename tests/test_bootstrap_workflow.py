@@ -192,6 +192,45 @@ class BootstrapWorkflowTests(unittest.TestCase):
             self.assertEqual(json.loads(self.command("off").stdout)["phase"], "disconnected")
             self.assertEqual([path for path, _ in requests], ["/runtime", "/model"])
 
+    def test_interrupted_result_output_stops_the_generation_and_can_restart_offline(self):
+        value, payloads = self.prepare()
+        original = (self.client.home / "config.toml").read_bytes()
+        home = self.path.with_name(self.path.name + ".codex")
+        self.addCleanup(lambda: self.command("off", "--client-home", str(home), check=False))
+        self.addCleanup(lambda: self.command("off", check=False))
+        # Deliver a real process signal when the CLI starts returning its setup
+        # result. Routing and lifecycle collaborators remain the real product.
+        interrupted_output = '''import os, signal, sys
+from hormuz.cli import main
+class InterruptedOutput:
+    def write(self, value):
+        if value:
+            os.kill(os.getpid(), signal.SIGTERM)
+        return len(value)
+    def flush(self):
+        pass
+sys.stdout = InterruptedOutput()
+raise SystemExit(main())
+'''
+        with artifacts(payloads) as (origin, requests, _):
+            self.fixture.catalog(value, origin)
+            failed = subprocess.run([sys.executable, "-c", interrupted_output, "init", "--yes",
+                "--executable", str(self.client.executable), "--catalog", str(self.root / "catalog.json")],
+                env=self.environment, cwd=self.cwd, stdin=subprocess.DEVNULL,
+                capture_output=True, text=True, timeout=25)
+            self.assertEqual(failed.returncode, 130, failed.stderr)
+            self.assertEqual(json.loads(failed.stderr.splitlines()[-1])["error"]["code"], "interrupted")
+            status = json.loads(self.command("status").stdout)
+            self.assertEqual((status["phase"], status["router"], status["local_runtime"]["state"]),
+                             ("disconnected", "stopped", "stopped"))
+            self.assertTrue((self.root / "stopped").exists())
+            self.assertEqual((self.client.home / "config.toml").read_bytes(), original)
+            restarted = self.command("init", "--yes", "--offline", "--executable", str(self.client.executable),
+                "--catalog", str(self.root / "catalog.json"))
+            self.assertEqual(json.loads(restarted.stdout)["connection"]["router"], "ready")
+            self.command("off")
+            self.assertEqual([path for path, _ in requests], ["/runtime", "/model"])
+
     def test_version_six_startup_budget_reaches_the_owned_runtime_without_coding_admission(self):
         value, payloads = self.prepare()
         profile = json.loads((Path(__file__).parent / "fixtures/local-setup-profile-v6.json").read_text())
@@ -246,6 +285,19 @@ class BootstrapWorkflowTests(unittest.TestCase):
             arguments = json.loads((self.root / "runtime-argv.json").read_text())
             self.assertEqual(arguments[arguments.index("--ctx-size") + 1], "8192")
             self.assertEqual(json.loads(self.command("chat", "models").stdout)["models"], ["local-code"])
+            self.assertEqual(configuration["route_admission"]["local_routes"]["local-code"]["max_request_bytes"], 4096)
+            prompt = self.root / "bounded-task.txt"
+            prompt.write_text("!" * 6000)
+            blocked = self.command("chat", "ask", "--prompt-file", str(prompt), "--effort", "low",
+                                   "--max-output-tokens", "512", check=False)
+            self.assertEqual(blocked.returncode, 2, blocked.stdout)
+            validate_contract(json.loads(blocked.stderr))
+            self.assertFalse((self.root / "inference-count").exists())
+            prompt.write_text("Summarize the synthetic handoff.")
+            task = self.command("chat", "ask", "--prompt-file", str(prompt), "--effort", "low",
+                                "--max-output-tokens", "512")
+            self.assertEqual(json.loads(task.stdout)["text"], "MANAGED_LOCAL")
+            self.assertEqual(int((self.root / "inference-count").read_text()), 1)
             self.command("off")
             configuration["managed_llama"]["schema_version"] = 4
             self.path.write_text(json.dumps(configuration))

@@ -50,7 +50,7 @@ def main():
         # Maintainer CLIs are tested as source tools, never shipped in the wheel.
         (temporary / 'tools').mkdir()
         for name in ('version.py', 'verify_router_scope.py', 'verify_codex_acceptance.py', 'compare_local_harness.py',
-                     'local_harness_cases.json', 'local_repair_mcp.py'):
+                     'local_harness_cases.json', 'local_repair_mcp.py', 'verify_bootstrap_install.py'):
             shutil.copy2(ROOT / 'tools' / name, temporary / 'tools' / name)
         subprocess.run([sys.executable, '-c',
                         'from pathlib import Path; import koto, hormuz; '
@@ -69,7 +69,8 @@ def main():
         # complete suite without the duration flag introduced in Python 3.12.
         durations = ['--durations', '20'] if sys.version_info >= (3, 12) else []
         workflows = list(dict.fromkeys(['tests.test_koto_branding_workflow',
-            'tests.test_bootstrap_workflow', 'tests.test_chat_task_workflow', *args.workflow_module]))
+            'tests.test_bootstrap_workflow', 'tests.test_chat_task_workflow',
+            'tests.test_bootstrap_acceptance_workflow', *args.workflow_module]))
         layers = [(['discover', '-s', 'tests', '-p', 'test_*fast.py'], 60),
                   (workflows if args.focused else ['discover', '-s', 'tests', '-p', 'test_*workflow.py'],
                    300 if args.focused else 1500)]
