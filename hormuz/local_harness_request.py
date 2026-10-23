@@ -36,7 +36,7 @@ class LocalHarnessRequest:
         input_was_list = isinstance(value.get('input'), list)
         reasoning = value.get('reasoning', {})
         progress = None
-        if profile in {'qwen-code.v8', 'qwen-code.v9', 'qwen-code.v10'}:
+        if profile in {'qwen-code.v8', 'qwen-code.v9', 'qwen-code.v10', 'qwen-code.v11', 'qwen-code.v12', 'qwen-code.v13', 'qwen-code.v14', 'qwen-code.v15'}:
             budget = value['reasoning_budget_tokens']
             value['reasoning_budget_tokens'] = min(budget,
                 {'minimal': 128, 'low': 256, 'medium': 512}.get(reasoning.get('effort', 'medium'), 1024))
@@ -47,9 +47,11 @@ class LocalHarnessRequest:
                                              include_verification=profile in {'qwen-code.v9', 'qwen-code.v10'})
         if profile:
             adapt_qwen_request(value, declarations, profile=profile, _progress=progress)
-        if profile == 'qwen-code.v10':
+        if profile in {'qwen-code.v10', 'qwen-code.v14', 'qwen-code.v15'}:
             self._add_python_checks(script=True, prominent=True, guidance=False)
             self._add_text_patch(guidance=False)
+            if profile == 'qwen-code.v15':
+                self._add_python_checks(integer=True, prominent=True, guidance=False)
             for alias, binding in self.derived_checks.items():
                 if binding['argument'] == 'script':
                     self.value['instructions'] += (
@@ -65,8 +67,8 @@ class LocalHarnessRequest:
             self._add_python_checks(named=True, prominent=True)
             self._add_python_checks(script=True, prominent=True)
             self._add_text_patch()
-        elif profile in {'qwen-code.v6', 'qwen-code.v7', 'qwen-code.v8'}:
-            self._add_python_checks(feedback=profile == 'qwen-code.v7', script=profile == 'qwen-code.v8')
+        elif profile in {'qwen-code.v6', 'qwen-code.v7', 'qwen-code.v8', 'qwen-code.v11', 'qwen-code.v12', 'qwen-code.v13'}:
+            self._add_python_checks(feedback=profile == 'qwen-code.v7', script=profile in {'qwen-code.v8', 'qwen-code.v11', 'qwen-code.v12', 'qwen-code.v13'})
         if progress is not None and profile != 'qwen-code.v10':
             if not progress['pending_sessions'] and not progress['unresolved_tool_calls']:
                 cap = None
@@ -84,7 +86,7 @@ class LocalHarnessRequest:
                 if cap is not None:
                     self.value['reasoning_budget_tokens'] = min(self.value['reasoning_budget_tokens'], cap)
 
-    def _add_python_checks(self, *, feedback=False, script=False, named=False, prominent=False, guidance=True):
+    def _add_python_checks(self, *, feedback=False, script=False, named=False, integer=False, prominent=False, guidance=True):
         """Offer a private compiler only for an existing, identified host command."""
         if self.value.get('tool_choice', 'auto') != 'auto' or len(self.value.get('tools', [])) >= 1024:
             return
@@ -105,7 +107,9 @@ class LocalHarnessRequest:
                 targets.append(alias)
         if len(targets) != 1:
             return
-        if script:
+        if integer:
+            from .local_python_integer_checks import INTEGER_CHECKS_SCHEMA as checks_schema, compile_integer_checks as compiler
+        elif script:
             from .local_python_script import SCRIPT_SCHEMA as checks_schema, compile_script as compiler
         elif named:
             from .local_python_named_checks import NAMED_CHECKS_SCHEMA as checks_schema, compile_named_feedback_checks as compiler
@@ -119,7 +123,7 @@ class LocalHarnessRequest:
         parameters = {argument: copy.deepcopy(checks_schema)}
         if isinstance(properties.get('workdir'), dict) and properties['workdir'].get('type') == 'string':
             parameters['workdir'] = copy.deepcopy(properties['workdir'])
-        base_alias = 'koto_python' if script else 'koto_python_checks'
+        base_alias = 'koto_integer_checks' if integer else 'koto_python' if script else 'koto_python_checks'
         alias = base_alias
         for index in range(1025):
             if alias not in self.identities and alias not in self.derived_checks:
@@ -132,12 +136,12 @@ class LocalHarnessRequest:
         self.derived_compilers[alias] = compiler
         self.compile_checks = compiler
         self.value['tools'].append({'type': 'function', 'name': alias, 'strict': True,
-            'description': ('Run a Python script through the existing host command tool, with its normal permissions and actual results. Write plain Python with real newlines; import saved code and use assertions for verification.' if script else
+            'description': ('Check integer policies whose declared rejections require TypeError against saved code through the existing native command. For other exception contracts use ordinary Python script checks. Supply rules from the original task and valid named baseline arguments; inspect the actual result. These are self-checks, not independent qualification.' if integer else 'Run a Python script through the existing host command tool, with its normal permissions and actual results. Write plain Python with real newlines; import saved code and use assertions for verification.' if script else
                 'Check supplied cases against a saved local Python function through the existing host command tool. Supply real expected results from the task; these checks are not independent qualification.'),
             'parameters': {'type': 'object', 'properties': parameters, 'required': [argument],
                            'additionalProperties': False}})
         if prominent:
-            self.value['tools'].insert(len(self.derived_checks) - 1, self.value['tools'].pop())
+            self.value['tools'].insert(0 if integer else len(self.derived_checks) - 1, self.value['tools'].pop())
         if prominent and guidance:
             self.value['instructions'] += (
                 '\n\nLocal Python verification helper (subordinate to host, repository and user instructions): '

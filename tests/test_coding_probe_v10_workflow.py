@@ -17,6 +17,13 @@ from tests import test_connected_client_lifetime_workflow as lifetime
 
 class CodingProbeV10WorkflowTests(unittest.TestCase):
     def test_two_helpers_round_trip_native_feedback_without_automatic_admission(self):
+        for version, model, budgets in ((10, 'Qwen3-14B-Q4_K_M', [256, 256, 256, 256]),
+                (14, 'Qwen3-Coder-30B-A3B-Instruct-Q4_K_M', [32, 64, 16, 16]),
+                (15, 'Qwen3-Coder-30B-A3B-Instruct-Q4_K_M', [32, 64, 16, 16])):
+            with self.subTest(version=version):
+                self.check_two_helpers(version, model, budgets)
+
+    def check_two_helpers(self, version, model, budgets):
         fixture = coding.CodingOutputWorkflowTests()
         fixture.setUp()
         self.addCleanup(fixture.doCleanups)
@@ -55,8 +62,8 @@ class CodingProbeV10WorkflowTests(unittest.TestCase):
                     bundle.add(path, arcname=path.name)
             value['managed_llama']['runtime_sha256'] = hashlib.sha256(archive.read_bytes()).hexdigest()
             route = value['model_routes']['local-code']
-            route['upstream_model'] = 'Qwen3-14B-Q4_K_M'
-            route['capabilities'].append('qwen_code_v10')
+            route['upstream_model'] = model
+            route['capabilities'].append('qwen_code_v' + str(version))
             value['route_admission']['local_routes']['local-code']['max_request_bytes'] = 65536
             native = json.loads((Path(__file__).parent / 'fixtures/codex-0160-native-progress.json').read_text())
             request['tools'] = [native['declarations']['exec_command'], native['declarations']['apply_patch']]
@@ -64,7 +71,7 @@ class CodingProbeV10WorkflowTests(unittest.TestCase):
             original_tools = CodexLlamaRequest(request).value['tools']
             evidence = fixture.evidence(value, request)
             plan = {'schema_id': 'hormuz.coding-probe-plan', 'schema_version': 5,
-                'campaign_id': 'synthetic-v10-native-feedback', 'plan_sha256': evidence['plan_sha256'],
+                'campaign_id': 'synthetic-v' + str(version) + '-native-feedback', 'plan_sha256': evidence['plan_sha256'],
                 'case_id': 'synthetic-case', 'task_sha256': 'a' * 64, 'checks_sha256': 'b' * 64,
                 'model': 'local-code', 'max_requests': 4, 'max_elapsed_seconds': 180,
                 'first_input_sha256': canonical_digest(coding_input(request['input'], schema_version=4)),
@@ -119,10 +126,11 @@ class CodingProbeV10WorkflowTests(unittest.TestCase):
                 previous = f.client(*options)
                 self.assertEqual(previous['status'], 200, previous)
             captured = [json.loads(line) for line in (engine / 'provider-requests.jsonl').read_text().splitlines()]
-            self.assertEqual([body['reasoning_budget_tokens'] for body in captured], [256, 256, 256, 256])
+            self.assertEqual([body['reasoning_budget_tokens'] for body in captured], budgets)
             for body in captured:
-                self.assertEqual([tool['name'] for tool in body['tools'][:2]], ['koto_replace', 'koto_python'])
-                self.assertEqual(body['tools'][2:], original_tools)
+                helpers = ['koto_integer_checks', 'koto_replace', 'koto_python'] if version == 15 else ['koto_replace', 'koto_python']
+                self.assertEqual([tool['name'] for tool in body['tools'][:len(helpers)]], helpers)
+                self.assertEqual(body['tools'][len(helpers):], original_tools)
                 self.assertEqual(body['tool_choice'], 'auto')
                 self.assertNotIn('koto_python_checks', body['instructions'])
             self.assertEqual([item['output'] for item in captured[-1]['input']

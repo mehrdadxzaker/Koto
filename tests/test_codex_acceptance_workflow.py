@@ -184,12 +184,33 @@ class CodexAcceptanceWorkflowTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         return result
 
+    def test_prepare_waits_for_native_exit_after_eof_before_signaling_its_group(self):
+        # External client control: both pipes close just before natural exit.
+        # A signal during that interval is observable without mocking the operator.
+        program = self.codex.read_text().replace('import http.client,json,os,pathlib,subprocess,sys,tomllib,uuid',
+            'import http.client,json,os,pathlib,signal,subprocess,sys,time,tomllib,uuid')
+        program = program.replace(';sys.exit(2)', '''
+   signal.signal(signal.SIGINT,lambda *_:pathlib.Path(__file__).with_name('premature-native-signal').write_text('signal before exit'))
+   os.close(1);os.close(2)
+   time.sleep(.25)
+   sys.exit(2)''', 1)
+        self.codex.write_text(program)
+        before = self.settings.read_bytes()
+        self.tool('prepare')
+        self.assertFalse((self.root / 'premature-native-signal').exists(),
+                         'EOF does not establish process exit; allow natural exit before group cleanup')
+        report = json.loads((self.output / 'prepare-result.json').read_text())
+        self.assertTrue(report['passed'] and report['settings_restored'] and report['owned_listeners_closed'])
+        self.assertEqual(self.settings.read_bytes(), before)
+        self.assertFalse((self.engine.parent / 'calls.jsonl').exists())
+
     def test_prepare_installs_an_isolated_wheel_and_freezes_without_inference(self):
         before = self.settings.read_bytes()
         self.tool('prepare')
         frozen = json.loads((self.output / 'freeze.json').read_text())
         self.assertEqual((frozen['schema_id'], frozen['model_requests']), ('koto.codex-acceptance-freeze', 0))
         self.assertEqual(frozen['schema_version'], 1)
+        self.assertNotIn('native_plugin_discovery_disabled', frozen)
         self.assertEqual(frozen['limits'], {'max_requests': 8, 'max_elapsed_seconds': 90, 'max_output_tokens': 512})
         self.assertTrue((self.output / 'installed/hormuz/server.py').is_file())
         self.assertEqual(set(frozen['scenarios']), {'edit', 'cancel', 'deny'})
@@ -204,12 +225,18 @@ class CodexAcceptanceWorkflowTests(unittest.TestCase):
         profile.update(schema_version=5, max_output_tokens=2048)
         self.profile.write_text(json.dumps(profile))
         before = self.settings.read_bytes()
-        self.tool('prepare')
+        self.tool('prepare', '--disable-plugin-discovery')
         frozen = json.loads((self.output / 'freeze.json').read_text())
         self.assertEqual(frozen['schema_version'], 2)
         self.assertEqual(frozen['limits'], {'max_requests': 8, 'max_elapsed_seconds': 90,
                                            'max_output_tokens': 2048})
         self.assertEqual(frozen['model_requests'], 0)
+        self.assertTrue(frozen['native_plugin_discovery_disabled'])
+        captures = list((self.output / 'captures').rglob('argv.json'))
+        self.assertEqual(len(captures), 4)
+        for capture in captures:
+            argv = json.loads(capture.read_text())
+            self.assertEqual(argv[argv.index('plugins') - 1], '--disable')
         self.assertFalse((self.engine.parent / 'calls.jsonl').exists())
         self.assertEqual(self.settings.read_bytes(), before)
 
