@@ -6,8 +6,8 @@ import os
 from pathlib import Path
 import platform
 import subprocess
+import sys
 import tempfile
-import venv
 import zipfile
 
 
@@ -39,7 +39,6 @@ def main():
                            CODEX_HOME=str(root / 'codex'), KOTO_HISTORY_HOME=str(root / 'history'),
                            PYTHONDONTWRITEBYTECODE='1', PIP_NO_INPUT='1', PIP_DISABLE_PIP_VERSION_CHECK='1',
                            PIP_RETRIES='2', PIP_TIMEOUT='30')
-        venv.EnvBuilder(with_pip=True).create(install)
         scripts = install / ('Scripts' if os.name == 'nt' else 'bin')
         python = scripts / ('python.exe' if os.name == 'nt' else 'python')
 
@@ -50,6 +49,7 @@ def main():
                 raise RuntimeError(f'{command[0]} exited {result.returncode}: {result.stderr[-8000:]}')
             return result
 
+        run([sys.executable, '-m', 'venv', str(install)], timeout=180)
         run([str(python), '-m', 'pip', 'install', str(wheel)], timeout=180)
         imported = json.loads(run([str(python), '-I', '-c',
             'import json,koto,hormuz; print(json.dumps([koto.__file__,hormuz.__file__]))']).stdout)
