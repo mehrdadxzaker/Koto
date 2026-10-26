@@ -203,6 +203,44 @@ function checkImports(name) {
   }
 }
 
+function checkWorkflowActions(name) {
+  if (!/^\.github\/workflows\/[^/]+\.ya?ml$/i.test(name)) return;
+  const lines = readFileSync(localPath(name), 'utf8').split('\n');
+  let blockColumn = -1;
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    if (blockColumn >= 0) {
+      if (!line.trim() || line.match(/^\s*/)[0].length > blockColumn) continue;
+      blockColumn = -1;
+    }
+    const property = line.match(/^(\s*)(-\s+)?("[^"]+"|'[^']+'|[A-Za-z0-9_-]+)\s*:\s*(.*)$/);
+    if (!property) continue;
+    const key = property[3].replace(/^["']|["']$/g, '');
+    let reference = property[4].trim();
+    if (/^[|>][1-9+-]*(?:\s+#.*)?$/.test(reference)) {
+      blockColumn = property[1].length + (property[2]?.length ?? 0);
+      if (key !== 'uses') continue; // Script contents are not action references.
+      const parts = [];
+      for (let next = index + 1; next < lines.length; next += 1) {
+        const content = lines[next];
+        if (!content.trim()) continue;
+        if (content.match(/^\s*/)[0].length <= blockColumn) break;
+        parts.push(content.trim());
+      }
+      reference = parts.join(reference.startsWith('>') ? ' ' : '\n').trim();
+    }
+    if (key !== 'uses') continue;
+    const quoted = reference.match(/^("|')(.*?)\1(?:\s+#.*)?$/);
+    reference = quoted ? quoted[2] : reference.replace(/\s+#.*$/, '').trim();
+    // Container image references have their own digest syntax; this rule checks
+    // GitHub actions and reusable workflows, which use Git commit references.
+    if (reference.startsWith('./') || reference.startsWith('docker://')) continue;
+    if (!/^[^@\s]+@[a-fA-F0-9]{40}$/.test(reference)) {
+      fail(`Remote GitHub actions and reusable workflows require a full 40-character commit SHA in ${name}:${index + 1}`);
+    }
+  }
+}
+
 function withoutCode(source) {
   let fence;
   const lines = source.split('\n').map((line) => {
@@ -270,6 +308,7 @@ checkTrackedPaths();
 checkPackage();
 for (const name of [...files].sort()) {
   checkImports(name);
+  checkWorkflowActions(name);
   checkMarkdown(name);
 }
 

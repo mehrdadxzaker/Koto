@@ -90,6 +90,39 @@ test('scope checker requires matching declarations and ordered ESM exports', asy
   }
 });
 
+test('scope checker requires full commit pins for remote workflow actions', async (t) => {
+  const sha = '49933ea5288caeca8642d1e84afbd3f7d6820020';
+  for (const [label, step, status] of [
+    ['floating action tag', '- uses: actions/setup-node@v4', 1],
+    ['abbreviated action commit', '- uses: actions/setup-node@49933ea', 1],
+    ['floating reusable workflow', 'uses: owner/repo/.github/workflows/check.yml@main', 1],
+    ['pinned reusable workflow', `uses: owner/repo/.github/workflows/check.yml@${sha}`, 0],
+    ['pinned action', `- uses: actions/setup-node@${sha}`, 0],
+    ['quoted action and comment', `- uses: "actions/setup-node@${sha}" # approved pin`, 0],
+    ['local action', '- uses: ./.github/actions/check', 0],
+    ['folded pinned action', `- uses: >-\n          actions/setup-node@${sha}`, 0],
+    ['action-shaped script text', '- run: |\n          cat <<\'NOTE\'\n          uses: actions/setup-node@v4\n          NOTE', 0],
+  ]) {
+    await t.test(label, async (child) => {
+      const fixture = await repository(child);
+      const filename = '.github/workflows/check.yml';
+      const workflow = label.includes('reusable workflow')
+        ? `name: Fixture\non: push\njobs:\n  check:\n    ${step}\n`
+        : `name: Fixture\non: push\njobs:\n  check:\n    runs-on: ubuntu-latest\n    steps:\n      ${step}\n`;
+      await fixture.add(filename, workflow);
+      if (label === 'local action') {
+        await fixture.add('.github/actions/check/action.yml', 'name: Fixture\nruns:\n  using: composite\n  steps:\n    - run: echo fixture\n      shell: bash\n');
+      }
+      const result = fixture.run();
+      assert.equal(result.status, status, result.stderr);
+      if (status === 1) {
+        assert(result.stderr.includes(filename));
+        assert.match(result.stderr, /full.*SHA/i);
+      }
+    });
+  }
+});
+
 test('scope checker reserves approved IDE and UI deliveries and nested adapter paths', async (t) => {
   for (const filename of [
     'plugins/vscode/package.json',
