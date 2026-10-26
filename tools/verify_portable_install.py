@@ -5,10 +5,119 @@ import json
 import os
 from pathlib import Path
 import platform
+import signal
 import subprocess
 import sys
 import tempfile
+import time
 import zipfile
+
+
+class _WindowsJob:
+    """Own a gated worker and every descendant before it can start a command."""
+    def __init__(self):
+        import ctypes
+        from ctypes import wintypes
+
+        class Limits(ctypes.Structure):
+            _fields_ = [('process_time', ctypes.c_int64), ('job_time', ctypes.c_int64),
+                        ('flags', wintypes.DWORD), ('minimum', ctypes.c_size_t),
+                        ('maximum', ctypes.c_size_t), ('active', wintypes.DWORD),
+                        ('affinity', ctypes.c_size_t), ('priority', wintypes.DWORD),
+                        ('scheduling', wintypes.DWORD)]
+
+        class ExtendedLimits(ctypes.Structure):
+            _fields_ = [('basic', Limits), ('io', ctypes.c_uint64 * 6),
+                        ('process_memory', ctypes.c_size_t), ('job_memory', ctypes.c_size_t),
+                        ('peak_process_memory', ctypes.c_size_t), ('peak_job_memory', ctypes.c_size_t)]
+
+        self.api = ctypes.WinDLL('kernel32', use_last_error=True)
+        for name, arguments, result in (
+            ('CreateJobObjectW', [ctypes.c_void_p, wintypes.LPCWSTR], wintypes.HANDLE),
+            ('SetInformationJobObject', [wintypes.HANDLE, ctypes.c_int, ctypes.c_void_p, wintypes.DWORD], wintypes.BOOL),
+            ('OpenProcess', [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD], wintypes.HANDLE),
+            ('AssignProcessToJobObject', [wintypes.HANDLE, wintypes.HANDLE], wintypes.BOOL),
+            ('CloseHandle', [wintypes.HANDLE], wintypes.BOOL),
+        ):
+            function = getattr(self.api, name)
+            function.argtypes, function.restype = arguments, result
+        self.handle = self.api.CreateJobObjectW(None, None)
+        if not self.handle:
+            raise ctypes.WinError(ctypes.get_last_error())
+        limits = ExtendedLimits()
+        limits.basic.flags = 0x2000  # JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+        if not self.api.SetInformationJobObject(self.handle, 9, ctypes.byref(limits), ctypes.sizeof(limits)):
+            error = ctypes.WinError(ctypes.get_last_error())
+            self.close()
+            raise error
+
+    def assign(self, pid):
+        import ctypes
+
+        process = self.api.OpenProcess(0x0101, False, pid)  # SET_QUOTA | TERMINATE
+        if not process:
+            raise ctypes.WinError(ctypes.get_last_error())
+        try:
+            if not self.api.AssignProcessToJobObject(self.handle, process):
+                raise ctypes.WinError(ctypes.get_last_error())
+        finally:
+            self.api.CloseHandle(process)
+
+    def close(self):
+        if self.handle:
+            self.api.CloseHandle(self.handle)
+            self.handle = None
+
+
+def run_command(command, *, cwd, environment, expected=0, timeout=15):
+    """Run a verification operation, stopping its owned tree on every exit."""
+    job = _WindowsJob() if os.name == 'nt' else None
+    process = None
+    timed_out = None
+    try:
+        if job is not None:
+            # Wait for the parent's stdin handshake before spawning anything.
+            # Assignment therefore precedes ensurepip/pip and has no spawn race.
+            worker = ('import json,subprocess,sys; command=json.loads(sys.stdin.readline()); '
+                      'raise SystemExit(subprocess.call(command,stdin=subprocess.DEVNULL))')
+            process = subprocess.Popen([sys.executable, '-c', worker], cwd=cwd, env=environment,
+                                       stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            job.assign(process.pid)
+            stdout, stderr = process.communicate(json.dumps(command) + '\n', timeout=timeout)
+        else:
+            process = subprocess.Popen(command, cwd=cwd, env=environment, stdin=subprocess.DEVNULL,
+                                       stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                                       start_new_session=True)
+            stdout, stderr = process.communicate(timeout=timeout)
+        result = subprocess.CompletedProcess(command, process.returncode, stdout, stderr)
+    except subprocess.TimeoutExpired as error:
+        timed_out = error
+        raise
+    finally:
+        if job is not None:
+            job.close()
+        elif process is not None:
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+        if process is not None:
+            if process.poll() is None:
+                process.kill()
+            try:
+                stdout, stderr = process.communicate(timeout=2)
+                # Windows reports no partial output until its reader threads
+                # see EOF. Preserve the bounded post-cleanup result for callers.
+                if timed_out is not None:
+                    timed_out.output, timed_out.stderr = stdout, stderr
+            except subprocess.TimeoutExpired:
+                for stream in (process.stdin, process.stdout, process.stderr):
+                    if stream is not None:
+                        stream.close()
+                process.wait(timeout=2)
+    if result.returncode != expected:
+        raise RuntimeError(f'{command[0]} exited {result.returncode}: {result.stderr[-8000:]}')
+    return result
 
 
 def main():
@@ -39,15 +148,30 @@ def main():
                            CODEX_HOME=str(root / 'codex'), KOTO_HISTORY_HOME=str(root / 'history'),
                            PYTHONDONTWRITEBYTECODE='1', PIP_NO_INPUT='1', PIP_DISABLE_PIP_VERSION_CHECK='1',
                            PIP_RETRIES='2', PIP_TIMEOUT='30')
+        # Exercise timeout cleanup on the actual OS before starting an installer.
+        marker = root / 'surviving-verifier-child'
+        child = f'import time,pathlib; time.sleep(2); pathlib.Path({str(marker)!r}).touch()'
+        parent = ('import subprocess,sys,time; '
+                  f'subprocess.Popen([sys.executable,"-c",{child!r}]); '
+                  'print("descendant started",flush=True); time.sleep(60)')
+        try:
+            run_command([sys.executable, '-c', parent], cwd=work, environment=environment, timeout=1)
+            raise RuntimeError('verification deadline did not stop its command')
+        except subprocess.TimeoutExpired as error:
+            output = error.output or b''
+            if isinstance(output, bytes):
+                output = output.decode()
+            if 'descendant started' not in output:
+                raise RuntimeError('timeout check did not reach its child boundary') from error
+        time.sleep(2.2)
+        if marker.exists():
+            raise RuntimeError('verification timeout left a descendant running')
         scripts = install / ('Scripts' if os.name == 'nt' else 'bin')
         python = scripts / ('python.exe' if os.name == 'nt' else 'python')
 
         def run(command, *, expected=0, timeout=15):
-            result = subprocess.run(command, cwd=work, env=environment, capture_output=True,
-                                    text=True, timeout=timeout)
-            if result.returncode != expected:
-                raise RuntimeError(f'{command[0]} exited {result.returncode}: {result.stderr[-8000:]}')
-            return result
+            return run_command(command, cwd=work, environment=environment,
+                               expected=expected, timeout=timeout)
 
         run([sys.executable, '-m', 'venv', str(install)], timeout=180)
         run([str(python), '-m', 'pip', 'install', str(wheel)], timeout=180)

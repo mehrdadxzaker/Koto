@@ -51,7 +51,8 @@ def main():
         (temporary / 'tools').mkdir()
         for name in ('version.py', 'release.py', 'package_plugin.py', 'verify_release_ci.py',
                      'verify_router_scope.py', 'verify_codex_acceptance.py', 'compare_local_harness.py',
-                     'local_harness_cases.json', 'local_repair_mcp.py', 'verify_bootstrap_install.py'):
+                     'local_harness_cases.json', 'local_repair_mcp.py', 'verify_bootstrap_install.py',
+                     'verify_portable_install.py'):
             shutil.copy2(ROOT / 'tools' / name, temporary / 'tools' / name)
         subprocess.run([sys.executable, '-c',
                         'from pathlib import Path; import koto, hormuz; '
