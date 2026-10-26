@@ -3,8 +3,10 @@
 Koto requires Node.js 22 or later with npm. The package is pure JavaScript and
 has no runtime dependencies, build step or installation hook. The release
 target is Windows, macOS and Linux; CI is configured for all three. Current local
-verification covers Linux with Node 22.23.4 and 24.19.0. Windows and macOS results
-are pending.
+verification covers Linux with Node 22.23.4 and 24.19.0. Check the exact revision's
+[CI results](https://github.com/mehrdadxzaker/Koto/actions/workflows/ci.yml) for
+hosted-platform evidence. Process cleanup is separate from sandboxing; see the
+[execution boundaries](ARCHITECTURE.md#lifecycle-and-execution-boundaries).
 
 ## Local package
 

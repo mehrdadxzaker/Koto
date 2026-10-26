@@ -102,8 +102,10 @@ these are development dependencies and are not needed to install or run Koto.
 Tests use fixture processes, temporary directories and the actual packed npm
 artifact, including strict TypeScript consumer checks. CI is configured to run
 the checks on Windows, macOS and Linux with Node 22 and 24. Local checks pass on
-Linux with Node 22.23.4 and Node 24.19.0. Windows and macOS execution remain
-unverified. Local checks establish only the platform on which they were run.
+Linux with Node 22.23.4 and Node 24.19.0. See the exact revision's
+[CI results](https://github.com/mehrdadxzaker/Koto/actions/workflows/ci.yml) for
+hosted-platform evidence; the process-ownership limits in the security policy
+apply on every platform.
 
 See [contributing](https://github.com/mehrdadxzaker/Koto/blob/main/CONTRIBUTING.md), [support](https://github.com/mehrdadxzaker/Koto/blob/main/SUPPORT.md),
 [security](https://github.com/mehrdadxzaker/Koto/blob/main/SECURITY.md) and the [license](https://github.com/mehrdadxzaker/Koto/blob/main/LICENSE).

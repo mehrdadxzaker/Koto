@@ -155,8 +155,10 @@ test('reports an executable that cannot be started', async () => {
 
 test('reports an agent that closes stdin before accepting its assignment', async () => {
   await assert.rejects(runProcessAgent(agent(`
-    require('node:fs').closeSync(0);
-    setTimeout(() => process.stdout.write('not an accepted task'), 500);
+    process.stdin.destroy();
+    try { require('node:fs').closeSync(0); }
+    catch (error) { if (error.code !== 'EBADF') throw error; }
+    setInterval(() => {}, 1000);
   `), {
     ...assignment,
     task: { ...assignment.task, prompt: 'x'.repeat(400 * 1024) },
@@ -211,6 +213,7 @@ test('bounds stdout and diagnostic output', async () => {
   ]) {
     await assert.rejects(runProcessAgent(agent(`
       process.stdin.resume();
+      setInterval(() => {}, 1000);
       process.${stream}.write(Buffer.alloc(${bytes}, 120));
     `), assignment), hasCode(code));
   }
@@ -220,6 +223,7 @@ test('rejects malformed UTF-8 on stdout or stderr', async () => {
   for (const stream of ['stdout', 'stderr']) {
     await assert.rejects(runProcessAgent(agent(`
       process.stdin.resume();
+      ${stream === 'stderr' ? 'setInterval(() => {}, 1000);' : ''}
       process.stdout.write('answer');
       process.${stream}.write(Buffer.from([0xc3, 0x28]));
     `), assignment), hasCode('invalid_utf8'));
