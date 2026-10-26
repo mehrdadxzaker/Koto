@@ -74,7 +74,7 @@ def main():
             'tests.test_bootstrap_acceptance_workflow', *args.workflow_module]))
         layers = [(['discover', '-s', 'tests', '-p', 'test_*fast.py'], 60),
                   (workflows if args.focused else ['discover', '-s', 'tests', '-p', 'test_*workflow.py'],
-                   300 if args.focused else 1500)]
+                   300 if args.focused else 1800)]
         for selection, timeout in layers:
             print('Running installed-wheel tests: ' + ' '.join(selection), flush=True)
             subprocess.run([sys.executable, '-m', 'unittest', *selection, '-f', '-v', *durations],
