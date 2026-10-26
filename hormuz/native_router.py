@@ -23,9 +23,10 @@ MAX_MESSAGE = 1024 * 1024
 
 
 class _SessionGateway(GatewayServer):
-    def __init__(self, config, deadline):
+    def __init__(self, config, deadline, coding):
         self.handlers = threading.Condition()
         self.active_handlers = 0
+        self.native_coding = coding
         super().__init__(config, request_deadline=deadline, capture_history=False)
 
     def get_request(self):
@@ -74,7 +75,7 @@ def _send(connection, value):
     connection.send_bytes(raw)
 
 
-def _serve(connection, config, workspace, deadline):
+def _serve(connection, config, workspace, deadline, coding):
     logging.disable(logging.CRITICAL)
     server = thread = None
     try:
@@ -83,7 +84,7 @@ def _serve(connection, config, workspace, deadline):
             database_path=Path(workspace) / "usage.sqlite3",
             organization_policy=replace(config.organization_policy, max_output_tokens=output_cap),
             ai_work=AIWorkConfig(enabled=True, database_path=Path(workspace) / "work.sqlite3"))
-        server = _SessionGateway(scoped, deadline)
+        server = _SessionGateway(scoped, deadline, coding)
         thread = threading.Thread(target=server.serve_forever, kwargs={"poll_interval": .05}, daemon=False)
         thread.start()
         _send(connection, {"ok": True, "value": {"server_port": server.server_port}})
@@ -220,7 +221,7 @@ class _Router:
 
 
 @contextmanager
-def owned_router(config, workspace, deadline):
+def owned_router(config, workspace, deadline, *, coding=False):
     try:
         if len(pickle.dumps(config)) > MAX_MESSAGE:
             raise ValueError()
@@ -228,7 +229,7 @@ def owned_router(config, workspace, deadline):
         raise NativeSessionError("native_router_configuration_invalid") from None
     context = multiprocessing.get_context("spawn")
     parent, child = context.Pipe(duplex=True)
-    process = context.Process(target=_serve, args=(child, config, str(workspace), deadline), name="koto-native-router")
+    process = context.Process(target=_serve, args=(child, config, str(workspace), deadline, coding), name="koto-native-router")
     router = None
     started = False
     try:

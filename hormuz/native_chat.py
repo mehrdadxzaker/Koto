@@ -10,7 +10,7 @@ import sys
 import tempfile
 import time
 
-from .codex_native_session import NativeSessionError, run_session
+from .codex_native_session import NativeSessionError, run_session, workspace_context
 from .codex_catalog import qualified_models
 from .config import GatewayConfig
 from .local_history import LocalHistory
@@ -32,23 +32,29 @@ def _valid_alias(alias):
     return type(alias) is str and 1 <= len(alias) <= 128 and '\x00' not in alias
 
 
-def _host_profile(config, facts):
+def _host_profile(config, facts, context=None):
     qualifications = dict(config.route_admission.local_routes)
-    return digest({'domain': 'codex-app-server-host.v1', 'facts': facts,
+    value = {'domain': 'codex-app-server-host.v1' if context is None else 'codex-app-server-host.v2', 'facts': facts,
         'local_execution': {'controls': LOCAL_CONTROLS,
             'qualifications': {alias: asdict(value) for alias, value in qualifications.items()},
-            'catalog': qualified_models(config, sorted(qualifications))}})
+            'catalog': qualified_models(config, sorted(qualifications))}}
+    if context is not None:
+        value['execution_context'] = context
+    return digest(value)
 
 
 def _receipt(result, selected, entry_id, error):
     complete = result['status'] == 'completed' and error is None
     is_local = selected.get('local', False)
-    return {'schema_id': 'koto.native-task', 'schema_version': 1,
+    receipt = {'schema_id': 'koto.native-task', 'schema_version': 2 if selected.get('context') is not None else 1,
         'status': 'unknown' if error else result['status'], 'text': result['text'], 'model': selected.get('model'),
         'locality': 'local' if is_local else 'cloud', 'selection': selected.get('advice'), 'history_entry': entry_id,
         'execution': {'verified': complete, 'source': 'owned_router_receipts' if is_local else 'native_provider_binding',
                       'local_attempts': selected.get('local_attempts') if is_local else None},
         'native': result, 'error': error}
+    if selected.get('context') is not None:
+        receipt['context'] = selected['context']
+    return receipt
 
 
 def run(args):
@@ -58,6 +64,10 @@ def run(args):
     server = None
     local_work = None
     try:
+        coding = args.chat_command == 'code'
+        context = workspace_context(args.workspace) if coding else None
+        task_workspace = Path(args.workspace).expanduser().resolve() if coding else None
+        selected['context'] = context
         if args.prompt_file == '-':
             raw = sys.stdin.buffer.read(65537)
         else:
@@ -97,13 +107,24 @@ def run(args):
                     'max_output_tokens', 'monthly_token_limit', 'monthly_budget_usd', 'per_actor_monthly_budget_usd')):
                 raise NativeSessionError('native_policy_limit_unsupported')
             baseline = matches[0]
-            profile = _host_profile(config, facts)
-            task = request_characteristics({'input': prompt})['task_hint']
+            profile = _host_profile(config, facts, context)
+            task = 'code_change' if coding else request_characteristics({'input': prompt})['task_hint']
             candidates = [] if server is None else server.routes(identity.actor_id)
+            coding_models = set()
+            if coding:
+                qualifications = dict(config.route_admission.local_routes)
+                for row in candidates:
+                    qualification = qualifications.get(row['model'])
+                    if (row['coding_readiness'] == 'qualified' and 'code_change' in row['automatic_task_types']
+                            and qualification is not None and qualification.coding_evidence):
+                        evidence = json.loads(qualification.coding_evidence)
+                        if evidence['plan']['subject']['client_version'] == facts['client_version']:
+                            coding_models.add(row['model'])
             qualified = {row['model'] for row in candidates
                 if row['readiness'] == 'ready' and _valid_alias(row['model'])
                 and {'responses', 'text', 'streaming', 'tools', 'codex_http_0160'} <= set(row['capabilities'])
-                and task not in {'code_change', 'code_review'} and task in row['automatic_task_types']}
+                and (row['model'] in coding_models if coding else
+                     task not in {'code_change', 'code_review'} and task in row['automatic_task_types'])}
             state, records = history.learning_snapshot(identity.actor_id)
             advice = recommend(config, state, records, {'input': prompt}, {baseline, *qualified}, baseline,
                                profile_digest=profile)
@@ -121,8 +142,9 @@ def run(args):
                 eligible = [row for row in candidates if row['model'] == args.model
                     and row['readiness'] == 'ready'
                     and {'responses', 'text', 'streaming', 'tools', 'codex_http_0160'} <= set(row['capabilities'])
-                    and task not in {'code_change', 'code_review'}
-                    and (task in row['task_types'] or 'interactive' in row['task_types'])]
+                    and (row['model'] in coding_models if coding else
+                         task not in {'code_change', 'code_review'}
+                         and (task in row['task_types'] or 'interactive' in row['task_types']))]
                 if len(eligible) != 1:
                     raise NativeSessionError('native_local_model_not_qualified')
                 chosen = args.model
@@ -146,16 +168,20 @@ def run(args):
             return override
 
         with tempfile.TemporaryDirectory(prefix='koto-native-task-') as workspace:
+            control_workspace = Path(workspace).resolve()
+            if coding and (task_workspace == control_workspace or task_workspace in control_workspace.parents):
+                raise NativeSessionError('native_workspace_invalid')
             needs_router = bool(config.route_admission.local_routes) and config.route_admission.mode != 'configured'
             tokens = resolve_static_identity_tokens((identity,), os.environ) if needs_router else {}
             gateway_token = next(iter(tokens), None)
             if needs_router and gateway_token is None:
                 raise NativeSessionError('native_gateway_identity_required')
             deadline = time.monotonic() + args.timeout_seconds
-            with owned_router(config, workspace, deadline) if needs_router else nullcontext() as server:
-                result = run_session(executable, home, workspace, prompt,
+            with owned_router(config, workspace, deadline, coding=coding) if needs_router else nullcontext() as server:
+                result = run_session(executable, home, task_workspace if coding else workspace, prompt,
                     timeout_seconds=args.timeout_seconds, select=select,
-                    gateway_environment={'KOTO_SESSION_GATEWAY_TOKEN': gateway_token} if needs_router else None)
+                    gateway_environment={'KOTO_SESSION_GATEWAY_TOKEN': gateway_token} if needs_router else None,
+                    execution_context=context)
                 if local_work is not None and result['status'] == 'completed':
                     observed = server.observe(identity.actor_id, local_work['work_id'], selected['model'])
                     expected = observed['expected_fingerprint']

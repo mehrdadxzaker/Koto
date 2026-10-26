@@ -35,6 +35,8 @@ manual [benchmark suites](docs/MODEL_SCORECARDS.md) remain an advanced tool.
 For an existing ChatGPT subscription, use an explicitly launched
 [Koto-enabled Codex session](docs/NATIVE_PERSONAL_SESSIONS.md). It selects before
 each fresh read-only task while Codex owns sign-in and execution.
+Explicit writable tasks use the experimental
+[`chat code --workspace` workflow](docs/NATIVE_CODING_SESSIONS.md).
 Neither learning nor a scorecard grants missing local coding qualification.
 Bundled local coding examples remain unqualified; prior successful controls and
 failed trials are retained as evidence. The optional

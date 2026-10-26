@@ -11,8 +11,10 @@ Source delivery and passing CI do not complete the product contract.
 [#543](https://github.com/mehrdadxzaker/Koto/issues/543) still requires a complete
 passing local coding setup, separately consented representative checked history,
 held-out selection benefit and actual supported provider/client/plugin/fresh-user
-operation. The native subscription learning surface currently supports fresh
-read-only text; it does not yet supply the complete coding journey.
+operation. Native subscription sessions include fresh read-only text and
+experimental [workspace-scoped coding](NATIVE_CODING_SESSIONS.md). The coding
+command still requires real-host enforcement and exact client/model qualification
+before it can establish the complete coding journey.
 [#536](https://github.com/mehrdadxzaker/Koto/issues/536) coordinates completion
 and [#523](https://github.com/mehrdadxzaker/Koto/issues/523) remains the product
 epic. Preserve failed and unrun observations and their consumed budgets.

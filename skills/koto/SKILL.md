@@ -17,6 +17,12 @@ commands. These instructions travel with this skill across agent hosts.
    For a requested Koto-enabled Codex session that selects between qualified
    locals and the existing ChatGPT account, follow
    [native personal sessions](../../docs/NATIVE_PERSONAL_SESSIONS.md).
+   For an explicitly requested native coding task, follow
+   [native coding sessions](../../docs/NATIVE_CODING_SESSIONS.md) using
+   `chat code --workspace ABSOLUTE_DIRECTORY --prompt-file FILE`. The caller
+   must choose the writable workspace; never substitute the current directory
+   or treat a read-only chat as write consent. This experimental command retains
+   coding qualification and checked-selector gates; it does not qualify a model.
 2. For an explicitly requested persistent CLI connection, identify the operation
    and target coding client. The implemented
    persistent adapter supports exact **Codex CLI 0.147.0 and 0.160.0**, plus the

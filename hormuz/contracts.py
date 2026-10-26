@@ -570,6 +570,8 @@ def contract_manifest() -> dict[str, object]:
             _manifest_schema("hormuz.chat-owner", 1, "durable-evidence", "hormuz", sorted(CHAT_OWNER_FIELDS)),
             *[_manifest_schema(schema, 1, "cli-output", "hormuz", sorted(fields))
               for schema, fields in NATIVE_TASK_FIELDS.items()],
+            _manifest_schema('koto.native-task', 2, 'cli-output', 'hormuz',
+                sorted(NATIVE_TASK_FIELDS['koto.native-task'] | {'context'})),
             _manifest_schema("hormuz.local-acquisition", 1, "cli-output", "hormuz", sorted(ACQUISITION_RECEIPT_FIELDS)),
             _manifest_schema("hormuz.local-acquisition-error", 1, "cli-output", "hormuz", ["schema_id", "schema_version", "error"]),
             _manifest_schema(LOCAL_SETUP_SCHEMA_ID, 1, "cli-output", "hormuz",
@@ -638,6 +640,7 @@ def validate_contract(value: Mapping[str, Any]) -> None:
         **{(schema, 1): _validate_benchmark for schema in BENCHMARK_FIELDS},
         **{(schema, 1): _validate_selection for schema in SELECTION_FIELDS},
         **{(schema, 1): _validate_native_task for schema in NATIVE_TASK_FIELDS},
+        ('koto.native-task', 2): _validate_native_task,
         ("hormuz.local-acquisition-catalog", 1): _validate_acquisition_catalog,
         ("hormuz.codex-app-bridge-install", 1): _validate_app_bridge_install,
         ("hormuz.chat-task", 1): _validate_chat_task,

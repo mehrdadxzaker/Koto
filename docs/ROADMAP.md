@@ -11,7 +11,7 @@ Read [product scope](ROUTER_SCOPE.md) before proposing a new direction.
 | --- | --- | --- |
 | Personal selection | Source loop delivered; establish consented representative checked history and real held-out benefit | [Product epic #523](https://github.com/mehrdadxzaker/Koto/issues/523), [completion map #536](https://github.com/mehrdadxzaker/Koto/issues/536) |
 | End-to-end validation | Prove the supported journey, held-out quality, measured benefit and truthful fallback/status before release claims | [Closure gate #543](https://github.com/mehrdadxzaker/Koto/issues/543) |
-| Supported coding journey | Complete and qualify the native coding workflow; the current native learning surface is read-only text | [Closure gate #543](https://github.com/mehrdadxzaker/Koto/issues/543), [native session limits](NATIVE_PERSONAL_SESSIONS.md#session-limits) |
+| Supported coding journey | Experimental workspace-scoped native coding is implemented; qualify the exact client/model setup and complete the real journey | [Closure gate #543](https://github.com/mehrdadxzaker/Koto/issues/543), [native coding sessions](NATIVE_CODING_SESSIONS.md) |
 | Release engineering | Prepare reproducible runtime and plugin candidates from verified source, with accurate channels and support claims | [Versioning](VERSIONING.md), [release guide](RELEASING.md) |
 | Contributor experience | Improve docs, synthetic reproductions and focused public-workflow tests | [Good first issues](https://github.com/mehrdadxzaker/Koto/issues?q=is%3Aissue%20is%3Aopen%20label%3A%22good%20first%20issue%22), [help wanted](https://github.com/mehrdadxzaker/Koto/issues?q=is%3Aissue%20is%3Aopen%20label%3A%22help%20wanted%22) |
 

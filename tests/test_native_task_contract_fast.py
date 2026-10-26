@@ -54,6 +54,31 @@ class NativeTaskContractFastTests(unittest.TestCase):
                 with self.assertRaises(ContractValidationError):
                     validate_contract({**value, "native": {**value["native"], "usage": usage}})
 
+    def test_coding_receipt_versions_the_explicit_host_context_and_preserves_legacy_readers(self):
+        value = self.fixture("native-task-v2.json")
+        validate_contract(value)
+        identities = {(row["schema_id"], row["schema_version"]) for row in contract_manifest()["schemas"]}
+        self.assertTrue({("koto.native-task", 1), ("koto.native-task", 2)} <= identities)
+        validate_contract_manifest(contract_manifest())
+        for field, invalid in (("domain", "codex-app-server-host.v1"), ("task_type", "code_review"),
+                               ("workspace_sha256", "/private/workspace"), ("sandbox_mode", "read-only"),
+                               ("sandbox_network_access", True), ("sandbox_network_access", 0),
+                               ("approval_policy", "on-request"), ("extra_permission", True),
+                               ("tool_network_access", False)):
+            with self.subTest(field=field, invalid=invalid):
+                changed = deepcopy(value)
+                changed["context"][field] = invalid
+                with self.assertRaises(ContractValidationError):
+                    validate_contract(changed)
+        missing = deepcopy(value)
+        del missing["context"]
+        with self.assertRaises(ContractValidationError):
+            validate_contract(missing)
+        legacy = self.fixture("native-task-v1.json")
+        self.assertEqual(contract_envelope("koto.native-task", legacy), legacy)
+        with self.assertRaises(ContractValidationError):
+            validate_contract({**legacy, "context": value["context"]})
+
     def test_completed_receipts_require_matching_native_completion_execution_and_cleanup(self):
         original = self.fixture("native-task-v1.json")
         changes = [

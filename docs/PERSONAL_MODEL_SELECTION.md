@@ -46,8 +46,11 @@ authentication and billable API credentials retain their existing separate gates
 For the existing ChatGPT subscription, use the explicit fresh, read-only
 [native personal session](NATIVE_PERSONAL_SESSIONS.md) workflow. Codex keeps its
 native authentication and selected commercial model; the session can choose
-qualified locals using checked local history. This does not activate a desktop
-model picker or provide an autonomous coding interface.
+qualified locals using checked local history. For writable work, explicitly choose
+a workspace with the experimental [native coding session](NATIVE_CODING_SESSIONS.md)
+command. Codex continues to own editing, tools, permissions and its agent loop;
+local coding qualification remains a separate requirement. Neither workflow
+activates a desktop model picker.
 
 Collection and learning are separate opt-ins:
 
