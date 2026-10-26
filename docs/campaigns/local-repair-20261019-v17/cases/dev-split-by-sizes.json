@@ -1,9 +1,0 @@
-{
-  "id": "dev-split-by-sizes",
-  "partition": "development",
-  "family": "collections",
-  "prompt": "Fix the Python implementation in solution.py. Repair split_by_sizes(items, sizes): items and sizes are lists. Every size must be a nonnegative built-in int, excluding bool and every int subclass, and the sizes must sum exactly to len(items); otherwise raise ValueError. Return a new list of new shallow consecutive chunks, one per size, consuming items in order. Zero sizes produce empty chunks. Preserve element identity and never mutate either input, including when invalid. Empty sizes is valid only for empty items. Make the edit, check the behavior, and complete the task. /no_think",
-  "initial_solution": "def split_by_sizes(items, sizes):\n    return [items]\n",
-  "checker": "import runpy\nimport sys\ns=runpy.run_path(sys.argv[1])\nf=s['split_by_sizes']\na=[1,2,3,4];b=[1,0,3];r=f(a,b)\nassert r==[[1],[],[2,3,4]] and a==[1,2,3,4] and b==[1,0,3] and r is not a\nassert all(chunk is not a for chunk in r)\nx=[];y={};r=f([x,y],[1,1]);assert r[0][0] is x and r[1][0] is y\nassert f([],[])==[] and f([],[0,0])==[[],[]] and f([1,2],[2])==[[1,2]]\nclass IntChild(int): pass\nfor a,b in [([1],[0]),([1],[2]),([1],[]),([1],[-1,2]),([1],[True]),([],[False]),([1],[IntChild(1)]),([1],[1.0]),([1],['1']),([1],[None])]:\n    before=a[:];sizes=b[:]\n    try: f(a,b)\n    except ValueError: pass\n    else: raise AssertionError('invalid partition accepted')\n    assert a==before and b==sizes\n",
-  "reference_solution": "def split_by_sizes(items, sizes):\n    if any(type(size) is not int or size<0 for size in sizes) or sum(sizes)!=len(items):\n        raise ValueError('invalid partition')\n    result=[]\n    start=0\n    for size in sizes:\n        result.append(items[start:start+size])\n        start+=size\n    return result\n"
-}

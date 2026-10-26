@@ -1,30 +1,27 @@
-# Support and qualification
+# Support
 
-Koto is experimental source software with best-effort community support. The
-current direction is [a local router for existing coding clients](docs/ROUTER_SCOPE.md).
-No uptime, support, security certification or broad compatibility SLA is offered.
+Koto is experimental software with best-effort community support.
 
-| Surface | Current evidence boundary |
+| Component | Current status |
 | --- | --- |
-| Python | CI targets CPython 3.11–3.14 on Ubuntu; local results are reported separately |
-| Persistent connection | Exact CLI versions `0.147.0` and [the 0.160.0 HTTP profile](docs/CODEX_0160.md); routine tests use disposable executables and native qualification is separate |
-| Destination and admission behavior | Real router against bounded loopback local/cloud provider fixtures |
-| Client/platform support | Synthetic success does not qualify an installed Codex desktop engine, every client version or operating system |
-| Local engine/model | Real llama.cpp/model/task quality and exact capabilities still require qualification |
-| Subscription | No synthetic fixture establishes plan consent, account entitlement or zero API spend |
-| Plugin | Skills-only package shares CLI setup; [agent installation](docs/AGENT_INSTALLATION.md) is separate from each target's routing qualification |
-| Claude | Transport prior art does not establish supported non-Claude main-model substitution or Claude GUI integration |
-| Storage | Customer-local SQLite; no hosted/PostgreSQL deployment product in the 2.0 line |
+| npm package and CLI | Local tarball installation and execution; registry publication pending |
+| Node.js | Requires version 22 or later; verified locally on Linux with Node 22.23.4 and 24.19.0 |
+| TypeScript | Public declarations checked with TypeScript 5.9.3 under strict NodeNext and Bundler consumer resolution |
+| Platforms | Windows, macOS and Linux are CI targets; local results apply to the platform tested |
+| Core | Explicit task graphs, process workers, dependency handoffs, bounded concurrency and lifecycle control |
+| Agent integrations | A generic process-worker protocol; native commercial/open-source adapters need implementation and interoperability evidence |
+| Worker isolation | No sandbox; POSIX process-group cleanup is tested locally, while Windows descendant cleanup needs stronger ownership and OS verification |
+| IDE plugins | Planned |
+| Koto UI | Planned |
 
-Use [installation](https://github.com/mehrdadxzaker/Koto/issues/new?template=installation.yml),
-[bug](https://github.com/mehrdadxzaker/Koto/issues/new?template=bug.yml),
-[documentation](https://github.com/mehrdadxzaker/Koto/issues/new?template=documentation.yml)
-or [feature](https://github.com/mehrdadxzaker/Koto/issues/new?template=feature.yml)
-reports. Include the source/package revision, OS, Python/client versions and a
-small synthetic reproduction. Never submit keys, tokens, prompts, responses,
-private repository names, local user paths or database contents publicly.
+Agent runtimes, provider accounts, subscriptions, local models and their system
+requirements are separate from installing Koto. A worker's exit code does not
+establish answer quality. Workflows must supply their own acceptance checks.
 
-Use [private vulnerability reporting](SECURITY.md) for sensitive defects and
-[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for conduct. Older published releases and
-external resources are separate from the source cleanup; see [migration](docs/MIGRATION_2.md)
-and [operational cleanup](docs/OPERATIONS_CLEANUP.md).
+For bugs, include package version, Node version, OS and a synthetic reproduction.
+Use [GitHub issues](https://github.com/mehrdadxzaker/Koto/issues). Report
+vulnerabilities through the [private security path](SECURITY.md).
+
+Previous Python releases are outside this development line; see
+[migration](docs/MIGRATION.md). No release or provider compatibility is inferred
+from the source cleanup.

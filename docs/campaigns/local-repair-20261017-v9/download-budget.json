@@ -1,7 +1,0 @@
-{
-  "timeout_seconds": 1800,
-  "max_bytes": 21474836480,
-  "concurrent_workers": 1,
-  "automatic_retries": 0,
-  "hash_timeout_seconds": 120
-}

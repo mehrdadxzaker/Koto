@@ -1,9 +1,0 @@
-{
-  "id": "held-unescape-controls",
-  "partition": "held_out",
-  "family": "text",
-  "prompt": "Fix the Python implementation in solution.py. Repair unescape_controls(text): text is a string. Decode the two-character backslash-n, backslash-t and backslash-backslash sequences as newline, tab and one literal backslash respectively. Process original characters once from left to right; do not decode generated characters again. Every other backslash escape or a trailing backslash raises ValueError. Preserve all other characters and empty input. Make the edit, check the behavior, and complete the task. /no_think",
-  "initial_solution": "def unescape_controls(text):\n    return text.replace('\\\\n','\\n')\n",
-  "checker": "import runpy\nimport sys\ns = runpy.run_path(sys.argv[1])\nf=s['unescape_controls']\nassert f(r'a\\tb')=='a\\tb'\nassert f(r'a\\nb')=='a\\nb'\nassert f(r'\\\\n')==r'\\n'\nassert f(r'α\\\\β')=='α\\\\β' and f('')==''\nassert f('plain\\nactual')=='plain\\nactual'\nfor bad in [r'\\q',r'a\\rb','end'+chr(92),r'\\0']:\n    try: f(bad)\n    except ValueError: pass\n    else: raise AssertionError('invalid escape accepted')\n",
-  "reference_solution": "def unescape_controls(text):\n    result=[]\n    i=0\n    mapping={'n':'\\n','t':'\\t','\\\\':'\\\\'}\n    while i<len(text):\n        if text[i]=='\\\\':\n            i+=1\n            if i==len(text) or text[i] not in mapping:\n                raise ValueError('invalid escape')\n            result.append(mapping[text[i]])\n        else:\n            result.append(text[i])\n        i+=1\n    return ''.join(result)\n"
-}

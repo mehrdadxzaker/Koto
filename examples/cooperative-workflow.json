@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "goal": "Combine two independent findings into one checked answer.",
+  "agents": {
+    "analyst": { "command": "$node", "args": ["examples/fixture-agent.js", "analyze"] },
+    "reviewer": { "command": "$node", "args": ["examples/fixture-agent.js", "review"] },
+    "integrator": { "command": "$node", "args": ["examples/fixture-agent.js", "integrate"] }
+  },
+  "tasks": [
+    { "id": "analyze", "agent": "analyst", "prompt": "Calculate the first contribution." },
+    { "id": "review", "agent": "reviewer", "prompt": "Independently calculate the second contribution." },
+    { "id": "integrate", "agent": "integrator", "prompt": "Combine and check both contributions.", "dependsOn": ["analyze", "review"] }
+  ],
+  "finalTask": "integrate",
+  "maxConcurrency": 2,
+  "timeoutMs": 30000
+}

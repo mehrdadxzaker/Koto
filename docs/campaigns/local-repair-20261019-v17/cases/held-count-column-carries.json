@@ -1,9 +1,0 @@
-{
-  "id": "held-count-column-carries",
-  "partition": "held_out",
-  "family": "arithmetic",
-  "prompt": "Fix the Python implementation in solution.py. Repair count_column_carries(left, right, base=10): all arguments must be built-in ints, excluding bool and every int subclass; left and right must be nonnegative and base must be from 2 through 36 inclusive. Invalid input raises ValueError. Return the exact integer number of digit positions that produce a carry into the next position when adding left and right in the given base, including cascaded carries and a carry out of the most significant position. Zero plus zero has zero carries. Support arbitrarily large integers exactly. Make the edit, check the behavior, and complete the task. /no_think",
-  "initial_solution": "def count_column_carries(left, right, base=10):\n    return 0\n",
-  "checker": "import runpy\nimport sys\ns=runpy.run_path(sys.argv[1])\nf=s['count_column_carries']\nassert f(95,7)==2 and f(15,7)==1 and f(999,1)==3\nassert f(0,0)==0 and f(123,456)==0 and f(99,99)==2\nassert f(7,1,2)==3 and f(255,1,16)==2 and f(35,1,36)==1\nassert f(10**80-1,1)==80 and f(1,10**80-1)==80\nassert type(f(0,0)) is int and type(f(95,7)) is int\nclass IntChild(int): pass\nfor a,b,base in [(-1,0,10),(0,-1,10),(1,1,1),(1,1,37),(True,1,10),(1,False,10),(1,1,True),(IntChild(1),1,10),(1,IntChild(1),10),(1,1,IntChild(10)),(1.0,1,10),(1,'1',10),(1,1,10.0),(None,1,10)]:\n    try: f(a,b,base)\n    except ValueError: pass\n    else: raise AssertionError('invalid digit addition accepted')\n",
-  "reference_solution": "def count_column_carries(left, right, base=10):\n    if any(type(x) is not int for x in (left,right,base)) or left<0 or right<0 or not 2<=base<=36:\n        raise ValueError('invalid digit addition')\n    result=carry=0\n    while left or right:\n        carry=int(left%base+right%base+carry>=base)\n        result+=carry\n        left//=base\n        right//=base\n    return result\n"
-}

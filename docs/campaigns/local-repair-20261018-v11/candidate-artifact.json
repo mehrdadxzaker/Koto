@@ -1,8 +1,0 @@
-{
-  "repository": "bartowski/mistralai_Devstral-Small-2-24B-Instruct-2512-GGUF",
-  "revision": "027695770ae1de77c2f6fb19f8e1ba9d65fcd15d",
-  "file": "mistralai_Devstral-Small-2-24B-Instruct-2512-Q4_K_M.gguf",
-  "bytes": 14334438272,
-  "sha256": "bfd11c8679c6b81eb43763505465d7dcfa72e460ab1c220ecc235a3efadd7f7f",
-  "url": "https://huggingface.co/bartowski/mistralai_Devstral-Small-2-24B-Instruct-2512-GGUF/resolve/027695770ae1de77c2f6fb19f8e1ba9d65fcd15d/mistralai_Devstral-Small-2-24B-Instruct-2512-Q4_K_M.gguf"
-}

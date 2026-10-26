@@ -1,5 +1,0 @@
-{
-  "schema_id": "koto.native-task-error",
-  "schema_version": 1,
-  "error": {"code": "native_actor_required"}
-}

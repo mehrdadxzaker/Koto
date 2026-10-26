@@ -1,0 +1,119 @@
+#!/usr/bin/env node
+import { open, readFile } from 'node:fs/promises';
+import { constants } from 'node:fs';
+import { TextDecoder } from 'node:util';
+import { fileURLToPath } from 'node:url';
+import { runWorkflow, validateWorkflow } from '../src/core.js';
+
+const packageRoot = new URL('../', import.meta.url);
+const metadata = JSON.parse(await readFile(new URL('package.json', packageRoot), 'utf8'));
+const brokenStreams = new Set();
+let activeController;
+let outputFailed = false;
+function streamFailed(stream) {
+  brokenStreams.add(stream);
+  outputFailed = true;
+  process.exitCode = 1;
+  activeController?.abort();
+}
+function write(stream, text) {
+  if (brokenStreams.has(stream)) return;
+  try { stream.write(text); }
+  catch { streamFailed(stream); }
+}
+process.stdout.on('error', () => streamFailed(process.stdout));
+process.stderr.on('error', () => streamFailed(process.stderr));
+const help = `Koto — a shared agent orchestration core
+
+Usage:
+  koto --help
+  koto --version
+  koto demo
+  koto validate <workflow.json>
+  koto run <workflow.json>
+
+demo runs bundled fixture workers without accounts or model calls.
+run executes the commands explicitly declared in the selected workflow.
+Worker commands receive a JSON assignment on stdin and return text on stdout.
+IDE plugins and Koto's own UI will use this same core.
+`;
+
+async function main(args) {
+  if (args.length === 0 || (args.length === 1 && ['--help', '-h'].includes(args[0]))) {
+    write(process.stdout, help);
+    return;
+  }
+  if (args.length === 1 && ['--version', '-v'].includes(args[0])) {
+    write(process.stdout, `${metadata.version}\n`);
+    return;
+  }
+  const [command, path] = args;
+  if (!((command === 'demo' && args.length === 1)
+    || (['validate', 'run'].includes(command) && args.length === 2 && !path.startsWith('-')))) {
+    write(process.stderr, help);
+    process.exitCode = 2;
+    return;
+  }
+  const demo = command === 'demo';
+  const workflowPath = demo ? new URL('examples/cooperative-workflow.json', packageRoot) : path;
+  let bytes;
+  try {
+    // Opening a POSIX FIFO in blocking mode would hang before its type could
+    // be checked. Regular files are unaffected by the nonblocking flag.
+    const flags = constants.O_RDONLY | (process.platform === 'win32' ? 0 : constants.O_NONBLOCK);
+    const source = await open(workflowPath, flags);
+    try {
+      if (!(await source.stat()).isFile()) throw new Error('workflow_file_unavailable');
+      const buffer = Buffer.alloc(1024 * 1024 + 1);
+      let total = 0;
+      while (total < buffer.length) {
+        const { bytesRead } = await source.read(buffer, total, buffer.length - total);
+        if (!bytesRead) break;
+        total += bytesRead;
+      }
+      if (total > 1024 * 1024) throw new Error('workflow_file_too_large');
+      bytes = buffer.subarray(0, total);
+    } finally { await source.close(); }
+  } catch (error) {
+    if (error.message === 'workflow_file_too_large') throw error;
+    throw new Error('workflow_file_unavailable');
+  }
+  let workflow;
+  try { workflow = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)); }
+  catch { throw new Error('workflow_json_invalid'); }
+  validateWorkflow(workflow);
+  if (command === 'validate') {
+    write(process.stdout, `${JSON.stringify({ schemaVersion: 1, valid: true, tasks: workflow.tasks.length })}\n`);
+    return;
+  }
+  const controller = new AbortController();
+  activeController = controller;
+  if (outputFailed) controller.abort();
+  const interrupt = () => controller.abort();
+  process.once('SIGINT', interrupt);
+  process.once('SIGTERM', interrupt);
+  try {
+    const result = await runWorkflow(workflow, {
+      cwd: demo ? fileURLToPath(packageRoot) : process.cwd(),
+      signal: controller.signal,
+      onEvent: event => write(process.stderr, `${JSON.stringify(event)}\n`),
+    });
+    write(process.stdout, `${JSON.stringify(result, null, 2)}\n`);
+    if (result.status !== 'succeeded') process.exitCode = !outputFailed && controller.signal.aborted ? 130 : 1;
+  } finally {
+    activeController = undefined;
+    process.removeListener('SIGINT', interrupt);
+    process.removeListener('SIGTERM', interrupt);
+  }
+}
+
+try {
+  await main(process.argv.slice(2));
+} catch (error) {
+  // Errors never reflect workflow contents, child stderr or credential values.
+  const validation = typeof error?.message === 'string' && error.message.startsWith('Invalid workflow: ');
+  const code = validation ? 'workflow_invalid' : typeof error?.code === 'string' && /^[a-z][a-z0-9_]+$/.test(error.code)
+    ? error.code : /^[a-z][a-z0-9_]+$/.test(error?.message ?? '') ? error.message : 'koto_command_failed';
+  write(process.stderr, `${JSON.stringify(validation ? { error: code, message: error.message } : { error: code })}\n`);
+  process.exitCode = 2;
+}

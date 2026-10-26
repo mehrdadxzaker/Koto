@@ -1,7 +1,0 @@
-{
-  "predecessor": "local-repair-20261018-v13",
-  "frozen_inputs_rehashed_unchanged": 229,
-  "manifest_sha256": "bc1dcecd82aae3acd30692890c1f51d61095a081741a9ee22d11a6fd49d0adaa",
-  "actual_model_completions": 0,
-  "new_disposition_file_is_not_a_frozen_input": true
-}

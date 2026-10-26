@@ -1,9 +1,0 @@
-{
-  "campaign_id": "local-repair-20261018-v11",
-  "frozen_commit": "e3d20b3afd0b5b650c8fa5af896b7fd8380bae21",
-  "status": "superseded_before_inference",
-  "actual_model_completion_requests": 0,
-  "reason": "Spec review found semantic held-out task reuse despite different hashes. The frozen preparation remains unchanged and unrun. All twelve held-out behaviors are replaced in a separately frozen v12 inventory.",
-  "canary_authorization_consumed": false,
-  "qualifying_evidence": false
-}
