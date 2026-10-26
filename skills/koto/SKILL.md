@@ -31,8 +31,10 @@ commands. These instructions travel with this skill across agent hosts.
    connection; their own routing adapters remain unimplemented. For another
    target, report that limit before changing configuration.
 3. Check `koto --version` and the target executable's version. If Koto is
-   missing, use the source-install reference in the workflow; the plugin does
-   not install Python, the router or models on activation.
+   missing, use [the shared installation paths](../../docs/INSTALLATION.md)
+   and the source-install reference in the workflow. Help install the selected
+   reviewed runtime only when setup is requested and the host permits execution;
+   plugin activation alone does not install Python, the router or models.
 4. For persistent CLI connections, follow the shared `client setup` branch to generate a new local-only
    configuration from existing verified files, or the connect branch for an
    existing configuration. Use status/troubleshooting or disconnect as requested.

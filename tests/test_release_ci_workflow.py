@@ -25,8 +25,10 @@ class ReleaseCIWorkflowTests(unittest.TestCase):
         }
         names = ['Build router distributions', 'CI / required',
                  'Router workflow (Python 3.11)', 'Router workflow (Python 3.12)',
-                 'Router workflow (Python 3.13)', 'Router workflow (Python 3.14)']
-        self.jobs = {'total_count': 6, 'jobs': [
+                 'Router workflow (Python 3.13)', 'Router workflow (Python 3.14)',
+                 'Portable installed CLI (Linux)', 'Portable installed CLI (macOS)',
+                 'Portable installed CLI (Windows)']
+        self.jobs = {'total_count': 9, 'jobs': [
             {'id': number, 'run_id': 42, 'name': name, 'status': 'completed', 'conclusion': 'success'}
             for number, name in enumerate(names, 100)
         ]}
@@ -56,6 +58,22 @@ class ReleaseCIWorkflowTests(unittest.TestCase):
         self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
         self.assertEqual(result.stdout, '')
 
+    def test_missing_skipped_or_failed_platform_installations_cannot_supply_release_evidence(self):
+        original = copy.deepcopy(self.jobs)
+        for name in ('Linux', 'macOS', 'Windows'):
+            for outcome in ('missing', 'skipped', 'failure'):
+                with self.subTest(platform=name, outcome=outcome):
+                    self.jobs = copy.deepcopy(original)
+                    row = next(job for job in self.jobs['jobs']
+                               if job['name'] == f'Portable installed CLI ({name})')
+                    if outcome == 'missing':
+                        self.jobs['jobs'].remove(row)
+                        self.jobs['total_count'] -= 1
+                    else:
+                        row['conclusion'] = outcome
+                    result = self.command()
+                    self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+                    self.assertEqual(result.stdout, '')
     def test_focused_failed_stale_and_incomplete_checkpoints_are_not_release_evidence(self):
         original_run, original_jobs = copy.deepcopy(self.run), copy.deepcopy(self.jobs)
         for invalid in ('focused', 'failed_matrix', 'other_commit', 'incomplete_jobs'):

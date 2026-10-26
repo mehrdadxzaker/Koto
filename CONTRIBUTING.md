@@ -42,7 +42,11 @@ python tools/verify_router_wheel.py dist/koto_router-*.whl
 ```
 
 Install the pinned build frontend with `python -m pip install build==1.3.0` if
-needed. CI builds the distributions once. Draft PR updates and ordinary manual
+needed. CI builds the distributions once. Fresh installed CLI checks run on
+Linux, macOS and Windows without models, using the shared built wheel. All three
+must pass before the focused/full layers and the required aggregate. These
+entrypoint checks do not establish native runtime support or model quality.
+Draft PR updates and ordinary manual
 runs use focused installed-wheel checks on Python 3.12. Ready PRs, main pushes,
 and manual runs with `full_checkpoint=true` run both complete test layers on
 Python 3.11–3.14, with at most four test jobs in flight. Marking a PR ready starts

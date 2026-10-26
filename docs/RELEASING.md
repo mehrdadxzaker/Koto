@@ -41,6 +41,8 @@ Follow [contributing](../CONTRIBUTING.md) for review and installed-wheel checks.
 The **Release candidate** workflow accepts a component and a successful full CI
 push-run ID. It runs on `main`, checks the exact source commit, repository,
 workflow, full Python 3.11–3.14 matrix, build and protected `CI / required` result.
+It also requires the three portable installed-CLI checks on Linux, macOS and
+Windows; skipped or failed platform checks cannot certify the current source.
 Focused draft checks cannot supply release evidence. Runtime candidates reuse
 the already tested CI wheel and sdist; the workflow does not rebuild them.
 Plugin candidates package tracked skills and their documentation from that same

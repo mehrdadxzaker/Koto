@@ -8,11 +8,15 @@ install another agent loop or qualify autonomous coding.
 
 ## Install and begin
 
-The first-run catalogs currently require Darwin arm64, Python 3.11–3.14, and
-an existing Codex CLI **0.160.0** or the explicitly selected
-**0.162.0-alpha.17.2** app engine. Other versions stop before asset transfer.
-This is an experimental text-task envelope; it is not support for every current
-Codex release, Linux, Windows, normal desktop startup, or automatic coding.
+First run requires Python 3.11–3.14 and Codex CLI **0.160.0** on Darwin arm64,
+Darwin x86_64, Linux x86_64 or Linux aarch64. The explicitly selected
+**0.162.0-alpha.17.2** app engine retains its Darwin arm64 profile. Selection
+matches the actual client, OS and architecture before asset transfer; unknown
+combinations stop without borrowing another platform's catalog. Linux profiles
+use the pinned upstream Ubuntu CPU archives. See [installation](INSTALLATION.md)
+for platform requirements and current native Windows limits.
+These are experimental text-task envelopes; actual model/client/hardware
+qualification, normal desktop startup and automatic coding remain separate.
 
 Install the source in a virtual environment as described in the
 [README](../README.md#source-evaluation), or install a reviewed wheel into a

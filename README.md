@@ -58,8 +58,11 @@ Read the [versioning policy](docs/VERSIONING.md) and
 [release status and preparation guide](docs/RELEASING.md) before choosing an
 artifact. A development version does not establish model or client qualification.
 
-After installing the source or a reviewed wheel, use the guided bootstrap on
-Darwin arm64 with Codex CLI 0.160.0 (or the explicitly selected pinned app engine):
+Install Koto directly or through an agent-assisted setup using the same runtime;
+see [installation and platform requirements](docs/INSTALLATION.md).
+The guided bootstrap selects reviewed Codex CLI 0.160.0 text profiles for Apple
+Silicon/Intel Macs and Linux x64/ARM64. The existing explicitly selected pinned
+app engine profile remains available on Apple Silicon:
 
 ```sh
 koto init --dry-run

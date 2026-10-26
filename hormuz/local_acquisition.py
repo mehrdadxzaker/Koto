@@ -27,6 +27,11 @@ BOOTSTRAP_CATALOGS = {
     "0.160.0": "local-acquisition-codex-0160-llama-b11617-qwen3-4b-text-v1.json",
     "0.162.0-alpha.17.2": "local-acquisition-codex-app-0162-llama-b11617-qwen3-4b-text-v1.json",
 }
+PORTABLE_TEXT_CATALOGS = {
+    ("Darwin", "x86_64"): "local-acquisition-codex-0160-llama-b11617-qwen3-4b-darwin-x86_64-text-v1.json",
+    ("Linux", "x86_64"): "local-acquisition-codex-0160-llama-b11617-qwen3-4b-linux-x86_64-text-v1.json",
+    ("Linux", "aarch64"): "local-acquisition-codex-0160-llama-b11617-qwen3-4b-linux-aarch64-text-v1.json",
+}
 EXPANSION_LIMIT = 1024**3
 
 
@@ -138,7 +143,18 @@ def _catalog(path, executable, *, download, bootstrap=False):
                 raise ValueError()
             client_version = _qualify_client(program)
         catalogs = BOOTSTRAP_CATALOGS if bootstrap else DEFAULT_CATALOGS
-        source = Path(path).expanduser() if path else Path(__file__).with_name(catalogs[client_version])
+        if path:
+            source = Path(path).expanduser()
+        else:
+            # Keep the historical Apple Silicon/client defaults unchanged.
+            # New host rows are deliberately restricted to the CLI text profile.
+            selected = catalogs[client_version]
+            host = (platform.system(), platform.machine())
+            if host != ("Darwin", "arm64"):
+                selected = PORTABLE_TEXT_CATALOGS.get(host) if client_version == "0.160.0" else None
+                if selected is None:
+                    raise LocalAcquisitionError("platform_unsupported")
+            source = Path(__file__).with_name(selected)
         value = strict_json_loads(_safe_file(source, 65536, private=False))
         if type(value) is not dict:
             raise ValueError()
@@ -158,8 +174,12 @@ def _catalog(path, executable, *, download, bootstrap=False):
         if target not in SUPPORTED_CODEX_VERSIONS or (client_version and target != client_version):
             raise ValueError()
         return value
+    except LocalAcquisitionError as error:
+        if error.code == "platform_unsupported":
+            raise
+        raise LocalAcquisitionError("catalog_invalid") from None
     except (OSError, ValueError, TypeError, KeyError, RuntimeError, ContractValidationError,
-            LocalAcquisitionError, subprocess.SubprocessError):
+            subprocess.SubprocessError):
         raise LocalAcquisitionError("catalog_invalid") from None
 
 

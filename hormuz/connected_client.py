@@ -10,7 +10,6 @@ import hashlib
 import json
 import os
 from pathlib import Path
-import pwd
 import re
 import secrets
 import selectors
@@ -262,6 +261,8 @@ def _require_unmanaged(home):
     candidates = [home / "requirements.toml", home / "managed_config.toml",
                   Path("/etc/codex/requirements.toml"), Path("/etc/codex/managed_config.toml")]
     if sys.platform == "darwin":
+        import pwd
+
         try:
             account = pwd.getpwuid(os.getuid()).pw_name
         except (KeyError, OSError) as error:

@@ -11,6 +11,7 @@ defines the current evidence and version boundaries.
 | Goal | Guide |
 | --- | --- |
 | Understand the product and its limits | [Product scope](ROUTER_SCOPE.md) and [README](../README.md) |
+| Install the shared runtime directly or through a plugin | [Installation and platforms](INSTALLATION.md) |
 | Install the skills plugin | [Agent installation and compatibility](AGENT_INSTALLATION.md) |
 | Understand history, learning and selection | [Personal model selection](PERSONAL_MODEL_SELECTION.md) |
 | Use an explicitly launched native Codex session | [Native personal sessions](NATIVE_PERSONAL_SESSIONS.md) |

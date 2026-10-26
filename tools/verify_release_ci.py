@@ -8,7 +8,8 @@ import stat
 
 
 REQUIRED = {'Build router distributions', 'CI / required',
-            *(f'Router workflow (Python {version})' for version in ('3.11', '3.12', '3.13', '3.14'))}
+            *(f'Router workflow (Python {version})' for version in ('3.11', '3.12', '3.13', '3.14')),
+            *(f'Portable installed CLI ({system})' for system in ('Linux', 'macOS', 'Windows'))}
 
 
 def verify_ci(run, result, repository, source):

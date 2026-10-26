@@ -5,6 +5,10 @@ permissions and conversation. Koto owns only its connected-client lifetime.
 
 ## Prerequisites
 
+Direct installation and plugin-assisted setup use the same runtime. Read
+[installation and platform requirements](../../../docs/INSTALLATION.md) before
+selecting assets; never reuse another machine's paths or coding qualification.
+
 Use an installed Koto 2.0 development CLI. If the binary is missing, install a user-selected,
 reviewed Koto 2.0 source checkout in a dedicated Python 3.11+ virtual
 environment. Select unused absolute paths and use the installed executable

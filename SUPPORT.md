@@ -7,6 +7,8 @@ No uptime, support, security certification or broad compatibility SLA is offered
 | Surface | Current evidence boundary |
 | --- | --- |
 | Python | CI targets CPython 3.11–3.14 on Ubuntu; local results are reported separately |
+| Portable package installation | CI defines fresh wheel/entrypoint checks on Linux, macOS and Windows; a passing installation check does not qualify native connections or models |
+| Automatic text-asset selection | Pinned CLI 0.160.0 catalogs for Apple Silicon/Intel Macs and Linux x64/ARM64; see [installation requirements](docs/INSTALLATION.md). Physical hardware/model acceptance remains separate |
 | Persistent connection | Exact CLI versions `0.147.0` and [the 0.160.0 HTTP profile](docs/CODEX_0160.md); routine tests use disposable executables and native qualification is separate |
 | Destination and admission behavior | Real router against bounded loopback local/cloud provider fixtures |
 | Client/platform support | Synthetic success does not qualify an installed Codex desktop engine, every client version or operating system |

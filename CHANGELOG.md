@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Select pinned first-run text runtimes for Intel Macs and Linux x64/ARM64 while
+  preserving existing Apple Silicon profiles and setup/qualification boundaries.
+- Keep CLI inspection available without POSIX-only modules and require fresh
+  installed-wheel entrypoint checks on Linux, macOS and Windows before CI passes.
+- Document direct and plugin-assisted installation through one shared runtime.
+
 - Prepare runtime `2.0.0a53` and skills plugin `0.6.0` with explicit
   `chat code --workspace` native coding sessions. Preserve native tool ownership,
   require existing coding qualification before local overrides and retain final
