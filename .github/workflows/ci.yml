@@ -130,6 +130,12 @@ jobs:
       - name: Integrate only the separately reviewed unchanged token
         if: inputs.operation == 'integrate'
         run: node driver/.github/manual-native-4b/integrate.mjs
+      - name: Observe actual Windows CLI controls with one idle native terminal
+        if: success() && inputs.operation == 'observe'
+        run: |
+          node driver/.github/manual-native-4b/observe-cli-controls.mjs \
+            driver/.github/manual-native-4b/cli-controls-bindings.json \
+            driver/.github/manual-native-4b
       - name: Retain public state and all private evidence separately
         if: always() && env.OBS_ROOT != ''
         run: python driver/.github/manual-native-4b/bundle.py seal
