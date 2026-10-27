@@ -32,29 +32,6 @@ jobs:
           node-version: ${{ matrix.node }}
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm run check
-      - name: Inspect Windows runner directory access (read only)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $kotoDirectory = node -e "process.stdout.write(require('node:path').join(require('node:os').homedir(), '.koto', 'native'))"
-          $kotoIdentity = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
-          Write-Output "current-user=$kotoIdentity"
-          $kotoDepth = 0
-          while ($kotoDirectory -and $kotoDepth -lt 32) {
-            if (Test-Path -LiteralPath $kotoDirectory) {
-              $kotoAcl = Get-Acl -LiteralPath $kotoDirectory
-              $kotoOwner = $kotoAcl.GetOwner([System.Security.Principal.SecurityIdentifier]).Value
-              Write-Output "depth=$kotoDepth owner=$kotoOwner"
-              $kotoAcl.GetAccessRules($true, $true, [System.Security.Principal.SecurityIdentifier]) | Select-Object -First 128 | ForEach-Object {
-                Write-Output "sid=$($_.IdentityReference.Value) type=$($_.AccessControlType) rights=$($_.FileSystemRights) inheritance=$($_.InheritanceFlags) propagation=$($_.PropagationFlags)"
-              }
-            } else { Write-Output "depth=$kotoDepth missing=true" }
-            $kotoParent = [System.IO.Directory]::GetParent($kotoDirectory)
-            if ($null -eq $kotoParent) { break }
-            $kotoDirectory = $kotoParent.FullName
-            $kotoDepth += 1
-          }
       - name: Compile platform terminal helper from source
         run: node bin/koto.js terminal build
 

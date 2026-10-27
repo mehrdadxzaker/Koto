@@ -139,7 +139,8 @@ async function privateDirectory(value, create) {
   // Windows mode bits do not establish privacy. Check the DACL without changing
   // it or printing identity/configuration details. Source and binary files inherit
   // this directory's access policy. The user's current identity, SYSTEM and local
-  // Administrators are the only accepted writers.
+  // Administrators are the only accepted writers. Use .NET directly in Windows
+  // PowerShell 5.1: an inherited PowerShell 7 module path can break Get-Acl.
   const script = `$ErrorActionPreference='Stop'
 $p=$env:KOTO_NATIVE_DIRECTORY
 $me=[System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
@@ -148,7 +149,7 @@ $danger=[System.Security.AccessControl.FileSystemRights]'Write,Delete,DeleteSubd
 $ancestorDanger=[System.Security.AccessControl.FileSystemRights]'DeleteSubdirectoriesAndFiles,ChangePermissions,TakeOwnership'
 $first=$true
 while($p) {
-  $acl=Get-Acl -LiteralPath $p
+  $acl=[System.IO.Directory]::GetAccessControl($p)
   if($first -and $trusted -notcontains $acl.GetOwner([System.Security.Principal.SecurityIdentifier]).Value){'owner_untrusted';exit 3}
   foreach($r in $acl.GetAccessRules($true,$true,[System.Security.Principal.SecurityIdentifier])) {
     $inheritOnly=($r.PropagationFlags -band [System.Security.AccessControl.PropagationFlags]::InheritOnly) -ne 0
