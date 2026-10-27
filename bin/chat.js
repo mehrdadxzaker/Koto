@@ -12,6 +12,13 @@ import { runProjectPlan } from './project.js';
 const visible = value => stripVTControlCharacters(String(value)).replace(/[\x00-\x08\x0b-\x1f\x7f-\x9f]/g, '');
 const absolute = value => path.resolve(value.startsWith('~/') ? path.join(homedir(), value.slice(2)) : value);
 const cancelError = () => Object.assign(new Error('Conversation closed.'), { code: 'chat_cancelled' });
+const cleanupUnconfirmed = outcome => typeof outcome?.error === 'string' && /(?:^|_)cleanup_unconfirmed$/.test(outcome.error);
+function requireConfirmedCleanup(outcome, resource) {
+  if (cleanupUnconfirmed(outcome)) {
+    throw Object.assign(new Error(`${resource} cleanup could not be confirmed. Inspect the owned process before continuing.`),
+      { code: 'cleanup_unconfirmed' });
+  }
+}
 function words(value) {
   const result = [];
   let token = '', quote, escaped = false, present = false;
@@ -93,14 +100,20 @@ export async function runChat({ write, signal, version } = {}) {
   const preferences = await loadPreferences();
   preferences.workers ??= [];
   const view = createActivityView({ write });
-  let input, coordinator, nativeSession, ownedServer, quitting = false, busy = false;
+  let input, coordinator, nativeSession, ownedServer, primaryFailure, quitting = false, busy = false;
   let projectControls;
+  let coordinatorCleanupOutcome;
   let approvalQueue = Promise.resolve();
   const queued = [];
   const pendingBuildGoals = [];
   const persist = () => savePreferences(preferences);
   const print = text => { view.pause(); write(`${visible(text)}\n`); };
   const stop = () => { coordinator?.stop(); nativeSession?.stop(); };
+  const closeCoordinator = async () => {
+    const outcome = await nativeSession?.close?.();
+    requireConfirmedCleanup(coordinatorCleanupOutcome ?? outcome, 'Coordinator');
+  };
+  const stopServer = async () => requireConfirmedCleanup(await ownedServer?.stop(), 'Local server');
   const makeInput = () => terminalInput({ write, signal, onInterrupt() { quitting = true; stop(); },
     onBusyLine(line) {
       if (!busy) return;
@@ -183,12 +196,23 @@ export async function runChat({ write, signal, version } = {}) {
     }
     // Invalid or unavailable selections leave the existing conversation usable.
     stop();
-    await nativeSession?.close?.();
+    await closeCoordinator();
     nativeSession = replacement;
     if (kind === 'local') preferences.local = local;
     if (reset) { delete preferences.conversation; delete preferences.localConversation; }
     preferences.coordinator = choice;
-    coordinator = createCoordinator({ session: nativeSession });
+    const selectedSession = nativeSession;
+    coordinator = createCoordinator({ session: {
+      get sessionId() { return selectedSession.sessionId; },
+      stop() { selectedSession.stop(); },
+      async send(...args) {
+        const outcome = await selectedSession.send(...args);
+        // Some adapters have no close result. Retain cleanup uncertainty from
+        // their turn result before the coordinator turns it into a user error.
+        if (cleanupUnconfirmed(outcome)) coordinatorCleanupOutcome ??= { error: outcome.error };
+        return outcome;
+      },
+    } });
     view.register({ id: 'coordinator', name: `Koto / ${kind}`, model: choice.model, task: 'Conversation and planning' });
     await persist();
     print(`Coordinator: ${kind} / ${choice.model}. Uses ${kind === 'local' ? 'your loopback model' : 'the native subscription login'}.`);
@@ -347,7 +371,7 @@ export async function runChat({ write, signal, version } = {}) {
       if (selectedKind() === 'local') await selectCoordinator('local', true);
       print(`Installed ${installed.id}. Use /add local ${installed.id}.`);
     } else if (action === 'start' && values.length === 1) {
-      if (ownedServer) await ownedServer.stop();
+      await stopServer();
       const modelPath = absolute(values[0]);
       const modelId = `local-${path.basename(modelPath).replace(/\.gguf$/i, '').replace(/[^A-Za-z0-9._-]/g, '_').slice(0, 160)}`;
       ownedServer = await startLlamaServer({ modelPath, command: preferences.llamaCommand ?? 'llama-server',
@@ -430,10 +454,18 @@ export async function runChat({ write, signal, version } = {}) {
     return signal?.aborted || quitting ? 130 : 0;
   } catch (error) {
     if (error.code === 'chat_cancelled' || signal?.aborted) return 130;
+    primaryFailure = error;
     throw error;
   } finally {
-    stop(); input.close(); view.dispose();
-    await nativeSession?.close?.();
-    if (ownedServer) await ownedServer.stop();
+    let cleanupFailure;
+    for (const cleanup of [stop, () => input.close(), () => view.dispose(), closeCoordinator, stopServer]) {
+      try { await cleanup(); }
+      catch (error) { cleanupFailure ??= error; }
+    }
+    if (cleanupFailure) {
+      if (!primaryFailure) throw cleanupFailure;
+      // Preserve the original failure while still making failed cleanup visible.
+      try { write(`Koto: ${visible(cleanupFailure.message)}\n`); } catch { /* Keep the original failure. */ }
+    }
   }
 }

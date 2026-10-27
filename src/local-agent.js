@@ -430,7 +430,10 @@ export function createLocalAgentSession({ id = 'local', endpoint, model, cwd, mo
             usage[key] = reports.reduce((total, report) => total + report[key], 0);
           }
         }
-        return attachContinuation({ status, text: reply, ...(error ? { error } : {}),
+        // Keep private tool diagnostics separate from the shared worker outcome.
+        // Project integration must see cleanup failure even for a local Agent.
+        const outcomeError = error === 'local_agent_cleanup_unconfirmed' ? 'cleanup_unconfirmed' : error;
+        return attachContinuation({ status, text: reply, ...(outcomeError ? { error: outcomeError } : {}),
           usage, sessionId });
       };
       try {

@@ -12,7 +12,7 @@ const PROCESS_ERRORS = new Set([
   'invalid_configuration', 'command_wrapper_unsupported', 'invalid_assignment',
   'input_too_large', 'aborted', 'timeout', 'output_too_large', 'stderr_too_large',
   'invalid_utf8', 'exit_failed', 'empty_output', 'spawn_failed', 'stdin_failed', 'output_failed',
-  'cleanup_failed',
+  'cleanup_failed', 'cleanup_unconfirmed',
 ].map((code) => `process_agent_${code}`));
 
 function fail(message) {
@@ -256,9 +256,9 @@ export async function runWorkflow(source, { cwd, signal, onEvent, adapters = {} 
       record.output = result.output;
       terminal(record, 'succeeded');
     } catch (error) {
-      const unconfirmed = error instanceof CancellationUnconfirmed
-        || (!custom && error?.code === 'process_agent_cleanup_failed')
-        ? '; cancellation unconfirmed' : '';
+      const unconfirmed = error instanceof CancellationUnconfirmed ? '; cancellation unconfirmed'
+        : !custom && ['process_agent_cleanup_failed', 'process_agent_cleanup_unconfirmed'].includes(error?.code)
+          ? '; cleanup unconfirmed' : '';
       if (controller.signal.aborted) terminal(record, 'canceled', stopReason + unconfirmed);
       else if (timedOut) terminal(record, 'failed', 'agent timed out' + unconfirmed);
       else terminal(record, 'failed', !custom && PROCESS_ERRORS.has(error?.code) ? error.code : failure);

@@ -109,7 +109,10 @@ JSON events, retain session identity and reported usage, and continue an exact
 session in its original worktree. Terminal screens remain uninterpreted.
 After a contribution is integrated, a resumed agent's next review and integration
 cover only its new changes. Unknown cleanup and unresolved conflicts block both
-continuation and integration.
+continuation and integration. An interrupted integration also retains its approved
+attempt and blocks further work until explicitly reconciled. Use `koto project
+pending SESSION` to inspect it, then approve an available resolution with `koto
+project reconcile`; see [reconciliation](docs/PROJECT_SESSIONS.md#reconcile-an-interrupted-integration).
 
 [Issue #543](https://github.com/mehrdadxzaker/Koto/issues/543) records a real Mac
 Codex/OpenCode pipe collaboration and two reviewed integrations. A later Linux

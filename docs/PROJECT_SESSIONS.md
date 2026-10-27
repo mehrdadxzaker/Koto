@@ -72,6 +72,8 @@ only for an attached agent and is never parsed as a completion or session ID.
 - `:integrate AGENT [TOKEN]` applies that exact reviewed delta to the separate
   integration worktree after every agent finishes and cleanup is confirmed.
 - `:resolve AGENT COMMIT` acknowledges an exact reviewed conflict-resolution commit.
+- `:pending` inspects an unresolved integration attempt and its current Git state.
+- `:reconcile RESOLUTION TOKEN` explicitly acknowledges a reviewed attempt outcome.
 - `:quit` stops remaining owned work and retains the session and worktrees.
 
 For pipes, `inputMode` defaults to `closed`: optional `input` is written and then
@@ -107,6 +109,48 @@ koto project resolve /private/session/directory codex1 --approve FULL_COMMIT_SHA
 Koto checks the retained conflict receipt and original history before recording
 your approval. It does not resolve conflicts or create that commit. Locks and
 ambiguous outcomes are preserved; deleting them to force replay is not recovery.
+
+## Reconcile an interrupted integration
+
+An integration attempt is retained before Koto can change Git. Only after the
+observed result is saved in the session can the attempt be cleared. This also
+applies when acknowledging a manually resolved conflict. If Git changes but a
+later save fails, the attempt stays unresolved and blocks further integration
+and continuation. Git and the session record are separate stores; this does not
+make them one atomic transaction.
+
+Inspect the retained attempt without starting an agent or changing Git:
+
+```sh
+koto project pending /private/session/directory
+```
+
+The output includes the approved contribution, original and current refs, owner
+status, retained result when available, possible resolutions and a fresh review
+token. Inspect the displayed worktrees and diff before choosing a resolution:
+
+- `record-result` acknowledges an observed, verified integration receipt and
+  saves it to the session. It does not infer success from a commit appearing.
+- `not-applied` acknowledges that the target remains unchanged and has no
+  pending cherry-pick. Source changes remain available for a new review.
+
+Only resolutions supported by the current evidence are offered. An active owner,
+changed refs or unresolved Git state prevents reconciliation. Approve exactly
+the state you inspected:
+
+```sh
+koto project reconcile /private/session/directory --resolution record-result --approve ATTEMPT_REVIEW_TOKEN
+```
+
+Reconciliation retains an audit record. It never repeats the integration,
+modifies project content, rolls back work or resumes an agent. A rejected token
+requires a fresh inspection. If neither resolution is available, retain the
+attempt and inspect the worktrees explicitly; do not delete the marker to retry.
+
+A crash before the intent is retained can leave a lease without an inspectable
+attempt. A crash during reconciliation can also leave its own lease. These cases,
+or a changed target without a valid saved receipt, require manual investigation;
+the commands do not guess that a lease is stale or invent a successful result.
 
 ## Continue a captured native session
 
