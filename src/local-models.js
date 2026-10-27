@@ -48,9 +48,14 @@ async function jsonRequest(url, { signal, timeoutMs = 3000 } = {}) {
     throw failure('local_endpoint_unavailable', 'The selected local server is unavailable. Start the installed runtime, then retry.');
   }
   if (!response.ok) {
+    const retryAfter = response.headers.get('retry-after');
+    let retryAfterMs;
+    if (retryAfter && /^\d+(?:\.\d+)?$/.test(retryAfter.trim())) retryAfterMs = Number(retryAfter) * 1000;
+    else if (retryAfter && Number.isFinite(Date.parse(retryAfter))) retryAfterMs = Math.max(0, Date.parse(retryAfter) - Date.now());
     await response.body?.cancel();
-    throw failure(response.status === 503 ? 'local_model_loading' : 'local_endpoint_failed',
-      response.status === 503 ? 'The selected local server is still loading its model.' : `The selected local server returned HTTP ${response.status}.`);
+    throw Object.assign(failure(response.status === 503 ? 'local_model_loading' : 'local_endpoint_failed',
+      response.status === 503 ? 'The selected local server is still loading its model.' : `The selected local server returned HTTP ${response.status}.`),
+    { status: response.status, ...(Number.isFinite(retryAfterMs) ? { retryAfterMs } : {}) });
   }
   let bytes = 0;
   const chunks = [];
@@ -175,12 +180,13 @@ async function residentBytes(pid, signal) {
 export async function startLlamaServer({ modelPath, command = 'llama-server', port = 18089, contextSize = 8192,
   memoryLimitBytes = Math.min(16 * GIB, Math.floor(totalmem() * 0.7)), minimumFreeBytes = GIB,
   gpuLayers = 0, modelId = `koto-local-${randomUUID().slice(0, 8)}`, startupTimeoutMs = 120_000,
-  timeoutMs = 1_800_000, signal, onEvent } = {}) {
+  startupMaxRetries = 3, timeoutMs = 1_800_000, signal, onEvent } = {}) {
   if (!['darwin', 'linux', 'win32'].includes(process.platform)) {
     throw failure('local_memory_guard_unsupported', 'Owned llama-server startup requires a supported native process and memory-monitoring platform.');
   }
   integer(port, 1024, 65535, 'port'); integer(contextSize, 512, 32768, 'contextSize');
   integer(gpuLayers, 0, 1024, 'gpuLayers'); integer(startupTimeoutMs, 1, 600_000, 'startupTimeoutMs');
+  integer(startupMaxRetries, 0, 30, 'startupMaxRetries');
   integer(timeoutMs, startupTimeoutMs, 3_600_000, 'timeoutMs');
   integer(memoryLimitBytes, 256 * 1024 ** 2, Math.floor(totalmem() * 0.8), 'memoryLimitBytes');
   integer(minimumFreeBytes, 256 * 1024 ** 2, Math.floor(totalmem() * 0.5), 'minimumFreeBytes');
@@ -308,7 +314,7 @@ export async function startLlamaServer({ modelPath, command = 'llama-server', po
     // sample is pending. Admission must be confirmed before readiness probes.
     const memoryAccepted = await initialMemory;
     let attempts = 0;
-    while (memoryAccepted && !finished && !joinedSignal.aborted && Date.now() < deadline && attempts < 30) {
+    while (memoryAccepted && !finished && !joinedSignal.aborted && Date.now() < deadline && attempts <= startupMaxRetries) {
       attempts += 1;
       try {
         const metadata = await checkLocalEndpoint({ kind: 'llama', endpoint, signal: joinedSignal });
@@ -319,12 +325,16 @@ export async function startLlamaServer({ modelPath, command = 'llama-server', po
         return metadata;
       } catch (error) {
         if (['local_server_identity_mismatch', 'local_socket_exhausted'].includes(error.code)) { guardError = error; controller.abort(); break; }
-        const backoff = Math.min(4000, 500 * 2 ** Math.min(attempts - 1, 3)) + Math.floor(Math.random() * 200);
+        if (attempts > startupMaxRetries) break;
+        const backoff = Math.max(error.retryAfterMs ?? 0,
+          Math.min(30_000, 1000 * 2 ** Math.min(attempts - 1, 5)) + Math.floor(Math.random() * 250));
         try { await delay(Math.min(backoff, Math.max(1, deadline - Date.now())), undefined, { signal: joinedSignal }); } catch { break; }
       }
     }
     if (!finished && !joinedSignal.aborted) {
-      guardError = failure('local_server_start_timeout', 'The owned local model did not become ready before its startup deadline.');
+      guardError = failure(attempts > startupMaxRetries ? 'local_server_start_retries_exhausted' : 'local_server_start_timeout',
+        attempts > startupMaxRetries ? `The owned local model did not become ready within ${startupMaxRetries + 1} startup probes. Verified assets were retained; no further requests were made.`
+          : 'The owned local model did not become ready before its startup deadline.');
       controller.abort();
     }
     const result = await completion;
@@ -333,7 +343,7 @@ export async function startLlamaServer({ modelPath, command = 'llama-server', po
   })();
   ready.catch(() => {}); // An owner may await completion before checking readiness.
   return { endpoint, apiBaseUrl: `${endpoint}/v1`, modelId, modelPath, executable, pid,
-    contextSize, memoryLimitBytes, minimumFreeBytes, gpuLayers, ready, completion,
+    contextSize, memoryLimitBytes, minimumFreeBytes, gpuLayers, startupMaxRetries, ready, completion,
     stop() { controller.abort(); return completion; } };
 }
 

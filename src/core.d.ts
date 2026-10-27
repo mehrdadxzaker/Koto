@@ -769,6 +769,7 @@ export function pullOllamaModel(options: { model: string; command?: string | und
 export function startLlamaServer(options: { modelPath: string; command?: string | undefined; port?: number | undefined;
   contextSize?: number | undefined; memoryLimitBytes?: number | undefined; minimumFreeBytes?: number | undefined;
   gpuLayers?: number | undefined; modelId?: string | undefined; startupTimeoutMs?: number | undefined;
+  startupMaxRetries?: number | undefined;
   timeoutMs?: number | undefined; signal?: AbortSignal | undefined; onEvent?: ((event: Readonly<Record<string, unknown>>) => unknown) | undefined }): Promise<{
     readonly pid: number | null; readonly endpoint: string; readonly apiBaseUrl: string; readonly modelId: string;
     readonly ready: Promise<LocalEndpointMetadata>; readonly completion: Promise<CommandOutcome>;

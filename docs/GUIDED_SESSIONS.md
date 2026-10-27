@@ -94,6 +94,11 @@ weights, and `/models get URL FILE SHA256` downloads an explicitly selected GGUF
 `/runtime build COMMIT` is an advanced source-build option using installed
 development tools. The guided model path acquires a verified runtime binary.
 The local coding agent has workspace file tools and asks before commands.
+Managed startup waits for its first memory check, then makes one readiness probe
+and at most three retries with backoff and jitter, respecting `Retry-After` and
+the startup deadline. The core's `startupMaxRetries` option is an explicit
+advanced budget; the CLI uses the bounded default. Socket exhaustion stops
+further requests immediately.
 
 Private choices live in `~/.koto/preferences.json`; `KOTO_STATE_DIR` selects
 another private absolute state directory. Session state contains prompts,
