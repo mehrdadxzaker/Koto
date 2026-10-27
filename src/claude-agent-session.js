@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { startCommand } from './command-session.js';
+import { startSetupCommand } from './setup-command.js';
 
 // Native stdio control contract: official Claude Agent SDK Python source,
 // commit 717cea09021fac3654879f0a362ed254a73ec35d (bundled CLI 2.1.311):
@@ -22,6 +22,7 @@ const API_ENV = new Set(['ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN', 'ANTHROPIC
   'CLAUDE_CODE_USE_BEDROCK', 'CLAUDE_CODE_USE_VERTEX', 'CLAUDE_CODE_USE_FOUNDRY',
   'ANTHROPIC_FOUNDRY_API_KEY', 'ANTHROPIC_FOUNDRY_RESOURCE']);
 const ERRORS = Object.freeze({
+  setup_terminal_helper_required: 'Prepare Windows process support with `koto terminal build` using installed developer tools, then reopen Koto.',
   native_subscription_login_required: 'Sign in through the installed Claude CLI with the intended Claude subscription before continuing.',
   claude_auth_unavailable: 'The installed Claude CLI could not confirm its native subscription login. Check `claude auth status` through its normal account setup.',
   claude_control_initialization_failed: 'The installed Claude CLI did not initialize its native stdio control protocol. Update through its supported installation before retrying.',
@@ -92,6 +93,7 @@ export function createClaudeAgentSession({ id = 'claude', command, cwd, model, e
       && !unsetEnv.some(key => process.platform === 'win32' ? key.toUpperCase() === name.toUpperCase() : key === name))),
     // Protocol events distinguish a finished turn from pending native agents.
     CLAUDE_CODE_SDK_READS_SESSION_STATE: '1',
+    DISABLE_AUTOUPDATER: '1', DISABLE_UPDATES: '1',
   });
 
   function emit(turn, event) {
@@ -357,7 +359,8 @@ export function createClaudeAgentSession({ id = 'claude', command, cwd, model, e
 
   async function authenticate(turn, env) {
     let output = '';
-    turn.handle = startCommand({ id, command, args: ['auth', 'status'], cwd, env,
+    turn.handle = await startSetupCommand({ id, command, args: ['auth', 'status'], cwd, env,
+      signal: turn.launchController.signal,
       timeoutMs: Math.max(1, Math.min(10_000, Math.floor(turn.deadline - performance.now()))),
       onEvent(event) {
         if (event.type === 'output' && event.stream === 'stdout' && !turn.failure) {
@@ -383,6 +386,7 @@ export function createClaudeAgentSession({ id = 'claude', command, cwd, model, e
     stop() {
       if (!active) return;
       active.cancelled = true;
+      active.launchController.abort();
       abortApprovals(active);
       active.handle?.stop();
     },
@@ -399,6 +403,7 @@ export function createClaudeAgentSession({ id = 'claude', command, cwd, model, e
       if (signal?.aborted) return { ...simple('native_cancelled'), status: 'cancelled' };
       let resolveDone;
       const turn = { prompt, expectedSessionId: nativeSessionId ?? randomUUID(), initializeId: randomUUID(),
+        launchController: new AbortController(),
         handle: undefined, failure: undefined, cancelled: false, launched: false, initialized: false,
         sawSession: false, sentPrompt: false, sawState: false, state: undefined, resultSeen: false,
         completed: false, nativeFailed: false, denied: false, unsupportedControl: false,
@@ -407,9 +412,10 @@ export function createClaudeAgentSession({ id = 'claude', command, cwd, model, e
         tools: new Map(), tasks: new Set(), approvals: new Map(), approvalTasks: new Set(), seenRequests: new Set(),
         deadline: performance.now() + timeoutMs,
         done: new Promise(resolve => { resolveDone = resolve; }),
-        fail(code) { this.failure ??= code; abortApprovals(this); this.handle?.stop(); } };
+        fail(code) { this.failure ??= code; abortApprovals(this); this.launchController.abort(); this.handle?.stop(); } };
       active = turn;
-      const abort = () => { turn.cancelled = true; abortApprovals(turn); turn.handle?.stop(); };
+      const deadlineTimer = setTimeout(() => turn.fail('timeout'), timeoutMs);
+      const abort = () => { turn.cancelled = true; abortApprovals(turn); turn.launchController.abort(); turn.handle?.stop(); };
       signal?.addEventListener('abort', abort, { once: true });
       const env = environment();
       let outcome;
@@ -441,8 +447,8 @@ export function createClaudeAgentSession({ id = 'claude', command, cwd, model, e
             try { value = JSON.parse(source); } catch { turn.fail('claude_json_invalid'); return; }
             record(turn, value);
           };
-          turn.launched = true;
-          turn.handle = startCommand({ id, command, args, cwd, env,
+          turn.handle = await startSetupCommand({ id, command, args, cwd, env,
+            signal: turn.launchController.signal,
             timeoutMs: Math.max(1, Math.floor(turn.deadline - performance.now())),
             onEvent(event) {
               if (event.type === 'started') { emit(turn, { type: 'started', pid: event.pid }); return; }
@@ -461,6 +467,8 @@ export function createClaudeAgentSession({ id = 'claude', command, cwd, model, e
               }
               if (Buffer.byteLength(turn.buffer) > LINE_LIMIT) turn.fail('claude_line_limit');
             } });
+          turn.launched = true;
+          if (turn.failure || turn.cancelled) { turn.handle.stop(); throw Object.assign(new Error('Native launch cancelled.'), { code: 'native_cancelled' }); }
           turn.initializeTimer = setTimeout(() => turn.fail('claude_control_initialization_failed'),
             Math.max(1, Math.min(60_000, turn.deadline - performance.now())));
           write(turn, { type: 'control_request', request_id: turn.initializeId,
@@ -468,8 +476,9 @@ export function createClaudeAgentSession({ id = 'claude', command, cwd, model, e
           outcome = await turn.handle.completion;
           if (turn.buffer.trim() && !turn.failure) line(turn.buffer);
         }
-      } catch { turn.failure ??= 'claude_launch_failed'; }
+      } catch (error) { turn.failure ??= error.code === 'setup_terminal_helper_required' ? error.code : turn.cancelled ? 'native_cancelled' : 'claude_launch_failed'; }
       finally {
+        clearTimeout(deadlineTimer);
         abortApprovals(turn);
         await Promise.allSettled([...turn.approvalTasks]);
         clearTimeout(turn.initializeTimer); clearTimeout(turn.stateTimer); clearTimeout(turn.exitTimer);

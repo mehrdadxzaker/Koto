@@ -5,6 +5,39 @@ delivery. The implementation below is available for acceptance; successful
 native interaction on every target host has not been observed. Core verification
 comes before another UI or plugin. No registry release is claimed.
 
+## CLI onboarding candidate — October 27, 2026
+
+The CLI now discovers native Codex/ChatGPT and Claude Code subscription logins,
+offers native sign-in or private client installation, and optionally acquires
+pinned local weights and a compiler-free llama.cpp binary. It remembers project
+choices and saved builds, exposes editable/revalidated plans, and supports saved
+review/integration/continuation without copying session-directory paths. The
+same setup and plan operations are shared core exports for later delivery
+adapters. Provider API keys are not required for native subscription use.
+
+The first installed pre-final candidate found the existing ChatGPT login and a
+Claude Code installation outside PATH that required sign-in. It downloaded and
+verified the official Qwen2.5 Coder 1.5B Q4_K_M asset (1,117,320,768 bytes), reused
+a verified llama.cpp b11935 runtime, and then refused model startup under the
+old raw-free-memory check. Observed raw free memory was about 0.95 GiB against
+the 1 GiB reserve; no local inference occurred. The owned CLI exited zero with
+no model listener. The exact pre-final package SHA-256 was
+`764adac9a90daf1915093c2ba791cd78dec1e750137e4108dc019d0c5bda9590`.
+
+The revised macOS guard retains that failure and the same reserve, uses a
+bounded native `memory_pressure -Q` estimate, and retains raw free pages
+separately. A read-only observation returned 401,866,752 raw free bytes and a
+23,364,622,090-byte system estimate. This metric observation does not establish
+successful startup or model work. Windows setup/native workers use the owned
+helper pipe route; actual native Windows behavior still requires observation.
+
+Source/scope, syntax, declarations and package checks are separate from the
+installed real-project journey. The designated acceptance owner records that
+final artifact's fresh/returning workflow, native continuation, cooperation and
+platform observations in [#543](https://github.com/mehrdadxzaker/Koto/issues/543).
+The remaining [acceptance checklist](USER_ACCEPTANCE.md) stays explicit until
+those outcomes are observed. Prior checkpoints below are preserved.
+
 ## Implemented source
 
 - Shared concurrent scheduling, separate Git worktrees, bounded output/input,

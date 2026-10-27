@@ -2,10 +2,13 @@ import { createHash, randomUUID } from 'node:crypto';
 import { constants } from 'node:fs';
 import { link, lstat, open, readFile, realpath, unlink } from 'node:fs/promises';
 import { createServer } from 'node:net';
-import { freemem, totalmem } from 'node:os';
+import { totalmem } from 'node:os';
 import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { startCommand } from './command-session.js';
+import { startSetupCommand } from './setup-command.js';
+import { readHostMemory } from './host-memory.js';
+import { fetchHeaders } from './bounded-fetch.js';
 import { resolveAgentExecutable } from './launch-preflight.js';
 
 const GIB = 1024 ** 3;
@@ -38,7 +41,12 @@ async function jsonRequest(url, { signal, timeoutMs = 3000 } = {}) {
   const bounded = AbortSignal.any([AbortSignal.timeout(timeoutMs), ...(signal ? [signal] : [])]);
   let response;
   try { response = await fetch(url, { signal: bounded, redirect: 'error' }); }
-  catch { throw failure('local_endpoint_unavailable', 'The selected local server is unavailable. Start the installed runtime, then retry; Koto did not install or start it automatically.'); }
+  catch (error) {
+    if (['EADDRNOTAVAIL', 'EMFILE', 'ENFILE'].includes(error.cause?.code ?? error.code)) {
+      throw failure('local_socket_exhausted', 'Socket or file-descriptor capacity is unavailable. Stop new requests and inspect system resources before retrying.');
+    }
+    throw failure('local_endpoint_unavailable', 'The selected local server is unavailable. Start the installed runtime, then retry.');
+  }
   if (!response.ok) {
     await response.body?.cancel();
     throw failure(response.status === 503 ? 'local_model_loading' : 'local_endpoint_failed',
@@ -84,7 +92,7 @@ export async function checkLocalEndpoint({ kind = 'ollama', endpoint = ENDPOINTS
 /** Discover installed commands and already-running servers; never auto-start them. */
 export async function discoverLocalModels({ ollamaCommand = 'ollama', llamaCommand = 'llama-server',
   ollamaEndpoint = ENDPOINTS.ollama, llamaEndpoint = ENDPOINTS.llama, signal } = {}) {
-  return Object.fromEntries(await Promise.all([
+  const records = await Promise.all([
     ['ollama', ollamaCommand, ollamaEndpoint], ['llama', llamaCommand, llamaEndpoint],
   ].map(async ([kind, command, selectedEndpoint]) => {
     const endpoint = localEndpoint(selectedEndpoint);
@@ -93,7 +101,11 @@ export async function discoverLocalModels({ ollamaCommand = 'ollama', llamaComma
     try { return [kind, { executable, ...(await checkLocalEndpoint({ kind, endpoint, signal })), reachable: true }]; }
     catch (error) { return [kind, { kind, executable, endpoint, apiBaseUrl: `${endpoint}/v1`, reachable: false,
       models: [], error: error.code, message: error.message }]; }
-  })));
+  }));
+  if (records.some(([, runtime]) => runtime.error === 'local_socket_exhausted')) {
+    throw failure('local_socket_exhausted', 'Socket or file-descriptor capacity is unavailable. Stop new requests and inspect system resources before retrying.');
+  }
+  return Object.fromEntries(records);
 }
 
 /** Explicit download through the installed Ollama CLI; native cache/partials stay native. */
@@ -135,7 +147,12 @@ async function residentBytes(pid, signal) {
   }
   let text = '', exceeded = false;
   const controller = new AbortController();
-  const processInfo = startCommand({ id: 'llamaMemory', command: '/bin/ps', args: ['-o', 'rss=', '-p', String(pid)],
+  const windows = process.platform === 'win32';
+  const command = windows ? await resolveAgentExecutable('powershell.exe') : '/bin/ps';
+  const args = windows ? ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command',
+    '$ErrorActionPreference="Stop"; [Console]::Write((Get-Process -Id ' + String(pid) + ' -ErrorAction Stop).WorkingSet64)']
+    : ['-o', 'rss=', '-p', String(pid)];
+  const processInfo = await startSetupCommand({ id: 'llamaMemory', command, args,
     timeoutMs: 2000, signal: AbortSignal.any([signal, controller.signal]), onEvent(event) {
       if (event.type !== 'output') return;
       if (text.length + event.text.length > 4096) { exceeded = true; controller.abort(); return; }
@@ -149,7 +166,7 @@ async function residentBytes(pid, signal) {
   if (result.status !== 'succeeded' || exceeded || !/^\s*\d+\s*$/.test(text)) {
     throw failure('local_memory_metrics_unavailable', 'The owned server resident-memory metric could not be read safely.');
   }
-  return Number(text.trim()) * 1024;
+  return Number(text.trim()) * (windows ? 1 : 1024);
 }
 
 /** Start only an explicit existing GGUF/binary. The returned owner must remain alive.
@@ -159,8 +176,8 @@ export async function startLlamaServer({ modelPath, command = 'llama-server', po
   memoryLimitBytes = Math.min(16 * GIB, Math.floor(totalmem() * 0.7)), minimumFreeBytes = GIB,
   gpuLayers = 0, modelId = `koto-local-${randomUUID().slice(0, 8)}`, startupTimeoutMs = 120_000,
   timeoutMs = 1_800_000, signal, onEvent } = {}) {
-  if (!['darwin', 'linux'].includes(process.platform)) {
-    throw failure('local_memory_guard_unsupported', 'Owned llama-server startup currently requires macOS or Linux memory metrics. Use an already-running local server on this platform.');
+  if (!['darwin', 'linux', 'win32'].includes(process.platform)) {
+    throw failure('local_memory_guard_unsupported', 'Owned llama-server startup requires a supported native process and memory-monitoring platform.');
   }
   integer(port, 1024, 65535, 'port'); integer(contextSize, 512, 32768, 'contextSize');
   integer(gpuLayers, 0, 1024, 'gpuLayers'); integer(startupTimeoutMs, 1, 600_000, 'startupTimeoutMs');
@@ -187,7 +204,8 @@ export async function startLlamaServer({ modelPath, command = 'llama-server', po
       throw failure('local_gguf_invalid', 'The selected file does not have a GGUF header.');
     }
   } finally { await file.close(); }
-  const free = freemem();
+  const hostMemory = await readHostMemory({ signal });
+  const free = hostMemory.availableBytes;
   if (!Number.isSafeInteger(free) || free < minimumFreeBytes) {
     throw failure('local_memory_unavailable', 'Host free-memory metrics are unavailable or below the selected reserve. No server was started.');
   }
@@ -197,11 +215,58 @@ export async function startLlamaServer({ modelPath, command = 'llama-server', po
   const controller = new AbortController();
   const joinedSignal = signal ? AbortSignal.any([signal, controller.signal]) : controller.signal;
   const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => !/^LLAMA_ARG_/i.test(key)));
-  const handle = startCommand({ id: 'llamaServer', command: executable, env, timeoutMs, signal: joinedSignal,
+  const startupDeadline = Date.now() + startupTimeoutMs;
+  const validPid = value => Number.isSafeInteger(value) && value > 0;
+  let pid, acceptStartedPid;
+  const handle = await startSetupCommand({ id: 'llamaServer', command: executable, env, timeoutMs, signal: joinedSignal,
     args: ['--model', modelPath, '--host', '127.0.0.1', '--port', String(port), '--ctx-size', String(contextSize),
       '--parallel', '1', '--alias', modelId, '--n-gpu-layers', String(gpuLayers), '--fit', 'off',
-      '--offline', '--no-warmup', '--no-webui', '--jinja'], onEvent });
+      '--offline', '--no-warmup', '--no-webui', '--jinja'], onEvent(event) {
+      if (event.type === 'started' && validPid(event.pid)) {
+        pid = event.pid;
+        acceptStartedPid?.(pid);
+      }
+      return onEvent?.(event);
+    } });
   handle.endInput();
+  let pidTimer, cancelPidWait;
+  try {
+    // POSIX exposes its direct workload immediately. Windows exposes a PID
+    // only after its helper's verified ready record, never the helper's PID.
+    if (!validPid(pid) && validPid(handle.pid)) pid = handle.pid;
+    if (!validPid(pid)) pid = await new Promise((resolve, reject) => {
+      let settled = false;
+      const finish = (error, value) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(pidTimer);
+        joinedSignal.removeEventListener('abort', cancelPidWait);
+        acceptStartedPid = undefined;
+        if (error) reject(error); else resolve(value);
+      };
+      acceptStartedPid = value => finish(undefined, value);
+      cancelPidWait = () => finish(failure('local_cancelled', 'Local server startup was cancelled before its workload identity was available.'));
+      joinedSignal.addEventListener('abort', cancelPidWait, { once: true });
+      pidTimer = setTimeout(() => finish(failure('local_server_pid_unavailable',
+        'The owned local server did not report its workload identity before the startup deadline.')),
+      Math.min(5000, Math.max(1, startupDeadline - Date.now())));
+      handle.completion.then(outcome => finish(failure(outcome.error === 'cleanup_unconfirmed'
+        ? 'local_server_cleanup_unconfirmed' : 'local_server_not_ready',
+      'The owned local server stopped before reporting its workload identity.')));
+      if (joinedSignal.aborted) cancelPidWait();
+      else if (validPid(pid)) finish(undefined, pid);
+    });
+  } catch (error) {
+    controller.abort(); handle.stop();
+    if ((await handle.completion).error === 'cleanup_unconfirmed') {
+      throw failure('local_server_cleanup_unconfirmed', 'Local server cleanup could not be confirmed after startup failed. Inspect the owned process before retrying.');
+    }
+    throw error;
+  } finally {
+    clearTimeout(pidTimer);
+    if (cancelPidWait) joinedSignal.removeEventListener('abort', cancelPidWait);
+    acceptStartedPid = undefined;
+  }
   let finished = false, guarded = false, guardError, memory;
   const completion = handle.completion.then(async result => {
     finished = true;
@@ -214,8 +279,8 @@ export async function startLlamaServer({ modelPath, command = 'llama-server', po
   memory = (async () => {
     while (!finished && !joinedSignal.aborted) {
       try {
-        const rss = await residentBytes(handle.pid, joinedSignal);
-        const available = freemem();
+        const rss = await residentBytes(pid, joinedSignal);
+        const available = (await readHostMemory({ signal: joinedSignal })).availableBytes;
         if (!Number.isSafeInteger(rss) || rss < 0 || !Number.isSafeInteger(available) || available < 0) {
           throw failure('local_memory_metrics_unavailable', 'Memory monitoring became unavailable; the owned server was stopped.');
         }
@@ -236,8 +301,10 @@ export async function startLlamaServer({ modelPath, command = 'llama-server', po
     }
   })();
   const ready = (async () => {
-    const deadline = Date.now() + startupTimeoutMs;
-    while (!finished && !joinedSignal.aborted && Date.now() < deadline) {
+    const deadline = startupDeadline;
+    let attempts = 0;
+    while (!finished && !joinedSignal.aborted && Date.now() < deadline && attempts < 30) {
+      attempts += 1;
       try {
         const metadata = await checkLocalEndpoint({ kind: 'llama', endpoint, signal: joinedSignal });
         if (!metadata.models.some(model => model.id === modelId)) {
@@ -246,8 +313,9 @@ export async function startLlamaServer({ modelPath, command = 'llama-server', po
         if (guardError || joinedSignal.aborted || finished) break;
         if (guarded) return metadata;
       } catch (error) {
-        if (error.code === 'local_server_identity_mismatch') { guardError = error; controller.abort(); break; }
-        try { await delay(250, undefined, { signal: joinedSignal }); } catch { break; }
+        if (['local_server_identity_mismatch', 'local_socket_exhausted'].includes(error.code)) { guardError = error; controller.abort(); break; }
+        const backoff = Math.min(4000, 500 * 2 ** Math.min(attempts - 1, 3)) + Math.floor(Math.random() * 200);
+        try { await delay(Math.min(backoff, Math.max(1, deadline - Date.now())), undefined, { signal: joinedSignal }); } catch { break; }
       }
     }
     if (!finished && !joinedSignal.aborted) {
@@ -259,7 +327,7 @@ export async function startLlamaServer({ modelPath, command = 'llama-server', po
     throw guardError ?? failure('local_server_not_ready', `The owned server stopped before readiness (${result.error ?? result.status}). Inspect its native output.`);
   })();
   ready.catch(() => {}); // An owner may await completion before checking readiness.
-  return { endpoint, apiBaseUrl: `${endpoint}/v1`, modelId, modelPath, executable, pid: handle.pid,
+  return { endpoint, apiBaseUrl: `${endpoint}/v1`, modelId, modelPath, executable, pid,
     contextSize, memoryLimitBytes, minimumFreeBytes, gpuLayers, ready, completion,
     stop() { controller.abort(); return completion; } };
 }
@@ -302,7 +370,7 @@ export async function downloadGguf({ url, destination, sha256, maxBytes, timeout
   try {
     file = await open(partial, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW, 0o600);
     for (let redirects = 0; ; redirects += 1) {
-      response = await fetch(source, { signal: bounded, redirect: 'manual' });
+      response = await fetchHeaders(source, { signal: bounded, redirect: 'manual' });
       if (![301, 302, 303, 307, 308].includes(response.status)) break;
       const location = response.headers.get('location');
       await response.body?.cancel();

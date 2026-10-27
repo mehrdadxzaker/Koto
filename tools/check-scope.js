@@ -52,6 +52,10 @@ function checkPath(name) {
 function walk(directory = root, prefix = '') {
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
     const name = prefix ? `${prefix}/${entry.name}` : entry.name;
+    // A real Git worktree has a regular root .git pointer rather than a
+    // directory. It is repository metadata, never package source. Symlinks
+    // and tracked/private artifacts still go through their normal checks.
+    if (!prefix && entry.name === '.git' && entry.isFile()) continue;
     if (entry.isDirectory() && ignoredDirectories.test(entry.name)) continue;
     if (!entry.isDirectory() && ignoredFiles.test(entry.name)) continue;
     if (entry.isSymbolicLink()) {

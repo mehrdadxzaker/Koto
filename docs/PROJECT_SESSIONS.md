@@ -119,7 +119,11 @@ later save fails, the attempt stays unresolved and blocks further integration
 and continuation. Git and the session record are separate stores; this does not
 make them one atomic transaction.
 
-Inspect the retained attempt without starting an agent or changing Git:
+Run `koto project pending <session-directory>` after an interrupted integration
+or interrupted conflict acknowledgment, or when Koto reports an unresolved
+integration attempt. It inspects the retained
+attempt without starting an agent or changing Git. Further integration and
+native-session continuation remain blocked until reconciliation succeeds:
 
 ```sh
 koto project pending /private/session/directory
@@ -146,6 +150,8 @@ Reconciliation retains an audit record. It never repeats the integration,
 modifies project content, rolls back work or resumes an agent. A rejected token
 requires a fresh inspection. If neither resolution is available, retain the
 attempt and inspect the worktrees explicitly; do not delete the marker to retry.
+Reconciliation does not restart the agent; continuation requires an explicit
+later `koto project resume`.
 
 A crash before the intent is retained can leave a lease without an inspectable
 attempt. A crash during reconciliation can also leave its own lease. These cases,

@@ -42,7 +42,30 @@ npx --yes --package ./mehrdadxzaker-koto-3.0.0-alpha.0.tgz koto --help
 The intended registry name is `@mehrdadxzaker/koto`; availability and publication
 remain release steps. See [installation](https://github.com/mehrdadxzaker/Koto/blob/main/docs/INSTALLATION.md).
 
-## Current core and CLI
+## Open Koto and start working
+
+Run `koto` in your terminal. The CLI finds existing Codex/ChatGPT and
+Claude Code subscription logins, offers native sign-in or installation when
+needed, and lets you choose a project. No provider API key is required.
+
+Local models are optional. Choose a model by name, download size and machine
+fit; Koto obtains verified weights and a pinned llama.cpp runtime without a
+compiler. You can skip this step and add models later with `/models add`.
+
+Describe what you want to build. Koto proposes agents, tasks and file ownership
+for review, then runs the approved work in separate project workspaces. Your
+chosen subscriptions keep their native authentication and permission controls.
+
+On later launches, Koto remembers setup and your project. `/sessions` selects
+saved work; `/review`, `/integrate` and `/resume` use its recorded workspace
+without asking for session-directory paths. `/accounts` changes subscription
+selection. `/models` lists downloaded models and available local servers.
+
+The CLI is the first complete delivery surface. UIs and IDE plugins follow its
+real-project acceptance and reuse the same core. See [guided use](docs/GUIDED_SESSIONS.md)
+and the [acceptance journey](docs/USER_ACCEPTANCE.md).
+
+## Core and scripted workflows
 
 The initial core validates a task graph, runs ready tasks concurrently, passes
 explicit dependency outputs between workers and returns an attributed result.
@@ -57,9 +80,10 @@ A workflow explicitly names its worker executables and tasks. Workers receive a
 JSON assignment on stdin and return text on stdout. `finalTask` is optional;
 independent task graphs return individual results without a final text output.
 
-Agent runtimes and their model/provider access are configured separately. The
-process-worker protocol is a foundation for real adapters; it does not make
-Codex, Claude Code or another native CLI speak that protocol automatically.
+The conversational CLI configures supported native agents through their own
+subscription logins. Scripted workflows can also use separately configured
+worker commands. The generic process-worker protocol does not make an arbitrary
+native CLI speak that protocol automatically.
 A successful worker process establishes completion, not the correctness of its
 answer. Application-specific acceptance checks belong in the workflow.
 
@@ -78,9 +102,8 @@ The local implementation adds concurrent external commands in separate Git
 worktrees, with streamed output, per-command stop/input controls and a separate
 integration branch:
 
-Run `koto` or `koto start` in a terminal for the [guided launcher](docs/GUIDED_SESSIONS.md).
-It collects a project, agents, models, tasks and ownership without a JSON file.
-Prepared plans remain available for scripted use:
+Run `koto` or `koto start` for the conversational CLI. `koto setup` opens advanced
+manual session configuration. Prepared plans remain available for scripted use:
 
 ```sh
 koto project start /absolute/path/to/plan.json

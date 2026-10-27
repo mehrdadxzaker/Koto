@@ -110,8 +110,8 @@ export async function runProjectCli(args, { write, signal } = {}) {
 
 /** Launchers and plan files use the same terminal/session implementation. */
 export async function runProjectPlan(source, { write, signal, headless = false, approved = false,
-  expectedBaseCommit, onEvent } = {}) {
-  return runSessionTerminal(source, { write, signal, headless, approved, expectedBaseCommit, onEvent });
+  expectedBaseCommit, onEvent, onSession, compact = false } = {}) {
+  return runSessionTerminal(source, { write, signal, headless, approved, expectedBaseCommit, onEvent, onSession, compact });
 }
 
 /** An explicit resume shares every terminal control with an initial launch. */
@@ -129,7 +129,7 @@ export async function runProjectResume(sessionRoot, agentId, { prompt, write, si
 }
 
 async function runSessionTerminal(source, { write, signal, headless, approved, prepared, observe,
-  bindApproval, expectedBaseCommit, onEvent } = {}) {
+  bindApproval, expectedBaseCommit, onEvent, onSession, compact = false } = {}) {
   const plan = validateProjectPlan(source);
   if (expectedBaseCommit !== undefined && (typeof expectedBaseCommit !== 'string'
     || !/^[a-f0-9]{40,64}$/.test(expectedBaseCommit))) throw new TypeError('Use the exact reviewed project base commit.');
@@ -138,7 +138,9 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
   const initialRaw = process.stdin.isRaw === true;
   if (!interactive && !approved) throw new Error('project_explicit_start_required');
   write(`Project: ${visible(plan.project)}\nGoal: ${visible(plan.goal)}\nConcurrency: ${plan.maxConcurrency}\n`);
-  for (const agent of plan.agents) write(`[${agent.id}] ${visible(agent.command)} ${visible(JSON.stringify(agent.args))}\n  Task: ${visible(agent.task)}\n  Owns: ${visible(agent.owns.join(', '))}\n  Transport: ${agent.transport}; stdin: ${agent.inputMode}; unset environment: ${agent.unsetEnv.join(', ') || 'none'}\n`);
+  for (const agent of plan.agents) write(compact
+    ? `[${agent.id}] ${visible(agent.nativeKind ?? 'agent')} / ${visible(agent.model ?? 'native default model')}\n  Task: ${visible(agent.task)}\n  Files: ${visible(agent.owns.join(', '))}\n`
+    : `[${agent.id}] ${visible(agent.command)} ${visible(JSON.stringify(agent.args))}\n  Task: ${visible(agent.task)}\n  Owns: ${visible(agent.owns.join(', '))}\n  Transport: ${agent.transport}; stdin: ${agent.inputMode}; unset environment: ${agent.unsetEnv.join(', ') || 'none'}\n`);
   if (!prepared) {
     const readiness = await preflightProjectPlan(plan);
     for (const check of readiness.checks) write(`[${check.status}] ${check.agentId ? `${check.agentId}: ` : ''}${visible(check.message)}\n`);
@@ -344,6 +346,7 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
     bindApproval?.(approveCommand);
     if (prepared) { observe(receiveEvent); session = prepared; }
     else session = await createProjectSession(plan, { signal, onApproval: approveCommand, onEvent: receiveEvent });
+    await onSession?.(session.status());
     if (closed || signal?.aborted) return 130;
     if (expectedBaseCommit !== undefined && session.status().baseCommit !== expectedBaseCommit) {
       throw Object.assign(new Error(`The project HEAD changed after planning. No agent was launched. Prepared worktrees are retained at ${session.sessionRoot}. Review a new plan from the current commit.`), { code: 'project_base_changed' });
