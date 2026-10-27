@@ -60,6 +60,12 @@ export async function runProjectCli(args, { write, signal } = {}) {
   const plan = await readPlan(args[1]);
   const headless = args.includes('--headless');
   const approved = args.includes('--start');
+  return runProjectPlan(plan, { write, signal, headless, approved });
+}
+
+/** Launchers and plan files use the same terminal/session implementation. */
+export async function runProjectPlan(source, { write, signal, headless = false, approved = false } = {}) {
+  const plan = validateProjectPlan(source);
   const interactive = !headless && process.stdin.isTTY && process.stdout.isTTY;
   const initialRaw = process.stdin.isRaw === true;
   if (!interactive && !approved) throw new Error('project_explicit_start_required');
@@ -73,6 +79,7 @@ export async function runProjectCli(args, { write, signal } = {}) {
   let switchingTerminal = false;
   let commandQueue = Promise.resolve();
   let pendingControls = 0;
+  const reviewedTokens = new Map();
   let resolveClosed;
   const terminalClosed = new Promise(resolve => { resolveClosed = resolve; });
   const restoreRaw = () => {
@@ -119,7 +126,11 @@ export async function runProjectCli(args, { write, signal } = {}) {
     } });
     if (closed || signal?.aborted) return 130;
     write(`Session: ${session.sessionRoot}\nIntegration workspace: ${session.status().integration.path}\n`);
-    const controls = () => write('Controls: :status | :attach AGENT (Ctrl-] detaches) | :resize AGENT COLS ROWS | :send AGENT TEXT | :eof AGENT | :stop AGENT/all | :inspect AGENT | :integrate AGENT TOKEN | :quit\n');
+    const controls = () => write('Controls: :status | :review AGENT | :integrate AGENT | :stop AGENT/all | :attach AGENT (Ctrl-] detaches) | :resize AGENT COLS ROWS | :send AGENT TEXT | :eof AGENT | :help | :quit\n');
+    const showStatus = () => {
+      write('\nAGENT             STATE        TRANSPORT PID       WORKSPACE\n');
+      for (const agent of session.status().agents) write(`${agent.id.padEnd(18)}${agent.status.padEnd(13)}${agent.transport.padEnd(10)}${String(agent.pid ?? '-').padEnd(10)}${visible(agent.workspace.path)}\n`);
+    };
     const bindTerminal = () => {
       terminal.removeListener('close', close);
       terminal.removeListener('SIGINT', close);
@@ -131,7 +142,8 @@ export async function runProjectCli(args, { write, signal } = {}) {
         commandQueue = commandQueue.then(async () => {
           if (closed || attachment) return;
           const [command, id, ...rest] = line.trim().split(/\s+/);
-          if (command === ':status') write(`${JSON.stringify(session.status().agents.map(agent => ({ id: agent.id, status: agent.status, transport: agent.transport, pid: agent.pid, workspace: agent.workspace.path })), null, 2)}\n`);
+          if (command === ':status') showStatus();
+          else if (command === ':help') controls();
           else if (command === ':send' && id) {
             const text = line.replace(/^\s*:send\s+\S+\s?/, '');
             write(`Input ${session.send(id, `${text}\n`) ? 'sent' : 'unavailable'} for ${id}\n`);
@@ -153,8 +165,21 @@ export async function runProjectCli(args, { write, signal } = {}) {
             try { attachment = attachNativeTerminal({ session, agentId: id, write, onDetach: reopen }); }
             catch (error) { if (!terminal) reopen('attachment unavailable'); throw error; }
           } else if (command === ':stop' && id) session.stop(id);
-          else if (command === ':inspect' && id) showReview(await session.inspect(id), write);
-          else if (command === ':integrate' && id && rest.length === 1) write(`${JSON.stringify(await session.integrate(id, { approve: rest[0] }), null, 2)}\n`);
+          else if ([':review', ':inspect'].includes(command) && id) {
+            const review = await session.inspect(id);
+            showReview(review, write);
+            // Remember only a review actually displayed to this operator. The
+            // core checks the token against the current tree again on apply.
+            reviewedTokens.set(id, review.reviewToken);
+            write(`After reviewing this diff, type :integrate ${id} to apply this contribution.\n`);
+          } else if (command === ':integrate' && id && rest.length <= 1) {
+            const token = rest[0] ?? reviewedTokens.get(id);
+            if (!token) throw new Error(`Review ${id} first with :review ${id}.`);
+            const result = await session.integrate(id, { approve: token });
+            reviewedTokens.delete(id);
+            write(`${id}: ${result.status}. Integration workspace: ${session.status().integration.path}\n`);
+            if (result.conflicts?.length) write(`Conflicts: ${result.conflicts.map(visible).join(', ')}\n`);
+          }
           else if (command === ':quit') close();
           else write('Use a listed :control command. Native pipe input must name its agent with :send.\n');
         }).catch(error => write(`Control failed: ${visible(error.message)}\n`)).finally(() => { pendingControls -= 1; });
@@ -164,8 +189,9 @@ export async function runProjectCli(args, { write, signal } = {}) {
     const report = await session.run();
     attachment?.detach('agent processes ended');
     write(`\nProcess result: ${report.status}. This is not a correctness verdict.\n`);
-    write(`${JSON.stringify({ sessionRoot: report.sessionRoot, integration: report.integration,
-      agents: report.agents.map(agent => ({ id: agent.id, status: agent.status, result: agent.result })) }, null, 2)}\n`);
+    showStatus();
+    for (const agent of report.agents) if (agent.result?.error) write(`${agent.id}: ${visible(agent.result.error)}\n`);
+    write(`Session: ${report.sessionRoot}\nIntegration workspace: ${report.integration.path}\n`);
     if (terminal && !closed) {
       write('Agents ended. Inspect and explicitly integrate contributions, or :quit to retain all worktrees.\n');
       await terminalClosed;
