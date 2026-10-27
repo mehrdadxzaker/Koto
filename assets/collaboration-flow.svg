@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="432" viewBox="0 0 1120 432" direction="ltr" role="img" aria-labelledby="flow-title flow-description">
+<svg xmlns="http://www.w3.org/2000/svg" id="koto-collaboration-flow" width="1120" height="432" viewBox="0 0 1120 432" direction="ltr" role="img" aria-labelledby="flow-title flow-description">
   <title id="flow-title">Koto: parallel agent work with operator-reviewed integration</title>
   <desc id="flow-description">A clean Git project supplies the same committed base to two parallel commands: Codex as a commercial CLI agent in worktree A, and OpenCode as a local CLI agent in worktree B. The operator inspects both diffs and approves the exact review token before contributions enter a separate integration branch. Conflicts stay visible, and the original checkout is retained. Commands use ordinary pipes.</desc>
   <defs>
@@ -6,7 +6,7 @@
       <path d="M 1 1 L 9 5 L 1 9 Z" fill="#986044"/>
     </marker>
     <style>
-      text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; fill: #292723; }
+      #koto-collaboration-flow text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; fill: #292723; }
       .heading { font-size: 27px; font-weight: 650; letter-spacing: -.5px; }
       .subheading { font-size: 16px; fill: #6B6056; }
       .card { fill: #FFFDF9; stroke: #D9CABB; stroke-width: 1.5; }

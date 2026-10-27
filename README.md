@@ -1,12 +1,18 @@
-<p align="center"><strong>English</strong> · <a href="README.fa.md" lang="fa">فارسی</a></p>
-
 <div align="center">
   <img src="assets/koto-logo.png" alt="Koto's wooden K-shaped stringed-instrument logo" width="168" height="168" />
   <h1>Koto</h1>
-  <p><strong>Different agents. One project. Your review.</strong></p>
-  <p>Run commercial and local CLI agents together, give each a Git worktree,<br />and choose which changes enter the shared result.</p>
-  <p>Node.js 22+ · Apache-2.0 · Experimental</p>
 </div>
+
+<p align="center">
+  <a href="https://github.com/mehrdadxzaker/Koto/stargazers"><img src="assets/badge-github.svg" alt="Star Koto on GitHub" height="20" /></a>
+  <a href="LICENSE"><img src="assets/badge-license.svg" alt="License: Apache-2.0" height="20" /></a>
+  <a href="https://github.com/mehrdadxzaker/Koto/actions/workflows/ci.yml"><img src="https://github.com/mehrdadxzaker/Koto/actions/workflows/ci.yml/badge.svg?branch=main" alt="Source checks" height="20" /></a>
+</p>
+
+<p align="center"><strong>English</strong> · <a href="README.fa.md" lang="fa">فارسی</a></p>
+
+<p align="center"><strong>Run multiple coding agents together, in one coordinated workspace.</strong></p>
+<p align="center">Give each agent an isolated Git worktree, follow its output, review its changes, and bring the results together.</p>
 
 <p align="center"><a href="#quick-start">Quick start</a> · <a href="#how-it-works">How it works</a> · <a href="#contributing">Contribute</a> · <a href="docs/PROJECT_SESSIONS.md">Session guide</a></p>
 

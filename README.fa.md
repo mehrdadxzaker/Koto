@@ -1,11 +1,14 @@
-<p align="center"><a href="README.md" lang="en">English</a> · <strong lang="fa">فارسی</strong></p>
-
 <div align="center" dir="rtl" lang="fa">
   <img src="assets/koto-logo.png" alt="نشان چوبی کوتو، به‌شکل حرف K و یک ساز زهی" width="168" height="168" />
   <h1>Koto</h1>
-  <p><strong>عامل‌های مختلف. یک پروژه. بازبینی با شما.</strong></p>
-  <p>عامل‌های خط فرمانِ تجاری و محلی را کنار هم اجرا کنید، به هرکدام یک worktree مستقل بدهید،<br />و خودتان انتخاب کنید کدام تغییرها وارد نتیجهٔ مشترک شوند.</p>
-  <p><span dir="ltr">Node.js 22+ · Apache-2.0</span> · نسخهٔ آزمایشی</p>
+  <p dir="ltr">
+    <a href="https://github.com/mehrdadxzaker/Koto/stargazers"><img src="assets/badge-github.svg" alt="به Koto در GitHub ستاره بدهید" height="20" /></a>
+    <a href="LICENSE"><img src="assets/badge-license.svg" alt="مجوز Koto" height="20" /></a>
+    <a href="https://github.com/mehrdadxzaker/Koto/actions/workflows/ci.yml"><img src="https://github.com/mehrdadxzaker/Koto/actions/workflows/ci.yml/badge.svg?branch=main" alt="بررسی‌های سورس" height="20" /></a>
+  </p>
+  <p dir="ltr"><a href="README.md" lang="en">English</a> · <strong lang="fa">فارسی</strong></p>
+  <p><strong>چند عامل کدنویسی را با هم، در یک فضای کاری هماهنگ اجرا کنید.</strong></p>
+  <p>به هر عامل یک <span dir="ltr">Git worktree</span> مستقل بدهید، خروجی‌اش را دنبال کنید، تغییرهایش را بازبینی کنید و نتیجه‌ها را کنار هم بیاورید.</p>
 </div>
 
 <p align="center" dir="rtl"><a href="#quick-start">شروع سریع</a> · <a href="#how-it-works">روش کار</a> · <a href="#contributing">مشارکت</a> · <a href="docs/PROJECT_SESSIONS.md">راهنمای نشست‌ها</a></p>
