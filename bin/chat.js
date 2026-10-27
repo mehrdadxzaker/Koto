@@ -335,6 +335,10 @@ export async function runChat({ write, signal: parentSignal, version } = {}) {
 
   let lastProgressAt = 0;
   const progress = item => {
+    if (item.type === 'verify') {
+      write(`\rVerifying retained model ${(item.bytes / 1024 ** 2).toFixed(0)} MiB   `);
+      return;
+    }
     if (item.type === 'download' || item.bytes !== undefined) {
       if (Date.now() - lastProgressAt < 250 && item.bytes !== item.totalBytes) return;
       lastProgressAt = Date.now();
