@@ -75,10 +75,10 @@ const help = `Talk to Koto normally. Coding requests become a reviewed multi-age
 
   /project PATH                  Select an existing Git project
   /new PATH                      Create an empty project after confirmation
-  /agent codex|claude|local       Choose the conversational coordinator
+  /agent KIND [EXECUTABLE]       Choose codex, claude or local; optional native CLI path
   /model MODEL                   Choose its model and start a new conversation
   /agents                        Show configured coding agents
-  /add codex|claude|local [MODEL] Add a coding agent
+  /add KIND [MODEL] [EXECUTABLE]  Add a coding agent using an existing installation
   /remove AGENT                  Remove a configured coding agent
   /build GOAL                    Plan and build with the configured agents
   /models                        List actual local runtimes/models
@@ -144,31 +144,57 @@ export async function runChat({ write, signal, version } = {}) {
     return operation;
   };
 
-  async function selectCoordinator(kind, reset = false) {
+  async function nativeExecutable(kind, explicit) {
+    if (explicit) return resolveAgentExecutable(absolute(explicit));
+    try { return await resolveAgentExecutable(kind); }
+    catch (original) {
+      const candidates = [path.join(homedir(), '.local', 'bin', kind), '/usr/local/bin/' + kind,
+        ...(process.platform === 'darwin' ? ['/opt/homebrew/bin/' + kind,
+          ...(kind === 'codex' ? ['/Applications/Codex.app/Contents/Resources/codex',
+            path.join(homedir(), 'Applications/Codex.app/Contents/Resources/codex')] : [])] : [])];
+      for (const candidate of candidates) { try { return await resolveAgentExecutable(candidate); } catch { /* Check known installation locations only. */ } }
+      throw original;
+    }
+  }
+
+  async function selectCoordinator(kind, reset = false, executable, modelOverride) {
     if (!['codex', 'claude', 'local'].includes(kind)) throw new Error('Choose codex, claude or local.');
-    stop();
-    await closeCoordinator();
     const previous = preferences.coordinator ?? {};
     const choice = previous.kind === kind ? { ...previous } : { kind };
+    let replacement, local = preferences.local;
     if (kind === 'local') {
-      if (!preferences.local?.model) throw new Error('Select an installed local model first: /models, then /add local MODEL.');
-      Object.assign(choice, { model: preferences.local.model, endpoint: preferences.local.endpoint });
+      if (executable) throw new Error('Local agents use a loopback model; select its weights/runtime with /models.');
+      if (modelOverride) {
+        const found = await discoverLocalModels({ signal, llamaCommand: preferences.llamaCommand ?? 'llama-server' });
+        const runtime = Object.values(found).find(item => item.reachable && item.models.some(model => model.id === modelOverride));
+        if (!runtime) throw new Error('That local model is not ready. Use /models to inspect the available models.');
+        local = { model: modelOverride, endpoint: runtime.apiBaseUrl };
+      }
+      if (!local?.model) throw new Error('Select an installed local model first: /models, then /add local MODEL.');
+      Object.assign(choice, { model: local.model, endpoint: local.endpoint });
       const saved = preferences.localConversation;
-      nativeSession = createCodingAgentSession({ kind, id: 'coordinator', endpoint: choice.endpoint,
+      replacement = createCodingAgentSession({ kind, id: 'coordinator', endpoint: choice.endpoint,
         model: choice.model, cwd: process.cwd(), mode: 'conversation', onEvent: event, onApproval: approve,
         ...(!reset && saved?.model === choice.model && saved.cwd === process.cwd() ? { resumeState: saved } : {}) });
     } else {
-      choice.command = await resolveAgentExecutable(choice.command ?? kind);
+      choice.command = await nativeExecutable(kind, executable ?? choice.command);
       choice.account = kind === 'codex' ? 'chatgpt' : 'subscription';
+      if (modelOverride) choice.model = modelOverride;
       choice.model ??= kind === 'codex' ? 'gpt-6.1-sol' : 'sonnet';
       if (kind === 'codex') choice.effort ??= 'medium';
       const saved = preferences.conversation;
-      nativeSession = createCodingAgentSession({ id: 'coordinator', kind, command: choice.command,
+      replacement = createCodingAgentSession({ id: 'coordinator', kind, command: choice.command,
         model: choice.model, effort: choice.effort, account: choice.account, cwd: process.cwd(),
         mode: 'conversation', timeoutMs: 300_000, onEvent: event, onApproval: approve,
         ...(!reset && saved?.kind === kind && saved.command === choice.command && saved.model === choice.model
           && saved.cwd === process.cwd() && saved.sessionId ? { sessionId: saved.sessionId } : {}) });
     }
+    // Invalid or unavailable selections leave the existing conversation usable.
+    stop();
+    await closeCoordinator();
+    nativeSession = replacement;
+    if (kind === 'local') preferences.local = local;
+    if (reset) { delete preferences.conversation; delete preferences.localConversation; }
     preferences.coordinator = choice;
     const selectedSession = nativeSession;
     coordinator = createCoordinator({ session: {
@@ -187,13 +213,14 @@ export async function runChat({ write, signal, version } = {}) {
     print(`Coordinator: ${kind} / ${choice.model}. Uses ${kind === 'local' ? 'your loopback model' : 'the native subscription login'}.`);
   }
 
-  async function configureWorker(kind, model) {
+  async function configureWorker(kind, model, executable) {
     if (!['codex', 'claude', 'local'].includes(kind)) throw new Error('Choose codex, claude or local.');
     const number = preferences.workers.filter(worker => worker.nativeKind === kind).length + 1;
     const id = `${kind}-${number}`;
     if (preferences.workers.length >= 8) throw new Error('At most eight coding agents can be configured.');
     let worker;
     if (kind === 'local') {
+      if (executable) throw new Error('Local agents use the selected loopback model; choose its runtime with /models instead of a native agent executable.');
       const discovery = await discoverLocalModels({ signal, llamaCommand: preferences.llamaCommand ?? 'llama-server' });
       const runtime = Object.values(discovery).find(runtime => runtime.reachable
         && runtime.models.some(item => !model || item.id === model));
@@ -203,7 +230,7 @@ export async function runChat({ write, signal, version } = {}) {
       worker = { id, command: process.execPath, args: [], nativeKind: 'local', model,
         localEndpoint: runtime.apiBaseUrl, label: `Local ${model}`, inputMode: 'closed' };
     } else {
-      const command = await resolveAgentExecutable(kind);
+      const command = await nativeExecutable(kind, executable ?? (preferences.coordinator?.kind === kind ? preferences.coordinator.command : undefined));
       model ??= kind === 'codex' ? 'gpt-6.1-sol' : 'sonnet';
       worker = { id, command, args: [], nativeKind: kind, model,
         account: kind === 'codex' ? 'chatgpt' : 'subscription', ...(kind === 'codex' ? { effort: 'medium' } : {}),
@@ -302,8 +329,8 @@ export async function runChat({ write, signal, version } = {}) {
     try {
       let kind = selectedKind();
       if (!preferences.coordinator) {
-        try { await resolveAgentExecutable('codex'); kind = 'codex'; }
-        catch { try { await resolveAgentExecutable('claude'); kind = 'claude'; } catch { kind = 'codex'; } }
+        try { await nativeExecutable('codex'); kind = 'codex'; }
+        catch { try { await nativeExecutable('claude'); kind = 'claude'; } catch { kind = 'codex'; } }
       }
       await selectCoordinator(kind);
     } catch (error) { print(`Coordinator unavailable: ${error.message}\nInstall/log in to the selected native CLI, then choose it with /agent. You can still configure projects and models.`); }
@@ -316,16 +343,14 @@ export async function runChat({ write, signal, version } = {}) {
           if (command === '/quit' || command === '/exit') break;
           if (command === '/help') print(help);
           else if (command === '/stop') stop();
-          else if (command === '/agent' && args.length === 1) await selectCoordinator(args[0], true);
+          else if (command === '/agent' && args.length >= 1 && args.length <= 2) await selectCoordinator(args[0], true, args[1]);
           else if (command === '/model' && args.length === 1) {
-            preferences.coordinator ??= { kind: 'codex' };
-            preferences.coordinator.model = args[0]; delete preferences.conversation;
-            await selectCoordinator(selectedKind(), true);
+            await selectCoordinator(selectedKind(), true, undefined, args[0]);
           } else if (command === '/agents') {
             print(`Coordinator: ${selectedKind()} / ${preferences.coordinator?.model ?? 'unavailable'}`);
             if (!preferences.workers.length) print('No coding workers selected yet. A build defaults to two instances of the coordinator; /add selects other agents/models.');
             for (const worker of preferences.workers) print(`${worker.id}: ${worker.nativeKind} / ${worker.model}`);
-          } else if (command === '/add' && args.length >= 1 && args.length <= 2) await configureWorker(args[0], args[1]);
+          } else if (command === '/add' && args.length >= 1 && args.length <= 3) await configureWorker(args[0], args[1], args[2]);
           else if (command === '/remove' && args.length === 1) {
             preferences.workers = preferences.workers.filter(worker => worker.id !== args[0]); await persist();
           } else if (command === '/project') await chooseProject(args.join(' '));
