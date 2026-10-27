@@ -25,8 +25,14 @@ tasks for configured agents; `/agents`, `/add codex`, `/add claude` and
 `build` before execution. Each task receives an isolated worktree and live
 agent/model status, spinner and observed activity.
 
+You can keep talking to Koto while the workers run. The coordinator receives
+their actual retained states and observed activity; new coding requests queue
+until the current work is reviewed. After integration, subsequent coding uses
+that reviewed workspace so accepted changes carry into the next goal.
+
 During execution, `:stop AGENT` stops one agent, `:review AGENT` displays its
 contribution and `:integrate AGENT` explicitly applies the displayed review.
+The equivalent `/status`, `/stop`, `/review` and `/integrate` controls also work.
 The integration branch remains separate from the original checkout. Native
 continuation retains the originating session and worktree; unresolved cleanup
 or conflicts remain explicit and block further application.

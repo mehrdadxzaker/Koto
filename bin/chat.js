@@ -94,8 +94,10 @@ export async function runChat({ write, signal, version } = {}) {
   preferences.workers ??= [];
   const view = createActivityView({ write });
   let input, coordinator, nativeSession, ownedServer, quitting = false, busy = false;
+  let projectControls;
   let approvalQueue = Promise.resolve();
   const queued = [];
+  const pendingBuildGoals = [];
   const persist = () => savePreferences(preferences);
   const print = text => { view.pause(); write(`${visible(text)}\n`); };
   const stop = () => { coordinator?.stop(); nativeSession?.stop(); };
@@ -110,9 +112,12 @@ export async function runChat({ write, signal, version } = {}) {
     } });
   input = makeInput();
   const ask = async (text, options) => { view.pause(); return input.ask(text, options); };
-  const event = item => view.update(item, { agentId: item.agentId ?? 'coordinator' });
+  const event = item => projectControls
+    ? projectControls.onEvent(item)
+    : view.update(item, { agentId: item.agentId ?? 'coordinator' });
   const selectedKind = () => preferences.coordinator?.kind ?? 'codex';
   const approve = request => {
+    if (projectControls) return projectControls.onApproval(request);
     const operation = approvalQueue.then(async () => {
       if (quitting || signal?.aborted || request.signal?.aborted || input.closed) return false;
       const details = Object.fromEntries(Object.entries(request).filter(([key, value]) => key !== 'signal' && typeof value !== 'function'));
@@ -219,6 +224,14 @@ export async function runChat({ write, signal, version } = {}) {
     print(`Added ${worker.id}: ${kind} / ${model}.`);
   }
 
+  async function saveConversation() {
+    if (!nativeSession?.sessionId) return;
+    if (selectedKind() === 'local') preferences.localConversation = nativeSession.snapshot();
+    else preferences.conversation = { kind: selectedKind(), command: preferences.coordinator.command,
+      model: preferences.coordinator.model, cwd: process.cwd(), sessionId: nativeSession.sessionId };
+    await persist();
+  }
+
   async function chooseProject(requested, create = false) {
     if (!requested) {
       print('Choose a Git project for this build, or enter new PATH to create an empty project. Enter cancel to keep chatting.');
@@ -243,6 +256,13 @@ export async function runChat({ write, signal, version } = {}) {
     let project;
     try { if (preferences.project) project = await prepareProject({ directory: preferences.project }); }
     catch (error) { print(error.message); }
+    if (!preferences.project) {
+      try {
+        project = await prepareProject({ directory: process.cwd() });
+        preferences.project = project.projectRoot; await persist();
+        print(`Using the current Git project: ${project.projectRoot}`);
+      } catch { /* A project is selected or created only for actual coding. */ }
+    }
     while (!project) {
       try { project = await chooseProject(); if (!project) return; }
       catch (error) { print(error.message); }
@@ -258,16 +278,53 @@ export async function runChat({ write, signal, version } = {}) {
       proposal = await coordinator.plan(goal, { project: project.projectRoot, workers: preferences.workers,
         signal, timeoutMs: 300_000, maxConcurrency: Math.min(3, preferences.workers.length),
         controlRoot: path.join(defaultStateDirectory, 'sessions') });
+      await saveConversation();
     } finally { busy = false; view.pause(); }
     print(`\nBuild plan: ${proposal.summary}`);
     for (const task of proposal.tasks) print(`${task.id} — ${task.label}${task.model ? ` / ${task.model}` : ''}\n  ${task.task}\n  Files: ${task.owns.join(', ')}${task.dependsOn.length ? `\n  After: ${task.dependsOn.join(', ')}` : ''}`);
     for (const warning of proposal.warnings) print(`Note: ${warning}`);
     if (await ask('Type build to launch these real agents: ') !== 'build') { print('Build cancelled; the conversation is retained.'); return; }
     view.pause(); input.close();
+    let runningSession;
     try {
       await runProjectPlan(proposal.plan, { write, signal, approved: true,
-        expectedBaseCommit: proposal.project.baseCommit });
-    } finally { if (!quitting && !signal?.aborted) input = makeInput(); }
+        expectedBaseCommit: proposal.project.baseCommit,
+        coordinatorMetadata: { id: 'coordinator', name: `Koto / ${selectedKind()}`,
+          model: preferences.coordinator.model, task: 'Coordinating the active build' },
+        onSession: session => { runningSession = session; },
+        onControls: controls => { projectControls = controls; },
+        onConversationStop: () => coordinator.stop(),
+        onMessage: async (text, { session }) => {
+          const state = session.status();
+          const response = await coordinator.routeMessage(text, { signal,
+            context: `An approved build is active or retained. Actual agent states: ${JSON.stringify(state.agents.map(agent => ({
+              id: agent.id, status: agent.status, model: agent.model ?? agent.native?.model, task: agent.task,
+              activity: agent.activity, workspace: agent.workspace.path, result: agent.result?.error ?? agent.result?.status }))).slice(0, 12_000)}. Integration workspace: ${state.integration.path}. A new coding request must wait for the current build's review/integration; never claim unobserved completion.` });
+          await saveConversation();
+          if (response.action === 'build') {
+            if (pendingBuildGoals.length >= 8) return { message: `${response.message}\nThe coding queue is full. Finish the current review before adding another request.` };
+            pendingBuildGoals.push(response.goal);
+            return { message: `${response.message}\nCoding request queued. Finish the current review and use :quit to continue with its plan.` };
+          }
+          return { message: response.message };
+        } });
+    } finally {
+      projectControls = undefined;
+      if (!quitting && !signal?.aborted) input = makeInput();
+    }
+    if (runningSession) {
+      const retained = runningSession.status();
+      preferences.lastSession = retained.sessionRoot;
+      if (retained.agents.some(agent => agent.integration?.status === 'integrated')
+        && !retained.agents.some(agent => agent.integration?.status === 'conflicts')) {
+        // Continue from the code actually approved by the operator, while the
+        // original checkout stays under their normal Git control.
+        const integrated = await prepareProject({ directory: retained.integration.path });
+        preferences.project = integrated.projectRoot;
+        print(`Further coding continues from the reviewed integration workspace: ${integrated.projectRoot}`);
+      }
+      await persist();
+    }
   }
 
   async function modelCommand(args) {
@@ -284,14 +341,22 @@ export async function runChat({ write, signal, version } = {}) {
       print(`Installing local Ollama model ${values[0]} through its native cache.`);
       const installed = await pullOllamaModel({ model: values[0], signal,
         onProgress: event => { if (event.type === 'output') write(visible(event.text)); } });
-      preferences.local = { endpoint: installed.apiBaseUrl, model: installed.id }; await persist();
+      preferences.local = { endpoint: installed.apiBaseUrl, model: installed.id };
+      delete preferences.localConversation;
+      await persist();
+      if (selectedKind() === 'local') await selectCoordinator('local', true);
       print(`Installed ${installed.id}. Use /add local ${installed.id}.`);
     } else if (action === 'start' && values.length === 1) {
       if (ownedServer) await ownedServer.stop();
-      ownedServer = await startLlamaServer({ modelPath: absolute(values[0]), command: preferences.llamaCommand ?? 'llama-server',
-        modelId: 'koto-local', signal, onEvent: item => { if (item.type === 'output') write(visible(item.text)); } });
+      const modelPath = absolute(values[0]);
+      const modelId = `local-${path.basename(modelPath).replace(/\.gguf$/i, '').replace(/[^A-Za-z0-9._-]/g, '_').slice(0, 160)}`;
+      ownedServer = await startLlamaServer({ modelPath, command: preferences.llamaCommand ?? 'llama-server',
+        modelId, signal, onEvent: item => { if (item.type === 'output') write(visible(item.text)); } });
       await ownedServer.ready;
-      preferences.local = { endpoint: ownedServer.apiBaseUrl, model: ownedServer.modelId }; await persist();
+      preferences.local = { endpoint: ownedServer.apiBaseUrl, model: ownedServer.modelId };
+      delete preferences.localConversation;
+      await persist();
+      if (selectedKind() === 'local') await selectCoordinator('local', true);
       print(`Local model ready at ${ownedServer.endpoint}. Use /add local ${ownedServer.modelId}.`);
     } else if (action === 'get' && values.length === 3) {
       const result = await downloadGguf({ url: values[0], destination: absolute(values[1]), sha256: values[2],
@@ -311,10 +376,16 @@ export async function runChat({ write, signal, version } = {}) {
       await selectCoordinator(kind);
     } catch (error) { print(`Coordinator unavailable: ${error.message}\nInstall/log in to the selected native CLI, then choose it with /agent. You can still configure projects and models.`); }
     while (!quitting && !signal?.aborted && !input.closed) {
+      if (pendingBuildGoals.length) {
+        try { await build(pendingBuildGoals.shift()); }
+        catch (error) { print(`Koto: ${error.message}`); }
+        continue;
+      }
       const message = queued.shift() ?? await ask('You> ');
       if (!message) continue;
       try {
         if (message.startsWith('/')) {
+          if (message.startsWith('/build ')) { await build(message.slice(7).trim()); continue; }
           const [command, ...args] = words(message);
           if (command === '/quit' || command === '/exit') break;
           if (command === '/help') print(help);
@@ -352,15 +423,7 @@ export async function runChat({ write, signal, version } = {}) {
             context: `Current project: ${preferences.project ?? 'none selected; project selection is only needed for coding'}. Configured coding agents: ${preferences.workers.map(worker => `${worker.id} (${worker.nativeKind}/${worker.model})`).join(', ') || 'none; can default to two instances of the coordinator'}.` });
         } finally { busy = false; view.pause(); }
         print(`\nKoto> ${result.message}\n`);
-        if (nativeSession.sessionId && selectedKind() !== 'local') {
-          preferences.conversation = { kind: selectedKind(), command: preferences.coordinator.command,
-            model: preferences.coordinator.model, cwd: process.cwd(), sessionId: nativeSession.sessionId };
-          await persist();
-        }
-        if (selectedKind() === 'local' && nativeSession.snapshot) {
-          preferences.localConversation = nativeSession.snapshot();
-          await persist();
-        }
+        await saveConversation();
         if (result.action === 'build') await build(result.goal);
       } catch (error) { view.pause(); print(`Koto: ${error.message}`); }
     }

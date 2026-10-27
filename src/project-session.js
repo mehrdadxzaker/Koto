@@ -524,6 +524,12 @@ function sessionRunner(plan, state, { onEvent, signal, ptyHelper, resume, onAppr
           const environment = Object.fromEntries(Object.entries(process.env).filter(([key]) => !/^GIT_/i.test(key)
             && !agent.unsetEnv.some(name => process.platform === 'win32' ? name.toUpperCase() === key.toUpperCase() : name === key)));
           const receive = event => {
+            if (event.type === 'activity' || ['tool_started', 'tool_completed', 'command_started', 'approval_required', 'request'].includes(event.type)) {
+              record.activity = { type: event.type, time: new Date().toISOString(),
+                ...Object.fromEntries(['activity', 'description', 'status', 'tool', 'command', 'model'].filter(key => typeof event[key] === 'string')
+                  .map(key => [key, event[key].slice(0, key === 'command' ? 4096 : 512)])),
+                ...(event.type === 'approval_required' ? { status: 'waiting_for_approval' } : {}) };
+            }
             if (event.type === 'assistant_message' && typeof event.text === 'string') {
               outputTails.set(agent.id, Buffer.from(event.text).subarray(-65_536));
               tail = api.outputTail(agent.id);

@@ -233,6 +233,10 @@ export function createCoordinator({ session } = {}) {
         return { id: task.id, worker: task.worker, task: task.task,
           owns: [...task.owns], dependsOn: [...(task.dependsOn ?? [])] };
       });
+      if (maxConcurrency !== undefined && (!Number.isInteger(maxConcurrency) || maxConcurrency < 1 || maxConcurrency > 8)) {
+        fail('coordinator_concurrency_invalid', 'Choose one to eight concurrent coding tasks.');
+      }
+      const concurrency = Math.min(maxConcurrency ?? templates.size, tasks.length);
       try {
         // Reuse the scheduler's own identifier, reference and cycle checks.
         validateWorkflow({ schemaVersion: 1, goal,
@@ -240,7 +244,7 @@ export function createCoordinator({ session } = {}) {
             { command: worker.execution.command, args: worker.execution.args, timeoutMs: worker.execution.timeoutMs }])),
           tasks: tasks.map(task => ({ id: task.id, agent: task.worker,
             prompt: task.task, dependsOn: task.dependsOn })),
-          timeoutMs, maxConcurrency: maxConcurrency ?? Math.min(templates.size, tasks.length) });
+          timeoutMs, maxConcurrency: concurrency });
       } catch {
         fail('coordinator_plan_invalid', 'The coordinator proposed duplicate tasks, invalid dependencies, a cycle or an invalid execution budget. No project agents were started.', result.source);
       }
@@ -249,7 +253,7 @@ export function createCoordinator({ session } = {}) {
         plan = validateProjectPlan({ schemaVersion: 1, project: checked.projectRoot, goal,
           agents: tasks.map(task => ({ ...templates.get(task.worker).execution,
             id: task.id, task: task.task, owns: task.owns, dependsOn: task.dependsOn })),
-          maxConcurrency: maxConcurrency ?? Math.min(templates.size, tasks.length), timeoutMs,
+          maxConcurrency: concurrency, timeoutMs,
           ...(controlRoot === undefined ? {} : { controlRoot }),
           ...(nativeHelperDirectory === undefined ? {} : { nativeHelperDirectory }) });
       } catch {

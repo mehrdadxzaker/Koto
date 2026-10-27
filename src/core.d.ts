@@ -355,6 +355,9 @@ export interface ProjectAgentState extends ProjectAgentPlan {
   result?: CommandOutcome | undefined;
   commandOutcome?: CommandOutcome | undefined;
   setupError?: string | undefined;
+  activity?: Readonly<{ type: string; time: string; activity?: string | undefined;
+    description?: string | undefined; status?: string | undefined; tool?: string | undefined;
+    command?: string | undefined; model?: string | undefined }> | undefined;
   pid?: number | undefined;
   terminalSessionId?: number | undefined;
   nativeSessionId?: string | undefined;
