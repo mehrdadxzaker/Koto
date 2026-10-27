@@ -154,12 +154,37 @@ test('reports an executable that cannot be started', async () => {
 });
 
 test('reports an agent that closes stdin before accepting its assignment', async () => {
-  await assert.rejects(runProcessAgent(agent(`
+  // Windows Node stream/CRT wrappers can retain the inherited native read handle.
+  // Close that OS handle directly so the pending write meets a physical broken pipe.
+  const closingAgent = process.platform === 'win32' ? {
+    command: join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'WindowsPowerShell',
+      'v1.0', 'powershell.exe'),
+    args: ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', [
+      "$ErrorActionPreference = 'Stop'",
+      "Add-Type -TypeDefinition @'",
+      'using System;',
+      'using System.Runtime.InteropServices;',
+      'public static class KotoStdinFixture {',
+      '  [DllImport("kernel32.dll", SetLastError = true)]',
+      '  public static extern IntPtr GetStdHandle(int standardHandle);',
+      '  [DllImport("kernel32.dll", SetLastError = true)]',
+      '  [return: MarshalAs(UnmanagedType.Bool)]',
+      '  public static extern bool CloseHandle(IntPtr handle);',
+      '}',
+      "'@",
+      '$handle = [KotoStdinFixture]::GetStdHandle(-10)',
+      'if ($handle -eq [IntPtr]::Zero -or $handle -eq [IntPtr](-1)) { [Environment]::Exit(70) }',
+      'if (-not [KotoStdinFixture]::CloseHandle($handle)) { [Environment]::Exit(71) }',
+      'while ($true) { [Threading.Thread]::Sleep(1000) }',
+    ].join('\n')],
+    timeoutMs: 5_000,
+  } : agent(`
     process.stdin.destroy();
     try { require('node:fs').closeSync(0); }
     catch (error) { if (error.code !== 'EBADF') throw error; }
     setInterval(() => {}, 1000);
-  `), {
+  `);
+  await assert.rejects(runProcessAgent(closingAgent, {
     ...assignment,
     task: { ...assignment.task, prompt: 'x'.repeat(400 * 1024) },
   }), hasCode('stdin_failed'));
