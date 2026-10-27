@@ -1,14 +1,14 @@
-import { buildDarwinPtyHelper, resolveDarwinPtyHelper } from '../src/index.js';
+import { buildTerminalHelper, resolveTerminalHelper } from '../src/index.js';
 
-const help = `Mac interactive terminal support
+const help = `Native terminal support
 
   koto terminal build [--directory ABS_PATH]
   koto terminal info [--directory ABS_PATH]
 
-build explicitly compiles Koto's versioned Darwin helper with existing Apple
-command-line tools and records its source/binary identity. No downloads or
-installation hooks run. info only verifies an existing build.
-Project agents opt in with transport: "pty". Other systems keep pipe transport.
+build explicitly compiles the versioned helper for this platform with an
+already installed compiler and records its source/binary identity. No downloads
+or installation hooks run. info only verifies an existing build.
+Project agents opt in with transport: "pty" for native interactive terminals.
 `;
 
 export async function runTerminalCli(args, { write } = {}) {
@@ -17,12 +17,12 @@ export async function runTerminalCli(args, { write } = {}) {
       || (args.length === 3 && args[1] !== '--directory')) { write(help); return 2; }
   const options = args.length === 3 ? { directory: args[2] } : {};
   try {
-    const result = args[0] === 'build' ? await buildDarwinPtyHelper(options)
-      : { path: await resolveDarwinPtyHelper(options), verified: true, transport: 'pty' };
+    const result = args[0] === 'build' ? await buildTerminalHelper(options)
+      : { path: await resolveTerminalHelper(options), verified: true, transport: 'pty' };
     write(`${JSON.stringify(result, null, 2)}\n`);
     return 0;
   } catch (error) {
-    if (!/^darwin_pty_[a-z_]+$/.test(error.code ?? '')) throw error;
+    if (!/^(?:darwin_pty|linux_pty|windows_pty|terminal)_[a-z0-9_]+$/.test(error.code ?? '')) throw error;
     // These diagnostics come only from Koto's selected compiler and versioned
     // source, never from an agent transcript or arbitrary model exception.
     write(`${JSON.stringify({ error: error.code, message: error.message,

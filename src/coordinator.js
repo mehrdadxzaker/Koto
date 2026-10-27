@@ -269,7 +269,7 @@ export function createCoordinator({ session } = {}) {
         ...(result.usage === undefined ? {} : { usage: result.usage }) });
     },
 
-    async prepare(proposal, { onEvent, signal } = {}) {
+    async prepare(proposal, { onEvent, signal, onApproval } = {}) {
       if (activeProject) fail('coordinator_build_active', 'A project session is already active. Finish or stop it before preparing another build.');
       if (!object(proposal) || proposal.kind !== 'koto-build-proposal' || proposal.schemaVersion !== 1
         || !object(proposal.project) || !object(proposal.plan)) {
@@ -283,7 +283,7 @@ export function createCoordinator({ session } = {}) {
       if (checked.projectRoot !== proposal.project.projectRoot || checked.baseCommit !== proposal.project.baseCommit) {
         fail('coordinator_project_changed', 'The project base changed after planning. Prepare and review a new plan before launching agents.');
       }
-      const prepared = await createProjectSession(plan, { onEvent, signal });
+      const prepared = await createProjectSession(plan, { onEvent, signal, onApproval });
       const actual = prepared.status();
       // Workspace preparation independently snapshots HEAD. Verify that final
       // snapshot too, so a commit racing between checks cannot change the base
@@ -295,14 +295,14 @@ export function createCoordinator({ session } = {}) {
       return prepared;
     },
 
-    async execute(proposal, { approved = false, onEvent, signal } = {}) {
+    async execute(proposal, { approved = false, onEvent, signal, onApproval } = {}) {
       if (!approved) fail('coordinator_approval_required', 'Review the implementation plan and explicitly approve it before agents run.');
       if (executionController) fail('coordinator_build_active', 'A project session is already preparing or active. Finish or stop it first.');
       const controller = new AbortController();
       executionController = controller;
       const executionSignal = signal ? AbortSignal.any([signal, controller.signal]) : controller.signal;
       try {
-        const project = await api.prepare(proposal, { onEvent, signal: executionSignal });
+        const project = await api.prepare(proposal, { onEvent, signal: executionSignal, onApproval });
         activeProject = project;
         return await project.run();
       } finally { activeProject = undefined; executionController = undefined; }

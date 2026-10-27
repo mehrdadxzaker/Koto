@@ -2,6 +2,8 @@ import { constants } from 'node:fs';
 import { access, lstat, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { startCommand } from './command-session.js';
+import { startTerminalCommand } from './terminal-session.js';
+import { resolveTerminalHelper } from './terminal-helper.js';
 
 const SHA = /^[0-9a-f]{40,64}$/;
 const GIT_OUTPUT_LIMIT = 1024 * 1024;
@@ -23,12 +25,16 @@ function unsupportedLauncher(command) {
 }
 
 /** Resolve an installed executable without starting it or invoking a shell. */
-export async function resolveAgentExecutable(command) {
+export async function resolveAgentExecutable(command, { unsetEnv = [] } = {}) {
   if (typeof command !== 'string' || !command.trim() || command.includes('\0') || Buffer.byteLength(command) > 4096) {
     throw failure('launch_invalid_executable', 'Choose one installed executable name or absolute path; enter its arguments separately.');
   }
   if (unsupportedLauncher(command)) {
     throw failure('launch_shell_launcher_unsupported', 'Shell .cmd/.bat launchers are unsupported. Choose the agent\'s native executable or an explicit interpreter executable.');
+  }
+  if (!Array.isArray(unsetEnv) || unsetEnv.length > 32
+      || unsetEnv.some(key => typeof key !== 'string' || !/^[A-Za-z_][A-Za-z0-9_]{0,127}$/.test(key))) {
+    throw failure('launch_invalid_environment', 'Unset environment names must be a bounded array of valid variable names.');
   }
   const absolute = path.isAbsolute(command);
   if (!absolute && /[/\\]/.test(command)) {
@@ -36,7 +42,11 @@ export async function resolveAgentExecutable(command) {
   }
   const names = process.platform === 'win32' && !path.extname(command)
     ? [`${command}.exe`, `${command}.com`] : [command];
-  const candidates = absolute ? names : (process.env.PATH ?? '').split(path.delimiter)
+  // Match the command's planned environment rather than resolving a PATH
+  // entry that launch explicitly removes. Absolute executable paths still work.
+  const searchPath = unsetEnv.includes('PATH')
+    ? (process.platform === 'win32' ? '' : '/usr/bin:/bin') : process.env.PATH ?? '';
+  const candidates = absolute ? names : searchPath.split(path.delimiter)
     .filter(directory => directory && path.isAbsolute(directory))
     .flatMap(directory => names.map(name => path.join(directory, name)));
   let shellLauncherFound = false;
@@ -51,7 +61,7 @@ export async function resolveAgentExecutable(command) {
     } catch { /* Continue through existing files on absolute PATH entries. */ }
   }
   if (process.platform === 'win32' && !absolute && !path.extname(command)) {
-    for (const directory of (process.env.PATH ?? '').split(path.delimiter)) {
+    for (const directory of searchPath.split(path.delimiter)) {
       if (!directory || !path.isAbsolute(directory)) continue;
       for (const suffix of ['.cmd', '.bat']) {
         try { if ((await lstat(path.join(directory, `${command}${suffix}`))).isFile()) shellLauncherFound = true; }
@@ -73,11 +83,14 @@ function gitEnvironment() {
 
 // Reuse the owned-process lifecycle. These commands inspect only; agents,
 // provider help/version commands, compilers and workspace creation stay outside preflight.
-async function git(executable, cwd, args, allow = [0]) {
+async function git(executable, cwd, args, allow = [0], nativeHelperDirectory) {
   const controller = new AbortController();
   const output = { stdout: [], stderr: [] };
   let bytes = 0, exceeded = false;
-  const handle = startCommand({ id: 'launchGit', command: executable, cwd, env: gitEnvironment(),
+  const helperPath = process.platform === 'win32' ? await resolveTerminalHelper({ directory: nativeHelperDirectory }) : undefined;
+  const start = helperPath ? startTerminalCommand : startCommand;
+  const handle = start({ id: 'launchGit', command: executable, cwd, env: gitEnvironment(),
+    ...(helperPath ? { helperPath, transport: 'pipe' } : {}),
     args: ['--no-pager', '--no-optional-locks', '-c', 'core.fsmonitor=false', '-c', 'core.untrackedCache=false',
       '-c', 'core.splitIndex=false', '-c', 'maintenance.auto=false', '-c', 'gc.auto=0', ...args],
     timeoutMs: GIT_TIMEOUT_MS, signal: controller.signal,
@@ -101,7 +114,7 @@ async function git(executable, cwd, args, allow = [0]) {
 }
 
 /** Inspect the same clean, committed repository root required by project workspaces. */
-export async function inspectLaunchProject(projectPath = process.cwd()) {
+export async function inspectLaunchProject(projectPath = process.cwd(), { nativeHelperDirectory } = {}) {
   if (typeof projectPath !== 'string' || !projectPath.trim() || projectPath.includes('\0') || Buffer.byteLength(projectPath) > 4096) {
     throw failure('launch_invalid_project', 'Choose the root directory of an existing Git repository.');
   }
@@ -118,7 +131,7 @@ export async function inspectLaunchProject(projectPath = process.cwd()) {
   if (inside(projectRoot, executable)) {
     throw failure('launch_git_executable_overlap', 'Git must be installed outside the project. Select a PATH that resolves Git to its installed executable.');
   }
-  const run = (args, allow) => git(executable, projectRoot, args, allow);
+  const run = (args, allow) => git(executable, projectRoot, args, allow, nativeHelperDirectory);
   const top = await run(['rev-parse', '--show-toplevel'], [0, 128]);
   if (top.code !== 0 || !top.stdout.trim()) {
     throw failure('launch_git_repository_required', 'Choose an existing Git working tree. For a new project, initialize Git and create its first commit before launching Koto.');

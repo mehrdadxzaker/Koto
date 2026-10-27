@@ -78,23 +78,46 @@ The local implementation adds concurrent external commands in separate Git
 worktrees, with streamed output, per-command stop/input controls and a separate
 integration branch:
 
+Run `koto` or `koto start` in a terminal for the [guided launcher](docs/GUIDED_SESSIONS.md).
+It collects a project, agents, models, tasks and ownership without a JSON file.
+Prepared plans remain available for scripted use:
+
 ```sh
 koto project start /absolute/path/to/plan.json
 koto project inspect /absolute/path/to/session agent_id
 koto project integrate /absolute/path/to/session agent_id --approve REVIEW_TOKEN
+koto project status /absolute/path/to/session
+koto project resume /absolute/path/to/session agent_id --prompt "Continue the reviewed task"
 ```
 
-The plan supplies actual executable paths and argument arrays. Commands use
-ordinary pipes and retain their own authentication, permissions and agent loop.
-Launch requires explicit approval. After commands end, inspect the changes and
-approve their current review token to integrate; conflicts remain visible and
-the original checkout is not updated. Worktrees separate edits, not OS access.
+Use `koto plan build <tasks.json> <new-plan.json>` to prepare executable arguments
+from explicit agent, model, task and ownership choices. `koto plan check` reports
+missing executables, dirty repositories and terminal/local-runtime prerequisites;
+session setup uses the same core preflight. See [launch setup](docs/LAUNCH_SETUP.md).
 
-This implementation awaits a real Mac agent demonstration. No actual agent
-collaboration flow or platform qualification is established by the source work.
-Native protocol adapters, verified native completion and PTY sessions are not
-implemented. See [project sessions](docs/PROJECT_SESSIONS.md) for plans, terminal
-controls, retained files and limitations.
+The guided launcher offers interactive terminals or structured native streams.
+macOS and Linux use PTYs; Windows uses ConPTY and a Job Object for owned
+process cleanup. Build the platform helper explicitly with `koto terminal build`
+using installed developer tools. Windows also uses the helper for pipe sessions.
+Launch retains native authentication and permissions. All agents must finish
+and settle cleanup before an inspected review token can authorize integration.
+Conflicts remain visible and the original checkout is not updated. Worktrees
+separate edits, not OS access.
+
+[Codex and OpenCode lifecycle adapters](docs/NATIVE_SESSIONS.md) observe native
+JSON events, retain session identity and reported usage, and continue an exact
+session in its original worktree. Terminal screens remain uninterpreted.
+After a contribution is integrated, a resumed agent's next review and integration
+cover only its new changes. Unknown cleanup and unresolved conflicts block both
+continuation and integration.
+
+[Issue #543](https://github.com/mehrdadxzaker/Koto/issues/543) records a real Mac
+Codex/OpenCode pipe collaboration and two reviewed integrations. A later Linux
+two-Codex attempt failed on native connection errors and produced no changes;
+owned process-group cleanup completed. Direct Linux terminal input, resize and
+independent-stop observations also passed. Native interactive acceptance on each
+platform is recorded separately from compilation. See [current evidence](docs/CORE_STATUS.md),
+the [acceptance run](docs/USER_ACCEPTANCE.md) and [project sessions](docs/PROJECT_SESSIONS.md).
 
 ## Product boundaries
 
@@ -103,10 +126,11 @@ controls, retained files and limitations.
 - **IDE plugins:** later delivery through VS Code and other IDEs.
 - **Koto UI:** a later interface to the same core.
 
-Codex, Claude Code and similar clients can be configured as external commands
-when their installed CLI supports the chosen arguments and pipe mode. This does
-not provide a native protocol adapter or verify the provider's completion state.
-IDE extensions, native-agent adapters, PTY sessions and Koto's UI remain later work.
+Other clients can be configured as explicit external commands when their installed
+CLI supports the chosen arguments and transport. Codex/OpenCode lifecycle
+interpretation requires an explicit native profile; arbitrary command exit is
+only process completion. IDE extensions and Koto's separate UI follow core
+acceptance.
 
 Read the [scope](https://github.com/mehrdadxzaker/Koto/blob/main/docs/SCOPE.md), [architecture](https://github.com/mehrdadxzaker/Koto/blob/main/docs/ARCHITECTURE.md),
 [roadmap](https://github.com/mehrdadxzaker/Koto/blob/main/docs/ROADMAP.md) and [migration boundary](https://github.com/mehrdadxzaker/Koto/blob/main/docs/MIGRATION.md).

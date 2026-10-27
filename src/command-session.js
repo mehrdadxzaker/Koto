@@ -49,6 +49,7 @@ export function startCommand({ id, command, args = [], cwd, env, timeoutMs = 900
   let cleanupStarted = false;
   let cleanupComplete = false;
   let cleanupUnconfirmed = false;
+  let groupGone = false;
   let pendingEvents = 0;
   let pendingControls = 0;
   let inputEnded = false;
@@ -92,24 +93,30 @@ export function startCommand({ id, command, args = [], cwd, env, timeoutMs = 900
   };
 
   const signalChild = (name) => {
-    if (!child?.pid) return;
+    // An observed vanished group ID can later be reused by an unrelated process.
+    if (!child?.pid || groupGone) return;
     try {
       if (process.platform !== 'win32') process.kill(-child.pid, name);
       else if (child.exitCode === null && child.signalCode === null && !child.kill(name)) {
         cleanupUnconfirmed = true;
       }
     } catch (error) {
-      if (error.code !== 'ESRCH') {
+      if (error.code === 'ESRCH') groupGone = true;
+      else {
         cleanupUnconfirmed = true;
-        try { child.kill(name); } catch { /* Preserve unconfirmed cleanup. */ }
+        if (!exited && child.exitCode === null && child.signalCode === null) {
+          try { child.kill(name); } catch { /* Preserve unconfirmed cleanup. */ }
+        }
       }
     }
   };
 
   const groupExists = () => {
+    if (groupGone) return false;
     try { process.kill(-child.pid, 0); return true; }
     catch (error) {
-      if (error.code !== 'ESRCH') cleanupUnconfirmed = true;
+      if (error.code === 'ESRCH') groupGone = true;
+      else cleanupUnconfirmed = true;
       return error.code !== 'ESRCH';
     }
   };
@@ -136,8 +143,11 @@ export function startCommand({ id, command, args = [], cwd, env, timeoutMs = 900
 
     if (process.platform === 'win32') {
       // A departed parent cannot establish ownership of its former tree. A
-      // normal exit establishes only direct-process completion on Windows.
+      // normal exit establishes only direct-process completion on Windows;
+      // retain that uncertainty so project integration cannot treat it as
+      // confirmed owned-process cleanup.
       if (exited) {
+        cleanupUnconfirmed = true;
         cleanupComplete = true;
         finish();
         return;

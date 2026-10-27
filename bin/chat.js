@@ -2,7 +2,7 @@ import { createInterface } from 'node:readline';
 import { homedir } from 'node:os';
 import path from 'node:path';
 import { stripVTControlCharacters } from 'node:util';
-import { createNativeAgentSession, createLocalAgentSession, createCoordinator,
+import { createCodingAgentSession, createCoordinator,
   prepareProject, loadPreferences, savePreferences, defaultStateDirectory,
   resolveAgentExecutable, discoverLocalModels, checkLocalEndpoint, pullOllamaModel,
   startLlamaServer, downloadGguf, buildLlamaRuntime } from '../src/index.js';
@@ -40,11 +40,24 @@ function terminalInput({ write, signal, onInterrupt, onBusyLine }) {
   if (signal?.aborted) close();
   return {
     get closed() { return closed; },
-    ask(label) {
+    ask(label, { signal: questionSignal } = {}) {
       if (closed) return Promise.reject(cancelError());
+      if (questionSignal?.aborted) return Promise.reject(cancelError());
       return new Promise((resolve, reject) => {
-        pending = { reject };
-        terminal.question(label, value => { pending = undefined; resolve(value.trim()); });
+        const controller = new AbortController();
+        let settled = false;
+        const finish = (error, value) => {
+          if (settled) return;
+          settled = true;
+          pending = undefined;
+          questionSignal?.removeEventListener('abort', abort);
+          if (error) { controller.abort(); reject(error); } else resolve(value.trim());
+        };
+        const abort = () => finish(cancelError());
+        pending = { reject: error => finish(error) };
+        questionSignal?.addEventListener('abort', abort, { once: true });
+        terminal.question(label, { signal: controller.signal }, value => finish(undefined, value));
+        if (questionSignal?.aborted) abort();
       });
     },
     close() { signal?.removeEventListener('abort', close); terminal.close(); },
@@ -81,6 +94,7 @@ export async function runChat({ write, signal, version } = {}) {
   preferences.workers ??= [];
   const view = createActivityView({ write });
   let input, coordinator, nativeSession, ownedServer, quitting = false, busy = false;
+  let approvalQueue = Promise.resolve();
   const queued = [];
   const persist = () => savePreferences(preferences);
   const print = text => { view.pause(); write(`${visible(text)}\n`); };
@@ -95,29 +109,50 @@ export async function runChat({ write, signal, version } = {}) {
       }
     } });
   input = makeInput();
-  const ask = async text => { view.pause(); return input.ask(text); };
+  const ask = async (text, options) => { view.pause(); return input.ask(text, options); };
   const event = item => view.update(item, { agentId: item.agentId ?? 'coordinator' });
   const selectedKind = () => preferences.coordinator?.kind ?? 'codex';
+  const approve = request => {
+    const operation = approvalQueue.then(async () => {
+      if (quitting || signal?.aborted || request.signal?.aborted || input.closed) return false;
+      const details = Object.fromEntries(Object.entries(request).filter(([key, value]) => key !== 'signal' && typeof value !== 'function'));
+      const encoded = JSON.stringify(details, null, 2);
+      if (Buffer.byteLength(encoded) > 65_536) return false;
+      print(`\nAgent permission request:\n${encoded}`);
+      try {
+        const answer = await ask('Type approve for this action; Enter denies; /stop cancels the turn: ', { signal: request.signal });
+        if (answer === '/stop') stop();
+        if (answer === '/quit') { quitting = true; stop(); }
+        return answer === 'approve' && !request.signal?.aborted && !signal?.aborted;
+      } catch { return false; }
+      finally { if (busy && !quitting && !signal?.aborted) view.resume(); }
+    });
+    approvalQueue = operation.then(() => undefined, () => undefined);
+    return operation;
+  };
 
   async function selectCoordinator(kind, reset = false) {
     if (!['codex', 'claude', 'local'].includes(kind)) throw new Error('Choose codex, claude or local.');
     stop();
+    await nativeSession?.close?.();
     const previous = preferences.coordinator ?? {};
     const choice = previous.kind === kind ? { ...previous } : { kind };
     if (kind === 'local') {
       if (!preferences.local?.model) throw new Error('Select an installed local model first: /models, then /add local MODEL.');
       Object.assign(choice, { model: preferences.local.model, endpoint: preferences.local.endpoint });
-      nativeSession = createLocalAgentSession({ id: 'coordinator', endpoint: choice.endpoint,
-        model: choice.model, cwd: process.cwd(), mode: 'conversation', onEvent: event });
+      const saved = preferences.localConversation;
+      nativeSession = createCodingAgentSession({ kind, id: 'coordinator', endpoint: choice.endpoint,
+        model: choice.model, cwd: process.cwd(), mode: 'conversation', onEvent: event, onApproval: approve,
+        ...(!reset && saved?.model === choice.model && saved.cwd === process.cwd() ? { resumeState: saved } : {}) });
     } else {
       choice.command = await resolveAgentExecutable(choice.command ?? kind);
       choice.account = kind === 'codex' ? 'chatgpt' : 'subscription';
       choice.model ??= kind === 'codex' ? 'gpt-6.1-sol' : 'sonnet';
       if (kind === 'codex') choice.effort ??= 'medium';
       const saved = preferences.conversation;
-      nativeSession = createNativeAgentSession({ id: 'coordinator', kind, command: choice.command,
+      nativeSession = createCodingAgentSession({ id: 'coordinator', kind, command: choice.command,
         model: choice.model, effort: choice.effort, account: choice.account, cwd: process.cwd(),
-        mode: 'conversation', timeoutMs: 300_000, onEvent: event,
+        mode: 'conversation', timeoutMs: 300_000, onEvent: event, onApproval: approve,
         ...(!reset && saved?.kind === kind && saved.command === choice.command && saved.model === choice.model
           && saved.cwd === process.cwd() && saved.sessionId ? { sessionId: saved.sessionId } : {}) });
     }
@@ -297,6 +332,10 @@ export async function runChat({ write, signal, version } = {}) {
             model: preferences.coordinator.model, cwd: process.cwd(), sessionId: nativeSession.sessionId };
           await persist();
         }
+        if (selectedKind() === 'local' && nativeSession.snapshot) {
+          preferences.localConversation = nativeSession.snapshot();
+          await persist();
+        }
         if (result.action === 'build') await build(result.goal);
       } catch (error) { view.pause(); print(`Koto: ${error.message}`); }
     }
@@ -306,6 +345,7 @@ export async function runChat({ write, signal, version } = {}) {
     throw error;
   } finally {
     stop(); input.close(); view.dispose();
+    await nativeSession?.close?.();
     if (ownedServer) await ownedServer.stop();
   }
 }

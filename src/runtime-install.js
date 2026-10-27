@@ -33,8 +33,10 @@ async function privateDirectory(value) {
       info = await lstat(current);
     }
     const stickyAncestor = index < parts.length - 1 && (info.mode & 0o1000) !== 0;
+    const gitEntry = await maybeStat(path.join(current, '.git'));
+    const gitWorktree = gitEntry && (!gitEntry.isDirectory() || await maybeStat(path.join(current, '.git', 'HEAD')));
     if (!info.isDirectory() || info.isSymbolicLink() || (info.mode & 0o022) !== 0 && !stickyAncestor
-      || !own(info) && info.uid !== 0 || await maybeStat(path.join(current, '.git'))) {
+      || !own(info) && info.uid !== 0 || gitWorktree) {
       throw fail('runtime_unsafe_directory', 'Runtime storage must be outside Git worktrees and use real directories protected from other users writing them.');
     }
   }

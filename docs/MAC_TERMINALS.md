@@ -1,31 +1,32 @@
-# Experimental Mac terminal transport
+# Mac terminal transport
 
-This branch adds optional Darwin PTY sessions to the shared project-session
-core. **Build it with the intended Mac's existing SDK before use; real-agent
-PTY operation is still unverified.** The earlier Codex/OpenCode Mac demonstration
-used pipes; it does not verify this terminal backend.
+Koto's shared project-session core includes an optional macOS PTY backend.
+**Build it with the intended Mac's existing SDK before use; real-agent Mac PTY
+operation is still unverified.** The earlier Codex/OpenCode Mac demonstration
+used pipes; it does not verify this terminal backend. Linux and Windows use
+their own helpers through the same core interface.
 
 ## Prepare the exact source and helper
 
-On the Mac, use the reviewed commit supplied with the handoff:
+On the Mac, use the exact reviewed installation command supplied with the
+handoff. The commands below call that installation `koto`:
 
 ```sh
-git clone --branch codex/mac-interactive-sessions https://github.com/mehrdadxzaker/Koto.git Koto-mac
-cd Koto-mac
-git rev-parse HEAD
-node bin/koto.js terminal --help
+koto --version
+koto terminal --help
 ```
 
-Compare `HEAD` with the supplied commit before proceeding. Use this checkout's
-CLI rather than an older installed `koto`. Node.js 22+, Git and an already
-installed Apple command-line developer toolchain are required for this opt-in
-build. Nothing downloads or installs a compiler.
+If using a source checkout, compare its `git rev-parse HEAD` with the supplied
+commit and invoke that checkout's `bin/koto.js`. Node.js 22+, Git and an already
+installed Apple command-line developer toolchain are required for this explicit
+build. Nothing downloads or installs a compiler. The guided launcher also
+exposes **Set up terminal support**; see the [acceptance run](USER_ACCEPTANCE.md).
 
 Build explicitly into a private absolute directory outside Git worktrees:
 
 ```sh
-node bin/koto.js terminal build --directory /absolute/private/path/koto-native
-node bin/koto.js terminal info --directory /absolute/private/path/koto-native
+koto terminal build --directory /absolute/private/path/koto-native
+koto terminal info --directory /absolute/private/path/koto-native
 ```
 
 `build` compiles Koto's versioned C source with the selected Apple clang and
@@ -60,11 +61,12 @@ project. Keep its required `project`, `goal`, agent `command`/`args`, `task` and
 }
 ```
 
-Confirm the actual Mac installations' `codex --help` and `opencode --help`
-before choosing their foreground interactive arguments. This guide does not
-invent native TUI flags or replace an agent with a stand-in. Preserve the
-authorized accounts, local-only model configuration and native permission
-policy; Koto adds no approval bypass or provider fallback.
+The guided launcher and native plan profiles provide interactive Codex and
+OpenCode arguments. For a raw plan, check the installed clients' `--help` before
+choosing foreground interactive arguments. Preserve the authorized accounts,
+local-only model configuration and native permission policy; Koto adds no
+approval bypass or provider fallback. [Native sessions](NATIVE_SESSIONS.md)
+describes the supported profiles and capabilities.
 
 PTY dimensions default to 80 columns by 24 rows. PTY stdin defaults to `pipe`,
 so it remains open for operator input; ordinary pipe transport still defaults
@@ -73,7 +75,7 @@ to `closed`. An explicit `closed` mode sends EOF after optional initial input.
 ## Operate from a real terminal
 
 ```sh
-node bin/koto.js project start /absolute/private/path/pty-plan.json
+koto project start /absolute/private/path/pty-plan.json
 ```
 
 Review the listed plan and type `start`. The CLI prints each worktree and the
@@ -86,7 +88,7 @@ private session directory. In the Koto controls:
 | `:send codex TEXT` | Send a line without attaching. |
 | `:eof codex` | Send the terminal's EOF input; the native CLI decides how to handle it. |
 | `:stop codex` / `:stop all` | Request owned cleanup while retaining worktrees and partial edits. |
-| `:inspect codex` / `:integrate codex TOKEN` | Review and explicitly integrate after all session commands finish. |
+| `:review codex` / `:integrate codex` | Review and explicitly approve integration after all session commands finish and settle cleanup. |
 
 Attachment requires terminal stdin/stdout. Native screen output is shown only
 for the attached agent; other output remains in bounded private session logs
@@ -97,17 +99,27 @@ and tails. Detaching normally restores the outer input mode and display.
 The helper supervises an **OS terminal session**, distinct from both Koto's
 saved project-session ID and any native provider conversation ID. A missing or
 unconfirmed cleanup acknowledgment is reported as `cleanup_unconfirmed` and
-blocks automatic integration. Worktrees and process ownership are not a
-hostile-code sandbox; agents keep their native host permissions. Self-detached
-processes are outside the ordinary owned-session boundary. Hard host death
+blocks integration and resume throughout the project session. Worktrees and
+process ownership are not a hostile-code sandbox; agents keep their native host
+permissions. Self-detached processes are outside the ordinary owned-session
+boundary. Hard host death
 cannot restore the dead host's terminal, and helper death cannot prove cleanup.
 
-The next observation must use actual Codex/OpenCode agents on the Mac: answer a
-native prompt, resize, stop one while the other continues, and confirm owned
-cleanup before reviewing/integrating their changes. No PTY readiness claim
-follows from source inspection or the previous pipe-based run.
+Mac acceptance must use actual Codex/OpenCode agents: answer a native prompt,
+resize, stop one while the other continues, and confirm owned cleanup before
+reviewing/integrating their changes. Follow [the acceptance run](USER_ACCEPTANCE.md)
+and retain failed or partial outcomes. Source inspection and the earlier pipe
+result do not establish native Mac terminal behavior.
 
-This new transport rejects Linux and Windows. Their existing pipe mode remains
-available; earlier Linux PTY work is separate and not integrated here. Native
-continuation, provider permission-state parsing and semantic completion
-recognition are not implemented by this generic terminal transport.
+The common terminal API selects a macOS PTY helper, a Linux PTY helper using
+procfs/pidfds, or a Windows ConPTY helper with Job Object ownership. Windows
+project pipe commands also use its helper. Each host builds its own helper with
+existing tools; a Mac build cannot be reused on another platform. The shared
+[architecture](ARCHITECTURE.md) describes these boundaries and
+[current evidence](CORE_STATUS.md) records what has actually been observed.
+
+The terminal transport leaves native permission prompts and screen interaction
+with the native CLI. It does not scrape a reliable conversation ID or completion
+state from the display. Structured Codex/OpenCode pipe profiles separately expose
+native events and exact captured-session continuation; use those profiles for
+the [native resume flow](NATIVE_SESSIONS.md).

@@ -2,20 +2,24 @@ import { open } from 'node:fs/promises';
 import { constants } from 'node:fs';
 import { createInterface, clearLine, clearScreenDown, cursorTo, moveCursor } from 'node:readline';
 import { basename } from 'node:path';
-import { createProjectSession, validateProjectPlan, inspectProjectSession, integrateProjectSession } from '../src/index.js';
+import { createProjectSession, resumeProjectSession, readProjectSession, validateProjectPlan, preflightProjectPlan,
+  inspectProjectSession, integrateProjectSession, finalizeProjectSessionIntegration } from '../src/index.js';
 import { attachNativeTerminal } from './attach-terminal.js';
 import { createActivityView } from './activity-view.js';
 
-const help = `Project collaboration (pipes by default; experimental Mac PTY transport)
+const help = `Project collaboration (native terminal or structured pipe sessions)
 
   koto project start <plan.json> [--start] [--headless]
   koto project inspect <session-directory> <agent>
   koto project integrate <session-directory> <agent> --approve <review-token>
+  koto project status <session-directory>
+  koto project resolve <session-directory> <agent> --approve <resolution-commit>
+  koto project resume <session-directory> <agent> --prompt TEXT [--start] [--headless]
 
 start requires explicit launch approval; --start supplies it for a prepared plan.
 Each configured command runs once in its own Git worktree with native permissions.
 Integration writes only the session integration branch; it never updates main.
-Build optional Mac terminal support explicitly with koto terminal build before
+Build native terminal support explicitly with koto terminal build before
 using transport: "pty". Native completion is not inferred from terminal output.
 `;
 
@@ -38,7 +42,8 @@ async function readPlan(filename) {
 }
 
 function showReview(review, write) {
-  write(`\n[${review.agentId}] ${review.agentStatus}\n${visible(review.diff)}\n`);
+  write(`\n[${review.agentId}] ${review.agentStatus}\n${visible(review.integrationDiff ?? review.diff)}\n`);
+  if (review.contributionBaseCommit !== review.baseCommit) write(`Showing changes since the last integrated snapshot ${review.contributionBaseCommit}.\n`);
   if (review.untracked?.length) write(`Untracked: ${JSON.stringify(review.untracked)}\n`);
   if (review.outsideOwnership.length) write(`Outside declared ownership: ${JSON.stringify(review.outsideOwnership)}\n`);
   write(`Review token: ${review.reviewToken}\n`);
@@ -47,6 +52,18 @@ function showReview(review, write) {
 /** Terminal rendering is a thin consumer of core session operations/events. */
 export async function runProjectCli(args, { write, signal } = {}) {
   if (!args.length || args[0] === '--help') { write(help); return 0; }
+  if (args[0] === 'status' && args.length === 2) {
+    const state = readProjectSession(args[1]);
+    write(`${JSON.stringify({ sessionRoot: state.sessionRoot, active: state.active,
+      agents: state.agents.map(agent => ({ id: agent.id, status: agent.status, result: agent.result,
+        native: agent.nativeState, attempts: agent.attempts, integration: agent.integration?.status })) }, null, 2)}\n`);
+    return 0;
+  }
+  if (args[0] === 'resume' && args.length >= 5 && args[3] === '--prompt'
+      && args.slice(5).every(arg => ['--start', '--headless'].includes(arg))) {
+    return runProjectResume(args[1], args[2], { prompt: args[4], write, signal,
+      approved: args.includes('--start'), headless: args.includes('--headless') });
+  }
   if (args[0] === 'inspect' && args.length === 3) {
     showReview(await inspectProjectSession(args[1], args[2]), write);
     return 0;
@@ -55,6 +72,11 @@ export async function runProjectCli(args, { write, signal } = {}) {
     const result = await integrateProjectSession(args[1], args[2], { approve: args[4] });
     write(`${JSON.stringify(result, null, 2)}\n`);
     return result.status === 'conflicts' ? 1 : 0;
+  }
+  if (args[0] === 'resolve' && args.length === 5 && args[3] === '--approve') {
+    const result = await finalizeProjectSessionIntegration(args[1], args[2], { approveIntegrationCommit: args[4] });
+    write(`${JSON.stringify(result, null, 2)}\n`);
+    return 0;
   }
   if (args[0] !== 'start' || args.length < 2 || args.slice(2).some(arg => !['--start', '--headless'].includes(arg))) {
     write(help); return 2;
@@ -68,6 +90,25 @@ export async function runProjectCli(args, { write, signal } = {}) {
 /** Launchers and plan files use the same terminal/session implementation. */
 export async function runProjectPlan(source, { write, signal, headless = false, approved = false,
   expectedBaseCommit, onEvent } = {}) {
+  return runSessionTerminal(source, { write, signal, headless, approved, expectedBaseCommit, onEvent });
+}
+
+/** An explicit resume shares every terminal control with an initial launch. */
+export async function runProjectResume(sessionRoot, agentId, { prompt, write, signal, headless = false,
+  approved = false, onEvent } = {}) {
+  let observe;
+  let approve;
+  const prepared = await resumeProjectSession(sessionRoot, agentId, { prompt, signal,
+    onEvent: event => observe?.(event), onApproval: request => approve?.(request) ?? false });
+  try {
+    return await runSessionTerminal(prepared.launchPlan, { write, signal, headless, approved,
+      prepared, onEvent, observe: callback => { observe = callback; },
+      bindApproval: callback => { approve = callback; } });
+  } finally { prepared.stop(); }
+}
+
+async function runSessionTerminal(source, { write, signal, headless, approved, prepared, observe,
+  bindApproval, expectedBaseCommit, onEvent } = {}) {
   const plan = validateProjectPlan(source);
   if (expectedBaseCommit !== undefined && (typeof expectedBaseCommit !== 'string'
     || !/^[a-f0-9]{40,64}$/.test(expectedBaseCommit))) throw new TypeError('Use the exact reviewed project base commit.');
@@ -77,6 +118,11 @@ export async function runProjectPlan(source, { write, signal, headless = false, 
   if (!interactive && !approved) throw new Error('project_explicit_start_required');
   write(`Project: ${visible(plan.project)}\nGoal: ${visible(plan.goal)}\nConcurrency: ${plan.maxConcurrency}\n`);
   for (const agent of plan.agents) write(`[${agent.id}] ${visible(agent.command)} ${visible(JSON.stringify(agent.args))}\n  Task: ${visible(agent.task)}\n  Owns: ${visible(agent.owns.join(', '))}\n  Transport: ${agent.transport}; stdin: ${agent.inputMode}; unset environment: ${agent.unsetEnv.join(', ') || 'none'}\n`);
+  if (!prepared) {
+    const readiness = await preflightProjectPlan(plan);
+    for (const check of readiness.checks) write(`[${check.status}] ${check.agentId ? `${check.agentId}: ` : ''}${visible(check.message)}\n`);
+    if (!readiness.ok) return 2;
+  } else write('Continuing the recorded native conversation in its original worktree. Prior partial edits and attempt records are retained.\n');
   write('Commands retain your OS permissions; worktrees are not a security sandbox. No automatic retry.\n');
   let terminal = interactive ? createInterface({ input: process.stdin, output: process.stdout }) : undefined;
   let session;
@@ -166,32 +212,57 @@ export async function runProjectPlan(source, { write, signal, headless = false, 
       await inputIdle;
       await commandQueue;
       if (!interactive || closed || signal?.aborted || !acceptingApprovals || attachment
-        || !terminal || terminal.closed || request?.tool !== 'run_command'
-        || typeof request.command !== 'string' || !Array.isArray(request.args)
-        || request.args.some(arg => typeof arg !== 'string') || typeof request.cwd !== 'string') return false;
-      // Display every argument before approval. Never approve an abbreviated
-      // command that the operator could not inspect in full.
-      const args = JSON.stringify(request.args);
-      if (Buffer.byteLength(args) > 65_536) return false;
+        || !terminal || terminal.closed || !request || typeof request !== 'object'
+        || Array.isArray(request)) return false;
+      const requestSignal = request.signal;
+      if (requestSignal !== undefined && !(requestSignal instanceof AbortSignal)
+        || requestSignal?.aborted) return false;
+      const hasText = value => typeof value === 'string' && value.trim().length > 0 && !value.includes('\0');
+      const localCommand = !request.method && [undefined, 'local'].includes(request.kind)
+        && request.tool === 'run_command' && hasText(request.command) && hasText(request.cwd)
+        && Array.isArray(request.args) && request.args.every(arg => typeof arg === 'string' && !arg.includes('\0'));
+      const codexCommand = request.method === 'item/commandExecution/requestApproval' && hasText(request.command);
+      const codexChanges = request.method === 'item/fileChange/requestApproval'
+        && Array.isArray(request.changes) && request.changes.length > 0;
+      const codexRequest = (codexCommand || codexChanges) && request.requestId !== undefined
+        && hasText(request.threadId) && hasText(request.turnId) && hasText(request.itemId)
+        && (!Array.isArray(request.availableDecisions) || request.availableDecisions.includes('accept'));
+      const claudeRequest = request.kind === 'claude' && request.requestId !== undefined
+        && hasText(request.tool) && request.input !== null && typeof request.input === 'object'
+        && !Array.isArray(request.input);
+      if (!localCommand && !codexRequest && !claudeRequest) return false;
+      // Show all serializable fields supplied by the native request, including
+      // argv, file changes, tool input and permission context. The AbortSignal
+      // is a live cancellation channel, not an action the operator can approve.
+      let detail;
+      try {
+        detail = JSON.stringify(Object.fromEntries(Object.entries(request).filter(([key]) => key !== 'signal')), null, 2);
+      } catch { return false; }
+      if (!detail || Buffer.byteLength(detail) > 65_536) return false;
+      detail = detail.replace(/[\u202a-\u202e\u2066-\u2069]/g,
+        character => `\\u${character.charCodeAt(0).toString(16).padStart(4, '0')}`);
       view?.pause();
       hidePrompt();
       approvalActive = true;
-      write(`\n[${visible(request.agentId ?? 'local')}] requests permission to run a command\nExecutable: ${visible(JSON.stringify(request.command))}\nArguments: ${visible(args)}\nDirectory: ${visible(JSON.stringify(request.cwd))}\nCommand limit: ${visible(request.timeoutMs)} ms\n`);
+      write(`\n[${visible(request.agentId ?? request.kind ?? (codexRequest ? 'codex' : 'local'))}] requests permission\n${detail}\n`);
       try {
         return await new Promise(resolve => {
           const questionController = new AbortController();
           let settled = false;
+          const denyCancelledRequest = () => finish(false);
           const finish = answer => {
             if (settled) return;
             settled = true;
             cancelApproval = undefined;
+            requestSignal?.removeEventListener('abort', denyCancelledRequest);
             questionController.abort();
             resolve(answer === true);
           };
           cancelApproval = () => finish(false);
-          terminal.question('Type approve to run this exact command; Enter denies: ',
+          requestSignal?.addEventListener('abort', denyCancelledRequest, { once: true });
+          terminal.question('Type approve to allow this exact action; Enter denies: ',
             { signal: questionController.signal }, answer => finish(answer.trim() === 'approve'));
-          if (closed || signal?.aborted || !acceptingApprovals) finish(false);
+          if (closed || signal?.aborted || requestSignal?.aborted || !acceptingApprovals) finish(false);
         });
       } finally {
         approvalActive = false;
@@ -212,11 +283,14 @@ export async function runProjectPlan(source, { write, signal, headless = false, 
       if (answer.trim() !== 'start') close();
     }
     if (closed || signal?.aborted) return 130;
-    session = await createProjectSession(plan, { signal, onApproval: approveCommand, onEvent(event) {
+    const receiveEvent = event => {
       const agent = records.get(event.agentId ?? event.agent);
       const details = agent ? metadata(agent) : undefined;
       view?.update(event, details);
-      if (event.type === 'request' && agent?.nativeKind === 'local') {
+      if (event.type === 'agent_status' && event.status === 'waiting_permission') {
+        view?.update({ type: 'approval_required', agentId: event.agentId,
+          description: 'Native permission requested' }, details);
+      } else if (event.type === 'request' && agent?.nativeKind === 'local') {
         view?.update({ type: 'activity', agentId: agent.id, status: 'started', description: 'Requesting local model response' }, details);
       } else if (['tool_started', 'tool_completed', 'command_started'].includes(event.type)) {
         const state = event.type === 'tool_completed' ? event.result?.status ?? (event.result?.error ? 'failed' : 'completed') : 'started';
@@ -241,18 +315,26 @@ export async function runProjectPlan(source, { write, signal, headless = false, 
         view?.message(`${event.agentId}:${event.stream}`, event.text);
       } else if (event.type === 'pty_ready') {
         view?.message(event.agentId, `PTY ready; :attach ${event.agentId} to view and interact.`);
+      } else if (event.type === 'native_status') {
+        view?.message(event.agentId, `Native: ${visible(event.nativeStatus)}${event.nativeSessionId ? `; session ${visible(event.nativeSessionId)}` : ''}`);
       }
       return onEvent?.(event);
-    } });
+    };
+    bindApproval?.(approveCommand);
+    if (prepared) { observe(receiveEvent); session = prepared; }
+    else session = await createProjectSession(plan, { signal, onApproval: approveCommand, onEvent: receiveEvent });
     if (closed || signal?.aborted) return 130;
     if (expectedBaseCommit !== undefined && session.status().baseCommit !== expectedBaseCommit) {
       throw Object.assign(new Error(`The project HEAD changed after planning. No agent was launched. Prepared worktrees are retained at ${session.sessionRoot}. Review a new plan from the current commit.`), { code: 'project_base_changed' });
     }
     write(`Session: ${session.sessionRoot}\nIntegration workspace: ${session.status().integration.path}\n`);
-    const controls = () => write('Controls: :status | :review AGENT | :integrate AGENT | :stop AGENT/all | :attach AGENT (Ctrl-] detaches) | :resize AGENT COLS ROWS | :send AGENT TEXT | :eof AGENT | :help | :quit\n');
+    const controls = () => write('Controls: :status | :review AGENT | :integrate AGENT | :resolve AGENT COMMIT | :stop AGENT/all | :attach AGENT (Ctrl-] detaches) | :resize AGENT COLS ROWS | :send AGENT TEXT | :eof AGENT | :help | :quit\n');
     const showStatus = () => {
       write('\nAGENT             STATE        TRANSPORT PID       WORKSPACE\n');
-      for (const agent of session.status().agents) write(`${agent.id.padEnd(18)}${agent.status.padEnd(13)}${agent.transport.padEnd(10)}${String(agent.pid ?? '-').padEnd(10)}${visible(agent.workspace.path)}\n`);
+      for (const agent of session.status().agents) {
+        write(`${agent.id.padEnd(18)}${agent.status.padEnd(13)}${agent.transport.padEnd(10)}${String(agent.pid ?? '-').padEnd(10)}${visible(agent.workspace.path)}\n`);
+        if (agent.nativeState) write(`  Native ${visible(agent.nativeState.status)}; session ${visible(agent.nativeState.sessionId ?? 'not exposed')}; resume ${agent.nativeState.resumable ? 'available' : 'unavailable'}\n`);
+      }
     };
     const bindTerminal = () => {
       terminal.setPrompt('Agents> ');
@@ -311,6 +393,11 @@ export async function runProjectPlan(source, { write, signal, headless = false, 
             reviewedTokens.delete(id);
             write(`${id}: ${result.status}. Integration workspace: ${session.status().integration.path}\n`);
             if (result.conflicts?.length) write(`Conflicts: ${result.conflicts.map(visible).join(', ')}\n`);
+          }
+          else if (command === ':resolve' && id && rest.length === 1) {
+            const result = await session.resolveIntegration(id, rest[0]);
+            reviewedTokens.delete(id);
+            write(`${id}: ${result.status}. Reviewed conflict resolution recorded.\n`);
           }
           else if (command === ':quit') close();
           else write('Use a listed :control command. Native pipe input must name its agent with :send.\n');
