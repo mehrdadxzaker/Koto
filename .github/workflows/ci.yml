@@ -1,47 +1,131 @@
-name: CI
+name: Temporary manual native 7B observation
 
 on:
-  push:
-    branches: [main]
-  pull_request:
   workflow_dispatch:
+    inputs:
+      operation:
+        type: choice
+        options: [observe, integrate]
+        required: true
+      runner:
+        type: choice
+        options: [ubuntu-24.04, windows-2022]
+        required: true
+      candidate:
+        description: Exact reviewed 40-character candidate commit
+        type: string
+        required: true
+      observation_id:
+        description: Unique lowercase id, 8-48 characters; reuse only for its integration stage
+        type: string
+        required: true
+      source_run:
+        description: Integration only; successful immutable stage-one artifact's run id
+        type: string
+      artifact_id:
+        description: Integration only; exact immutable artifact id
+        type: string
+      artifact_digest:
+        description: Integration only; sha256-prefixed digest from artifact metadata
+        type: string
+      bundle_sha256:
+        description: Integration only; reviewed rehydration.zip SHA-256
+        type: string
+      review_token:
+        description: Integration only; exact contributor token reviewed by the operator
+        type: string
+      linux_review:
+        description: Windows observe only; JSON attestation of reviewed useful Linux contribution and confirmed cleanup, with immutable artifact reference
+        type: string
 
 permissions:
   contents: read
+  actions: read
 
+# Both operating systems and both stages are deliberately serialized.
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: temporary-native-product-observation
+  cancel-in-progress: false
 
 jobs:
-  verify:
-    name: source and scope (${{ matrix.os }}, Node ${{ matrix.node }})
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 8
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        node: ['22', '24']
+  observation:
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 40
+    defaults:
+      run:
+        shell: bash
+    env:
+      OBS_OPERATION: ${{ inputs.operation }}
+      OBS_RUNNER: ${{ inputs.runner }}
+      OBS_CANDIDATE: ${{ inputs.candidate }}
+      OBS_ID: ${{ inputs.observation_id }}
+      OBS_SOURCE_RUN: ${{ inputs.source_run }}
+      OBS_ARTIFACT_ID: ${{ inputs.artifact_id }}
+      OBS_ARTIFACT_DIGEST: ${{ inputs.artifact_digest }}
+      OBS_BUNDLE_SHA: ${{ inputs.bundle_sha256 }}
+      OBS_REVIEW_TOKEN: ${{ inputs.review_token }}
+      OBS_LINUX_REVIEW: ${{ inputs.linux_review }}
+      OBS_CANDIDATE_DIRECTORY: ${{ github.workspace }}/candidate
+      OBS_DOWNLOAD_DIRECTORY: ${{ runner.temp }}/native-stage-one
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Read the explicitly dispatched temporary driver
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
+          ref: ${{ github.sha }}
+          path: driver
           persist-credentials: false
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - name: Read the exact reviewed candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          node-version: ${{ matrix.node }}
-      - run: npm ci --ignore-scripts --no-audit --no-fund
-      - run: npm run check
-      - name: Compile platform terminal helper from source
-        run: node bin/koto.js terminal build
-
-  required:
-    name: CI / required
-    if: always()
-    needs: verify
-    runs-on: ubuntu-latest
-    steps:
-      - name: Require every platform and Node version
+          ref: ${{ inputs.candidate }}
+          path: candidate
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Acquire only pinned local assets and install the exact package
+        if: inputs.operation == 'observe'
+        run: python driver/.github/manual-native/bundle.py prepare
+      - name: One bounded actual native-agent observation, ending at review
+        if: inputs.operation == 'observe'
+        run: node driver/.github/manual-native/observe.mjs
+      - name: Verify the approved immutable artifact identity
+        if: inputs.operation == 'integrate'
         env:
-          VERIFY_RESULT: ${{ needs.verify.result }}
-        run: test "$VERIFY_RESULT" = success
+          GH_TOKEN: ${{ github.token }}
+        run: python driver/.github/manual-native/bundle.py verify-reference
+      - name: Download that artifact without running any agents
+        if: inputs.operation == 'integrate'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          artifact-ids: ${{ inputs.artifact_id }}
+          run-id: ${{ inputs.source_run }}
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          path: ${{ env.OBS_DOWNLOAD_DIRECTORY }}
+          merge-multiple: true
+      - name: Restore exact file bytes at the original paths, then install the same package
+        if: inputs.operation == 'integrate'
+        run: python driver/.github/manual-native/bundle.py restore
+      - name: Integrate only the separately reviewed unchanged token
+        if: inputs.operation == 'integrate'
+        run: node driver/.github/manual-native/integrate.mjs
+      - name: Retain public state and all private evidence separately
+        if: always() && env.OBS_ROOT != ''
+        run: python driver/.github/manual-native/bundle.py seal
+      - name: Encrypt private native output with the operator's public key
+        if: always() && env.OBS_ROOT != ''
+        run: node driver/.github/manual-native/envelope.mjs "$OBS_ROOT/raw-evidence.tar" driver/.github/manual-native/evidence-public.pem "$OBS_ROOT/out/raw-evidence.enc"
+      - name: Upload only public rehydration data and encrypted raw evidence
+        if: always() && env.OBS_ROOT != ''
+        id: retained
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: native-7b-${{ inputs.observation_id }}-${{ inputs.runner }}
+          path: |
+            ${{ env.OBS_ROOT }}/out/receipt.json
+            ${{ env.OBS_ROOT }}/out/rehydration.zip
+            ${{ env.OBS_ROOT }}/out/raw-evidence.enc
+            ${{ env.OBS_ROOT }}/out/raw-evidence.enc.json
+          if-no-files-found: error
+          retention-days: 7
