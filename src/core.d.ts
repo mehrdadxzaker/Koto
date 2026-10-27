@@ -310,6 +310,7 @@ export interface CommandOutcome {
   error?: string | undefined;
   errorMessage?: string | undefined;
   text?: string | undefined;
+  textTruncated?: boolean | undefined;
   sessionId?: string | undefined;
   usage?: Record<string, unknown> | undefined;
 }

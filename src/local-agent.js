@@ -213,7 +213,7 @@ async function writeTool(root, args, signal) {
  * Workspace tools refuse symlinks/.git. Approved commands retain host permissions;
  * this is not a hostile-code sandbox or an OS memory/resource quota.
  */
-export function createLocalAgentSession({ id, endpoint, model, cwd, mode = 'conversation', onEvent,
+export function createLocalAgentSession({ id = 'local', endpoint, model, cwd, mode = 'conversation', onEvent,
   timeoutMs = 300_000, maxTurns = 8, maxOutputTokens = 2048, onApproval, unsetEnv = [], resumeState } = {}) {
   const url = endpointUrl(endpoint);
   if (typeof id !== 'string' || !/^[A-Za-z][A-Za-z0-9_-]{0,63}$/.test(id)
@@ -423,7 +423,7 @@ export function createLocalAgentSession({ id, endpoint, model, cwd, mode = 'conv
             }
           }
         }
-        const usage = { request_count: requestCount, reported_request_count: reports.filter(Boolean).length,
+        const usage = { actualCostUsd: null, request_count: requestCount, reported_request_count: reports.filter(Boolean).length,
           provider_reports: reports };
         for (const key of ['prompt_tokens', 'completion_tokens', 'total_tokens']) {
           if (reports.length === requestCount && reports.every(report => Number.isSafeInteger(report?.[key]) && report[key] >= 0)) {
@@ -431,7 +431,7 @@ export function createLocalAgentSession({ id, endpoint, model, cwd, mode = 'conv
           }
         }
         return attachContinuation({ status, text: reply, ...(error ? { error } : {}),
-          ...(reports.some(Boolean) ? { usage } : {}), sessionId });
+          usage, sessionId });
       };
       try {
         joined.throwIfAborted();

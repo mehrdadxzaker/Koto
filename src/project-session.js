@@ -574,7 +574,12 @@ function sessionRunner(plan, state, { onEvent, signal, ptyHelper, resume, onAppr
               onEvent: receive, onApproval,
               ...(resume ? { sessionId: resume.continuation.sessionId, resumeState: resume.continuation.resumeState } : {}) });
             const completion = native.send(prompt, { signal: commandSignal }).then(result => {
-              const { continuation: localContinuation, continuationUnavailableReason, ...outcome } = result;
+              const { continuation: localContinuation, continuationUnavailableReason, ...rawOutcome } = result;
+              // Full messages remain in private events/native history. Keep
+              // retained state bounded independently of a verbose final reply.
+              const outcome = { ...rawOutcome, ...(typeof rawOutcome.text === 'string'
+                ? { text: Buffer.from(rawOutcome.text).subarray(-8192).toString('utf8'),
+                  ...(Buffer.byteLength(rawOutcome.text) > 8192 ? { textTruncated: true } : {}) } : {}) };
               if (resume && result.sessionId !== undefined && result.sessionId !== resume.continuation.expectedSessionId) {
                 if (agent.nativeKind === 'local') record.localContinuationUnavailableReason = 'project_native_session_changed';
                 return { ...outcome, status: 'failed', exitCode: result.exitCode ?? null,
