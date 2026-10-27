@@ -75,6 +75,12 @@ jobs:
       OBS_CANDIDATE_DIRECTORY: ${{ github.workspace }}/candidate
       OBS_DOWNLOAD_DIRECTORY: ${{ github.workspace }}/native-stage-one
     steps:
+      - name: Preserve exact Git bytes before either checkout
+        run: |
+          # This setting belongs only to this disposable Windows runner.
+          # Apply it before checkout; changing it afterward leaves CRLF files intact.
+          git config --global core.autocrlf false
+          git config --global core.eol lf
       - name: Read the explicitly dispatched temporary driver
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -87,6 +93,49 @@ jobs:
           ref: ${{ inputs.candidate }}
           path: candidate
           persist-credentials: false
+      - name: Verify both checkout payloads and the pinned public key before preparation
+        run: |
+          python - <<'PYBYTES'
+          import hashlib, json, os, pathlib, re, subprocess
+          workspace=pathlib.Path(os.environ['GITHUB_WORKSPACE'])
+          def git(root,*args):
+              result=subprocess.run(['git',*args],cwd=root,check=True,capture_output=True,timeout=15)
+              if len(result.stdout)>2*1024**2 or len(result.stderr)>65536:
+                  raise SystemExit('checkout_git_output_bound')
+              return result.stdout
+          summaries=[]
+          for name,revision in [('driver',os.environ['GITHUB_SHA']),('candidate',os.environ['OBS_CANDIDATE'])]:
+              if not re.fullmatch(r'[a-f0-9]{40}',revision): raise SystemExit('checkout_revision_invalid')
+              root=workspace/name
+              if git(root,'rev-parse','HEAD').decode().strip()!=revision: raise SystemExit('checkout_revision_changed')
+              entries=git(root,'ls-tree','-r','-z',revision).split(b'\0')
+              if len(entries)>10001: raise SystemExit('checkout_file_count_bound')
+              total=0; inventory=[]
+              for entry in filter(None,entries):
+                  meta,rawpath=entry.split(b'\t',1); mode,kind,oid=meta.split()
+                  relative=rawpath.decode('utf-8'); path=root/relative
+                  if mode not in [b'100644',b'100755'] or kind!=b'blob' or path.is_symlink() or not path.is_file():
+                      raise SystemExit('checkout_regular_file_required')
+                  size=path.stat().st_size; total+=size
+                  if size>8*1024**2 or total>128*1024**2: raise SystemExit('checkout_byte_bound')
+                  data=path.read_bytes()
+                  actual=hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest()
+                  if actual!=oid.decode():
+                      print(json.dumps({'error':'checkout_blob_bytes_changed','checkout':name,'path':relative,
+                                        'expectedGitBlob':oid.decode(),'actualGitBlob':actual,'bytes':len(data),
+                                        'crlfCount':data.count(b'\r\n')}))
+                      raise SystemExit('checkout_blob_bytes_changed')
+                  inventory.append([relative,actual,hashlib.sha256(data).hexdigest()])
+              summaries.append({'checkout':name,'revision':revision,'files':len(inventory),'bytes':total,
+                                'payloadInventorySha256':hashlib.sha256(json.dumps(inventory,separators=(',',':')).encode()).hexdigest(),
+                                'coreAutocrlf':git(root,'config','--get','core.autocrlf').decode().strip(),
+                                'coreEol':git(root,'config','--get','core.eol').decode().strip()})
+          public_key=(workspace/'driver/.github/manual-native-4b/evidence-public.pem').read_bytes()
+          key_summary={'bytes':len(public_key),'sha256':hashlib.sha256(public_key).hexdigest(),'crlfCount':public_key.count(b'\r\n')}
+          print(json.dumps({'checkoutByteVerification':summaries,'evidencePublicKey':key_summary},sort_keys=True))
+          if key_summary['sha256']!='f69f2874d13ae977b48e2947dc7ef1004079dee5e0f6bcf35152cec12755a31f':
+              raise SystemExit('evidence_public_key_changed')
+          PYBYTES
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '22'

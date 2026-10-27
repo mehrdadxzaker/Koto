@@ -10,7 +10,14 @@ if (!publicKey.toString().includes('BEGIN PUBLIC KEY') || publicKey.toString().i
   throw new Error('public_key_required');
 }
 const expected = 'f69f2874d13ae977b48e2947dc7ef1004079dee5e0f6bcf35152cec12755a31f';
-if (createHash('sha256').update(publicKey).digest('hex') !== expected) throw new Error('evidence_public_key_changed');
+const actualPublicKeySha256 = createHash('sha256').update(publicKey).digest('hex');
+if (actualPublicKeySha256 !== expected) {
+  // Public-key metadata only: preserve the exact byte pin and identify checkout conversion.
+  process.stderr.write(`${JSON.stringify({ error: 'evidence_public_key_changed', expectedSha256: expected,
+    actualSha256: actualPublicKeySha256, bytes: publicKey.length,
+    crlfCount: publicKey.toString('ascii').split('\r\n').length - 1 })}\n`);
+  throw new Error('evidence_public_key_changed');
+}
 const key = randomBytes(32), iv = randomBytes(12);
 const aad = Buffer.from('koto-native-observation-evidence-v1');
 const cipher = createCipheriv('aes-256-gcm', key, iv);

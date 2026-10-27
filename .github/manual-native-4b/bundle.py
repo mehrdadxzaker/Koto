@@ -239,6 +239,13 @@ def prepare():
     (ROOT/'reviewed-settings.json').write_bytes(settings_path.read_bytes())
     (ROOT/'reviewed-settings.json').chmod(0o600)
     if digest(ROOT/'reviewed-settings.json')!=expected: raise RuntimeError('reviewed_settings_changed_during_preparation')
+    bootstrap_env={k:v for k,v in os.environ.items() if not re.search('TOKEN|SECRET|PASSWORD|API_KEY|ACCESS_KEY|CREDENTIAL',k,re.I)
+                   and k.upper() not in ['NODE_OPTIONS','NODE_PATH']}
+    bootstrap_env['KOTO_STATE_DIR']=str(ROOT/'state')
+    # Python mode=0700 does not establish a Windows DACL. Protect only this
+    # fresh disposable tree before creating source/helper/native workspaces.
+    # Product ancestor/DACL checks remain unchanged and authoritative.
+    owned_preparation([],ROOT,'private-root',15,bootstrap_env,mode='private-root')
     save(ROOT/'evidence'/'operator-prior-platform-reviews.json',SETTINGS['gates'])
     disk_free=shutil.disk_usage(ROOT).free
     if disk_free < SETTINGS['bounds']['freeDiskBeforeAssetsBytes']: raise RuntimeError('reviewed_disk_reserve_required')
@@ -263,9 +270,6 @@ def prepare():
     source=ROOT/'project'
     for relative,key in [('src/local-models.js','localModelsSha256'),('src/core.d.ts','coreTypesSha256')]:
         if digest(source/relative)!=SETTINGS['candidateApi'][key]: raise RuntimeError('reviewed_candidate_api_changed')
-    bootstrap_env={k:v for k,v in os.environ.items() if not re.search('TOKEN|SECRET|PASSWORD|API_KEY|ACCESS_KEY|CREDENTIAL',k,re.I)
-                   and k.upper() not in ['NODE_OPTIONS','NODE_PATH']}
-    bootstrap_env['KOTO_STATE_DIR']=str(ROOT/'state')
     owned_preparation([],source,'helper-bootstrap',120,bootstrap_env,mode='bootstrap')
     PREPARE_BOOTSTRAPPED=True
     command(['npm','run','check'],source,'source-check')
@@ -464,6 +468,10 @@ def restore():
     # New files are owned by the new runner, never a restored foreign SID/UID.
     # Koto independently checks private ownership, ACLs, paths and the old token.
     if digest(ROOT/'reviewed-settings.json')!=os.environ.get('OBS_SETTINGS_SHA'): raise RuntimeError('restored_settings_changed')
+    restored_env={k:v for k,v in os.environ.items() if not re.search('TOKEN|SECRET|PASSWORD|API_KEY|ACCESS_KEY|CREDENTIAL',k,re.I)
+                  and k.upper() not in ['NODE_OPTIONS','NODE_PATH']}
+    restored_env['KOTO_STATE_DIR']=str(ROOT/'state')
+    owned_preparation([],ROOT,'restored-private-root',15,restored_env,mode='private-root')
     install_package()
     save(ROOT/'evidence'/'restoration.json',{'bundleSha256':os.environ['OBS_BUNDLE_SHA'],'files':len(rows),'pathsRewritten':False,'candidate':SHA})
 
