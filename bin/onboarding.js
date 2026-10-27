@@ -35,6 +35,7 @@ export async function configureAccounts({ ask, print, preferences, signal, login
       print(`${selected.label} needs its native client. ${selected.installation?.url ?? selected.install?.url ?? ''}`);
       if (installClient && ['y', 'yes'].includes((await ask(`Install ${selected.label}'s native client for Koto? [y/N]: `)).toLowerCase())) {
         await installClient(selected.kind);
+        automatic = false; // Rediscover the newly saved private executable.
       } else return undefined;
     } else {
       if (!['y', 'yes'].includes((await ask(`Open native ${selected.label} sign-in? [y/N]: `)).toLowerCase())) return undefined;

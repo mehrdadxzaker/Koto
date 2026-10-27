@@ -382,7 +382,9 @@ export async function runChat({ write, signal: parentSignal, version } = {}) {
         } });
       await ownedServer.ready;
     } catch (error) {
-      await stopServer();
+      let startupFailure = error;
+      try { await stopServer(); }
+      catch (cleanupError) { cleanupError.cause ??= error; startupFailure = cleanupError; }
       if (startupTail) {
         const directory = path.join(defaultStateDirectory, 'logs');
         const filename = path.join(directory, `local-startup-${randomUUID()}.log`);
@@ -394,10 +396,10 @@ export async function runChat({ write, signal: parentSignal, version } = {}) {
             throw new Error('Native startup logs need a protected Koto directory.');
           }
           await writeFile(filename, startupTail, { mode: 0o600, flag: 'wx' });
-          error.message += ` Native startup details were preserved at ${filename}.`;
+          startupFailure.message += ` Native startup details were preserved at ${filename}.`;
         } catch { /* Preserve the original failure and cleanup outcome. */ }
       }
-      throw error;
+      throw startupFailure;
     } finally { collectingStartup = false; }
     startupTail = '';
     await adopt(ownedServer.apiBaseUrl);
