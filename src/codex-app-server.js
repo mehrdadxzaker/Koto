@@ -1,5 +1,6 @@
 import path from 'node:path';
-import { startCommand } from './command-session.js';
+import { startSetupCommand } from './setup-command.js';
+import { throwOnResourceExhaustion } from './bounded-fetch.js';
 
 // Derived from the installed codex-cli 0.163.0 generated v2 schemas, not from
 // exec JSON events. Protocol reference: https://developers.openai.com/codex/app-server
@@ -10,7 +11,7 @@ const RPC_LIMIT = 256 * 1024;
 const LINE_LIMIT = 1024 * 1024;
 const TEXT_LIMIT = 512 * 1024;
 const APPROVAL_METHODS = new Set(['item/commandExecution/requestApproval', 'item/fileChange/requestApproval']);
-const API_ENV = new Set(['OPENAI_API_KEY', 'CODEX_API_KEY', 'OPENAI_BASE_URL', 'OPENAI_API_BASE',
+const API_ENV = new Set(['OPENAI_API_KEY', 'CODEX_API_KEY', 'CODEX_ACCESS_TOKEN', 'OPENAI_BASE_URL', 'OPENAI_API_BASE',
   'AZURE_OPENAI_API_KEY', 'AZURE_OPENAI_ENDPOINT']);
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const validId = value => typeof value === 'string' && ID.test(value);
@@ -82,6 +83,7 @@ export function createCodexAppServerSession({ id = 'codex', command, cwd, model,
     }
     current.error ??= code;
     current.broken = true;
+    current.launchController.abort();
     for (const pending of current.pending.values()) { clearTimeout(pending.timer); pending.reject(failure(code)); }
     current.pending.clear();
     for (const approval of current.approvals.values()) { approval.cancelled = true; approval.controller.abort(); }
@@ -304,6 +306,9 @@ export function createCodexAppServerSession({ id = 'codex', command, cwd, model,
   }
 
   function startupError(current, fallback) {
+    if (fallback?.endsWith('cleanup_unconfirmed') || current?.error?.endsWith('cleanup_unconfirmed')) return 'cleanup_unconfirmed';
+    if (fallback?.endsWith('_socket_exhausted')) return fallback;
+    if (current?.error?.endsWith('_socket_exhausted')) return current.error;
     if (/read-only file system|\bEROFS\b|os error 30/i.test(current?.diagnostics ?? '')) return 'native_state_not_writable';
     return current?.error ?? fallback;
   }
@@ -313,12 +318,15 @@ export function createCodexAppServerSession({ id = 'codex', command, cwd, model,
     if (connection?.handle && !connection.closed) await shutdownConnection(connection);
     if (blocked) throw failure('native_session_unresolved');
     const current = { pending: new Map(), approvals: new Map(), items: new Map(), buffer: '', diagnostics: '',
+      launchController: new AbortController(), starting: undefined,
       closed: false, broken: false, error: undefined, outcome: undefined, initialized: false, closePromise: undefined };
     connection = current;
     turn.connection = current;
-    current.handle = startCommand({ id, command, cwd, env: environment(), timeoutMs: 3_600_000,
+    current.starting = startSetupCommand({ id, command, cwd, env: environment(), timeoutMs: 3_600_000,
+      signal: current.launchController.signal,
       args: ['app-server', '--listen', 'stdio://', '-c', 'forced_login_method="chatgpt"', '-c', 'model_provider="openai"'],
       onEvent(event) {
+        if (event.type === 'terminal_cleanup') { emit(event); return; }
         if (event.type === 'started') { emit({ type: 'started', pid: event.pid }); return; }
         if (event.type !== 'output') return;
         if (event.stream === 'stderr') {
@@ -335,9 +343,11 @@ export function createCodexAppServerSession({ id = 'codex', command, cwd, model,
         }
         if (Buffer.byteLength(current.buffer) > LINE_LIMIT) breakConnection(current, 'native_line_limit');
       } });
+    try { current.handle = await current.starting; }
+    catch (error) { current.closed = true; throw error; }
     current.handle.completion.then(outcome => {
       current.closed = true; current.outcome = outcome;
-      if (outcome.error === 'cleanup_unconfirmed') blocked = true;
+      if (['cleanup_unconfirmed', 'process_socket_exhausted'].includes(outcome.error)) blocked = true;
       const error = startupError(current, outcome.error ?? 'native_transport_closed');
       for (const pending of current.pending.values()) { clearTimeout(pending.timer); pending.reject(failure(error)); }
       current.pending.clear();
@@ -345,6 +355,10 @@ export function createCodexAppServerSession({ id = 'codex', command, cwd, model,
       current.approvals.clear();
       if (active?.connection === current) finishTurn(active, { error });
     });
+    if (current.launchController.signal.aborted || turn.cancelled || turn.settled || closedByCaller) {
+      current.handle.stop();
+      throw failure(current.error ?? 'native_cancelled');
+    }
     await rpc(current, 'initialize', { clientInfo: { name: 'koto', title: 'Koto', version: '3.0.0-alpha.0' },
       capabilities: { experimentalApi: false } }, Math.min(15_000, timeoutMs));
     sendMessage(current, { method: 'initialized' });
@@ -355,9 +369,15 @@ export function createCodexAppServerSession({ id = 'codex', command, cwd, model,
   }
 
   async function shutdownConnection(current) {
-    if (!current?.handle) return undefined;
+    if (!current) return undefined;
     if (current.closePromise) return current.closePromise;
     current.closePromise = (async () => {
+      if (!current.handle && current.starting) {
+        current.launchController.abort();
+        try { current.handle = await current.starting; }
+        catch { current.closed = true; return undefined; }
+      }
+      if (!current.handle) return undefined;
       current.handle.endInput();
       const timer = setTimeout(() => current.handle.stop(), 500);
       try { return await current.handle.completion; }
@@ -382,7 +402,11 @@ export function createCodexAppServerSession({ id = 'codex', command, cwd, model,
       if (turn.turnId && !current.closed && !current.broken) {
         void rpc(current, 'turn/interrupt', { threadId, turnId: turn.turnId }, 1500).catch(() => current.handle.stop());
         turn.interruptTimer = setTimeout(() => current.handle.stop(), 2000);
-      } else { current.handle.stop(); finishTurn(turn, { error: 'native_cancelled' }); }
+      } else {
+        current.launchController.abort();
+        current.handle?.stop();
+        finishTurn(turn, { error: 'native_cancelled' });
+      }
     },
     async close() {
       closedByCaller = true;
@@ -440,7 +464,11 @@ export function createCodexAppServerSession({ id = 'codex', command, cwd, model,
         if (!bindTurn(current, turn, started?.turn?.id)) throw failure('native_turn_mismatch');
         final = await terminal;
       } catch (error) {
-        final = { error: error.code ?? 'native_app_server_failed' };
+        let fatalCode;
+        try { throwOnResourceExhaustion(error); }
+        catch (fatal) { fatalCode = fatal.code?.endsWith('cleanup_unconfirmed') ? 'cleanup_unconfirmed' : fatal.code; }
+        final = { error: turn.connection?.error?.endsWith('cleanup_unconfirmed') ? 'cleanup_unconfirmed' : fatalCode ?? turn.connection?.error ?? (turn.cancelled ? 'native_cancelled'
+          : typeof error.code === 'string' ? error.code : 'native_app_server_failed') };
         if (turn.connection) breakConnection(turn.connection, final.error);
       } finally {
         clearTimeout(turn.timer); clearTimeout(turn.interruptTimer);
@@ -448,16 +476,18 @@ export function createCodexAppServerSession({ id = 'codex', command, cwd, model,
         if (mode === 'coding' || final?.error || turn.cancelled) processOutcome = await shutdownConnection(turn.connection);
         active = undefined;
       }
-      const error = processOutcome?.error === 'cleanup_unconfirmed' ? 'cleanup_unconfirmed'
+      const error = processOutcome?.error === 'cleanup_unconfirmed' || final?.error === 'cleanup_unconfirmed' ? 'cleanup_unconfirmed'
+        : processOutcome?.error === 'process_socket_exhausted' ? processOutcome.error
         : (final?.error ? startupError(turn.connection, final.error) : undefined) ?? processOutcome?.error ?? (turn.cancelled || final?.nativeStatus === 'interrupted' ? 'native_cancelled'
           : final?.nativeStatus !== 'completed' ? 'native_turn_failed'
             : mode === 'conversation' && !(turn.text || turn.deltaText).trim() ? 'native_response_empty' : undefined);
-      if (error === 'cleanup_unconfirmed' || error === 'native_effective_policy_mismatch') blocked = true;
+      if (error === 'cleanup_unconfirmed' || error?.endsWith('_socket_exhausted') || error === 'native_effective_policy_mismatch') blocked = true;
       const status = turn.cancelled || final?.nativeStatus === 'interrupted' ? 'cancelled' : error ? 'failed' : 'succeeded';
       const result = { status, text: turn.text || turn.deltaText, ...(threadId ? { sessionId: threadId } : {}),
         ...(rootSessionId ? { rootSessionId } : {}), ...(turn.usage ? { usage: turn.usage } : {}),
         approvals: { approved: turn.approved, denied: turn.denied }, ...(error ? { error } : {}),
-        ...(error === 'native_state_not_writable' ? { errorMessage: 'Codex requires a writable native runtime home. Use its supported account-owned environment without moving managed credentials.' } : {}),
+        ...(error === 'native_state_not_writable' ? { errorMessage: 'Codex requires a writable native runtime home. Use its supported account-owned environment without moving managed credentials.' }
+          : error === 'setup_terminal_helper_required' ? { errorMessage: 'Prepare Windows process support with `koto terminal build` using installed developer tools, then reopen Koto.' } : {}),
         exitCode: processOutcome?.exitCode ?? null, ...(processOutcome?.signal ? { signal: processOutcome.signal } : {}) };
       emit({ type: 'agent_status', status, ...(error ? { error } : {}) });
       return result;

@@ -123,6 +123,77 @@ function ownershipWarnings(tasks) {
   return warnings;
 }
 
+/** Revise displayed assignments using only the caller's configured workers.
+ * This is a pure plan operation: project freshness is checked again when the
+ * revised proposal is prepared, and no model, process or workspace is started.
+ */
+export function reviseBuildProposal(proposal, { tasks, workers } = {}) {
+  if (!object(proposal) || proposal.kind !== 'koto-build-proposal' || proposal.schemaVersion !== 1
+    || !object(proposal.project) || !object(proposal.plan) || !text(proposal.summary, 4_096)
+    || !text(proposal.project.projectRoot, 4096) || !path.isAbsolute(proposal.project.projectRoot)
+    || typeof proposal.project.baseCommit !== 'string' || !/^[a-f0-9]{40,64}$/.test(proposal.project.baseCommit)
+    || proposal.project.branch !== undefined && !text(proposal.project.branch, 4096)) {
+    fail('coordinator_proposal_invalid', 'Select a complete Koto build proposal before revising assignments.');
+  }
+  let original;
+  try { original = validateProjectPlan(proposal.plan); }
+  catch { fail('coordinator_proposal_invalid', 'The original execution plan is invalid. Prepare a new proposal before revising assignments.'); }
+  if (original.project !== proposal.project.projectRoot
+    || proposal.fingerprint !== fingerprint(original, proposal.project)) {
+    fail('coordinator_proposal_changed', 'The original execution plan changed. Prepare and review a new proposal before revising assignments.');
+  }
+  if (!Array.isArray(tasks) || tasks.length < 1 || tasks.length > 8) {
+    fail('coordinator_plan_invalid', 'Keep one to eight explicit tasks in the revised plan. No project agents were started.');
+  }
+  const templates = workerTemplates(workers, original.project, original.goal, original.timeoutMs);
+  const revisedTasks = tasks.map(task => {
+    // Existing displayed label/model fields are accepted but regenerated from
+    // the selected worker; assignments cannot introduce execution settings.
+    if (!fields(task, ['id', 'worker', 'task', 'owns', 'dependsOn', 'label', 'model'])
+      || typeof task.id !== 'string' || !ID.test(task.id) || !templates.has(task.worker)
+      || !text(task.task, 16_384) || !Array.isArray(task.owns) || task.owns.length < 1 || task.owns.length > 64
+      || task.dependsOn !== undefined && (!Array.isArray(task.dependsOn) || task.dependsOn.length > 8
+        || task.dependsOn.some(id => typeof id !== 'string' || !ID.test(id)))) {
+      fail('coordinator_plan_invalid', 'Choose valid task IDs, configured workers, assignments, ownership and dependencies. No project agents were started.');
+    }
+    return { id: task.id, worker: task.worker, task: task.task,
+      owns: [...task.owns], dependsOn: [...(task.dependsOn ?? [])] };
+  });
+  const maxConcurrency = Math.min(original.maxConcurrency, revisedTasks.length);
+  let plan;
+  try {
+    validateWorkflow({ schemaVersion: 1, goal: original.goal,
+      agents: Object.fromEntries([...templates.entries()].map(([id, worker]) => [id,
+        { command: worker.execution.command, args: worker.execution.args, timeoutMs: worker.execution.timeoutMs }])),
+      tasks: revisedTasks.map(task => ({ id: task.id, agent: task.worker,
+        prompt: task.task, dependsOn: task.dependsOn })),
+      timeoutMs: original.timeoutMs, maxConcurrency });
+    plan = validateProjectPlan({ ...original, maxConcurrency,
+      agents: revisedTasks.map(task => ({ ...templates.get(task.worker).execution,
+        id: task.id, task: task.task, owns: task.owns, dependsOn: task.dependsOn })) });
+  } catch {
+    fail('coordinator_plan_invalid', 'The revised tasks contain duplicate IDs, invalid paths, dependencies, a cycle or invalid execution settings. No project agents were started.');
+  }
+  const normalizedTasks = revisedTasks.map((task, index) => ({ ...task,
+    owns: [...plan.agents[index].owns], dependsOn: [...plan.agents[index].dependsOn] }));
+  const project = { projectRoot: proposal.project.projectRoot, baseCommit: proposal.project.baseCommit,
+    ...(proposal.project.branch === undefined ? {} : { branch: proposal.project.branch }) };
+  let metadata;
+  try {
+    if (proposal.coordinatorSessionId !== undefined && !text(proposal.coordinatorSessionId, 4096)) throw new Error('session_metadata');
+    const encoded = JSON.stringify({ ...(proposal.coordinatorSessionId === undefined ? {} : { coordinatorSessionId: proposal.coordinatorSessionId }),
+      ...(proposal.usage === undefined ? {} : { usage: proposal.usage }) });
+    if (Buffer.byteLength(encoded) > MAX_RESPONSE) throw new Error('metadata_limit');
+    metadata = JSON.parse(encoded);
+  } catch { fail('coordinator_proposal_invalid', 'The original proposal contains invalid source metadata. Prepare a new proposal before revising assignments.'); }
+  return freeze({ schemaVersion: 1, kind: 'koto-build-proposal', id: randomUUID(),
+    createdAt: new Date().toISOString(), summary: proposal.summary, project, plan,
+    fingerprint: fingerprint(plan, project),
+    tasks: normalizedTasks.map(task => ({ ...task, label: templates.get(task.worker).label,
+      ...(templates.get(task.worker).model ? { model: templates.get(task.worker).model } : {}) })),
+    warnings: ownershipWarnings(normalizedTasks), ...metadata });
+}
+
 /** Real conversational/planning turns, with caller-selected agent authority.
  * The native session is injected so every delivery surface shares this core.
  * No classifier, reply, plan, retry or model fallback is fabricated here.
@@ -146,6 +217,12 @@ export function createCoordinator({ session } = {}) {
     try {
       const result = await session.send(prompt, { signal });
       if (result?.status !== 'succeeded') {
+        if (typeof result?.error === 'string' && /(?:socket_exhausted|cleanup_unconfirmed)$/.test(result.error)) {
+          fail(result.error.endsWith('cleanup_unconfirmed') ? 'cleanup_unconfirmed' : 'local_socket_exhausted',
+            result.error.endsWith('cleanup_unconfirmed')
+              ? 'Coordinator process cleanup could not be confirmed. Inspect its owned process state before continuing.'
+              : 'Socket or file-descriptor capacity is unavailable. Stop new requests and inspect system resources before retrying.');
+        }
         fail(result?.status === 'cancelled' ? 'coordinator_cancelled' : 'coordinator_turn_failed',
           text(result?.errorMessage, 2048) ? result.errorMessage
             : `The real coordinator ${result?.status === 'cancelled' ? 'was cancelled' : 'did not complete'}${text(result?.error, 256) ? ` (${result.error})` : ''}. No automatic retry or project-agent launch occurred.`,
@@ -205,6 +282,7 @@ export function createCoordinator({ session } = {}) {
         'Return exactly one JSON object with no prose outside it:',
         '{"schemaVersion":1,"summary":"brief implementation approach","tasks":[{"id":"uniqueTaskId","worker":"configuredWorkerId","task":"specific assignment","owns":["literal/project/path"],"dependsOn":[]}]}',
         'Create one to eight concrete coding tasks. Use only the worker IDs listed below. You cannot select executables, CLI flags, model settings, credentials or new providers.',
+        'These are executable assignments for a later host-approved launch. Keep this coordinator\'s planning-only instructions and the general Koto plan-approval wait out of worker assignments. Preserve genuinely unresolved task-specific decisions and intentional inspection-only work.',
         'Use independent tasks concurrently when useful. Avoid invented work merely to occupy workers. Assign explicit literal project-relative file/directory ownership; no shell expressions or glob patterns.',
         'Dependencies reference task IDs and must be acyclic. Workers start from separate worktrees of the same clean base. Successful dependency output and read-only workspace references are handed to dependent tasks, but no dependency code is automatically applied into their worktrees.',
         'Specify shared interfaces/contracts in assignments when independent files must fit together. Do not instruct a worker to integrate another task, modify another worktree, write outside its ownership, or change the original checkout.',

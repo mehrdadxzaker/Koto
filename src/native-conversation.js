@@ -1,5 +1,6 @@
 import path from 'node:path';
-import { startCommand } from './command-session.js';
+import { startSetupCommand } from './setup-command.js';
+import { throwOnResourceExhaustion } from './bounded-fetch.js';
 
 // CLI contracts: installed Codex exec/resume help, and the vendors' public docs:
 // https://developers.openai.com/codex/noninteractive
@@ -13,12 +14,13 @@ const SESSION_ID = /^[A-Za-z0-9][A-Za-z0-9_-]{7,127}$/;
 const MODEL = /^[A-Za-z0-9][A-Za-z0-9._:/@+-]{0,511}$/;
 const CODEX_EFFORTS = ['none', 'minimal', 'low', 'medium', 'high', 'xhigh'];
 const CLAUDE_EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max', 'ultracode'];
-const API_ENV = new Set(['OPENAI_API_KEY', 'CODEX_API_KEY', 'OPENAI_BASE_URL', 'OPENAI_API_BASE',
+const API_ENV = new Set(['OPENAI_API_KEY', 'CODEX_API_KEY', 'CODEX_ACCESS_TOKEN', 'OPENAI_BASE_URL', 'OPENAI_API_BASE',
   'AZURE_OPENAI_API_KEY', 'AZURE_OPENAI_ENDPOINT']);
 const CLAUDE_API_ENV = new Set(['ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN', 'ANTHROPIC_BASE_URL',
   'CLAUDE_CODE_USE_BEDROCK', 'CLAUDE_CODE_USE_VERTEX', 'CLAUDE_CODE_USE_FOUNDRY',
   'ANTHROPIC_FOUNDRY_API_KEY', 'ANTHROPIC_FOUNDRY_RESOURCE']);
 const ERROR_MESSAGES = Object.freeze({
+  setup_terminal_helper_required: 'Prepare Windows process support with `koto terminal build` using installed developer tools, then reopen Koto.',
   native_state_not_writable: 'The native CLI cannot initialize its local state on a read-only filesystem. Use a supported writable native environment while keeping its credential provider unchanged.',
   native_state_access_denied: 'The native CLI cannot access its local runtime state. Resolve that installation or account permission through its supported native setup.',
   native_cli_incompatible: 'The installed native CLI does not accept this protocol or option. Check its version and supported exec/print flags before retrying.',
@@ -85,12 +87,12 @@ export function createNativeAgentSession({ kind, id = kind, command, cwd, model,
   let active;
   let blocked = false;
 
-  const environment = () => Object.fromEntries(Object.entries(process.env).filter(([key]) => {
+  const environment = () => ({ ...Object.fromEntries(Object.entries(process.env).filter(([key]) => {
     if (/^GIT_/i.test(key)) return false;
-    if (kind === 'codex' && account === 'chatgpt' && API_ENV.has(key)) return false;
-    if (kind === 'claude' && account === 'subscription' && CLAUDE_API_ENV.has(key)) return false;
+    if (kind === 'codex' && account === 'chatgpt' && API_ENV.has(key.toUpperCase())) return false;
+    if (kind === 'claude' && account === 'subscription' && CLAUDE_API_ENV.has(key.toUpperCase())) return false;
     return true;
-  }));
+  })), DISABLE_AUTOUPDATER: '1', DISABLE_UPDATES: '1' });
 
   function emit(turn, event) {
     if (!onEvent || turn.observerFailed) return;
@@ -249,7 +251,8 @@ export function createNativeAgentSession({ kind, id = kind, command, cwd, model,
 
   async function subscriptionLogin(turn, env) {
     let output = '';
-    turn.handle = startCommand({ id, command, args: ['auth', 'status'], cwd, env, timeoutMs: Math.min(timeoutMs, 10_000),
+    turn.handle = await startSetupCommand({ id, command, args: ['auth', 'status'], cwd, env,
+      signal: turn.launchController.signal, timeoutMs: Math.min(timeoutMs, 10_000),
       onEvent(event) {
         if (event.type === 'output' && event.stream === 'stdout' && !turn.failure) {
           output += event.text;
@@ -259,6 +262,7 @@ export function createNativeAgentSession({ kind, id = kind, command, cwd, model,
     turn.handle.endInput();
     const outcome = await turn.handle.completion;
     if (outcome.error === 'cleanup_unconfirmed') return 'cleanup_unconfirmed';
+    if (outcome.error === 'process_socket_exhausted') return outcome.error;
     if (turn.cancelled) return 'native_cancelled';
     if (outcome.status !== 'succeeded') return 'native_subscription_auth_unavailable';
     let auth;
@@ -270,7 +274,7 @@ export function createNativeAgentSession({ kind, id = kind, command, cwd, model,
   const api = {
     get sessionId() { return nativeSessionId; },
     get pid() { return active?.handle?.pid ?? null; },
-    stop() { if (active) { active.cancelled = true; active.handle?.stop(); } },
+    stop() { if (active) { active.cancelled = true; active.launchController.abort(); active.handle?.stop(); } },
     async send(text, { signal } = {}) {
       const simple = error => ({ status: 'failed', text: '', ...(nativeSessionId ? { sessionId: nativeSessionId } : {}), error, exitCode: null });
       if (active) return simple('native_agent_busy');
@@ -279,11 +283,13 @@ export function createNativeAgentSession({ kind, id = kind, command, cwd, model,
       if (signal !== undefined && !(signal instanceof AbortSignal)) return simple('native_signal_invalid');
       if (signal?.aborted) return { ...simple('native_cancelled'), status: 'cancelled' };
       const turn = { handle: undefined, failure: undefined, cancelled: false, observerFailed: false, pendingObservers: 0,
+        launchController: new AbortController(),
         sawSession: false, completed: false, nativeFailed: false, denied: false, text: '', partialText: '',
         streamed: false, emittedText: false, deltaBytes: 0, buffer: '', diagnosticTail: '', tools: new Map(), launched: false, deadline: performance.now() + timeoutMs,
-        fail(code) { this.failure ??= code; this.handle?.stop(); } };
+        fail(code) { this.failure ??= code; this.launchController.abort(); this.handle?.stop(); } };
       active = turn;
-      const abort = () => { turn.cancelled = true; turn.handle?.stop(); };
+      const deadlineTimer = setTimeout(() => turn.fail('timeout'), timeoutMs);
+      const abort = () => { turn.cancelled = true; turn.launchController.abort(); turn.handle?.stop(); };
       signal?.addEventListener('abort', abort, { once: true });
       const env = environment();
       let outcome;
@@ -319,9 +325,10 @@ export function createNativeAgentSession({ kind, id = kind, command, cwd, model,
             if (!object(record) || typeof record.type !== 'string') { turn.fail('native_event_invalid'); return; }
             if (kind === 'codex') codexRecord(turn, record); else claudeRecord(turn, record);
           };
-          turn.launched = true;
-          turn.handle = startCommand({ id, command, args, cwd, env, timeoutMs: Math.max(1, Math.floor(turn.deadline - performance.now())),
+          turn.handle = await startSetupCommand({ id, command, args, cwd, env,
+            signal: turn.launchController.signal, timeoutMs: Math.max(1, Math.floor(turn.deadline - performance.now())),
             onEvent(event) {
+              if (event.type === 'terminal_cleanup') { emit(turn, event); return; }
               if (event.type === 'started') { emit(turn, { type: 'started', pid: event.pid }); return; }
               if (event.type === 'output' && event.stream === 'stderr') {
                 // Inspect only a bounded private tail. No raw diagnostics,
@@ -342,13 +349,20 @@ export function createNativeAgentSession({ kind, id = kind, command, cwd, model,
               }
               if (Buffer.byteLength(turn.buffer) > LINE_LIMIT) turn.fail('native_line_limit');
             } });
+          turn.launched = true;
+          if (turn.failure || turn.cancelled) { turn.handle.stop(); throw Object.assign(new Error('Native launch cancelled.'), { code: 'native_cancelled' }); }
           if (!turn.handle.send(text) || !turn.handle.endInput()) turn.fail('native_prompt_rejected');
           outcome = await turn.handle.completion;
           if (turn.buffer.trim() && !turn.failure) line(turn.buffer);
         }
-      } catch {
-        turn.failure ??= 'native_launch_failed';
+      } catch (error) {
+        try { throwOnResourceExhaustion(error); }
+        catch (fatal) {
+          if (!turn.failure?.endsWith('cleanup_unconfirmed')) turn.failure = fatal.code?.endsWith('cleanup_unconfirmed') ? 'cleanup_unconfirmed' : fatal.code;
+        }
+        turn.failure ??= error.code === 'setup_terminal_helper_required' ? error.code : turn.cancelled ? 'native_cancelled' : 'native_launch_failed';
       } finally {
+        clearTimeout(deadlineTimer);
         if (turn.handle) {
           // Retain ownership even when protocol/observer/setup handling failed.
           if (turn.failure || turn.cancelled) turn.handle.stop();
@@ -357,12 +371,13 @@ export function createNativeAgentSession({ kind, id = kind, command, cwd, model,
         signal?.removeEventListener('abort', abort);
         active = undefined;
       }
-      const error = outcome?.error === 'cleanup_unconfirmed' ? 'cleanup_unconfirmed'
+      const error = outcome?.error === 'cleanup_unconfirmed' || turn.failure === 'cleanup_unconfirmed' ? 'cleanup_unconfirmed'
+        : outcome?.error === 'process_socket_exhausted' ? outcome.error
         : turn.failure ?? (turn.cancelled ? 'native_cancelled' : startupDiagnostic(turn, outcome) ?? (outcome?.status !== 'succeeded' ? (outcome?.error ?? 'native_process_failed')
           : turn.denied ? 'native_permission_denied' : turn.nativeFailed ? 'native_turn_failed'
             : !turn.sawSession ? 'native_session_missing' : !turn.completed ? 'native_completion_missing'
               : mode === 'conversation' && !(turn.text || turn.partialText).trim() ? 'native_response_empty' : undefined));
-      if (error === 'cleanup_unconfirmed' || (turn.launched && !nativeSessionId)) blocked = true;
+      if (error === 'cleanup_unconfirmed' || error?.endsWith('_socket_exhausted') || (turn.launched && !nativeSessionId)) blocked = true;
       const status = turn.cancelled ? 'cancelled' : error ? 'failed' : 'succeeded';
       const result = { status, text: turn.text || turn.partialText, ...(nativeSessionId ? { sessionId: nativeSessionId } : {}),
         ...(turn.usage ? { usage: turn.usage } : {}), ...(error ? { error } : {}),

@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { createOwnedWorkerLifetime } from './owned-worker-lifetime.js';
+import { createOwnedWorkerLifetime, ownedProcessErrorCode } from './owned-worker-lifetime.js';
 import { isAbsolute } from 'node:path';
 import { StringDecoder } from 'node:string_decoder';
 import { TextDecoder } from 'node:util';
@@ -22,6 +22,23 @@ const HELPER_REASONS = new Set([
   'eof_unavailable', 'child_setup_failed', 'session_inspection_failed', 'cleanup_timeout',
 ]);
 const EXPECTED_STOP_REASONS = new Set(['stopped', 'host_signal']);
+const CLEANUP_OPERATIONS = new Set(['none', 'waitid', 'child_state', 'leader_identity', 'leader_session',
+  'enumerate', 'member_identity', 'member_session', 'signal', 'reap', 'deadline', 'protocol']);
+const CLEANUP_FIELDS = ['structuralOperation', 'structuralErrno', 'observationOperation',
+  'observationErrno', 'observationIncomplete', 'observationResolved'];
+function validCleanupDiagnostic(value, cleanup) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)
+    || Object.keys(value).length !== CLEANUP_FIELDS.length
+    || Object.keys(value).some(key => !CLEANUP_FIELDS.includes(key))
+    || !CLEANUP_OPERATIONS.has(value.structuralOperation) || !CLEANUP_OPERATIONS.has(value.observationOperation)
+    || !Number.isInteger(value.structuralErrno) || value.structuralErrno < 0 || value.structuralErrno > 4095
+    || !Number.isInteger(value.observationErrno) || value.observationErrno < 0 || value.observationErrno > 4095
+    || value.structuralOperation === 'none' && value.structuralErrno !== 0
+    || value.observationOperation === 'none' && value.observationErrno !== 0
+    || typeof value.observationIncomplete !== 'boolean' || typeof value.observationResolved !== 'boolean'
+    || value.observationResolved === value.observationIncomplete) return false;
+  return cleanup !== 'confirmed' || value.structuralOperation === 'none' && !value.observationIncomplete;
+}
 
 /** Transport for the locally built, caller-approved platform helper.
  * POSIX fd 3 or Windows stderr carries helper lifecycle records; native terminal
@@ -115,12 +132,16 @@ export function startTerminalCommand({ id, command, args = [], cwd, env,
     try {
       child.stdin.write(frame, error => {
         pendingControls -= 1;
-        if (error && !final) fail('control_failed');
+        if (error) {
+          const code = ownedProcessErrorCode(error, 'control_failed');
+          if (!final || code === 'process_socket_exhausted' || code === 'cleanup_unconfirmed') fail(code);
+        }
       });
       return true;
-    } catch {
+    } catch (error) {
       pendingControls -= 1;
-      if (!final) fail('control_failed');
+      const code = ownedProcessErrorCode(error, 'control_failed');
+      if (!final || code === 'process_socket_exhausted' || code === 'cleanup_unconfirmed') fail(code);
       return false;
     }
   };
@@ -165,15 +186,17 @@ export function startTerminalCommand({ id, command, args = [], cwd, env,
       return;
     }
     if (record.type !== 'complete' || final || !ready
-      || Object.keys(record).some(key => !['type', 'pid', 'sessionId', 'exitCode', 'signal', 'cleanup', 'reason'].includes(key))
+      || Object.keys(record).some(key => !['type', 'pid', 'sessionId', 'exitCode', 'signal', 'cleanup', 'reason', 'cleanupDiagnostic'].includes(key))
       || record.pid !== ready.pid || record.sessionId !== ready.sessionId
       || !(record.exitCode === null || (Number.isInteger(record.exitCode) && record.exitCode >= 0 && record.exitCode <= (windows ? 0xffffffff : 255)))
       || (record.signal !== undefined && record.signal !== null && !/^SIG[A-Z0-9]{1,16}$/.test(record.signal))
       || !['confirmed', 'unconfirmed'].includes(record.cleanup)
+      || record.cleanupDiagnostic !== undefined && !validCleanupDiagnostic(record.cleanupDiagnostic, record.cleanup)
       || (record.reason !== undefined && !HELPER_REASONS.has(record.reason))) { badStatus(); return; }
     if ((record.exitCode === null && !record.signal && !record.reason)
       || (record.exitCode !== null && record.signal)) { badStatus(); return; }
     final = record;
+    if (final.cleanupDiagnostic) Object.freeze(final.cleanupDiagnostic);
     const reason = final.reason && !(lifetime.cancelled && EXPECTED_STOP_REASONS.has(final.reason))
       ? final.reason : undefined;
     lifetime.endedWith(final.exitCode, final.signal, reason);
@@ -226,20 +249,23 @@ export function startTerminalCommand({ id, command, args = [], cwd, env,
       shell: false, detached: !windows, windowsHide: true,
       stdio: windows ? ['pipe', 'pipe', 'pipe'] : ['pipe', 'pipe', 'pipe', 'pipe'],
     });
-  } catch {
-    lifetime.notStarted('spawn_failed');
+  } catch (error) {
+    lifetime.notStarted(ownedProcessErrorCode(error, 'spawn_failed'));
     return handle;
   }
   child.once('spawn', () => { helperSpawned = true; });
-  child.on('error', () => {
+  child.on('error', error => {
     if (!child.pid && !helperSpawned) spawnFailed = true;
-    fail('spawn_failed');
+    fail(ownedProcessErrorCode(error, 'spawn_failed'));
   });
-  child.stdin.on('error', () => { if (!final) fail('control_failed'); });
-  child.stdout.on('error', () => fail('output_failed'));
+  child.stdin.on('error', error => {
+    const code = ownedProcessErrorCode(error, 'control_failed');
+    if (!final || code === 'process_socket_exhausted' || code === 'cleanup_unconfirmed') fail(code);
+  });
+  child.stdout.on('error', error => fail(ownedProcessErrorCode(error, 'output_failed')));
   const metadata = windows ? child.stderr : child.stdio[3];
-  if (!windows) child.stderr.on('error', () => fail('helper_diagnostic_failed'));
-  metadata.on('error', badStatus);
+  if (!windows) child.stderr.on('error', error => fail(ownedProcessErrorCode(error, 'helper_diagnostic_failed')));
+  metadata.on('error', error => { protocolInvalid = true; fail(ownedProcessErrorCode(error, 'helper_protocol_failed')); });
   child.stdout.on('data', chunk => {
     if (lifetime.finished || lifetime.failure || lifetime.cancelled) return;
     outputBytes += chunk.length;
@@ -288,13 +314,21 @@ export function startTerminalCommand({ id, command, args = [], cwd, env,
   });
   child.once('close', (code, name) => {
     if (spawnFailed && !helperSpawned) {
-      lifetime.notStarted('spawn_failed');
+      lifetime.notStarted(lifetime.failure ?? 'spawn_failed');
       return;
     }
     if (!lifetime.cancelled && (code !== 0 || name)) fail('helper_failed');
     if (!final) lifetime.endedWith(null);
-    lifetime.ownership(Boolean(ready && final && !protocolInvalid && final.cleanup === 'confirmed'
-      && final.pid === ready.pid && final.sessionId === ready.sessionId));
+    const confirmed = Boolean(ready && final && !protocolInvalid && final.cleanup === 'confirmed'
+      && final.pid === ready.pid && final.sessionId === ready.sessionId);
+    lifetime.ownership(confirmed);
+    // This event follows stream closure, so late malformed records cannot turn
+    // an early cleanup claim into misleading persisted evidence. It adds no
+    // authority and never clears a previously uncertain lifetime.
+    emit({ type: 'terminal_cleanup', agentId: id, cleanup: confirmed ? 'confirmed' : 'unconfirmed',
+      ...(ready ? { pid: ready.pid, sessionId: ready.sessionId } : {}),
+      ...(!protocolInvalid && final ? { ...(final.reason ? { reason: final.reason } : {}),
+        ...(final.cleanupDiagnostic ? { cleanupDiagnostic: final.cleanupDiagnostic } : {}) } : {}) });
     lifetime.closed();
   });
   lifetime.arm();

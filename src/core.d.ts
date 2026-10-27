@@ -303,6 +303,21 @@ export interface ProjectWorkspace {
   sessionRoot: string;
 }
 
+export interface LocalMemoryDiagnostic {
+  readonly sampleStartedAtMs: number;
+  readonly sampledAtMs: number;
+  readonly source: string;
+  readonly totalBytes: number;
+  /** The host os.freemem() result; on Linux this can include reclaimable memory. */
+  readonly rawFreeBytes: number;
+  readonly availableBytes: number;
+  readonly rssBytes: number;
+  readonly memoryLimitBytes: number;
+  readonly minimumFreeBytes: number;
+  readonly rssExceeded: boolean;
+  readonly availableBelowReserve: boolean;
+}
+
 export interface CommandOutcome {
   status: 'succeeded' | 'failed' | 'cancelled';
   exitCode: number | null;
@@ -313,6 +328,7 @@ export interface CommandOutcome {
   textTruncated?: boolean | undefined;
   sessionId?: string | undefined;
   usage?: Record<string, unknown> | undefined;
+  memoryDiagnostic?: LocalMemoryDiagnostic | undefined;
 }
 
 export interface ProjectStatusEntry {
@@ -466,6 +482,16 @@ export interface ProjectInspection extends ProjectWorkspace {
 }
 
 /** Unlike workflow metadata, project events include private native stdout/stderr. */
+export type TerminalCleanupOperation = 'none' | 'waitid' | 'child_state' | 'leader_identity' | 'leader_session'
+  | 'enumerate' | 'member_identity' | 'member_session' | 'signal' | 'reap' | 'deadline' | 'protocol';
+export interface TerminalCleanupDiagnostic {
+  readonly structuralOperation: TerminalCleanupOperation;
+  readonly structuralErrno: number;
+  readonly observationOperation: TerminalCleanupOperation;
+  readonly observationErrno: number;
+  readonly observationIncomplete: boolean;
+  readonly observationResolved: boolean;
+}
 export type ProjectEvent = Readonly<{
   type: string;
   sessionId: string;
@@ -492,6 +518,9 @@ export type ProjectEvent = Readonly<{
   model?: string | undefined;
   command?: string | undefined;
   tool?: string | undefined;
+  cleanup?: 'confirmed' | 'unconfirmed' | undefined;
+  cleanupDiagnostic?: TerminalCleanupDiagnostic | undefined;
+  reason?: string | undefined;
 }>;
 
 export interface ProjectReport {
@@ -700,6 +729,11 @@ export interface BuildProposal {
     readonly owns: readonly string[]; readonly dependsOn: readonly string[]; readonly label: string; readonly model?: string | undefined }[];
   readonly warnings: readonly string[];
 }
+export function reviseBuildProposal(proposal: BuildProposal, options: {
+  tasks: readonly { id: string; worker: string; task: string; owns: readonly string[];
+    dependsOn?: readonly string[] | undefined; label?: string | undefined; model?: string | undefined }[];
+  workers: readonly (Partial<ProjectAgentPlan> & { id: string; command: string; args: readonly string[]; label?: string | undefined })[];
+}): BuildProposal;
 export function createCoordinator(options: { session: AgentSession }): {
   readonly sessionId?: string | undefined; stop(): void;
   routeMessage(text: string, options?: { signal?: AbortSignal | undefined; context?: string | undefined }): Promise<{
@@ -715,6 +749,44 @@ export function createCoordinator(options: { session: AgentSession }): {
 export const defaultStateDirectory: string;
 export function loadPreferences(options?: { directory?: string | undefined }): Promise<Record<string, unknown>>;
 export function savePreferences(preferences: Record<string, unknown>, options?: { directory?: string | undefined }): Promise<void>;
+export function archivePreferences(options?: { directory?: string | undefined }): Promise<string>;
+export type SubscriptionClient = 'codex' | 'claude';
+export interface NativeAccountDiscovery {
+  id: SubscriptionClient; kind: SubscriptionClient; label: string;
+  account: 'chatgpt' | 'subscription'; command?: string | undefined;
+  status: 'ready' | 'login_required' | 'unavailable' | 'missing';
+  message: string; inferenceAccess: 'unverified'; error?: string | undefined;
+  installation?: { npmPackage: string; url: string } | undefined;
+}
+export function resolveNativeClientExecutable(kind: SubscriptionClient, explicitCommand?: string): Promise<string>;
+export function discoverAgentAccounts(options?: {
+  signal?: AbortSignal | undefined; cwd?: string | undefined;
+  commands?: Partial<Record<SubscriptionClient, string>> | undefined;
+}): Promise<NativeAccountDiscovery[]>;
+export function getNativeLoginCommand(options: { kind: SubscriptionClient; command?: string | undefined }): Promise<{
+  kind: SubscriptionClient; command: string; args: string[]; account: 'chatgpt' | 'subscription';
+  unsetEnv: string[]; timeoutMs: number;
+}>;
+export function installNativeClient(options: { kind: SubscriptionClient; directory: string;
+  signal?: AbortSignal | undefined; onProgress?: ((event: Readonly<Record<string, unknown>>) => unknown) | undefined;
+}): Promise<{ kind: SubscriptionClient; command: string; version: string }>;
+export interface LocalModelChoice {
+  id: string; label: string; description: string; repository: string; revision: string;
+  filename: string; bytes: number; sha256: string; minimumMemoryBytes: number;
+  license: string; contextSize: number; url: string; sourceUrl: string; licenseUrl: string;
+  suitable: boolean; reasons: string[];
+}
+export function listLocalModelChoices(options?: {
+  memoryBytes?: number | undefined; availableDiskBytes?: number | undefined;
+}): LocalModelChoice[];
+export function installLocalModel(options: { id: string; directory: string; signal?: AbortSignal | undefined;
+  onProgress?: ((event: Readonly<Record<string, unknown>>) => unknown) | undefined;
+}): Promise<{ id: string; modelPath: string; path: string; bytes: number; sha256: string;
+  reused: boolean; model: Omit<LocalModelChoice, 'suitable' | 'reasons'> }>;
+export function acquireLlamaRuntime(options: { directory: string; signal?: AbortSignal | undefined;
+  onProgress?: ((event: Readonly<Record<string, unknown>>) => unknown) | undefined;
+}): Promise<{ path: string; executable: string; receiptPath: string; version: string;
+  platform: string; arch: string; reused: boolean; [key: string]: unknown }>;
 export interface LocalModelMetadata { id: string; bytes?: number | undefined; digest?: string | undefined; }
 export interface LocalEndpointMetadata { kind: 'ollama' | 'llama'; endpoint: string; apiBaseUrl: string; status: 'ready'; models: LocalModelMetadata[]; }
 export function checkLocalEndpoint(options?: { kind?: 'ollama' | 'llama' | undefined; endpoint?: string | undefined; signal?: AbortSignal | undefined }): Promise<LocalEndpointMetadata>;
@@ -726,6 +798,7 @@ export function pullOllamaModel(options: { model: string; command?: string | und
 export function startLlamaServer(options: { modelPath: string; command?: string | undefined; port?: number | undefined;
   contextSize?: number | undefined; memoryLimitBytes?: number | undefined; minimumFreeBytes?: number | undefined;
   gpuLayers?: number | undefined; modelId?: string | undefined; startupTimeoutMs?: number | undefined;
+  startupMaxRetries?: number | undefined;
   timeoutMs?: number | undefined; signal?: AbortSignal | undefined; onEvent?: ((event: Readonly<Record<string, unknown>>) => unknown) | undefined }): Promise<{
     readonly pid: number | null; readonly endpoint: string; readonly apiBaseUrl: string; readonly modelId: string;
     readonly ready: Promise<LocalEndpointMetadata>; readonly completion: Promise<CommandOutcome>;

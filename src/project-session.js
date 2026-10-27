@@ -14,6 +14,7 @@ export { inspectProjectContributionAttempt, reconcileProjectContributionAttempt 
 import { normalizeProjectPrerequisites, preflightProjectPlan, preflightProjectRuntime } from './project-plan.js';
 import { normalizeNativeAgent, createNativeObserver, createNativeResumePlan } from './native-agent.js';
 import { createCodingAgentSession } from './coding-agent.js';
+import { throwOnResourceExhaustion } from './bounded-fetch.js';
 
 const ID = /^[A-Za-z][A-Za-z0-9_-]{0,63}$/;
 const MAX_LOG_BYTES = 80 * 1024 * 1024;
@@ -265,7 +266,8 @@ function sessionRunner(plan, state, { onEvent, signal, ptyHelper, resume, onAppr
     if (observer) record.nativeState = observer.end(outcome);
     const setupError = record.setupError;
     record.commandOutcome = outcome;
-    record.result = outcome.error === 'cleanup_unconfirmed' || !setupError
+    record.result = outcome.error === 'cleanup_unconfirmed' || setupError !== 'cleanup_unconfirmed'
+        && (outcome.error?.endsWith('_socket_exhausted') || !setupError)
       ? outcome : { ...outcome, status: 'failed', error: setupError };
     if (record.result.status === 'succeeded' && record.nativeState?.protocol === 'jsonl'
         && record.nativeState.status !== 'completed') {
@@ -273,6 +275,7 @@ function sessionRunner(plan, state, { onEvent, signal, ptyHelper, resume, onAppr
         ? 'native_turn_failed' : 'native_completion_unconfirmed' };
     }
     record.status = record.result.status;
+    if (typeof record.result.error === 'string' && record.result.error.endsWith('_socket_exhausted')) stopAll();
     record.finishedAt ??= new Date().toISOString();
     return record.result;
   };
@@ -414,7 +417,15 @@ function sessionRunner(plan, state, { onEvent, signal, ptyHelper, resume, onAppr
         const record = agentRecord(state, agent.id);
         const commandSignal = AbortSignal.any([context.signal, localStops.get(agent.id).signal]);
         if (commandSignal.aborted) { record.status = 'cancelled'; throw new Error('project_cancelled'); }
-        const prompt = resume?.prompt ?? `${plan.goal}\n\nYour task: ${agent.task}\nDeclared file ownership: ${agent.owns.join(', ')}\nWork in this task's Git worktree. Do not integrate another task or change the original checkout. Do not add or run automated test suites. Report your changes and limitations.${agent.dependsOn.length ? `\n\nSuccessful direct dependency results (reference their worktrees read-only; integration remains operator-controlled):\n${JSON.stringify(assignment.inputs).slice(0, 24_000)}` : ''}`;
+        const prompt = resume?.prompt ?? [
+          'Koto execution assignment. The calling host has started this prepared task. Carry out the assigned work now; an inspection-only assignment remains read-only.',
+          'Koto planning and launch review precede this execution stage. A general request in the original project goal to review a plan refers to that earlier stage. Ask about unresolved task-specific decisions when needed; native per-action permissions and later contribution integration still require their own authorization.',
+          `Project goal (context from planning):\n${plan.goal}`,
+          `Assigned task (execute within this worktree):\n${agent.task}`,
+          `Declared file ownership: ${agent.owns.join(', ')}`,
+          'Work in this task\'s Git worktree. Do not integrate another task or change the original checkout. Do not add or run automated test suites. Report your actual changes and limitations.',
+          ...(agent.dependsOn.length ? [`Successful direct dependency results (reference their worktrees read-only; integration remains operator-controlled):\n${JSON.stringify(assignment.inputs).slice(0, 24_000)}`] : []),
+        ].join('\n\n');
         const values = { prompt, workspace: record.workspace.path, project: state.projectRoot, goal: plan.goal, agent: agent.id };
         const args = resume ? [...resume.continuation.args] : agent.args.map(arg => expand(arg, values));
         let tail = '';
@@ -492,7 +503,8 @@ function sessionRunner(plan, state, { onEvent, signal, ptyHelper, resume, onAppr
               if (resume && result.sessionId !== undefined && result.sessionId !== resume.continuation.expectedSessionId) {
                 if (agent.nativeKind === 'local') record.localContinuationUnavailableReason = 'project_native_session_changed';
                 return { ...outcome, status: 'failed', exitCode: result.exitCode ?? null,
-                  error: result.error === 'cleanup_unconfirmed' ? result.error : 'project_native_session_changed' };
+                  error: result.error === 'cleanup_unconfirmed' || result.error?.endsWith('_socket_exhausted')
+                    ? result.error : 'project_native_session_changed' };
               }
               if (typeof result.text === 'string') {
                 outputTails.set(agent.id, Buffer.from(result.text).subarray(-65_536));
@@ -536,9 +548,14 @@ function sessionRunner(plan, state, { onEvent, signal, ptyHelper, resume, onAppr
         } catch (error) {
           if (record.status === 'running') {
             handles.get(agent.id)?.stop();
+            let setupError = ['project_expanded_input_too_large', 'project_initial_input_rejected'].includes(error.message)
+              ? error.message : 'project_command_start_failed';
+            try { throwOnResourceExhaustion(error); }
+            catch (fatal) { setupError = fatal.code?.endsWith('cleanup_unconfirmed') ? 'cleanup_unconfirmed' : fatal.code; }
             record.status = 'failed';
-            record.result = { status: 'failed', exitCode: null, error: ['project_expanded_input_too_large', 'project_initial_input_rejected'].includes(error.message) ? error.message : 'project_command_start_failed' };
+            record.result = { status: 'failed', exitCode: null, error: setupError };
             record.setupError = record.result.error;
+            if (setupError?.endsWith('_socket_exhausted')) stopAll();
             record.finishedAt = new Date().toISOString();
             if (!handles.has(agent.id)) applyOutcome(record, record.result);
             persist(state);

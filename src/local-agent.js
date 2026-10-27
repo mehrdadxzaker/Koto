@@ -4,6 +4,7 @@ import { link, lstat, open, opendir, realpath, rename, unlink } from 'node:fs/pr
 import path from 'node:path';
 import { startCommand } from './command-session.js';
 import { resolveAgentExecutable } from './launch-preflight.js';
+import { throwOnResourceExhaustion } from './bounded-fetch.js';
 
 const CONTEXT_BYTES = 8192;
 const FILE_BYTES = 256 * 1024;
@@ -339,6 +340,7 @@ export function createLocalAgentSession({ id = 'local', endpoint, model, cwd, mo
     handle.endInput();
     const result = await handle.completion;
     if (result.error === 'cleanup_unconfirmed') throw failure('local_agent_cleanup_unconfirmed', 'Owned command cleanup could not be confirmed; inspect its process before continuing.');
+    throwOnResourceExhaustion({ code: result.error });
     return { ...result, ...(exceeded ? { status: 'failed', error: 'output_limit' } : {}), ...output };
   }
 
@@ -368,9 +370,11 @@ export function createLocalAgentSession({ id = 'local', endpoint, model, cwd, mo
     return assemble();
   }
 
-  async function request(messages, signal) {
+  async function request(messages, signal, inspectionRequired) {
+    const requestTools = inspectionRequired ? READ_TOOLS : tools;
     const response = await fetch(url, { method: 'POST', redirect: 'error', signal,
-      headers: { 'content-type': 'application/json' }, body: JSON.stringify({ model, messages, tools, tool_choice: 'auto',
+      headers: { 'content-type': 'application/json' }, body: JSON.stringify({ model, messages, tools: requestTools,
+        tool_choice: inspectionRequired ? 'required' : 'auto', ...(inspectionRequired ? { parallel_tool_calls: false } : {}),
         stream: false, max_tokens: maxOutputTokens, temperature: 0.2 }) });
     if (!response.ok || !response.body) {
       await response.body?.cancel();
@@ -406,6 +410,8 @@ export function createLocalAgentSession({ id = 'local', endpoint, model, cwd, mo
       const joined = AbortSignal.any([controller.signal, deadline, ...(signal ? [signal] : [])]);
       const pendingTurn = history.length && !completedTurn(history.at(-1)) ? history.pop() : [];
       const turn = [...copied(pendingTurn), { role: 'user', content: prompt }];
+      const needsInspection = mode === 'coding'
+        && ![...history, pendingTurn].some(previous => previous.some(message => message.role === 'tool'));
       const reports = [];
       let requestCount = 0, reply = '', toolCount = 0, savedTurn = false;
       const result = (status, error) => {
@@ -433,7 +439,13 @@ export function createLocalAgentSession({ id = 'local', endpoint, model, cwd, mo
         // Keep private tool diagnostics separate from the shared worker outcome.
         // Project integration must see cleanup failure even for a local Agent.
         const outcomeError = error === 'local_agent_cleanup_unconfirmed' ? 'cleanup_unconfirmed' : error;
+        const errorMessage = error === 'local_agent_required_inspection_missing'
+          ? 'The selected local model returned text instead of the required native inspection call. Its reply was retained and was not executed. Choose another configured model or inspect the retained response before continuing.'
+          : error === 'local_agent_output_limit'
+            ? 'The local model response was truncated. No tool from that response was executed; any earlier partial work remains available for review.'
+            : undefined;
         return attachContinuation({ status, text: reply, ...(outcomeError ? { error: outcomeError } : {}),
+          ...(errorMessage ? { errorMessage } : {}),
           usage, sessionId });
       };
       try {
@@ -447,7 +459,12 @@ export function createLocalAgentSession({ id = 'local', endpoint, model, cwd, mo
           emit({ type: 'request', model, turn: iteration + 1 }, controller);
           joined.throwIfAborted();
           requestCount += 1;
-          const data = await request(messages, joined);
+          // The pinned runtime's required tool choice uses mandatory native
+          // grammar. First inspect through read-only tools, then expose normal
+          // coding tools. Never recover executable calls from assistant text.
+          const inspectionRequired = needsInspection && iteration === 0;
+          const requestToolNames = new Set((inspectionRequired ? READ_TOOLS : tools).map(item => item.function.name));
+          const data = await request(messages, joined, inspectionRequired);
           reports.push(data.usage && typeof data.usage === 'object' && !Array.isArray(data.usage) ? data.usage : null);
           const choice = data.choices?.[0], message = choice?.message;
           if (!message || message.content !== null && message.content !== undefined && typeof message.content !== 'string'
@@ -456,20 +473,27 @@ export function createLocalAgentSession({ id = 'local', endpoint, model, cwd, mo
           emit({ type: 'response', model, text: reply, ...(data.usage ? { usage: data.usage } : {}) }, controller);
           joined.throwIfAborted();
           const calls = message.tool_calls ?? [];
+          // A parsed call is not authority when generation was truncated.
+          // Preserve its text/failure, but never execute incomplete output.
+          if (choice.finish_reason === 'length') {
+            if (reply.trim()) turn.push({ role: 'assistant', content: reply });
+            return result('failed', 'local_agent_output_limit');
+          }
           if (!calls.length) {
-            if (choice.finish_reason === 'length') {
+            if (inspectionRequired) {
               if (reply.trim()) turn.push({ role: 'assistant', content: reply });
-              return result('failed', 'local_agent_output_limit');
+              return result('failed', 'local_agent_required_inspection_missing');
             }
             if (!reply.trim()) return result('failed', 'local_agent_empty_response');
             turn.push({ role: 'assistant', content: reply });
             return result('succeeded');
           }
-          if (calls.length > 4 || toolCount + calls.length > MAX_TOOLS) throw failure('local_agent_tool_limit', 'The local model exceeded its bounded tool-call budget.');
+          if (calls.length > (inspectionRequired ? 1 : 4) || toolCount + calls.length > MAX_TOOLS) throw failure('local_agent_tool_limit', 'The local model exceeded its bounded tool-call budget.');
           const ids = new Set();
           for (const call of calls) {
             if (!call || call.type !== 'function' || !text(call.id) || !call.id || call.id.length > 256 || ids.has(call.id)
-              || !call.function || !text(call.function.name) || !text(call.function.arguments) || Buffer.byteLength(call.function.arguments) > 64 * 1024) {
+              || !call.function || !text(call.function.name) || !requestToolNames.has(call.function.name)
+              || !text(call.function.arguments) || Buffer.byteLength(call.function.arguments) > 64 * 1024) {
               throw failure('local_agent_response_invalid', 'The local model returned an invalid tool call.');
             }
             ids.add(call.id);
@@ -493,6 +517,7 @@ export function createLocalAgentSession({ id = 'local', endpoint, model, cwd, mo
               else throw failure('local_agent_tool_unavailable', 'This tool is unavailable in the selected session mode.');
             } catch (error) {
               if (error.code === 'local_agent_cleanup_unconfirmed' || joined.aborted) throw error;
+              throwOnResourceExhaustion(error);
               observation = { status: 'failed', error: error.code ?? 'local_agent_tool_failed', message: bounded(error.message ?? 'Tool failed.', 512) };
             }
             turn.push({ role: 'tool', tool_call_id: call.id, content: bounded(JSON.stringify(observation)) });
@@ -503,6 +528,8 @@ export function createLocalAgentSession({ id = 'local', endpoint, model, cwd, mo
         return result('failed', 'local_agent_turn_limit');
       } catch (error) {
         if (error.code === 'local_agent_cleanup_unconfirmed') return result('failed', error.code);
+        try { throwOnResourceExhaustion(error); }
+        catch (fatal) { return result('failed', fatal.code); }
         if (deadline.aborted) return result('failed', 'local_agent_timeout');
         if (controller.signal.reason?.code === 'local_agent_observer_failed') return result('failed', 'local_agent_observer_failed');
         if (joined.aborted) return result('cancelled', controller.signal.reason?.code ?? 'local_agent_cancelled');

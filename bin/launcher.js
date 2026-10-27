@@ -4,12 +4,12 @@ import { homedir } from 'node:os';
 import path from 'node:path';
 import { createAgentProfile, AGENT_PROFILE_DEFAULTS, inspectLaunchProject,
   resolveAgentExecutable, inspectProjectSession, integrateProjectSession,
-  buildTerminalHelper, resolveTerminalHelper } from '../src/index.js';
+  buildTerminalHelper, resolveTerminalHelper, defaultStateDirectory } from '../src/index.js';
 import { runProjectPlan, runProjectResume } from './project.js';
 
 const visible = value => stripVTControlCharacters(String(value)).replace(/[\x00-\x08\x0b-\x1f\x7f-\x9f]/g, '');
 const cancelled = () => Object.assign(new Error('Launcher closed.'), { code: 'launch_cancelled' });
-const helperDirectory = () => path.join(homedir(), '.koto', 'native');
+const helperDirectory = () => path.join(defaultStateDirectory, 'native');
 
 function prompts(write, signal) {
   const terminal = createInterface({ input: process.stdin, output: process.stdout });

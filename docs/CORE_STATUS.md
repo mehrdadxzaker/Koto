@@ -5,6 +5,93 @@ delivery. The implementation below is available for acceptance; successful
 native interaction on every target host has not been observed. Core verification
 comes before another UI or plugin. No registry release is claimed.
 
+## CLI onboarding candidate — October 27, 2026
+
+The CLI now discovers native Codex/ChatGPT and Claude Code subscription logins,
+offers native sign-in or private client installation, and optionally acquires
+pinned local weights and a compiler-free llama.cpp binary. It remembers project
+choices and saved builds, exposes editable/revalidated plans, and supports saved
+review/integration/continuation without copying session-directory paths. The
+same setup and plan operations are shared core exports for later delivery
+adapters. Provider API keys are not required for native subscription use.
+
+### Installed observations and retained failures
+
+Candidate `9b643fd8a234f22a94a42599c651acfce205c59a` passed all seven
+[source CI jobs](https://github.com/mehrdadxzaker/Koto/actions/runs/40575030474).
+A fresh offline `npm exec` installation matched all 52 packaged payloads to that
+commit. The actual CLI discovered the existing ChatGPT login, completed a native
+conversation before selecting a project, rejected a non-Git folder with recovery
+guidance, and then selected a clean project. Declining the offered Claude native
+sign-in preserved the working account and project. Exit was zero and owned
+cleanup was confirmed; no local server was started in that observation.
+
+A separate two-Codex PTY observation on the same `9b643fd` package completed
+native question/answer input, resize/reflow and detach controls, stopping the
+reader while its peer continued, and an explicitly reviewed 98-word operator
+note. Integration commit `78f0c1e0ea6b46eb4590b501e3c5d2abd3056925` contains only
+that note in the separate integration worktree; the original project remained
+clean. Both product cleanup events were confirmed and the outer driver retained
+no owned processes. Aggregate CLI exit was 1 because the reader was deliberately
+cancelled; the writer succeeded. The earlier empty-review deadline and OpenCode
+cleanup failure remain separate records. The OpenCode failure lacked a cause
+receipt and was not reproduced by this positive two-Codex observation.
+
+Earlier installed candidates also completed optional runtime/model acquisition,
+remembered returning-user setup, plan editing, saved review and explicit
+integration. After correcting the planning/execution handoff, actual native Codex
+execution produced a useful 25-line documentation contribution that was reviewed
+and integrated in a separate worktree. The original checkout remained clean.
+The small 1.5B model failed its required native inspection request and produced
+no useful change; its plaintext/truncated reply was retained and never executed.
+The catalog now describes that model as experimental rather than promising
+successful coding. Hardware guidance and a loaded model do not establish task
+quality.
+
+Two larger 7B acquisitions on the Mac failed after about 3,458 MiB and 415 MiB.
+Incomplete assets were removed, existing assets were preserved, and both CLIs
+exited zero with confirmed cleanup. The transfer causes remain unconfirmed. A
+separate Linux native observation reached two actual OpenCode PTYs, but the
+runtime stopped with `local_memory_limit` and both worktrees had no changes.
+Its driver also labeled this as cleanup failure; the retained runtime outcome
+does not itself report `cleanup_unconfirmed`. The old receipt lacks the triggering
+RSS and available-memory values, so it cannot identify which limit fired or
+establish model quality. No Windows native run followed that failure.
+
+Subsequent diagnostics retain the exact first memory-guard sample in the error
+and completion result, including both thresholds and which comparison failed.
+They add no sampling or retries and do not change the memory policy. Linux
+`os.freemem()` on the observed Node/libuv version
+[reads `MemAvailable` first](https://github.com/nodejs/node/blob/v22.23.3/deps/uv/src/unix/linux.c#L1965);
+it must not be described as Linux `MemFree`. Setup error handling also preserves
+socket/file-descriptor exhaustion as a fatal recovery boundary. These later
+changes require their own source/package review; the observations above remain
+bound to their original candidates. Useful commercial/local cooperation and
+complete supported-platform acceptance remain pending in #543.
+
+The first installed pre-final candidate found the existing ChatGPT login and a
+Claude Code installation outside PATH that required sign-in. It downloaded and
+verified the official Qwen2.5 Coder 1.5B Q4_K_M asset (1,117,320,768 bytes), reused
+a verified llama.cpp b11935 runtime, and then refused model startup under the
+old raw-free-memory check. Observed raw free memory was about 0.95 GiB against
+the 1 GiB reserve; no local inference occurred. The owned CLI exited zero with
+no model listener. The exact pre-final package SHA-256 was
+`764adac9a90daf1915093c2ba791cd78dec1e750137e4108dc019d0c5bda9590`.
+
+The revised macOS guard retains that failure and the same reserve, uses a
+bounded native `memory_pressure -Q` estimate, and retains raw free pages
+separately. A read-only observation returned 401,866,752 raw free bytes and a
+23,364,622,090-byte system estimate. This metric observation does not establish
+successful startup or model work. Windows setup/native workers use the owned
+helper pipe route; actual native Windows behavior still requires observation.
+
+Source/scope, syntax, declarations and package checks are separate from the
+installed real-project journey. The designated acceptance owner records that
+final artifact's fresh/returning workflow, native continuation, cooperation and
+platform observations in [#543](https://github.com/mehrdadxzaker/Koto/issues/543).
+The remaining [acceptance checklist](USER_ACCEPTANCE.md) stays explicit until
+those outcomes are observed. Prior checkpoints below are preserved.
+
 ## Implemented source
 
 - Shared concurrent scheduling, separate Git worktrees, bounded output/input,
