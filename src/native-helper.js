@@ -279,6 +279,15 @@ export async function buildDarwinPtyHelper({ directory = path.join(homedir(), '.
       throw failure('darwin_pty_compiler_unrecognized', 'clang must be a protected executable inside the selected Apple developer toolchain.');
     }
     const env = compilerEnvironment(developer, compiler);
+    const selectedSdk = await runTool('/usr/bin/xcrun', ['--sdk', 'macosx', '--show-sdk-path'], { env });
+    if (selectedSdk.exitCode !== 0 || !path.isAbsolute(selectedSdk.stdout.trim())) {
+      throw failure('darwin_pty_sdk_required', 'The selected Apple developer toolchain must provide an existing macOS SDK. No SDK was downloaded.');
+    }
+    const sdk = await realpath(selectedSdk.stdout.trim());
+    const sdkInfo = await lstat(sdk);
+    if (!sdkInfo.isDirectory() || (sdkInfo.mode & 0o022) !== 0 || (!own(sdkInfo) && sdkInfo.uid !== 0)) {
+      throw failure('darwin_pty_sdk_unrecognized', 'The selected macOS SDK must be an existing protected directory.');
+    }
     const version = await runTool(compiler, ['--version'], { env });
     if (version.exitCode !== 0 || !version.stdout.trim()) throw failure('darwin_pty_compiler_unrecognized', 'The selected clang compiler did not report its version.');
     staging = await mkdtemp(path.join(location, '.darwin-pty-build-'));
@@ -286,7 +295,7 @@ export async function buildDarwinPtyHelper({ directory = path.join(homedir(), '.
     const output = path.join(staging, 'darwin-pty');
     await writeFile(snapshot, source, { mode: 0o600, flag: 'wx' });
     const args = ['-O2', '-std=c11', '-D_DARWIN_C_SOURCE', '-Wall', '-Wextra', '-Werror',
-      '-arch', process.arch === 'arm64' ? 'arm64' : 'x86_64', snapshot, '-o', output];
+      '-arch', process.arch === 'arm64' ? 'arm64' : 'x86_64', '-isysroot', sdk, snapshot, '-o', output];
     const compiled = await runTool(compiler, args, { env, timeoutMs: 60_000 });
     if (compiled.exitCode !== 0) throw failure('darwin_pty_compile_failed', 'clang did not build the Darwin helper. Inspect the bounded compiler diagnostics.', compiled.stderr);
     await chmod(output, 0o700);
@@ -294,7 +303,7 @@ export async function buildDarwinPtyHelper({ directory = path.join(homedir(), '.
     if (!executableImage(binary)) throw failure('darwin_pty_build_unrecognized', 'clang did not produce the expected macOS executable architecture.');
     const receipt = { kind: RECEIPT_KIND, schemaVersion: 1, helperProtocolVersion: 1, path: target.binary,
       platform: 'darwin', arch: process.arch, sourceSha256, binarySha256: digest(binary),
-      compiler, compilerVersion: version.stdout.trim().split('\n')[0].slice(0, 1024),
+      compiler, compilerVersion: version.stdout.trim().split('\n')[0].slice(0, 1024), sdk,
       builtAt: new Date().toISOString(), sourceBytes: source.length, binaryBytes: binary.length };
     const receiptStage = path.join(staging, 'receipt.json');
     await writeFile(receiptStage, `${JSON.stringify(receipt, null, 2)}\n`, { mode: 0o600, flag: 'wx' });

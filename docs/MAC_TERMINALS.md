@@ -1,9 +1,9 @@
 # Experimental Mac terminal transport
 
 This branch adds optional Darwin PTY sessions to the shared project-session
-core. **Actual Darwin compilation and real-agent PTY operation are still
-pending.** The earlier Codex/OpenCode Mac demonstration used pipes; it does not
-verify this terminal backend.
+core. **Build it with the intended Mac's existing SDK before use; real-agent
+PTY operation is still unverified.** The earlier Codex/OpenCode Mac demonstration
+used pipes; it does not verify this terminal backend.
 
 ## Prepare the exact source and helper
 
