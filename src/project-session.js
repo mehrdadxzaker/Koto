@@ -7,6 +7,7 @@ import { startCommand } from './command-session.js';
 import { startDarwinPtyCommand } from './darwin-pty-session.js';
 import { resolveDarwinPtyHelper } from './native-helper.js';
 import { createProjectWorkspaces, inspectWorkspace, integrateWorkspace } from './project-workspaces.js';
+import { normalizeProjectPrerequisites, preflightProjectPlan } from './project-plan.js';
 
 const ID = /^[A-Za-z][A-Za-z0-9_-]{0,63}$/;
 const STATE_FILE = 'project-session.json';
@@ -72,6 +73,8 @@ export function validateProjectPlan(source) {
   const plan = { schemaVersion: 1, project: source.project, goal: source.goal, agents, timeoutMs, maxConcurrency,
     ...(source.controlRoot === undefined ? {} : { controlRoot: source.controlRoot }) };
   if (source.nativeHelperDirectory !== undefined) plan.nativeHelperDirectory = source.nativeHelperDirectory;
+  const prerequisites = normalizeProjectPrerequisites(source.prerequisites, ids);
+  if (Object.keys(prerequisites).length) plan.prerequisites = prerequisites;
   if (Buffer.byteLength(JSON.stringify(plan)) > 512 * 1024) fail('project_plan_too_large');
   return plan;
 }
@@ -111,9 +114,13 @@ async function inspect(state, id) {
 
 async function integrate(state, id, approve) {
   const record = agentRecord(state, id);
-  if (state.active || ['pending', 'running'].includes(record.status)) fail('project_session_must_finish_before_integration');
+  if (state.active || state.agents.some(agent => ['pending', 'running'].includes(agent.status))) fail('project_session_must_finish_before_integration');
   if (!['succeeded', 'failed', 'cancelled'].includes(record.status)) fail('project_agent_not_reviewable');
-  if (record.result?.error === 'cleanup_unconfirmed') fail('project_agent_cleanup_not_confirmed');
+  // All session agents share Git metadata and may retain host permissions.
+  // An unresolved peer can still write while another contribution integrates.
+  // Consult retained outcomes as well so reopening the API cannot clear it.
+  if (state.agents.some(agent => agent.result?.error === 'cleanup_unconfirmed'
+      || agent.commandOutcome?.error === 'cleanup_unconfirmed')) fail('project_agent_cleanup_not_confirmed');
   if (!string(approve, 256)) fail('project_review_token_required');
   const review = await inspect(state, id);
   if (review.outsideOwnership.length) fail('project_changes_outside_declared_ownership');
@@ -153,6 +160,16 @@ export async function createProjectSession(source, { onEvent, signal } = {}) {
   const plan = validateProjectPlan(source);
   if ((onEvent !== undefined && typeof onEvent !== 'function') || (signal !== undefined && !(signal instanceof AbortSignal))) fail('project_invalid_observer_or_signal');
   if (signal?.aborted) fail('project_cancelled');
+  const readiness = await preflightProjectPlan(plan);
+  if (!readiness.ok) {
+    const error = new Error('project_preflight_failed');
+    error.checks = readiness.checks;
+    throw error;
+  }
+  if (signal?.aborted) fail('project_cancelled');
+  // Bind launch to the executable inspected on absolute PATH entries. A worker
+  // worktree must not change command selection via a relative PATH entry.
+  for (const agent of plan.agents) agent.command = readiness.executables[agent.id];
   // Resolving verifies an explicitly built local artifact. Session launch never
   // invokes a compiler, installs a runtime or starts a model during preflight.
   const ptyHelper = plan.agents.some(agent => agent.transport === 'pty')
@@ -262,8 +279,12 @@ export async function createProjectSession(source, { onEvent, signal } = {}) {
       state.active = true;
       persist(state);
       emit({ type: 'session_started', status: 'running' });
+      // Each command transport owns its agent deadline and bounded OS cleanup.
+      // Keep the scheduler's adapter timeout at the total session deadline so
+      // its short JS cancellation grace cannot release a concurrency slot
+      // before a timed-out native command has finished cleanup.
       const agents = Object.fromEntries(plan.agents.map(agent => [agent.id,
-        { command: agent.command, args: agent.args, timeoutMs: agent.timeoutMs }]));
+        { command: agent.command, args: agent.args, timeoutMs: plan.timeoutMs }]));
       const adapters = Object.fromEntries(plan.agents.map(agent => [agent.id, async (_, context) => {
         const record = agentRecord(state, agent.id);
         const commandSignal = AbortSignal.any([context.signal, localStops.get(agent.id).signal]);

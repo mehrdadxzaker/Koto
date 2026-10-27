@@ -136,8 +136,11 @@ export function startCommand({ id, command, args = [], cwd, env, timeoutMs = 900
 
     if (process.platform === 'win32') {
       // A departed parent cannot establish ownership of its former tree. A
-      // normal exit establishes only direct-process completion on Windows.
+      // normal exit establishes only direct-process completion on Windows;
+      // retain that uncertainty so project integration cannot treat it as
+      // confirmed owned-process cleanup.
       if (exited) {
+        cleanupUnconfirmed = true;
         cleanupComplete = true;
         finish();
         return;

@@ -5,6 +5,7 @@ import { TextDecoder } from 'node:util';
 import { runWorkflow, validateWorkflow } from '../src/core.js';
 import { runProjectCli } from './project.js';
 import { runTerminalCli } from './terminal.js';
+import { runPlanCli } from './plan.js';
 
 const packageRoot = new URL('../', import.meta.url);
 const metadata = JSON.parse(await readFile(new URL('package.json', packageRoot), 'utf8'));
@@ -33,6 +34,7 @@ Usage:
   koto run <workflow.json>
   koto project --help
   koto terminal --help
+  koto plan --help
 
 run executes the commands explicitly declared in the selected workflow.
 Worker commands receive a JSON assignment on stdin and return text on stdout.
@@ -49,6 +51,10 @@ async function main(args) {
     return;
   }
   const [command, path] = args;
+  if (command === 'plan') {
+    process.exitCode = await runPlanCli(args.slice(1), { write: text => write(process.stdout, text) });
+    return;
+  }
   if (command === 'terminal') {
     process.exitCode = await runTerminalCli(args.slice(1), { write: text => write(process.stdout, text) });
     return;

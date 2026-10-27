@@ -3,8 +3,10 @@
 `koto project` runs caller-selected real executable commands in separate Git
 worktrees. It reuses the shared scheduler and exposes a small terminal consumer
 of the session API. It does not translate provider protocols or manufacture
-agent replies. This local implementation has not yet completed a live
-Codex/OpenCode cooperation run.
+agent replies. [Issue #543](https://github.com/mehrdadxzaker/Koto/issues/543)
+records real Mac Codex/OpenCode pipe cooperation and two reviewed integrations.
+The optional Mac PTY transport is a separate implementation awaiting native
+terminal verification; see [current evidence](CORE_STATUS.md).
 
 ## Run actual agents
 
@@ -13,6 +15,15 @@ local model server and native permissions must already be configured. The plan
 below invokes actual Codex and OpenCode commands; it is not a fallback worker or
 an offline demonstration. Use the exact native executable paths on the host if
 its PATH does not identify the intended installations.
+
+For native command presets, use `koto plan build <tasks.json> <new-plan.json>`
+to declare each runtime, model, task and ownership without assembling argv.
+`koto plan check <plan.json>` reports repository, executable, transport and
+declared local-runtime prerequisites. `project start` displays the same checks
+before approval, and session creation repeats them before making worktrees.
+The checks do not qualify native login, effective provider configuration or
+model access. See [launch setup](LAUNCH_SETUP.md). The raw format below remains
+available for explicitly configured commands.
 
 Save the plan privately outside the project, and replace project/control paths
 and task ownership with the intended existing project. OpenCode must use the
@@ -37,16 +48,16 @@ selected model/effort below.
       "args": ["exec", "--json", "--ignore-user-config", "--model", "gpt-6.1-sol", "-c", "model_reasoning_effort=\"medium\"", "-c", "model_provider=\"openai\"", "-c", "forced_login_method=\"chatgpt\"", "--sandbox", "workspace-write", "{prompt}"],
       "unsetEnv": ["OPENAI_API_KEY", "CODEX_API_KEY", "AZURE_OPENAI_API_KEY", "OPENAI_BASE_URL", "OPENAI_API_BASE"],
       "inputMode": "closed",
-      "task": "Add a read-only session.outputTail(agentId) API returning the last 64 KiB of that agent's live output; update public declarations. Keep raw output private and bounded. Do not change terminal rendering or run automated tests.",
-      "owns": ["src/project-session.js", "src/core.d.ts"]
+      "task": "Review and clarify the launch setup instructions against the implemented core without claiming unobserved native support. Do not run automated tests.",
+      "owns": ["docs/LAUNCH_SETUP.md"]
     },
     {
       "id": "qwen",
       "command": "opencode",
       "args": ["run", "--format", "json", "{prompt}"],
       "inputMode": "closed",
-      "task": "Make :status print a concise terminal table with agent id, process status, pid and worktree path instead of JSON. Update the controls help text. Keep all existing controls and do not change core files or run automated tests.",
-      "owns": ["bin/project.js"]
+      "task": "Clarify the existing Mac terminal controls and detach behavior while retaining the explicit native-verification limitation. Do not run automated tests.",
+      "owns": ["docs/MAC_TERMINALS.md"]
     }
   ]
 }
@@ -68,31 +79,35 @@ approval and exits after both commands end. It does not approve their generated
 edits. Each executable is invoked once; Koto performs no retry. A native CLI may
 make multiple requests or internal retries within its process deadline.
 
-The older frozen Mac Koto build does not contain this command. The new source
-must become available through an authorized delivery path before this command
-can be demonstrated there; local implementation is not a source-transfer or
-publication approval.
+Use the intended source revision or installed package for the commands above.
+The older frozen Python-based Mac Koto build does not contain this interface.
 
 ## Supervise, inspect and integrate
 
-Output is tagged by agent and stdout/stderr. Terminal control bytes are removed
-from display; native bytes are not interpreted as completion or permission
-records. The terminal supports:
+Pipe output is tagged by agent and stdout/stderr, with terminal control bytes
+removed from display. Native PTY screen output appears only for an explicitly
+attached agent. Neither form is interpreted as completion or permission records.
+The terminal supports:
 
 - `:status` — process and workspace status.
 - `:stop AGENT` or `:stop all` — stop owned processes and retain partial edits.
-- `:send AGENT TEXT` and `:eof AGENT` — pipe input only, where that executable
+- `:send AGENT TEXT` and `:eof AGENT` — send input/EOF where the native executable
   supports it. Set `inputMode: "pipe"` to retain stdin for these controls.
+- `:attach AGENT` — foreground an opt-in Mac PTY; Ctrl-] detaches to Koto controls.
+- `:resize AGENT COLS ROWS` — resize an opt-in Mac PTY. Outer-terminal resizes
+  also forward to the currently attached agent.
 - `:inspect AGENT` — show the complete base-relative diff and a review token.
 - `:integrate AGENT TOKEN` — apply that exact reviewed contribution to the
-  separate integration worktree after all agent processes finish.
+  separate integration worktree after every agent finishes and settles cleanup.
 - `:quit` — stop remaining owned work and retain worktrees.
 
-`inputMode` defaults to `closed`: optional `input` is written, then EOF is sent.
+For pipes, `inputMode` defaults to `closed`: optional `input` is written, then EOF is sent.
 This matters for Codex exec, which otherwise waits for appended piped stdin.
-Prompts that require a TTY, password entry or a full-screen terminal are not
-supported. Native permission policy remains native; Koto never adds an approval
-bypass. Headless permission denials remain failures to inspect.
+TTY prompts and full-screen terminals require the experimental Mac PTY transport,
+whose `inputMode` defaults to `pipe`. See [Mac terminals](MAC_TERMINALS.md) for
+the explicit helper build and unverified native-operation boundary. Native
+permission policy remains native; Koto never adds an approval bypass. Headless
+permission denials remain failures to inspect.
 
 After the terminal exits, the printed session directory supports the same
 review operations without launching an agent:
@@ -110,6 +125,8 @@ updated. A conflict remains in the integration worktree, with conflicted paths
 reported; resolve it there with ordinary Git before proceeding. Reapplying an
 already integrated tree is refused. Changed symlinks, submodules, custom Git
 filters/merge drivers and ambiguous cleanup require manual handling.
+Unconfirmed cleanup from any agent blocks integration of every contribution,
+including contributions from agents that otherwise succeeded.
 
 ## Boundaries and retained data
 
@@ -122,12 +139,13 @@ must not be published as-is. Koto never deletes these worktrees automatically.
 Worktrees provide separate branches and writable directories, not a security
 sandbox. Native agents keep their host permissions and may access other paths
 if their own policy permits it. On POSIX, cancellation owns the process group;
-self-detached descendants remain outside that boundary. Windows interruption
-is best effort and reports unconfirmed cleanup. A crashed session remains
+self-detached descendants remain outside that boundary. Windows project pipe
+termination is best effort; every exit retains `cleanup_unconfirmed` and blocks
+integration because descendant cleanup cannot be verified. A crashed session remains
 unresolved and cannot automatically integrate or replay work.
 
-This implementation is pipes only. It does not provide native continuation,
-structured permission-state parsing, PTY support, provider billing, a GUI or an
-IDE plugin. Process success is not a correctness verdict. Current verification
-is source inspection, syntax checks and CLI help only; actual simultaneous agent
-work and reviewed integration remain to be observed on the approved host.
+This implementation provides ordinary pipes and an optional experimental Mac
+PTY. It does not provide native continuation, structured permission-state parsing,
+provider billing, a GUI or an IDE plugin. Process success is not a correctness
+verdict. The observed Mac pipe cooperation, failed Linux attempt and remaining
+native/platform verification are described in [current evidence](CORE_STATUS.md).

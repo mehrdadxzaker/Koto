@@ -171,7 +171,49 @@ export interface ProjectPlan {
   readonly nativeHelperDirectory?: string | undefined;
   readonly maxConcurrency?: number | undefined;
   readonly timeoutMs?: number | undefined;
+  readonly prerequisites?: Readonly<Record<string, ProjectPrerequisite>> | undefined;
 }
+
+export interface ProjectPrerequisite {
+  readonly configFile?: string | undefined;
+  readonly localEndpoint?: string | undefined;
+  readonly model?: string | undefined;
+}
+
+export interface NativeProjectAgentPlan {
+  readonly id: string;
+  readonly runtime: 'codex' | 'opencode';
+  readonly model: string;
+  readonly task: string;
+  readonly owns: readonly string[];
+  readonly command?: string | undefined;
+  readonly transport?: 'pipe' | 'pty' | undefined;
+  readonly terminal?: ProjectAgentPlan['terminal'];
+  readonly timeoutMs?: number | undefined;
+  readonly unsetEnv?: readonly string[] | undefined;
+  /** Codex presets require an existing ChatGPT login. */
+  readonly auth?: 'chatgpt' | undefined;
+  readonly sandbox?: 'read-only' | 'workspace-write' | undefined;
+  /** OpenCode presets require explicitly configured local provider/model settings. */
+  readonly localRuntime?: { readonly configFile: string; readonly endpoint: string } | undefined;
+}
+
+export interface ProjectLaunchPlan extends Omit<ProjectPlan, 'agents'> {
+  readonly agents: readonly (NativeProjectAgentPlan | (ProjectAgentPlan & { readonly runtime: 'command' }))[];
+}
+
+export interface ProjectPreflight {
+  schemaVersion: 1;
+  /** No blocking prerequisites; does not establish native agent/model readiness. */
+  ok: boolean;
+  checks: { id: string; agentId?: string; status: 'ready' | 'blocked' | 'unverified'; message: string }[];
+  executables: Record<string, string>;
+}
+
+/** Build explicit native argv without executing an agent or changing settings. */
+export function buildProjectPlan(source: ProjectLaunchPlan): ProjectPlan;
+/** Inspect executable, repository, transport and declared runtime prerequisites. */
+export function preflightProjectPlan(source: ProjectPlan): Promise<ProjectPreflight>;
 
 export interface ProjectWorkspace {
   path: string;

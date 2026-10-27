@@ -1,9 +1,12 @@
 # npm installation
 
-Koto requires Node.js 22 or later with npm. The package is pure JavaScript and
-has no runtime dependencies, build step or installation hook. The release
+Koto requires Node.js 22 or later with npm. The Node.js core has no runtime
+dependencies, required build step or installation hook. Optional Mac PTY support
+ships versioned C source and requires a separate explicit local helper build
+using an existing Apple toolchain; package installation never builds it. The release
 target is Windows, macOS and Linux. CI runs source and scope checks on those
-platforms with Node 22 and 24; it does not execute installed packages or workers.
+platforms with Node 22 and 24 and compiles the optional helper on Mac; it does
+not execute installed packages or workers.
 Process cleanup is separate from sandboxing; see the
 [execution boundaries](ARCHITECTURE.md#lifecycle-and-execution-boundaries).
 
@@ -43,10 +46,16 @@ a script path; `.cmd` and `.bat` wrappers require a dedicated adapter.
 Project sessions additionally require Git on an absolute PATH entry and a clean
 Git project. They run separately installed command executables using the exact
 argument arrays in your plan, rather than imposing the JSON worker protocol.
+Use [launch setup](LAUNCH_SETUP.md) to prepare native command arguments from
+explicit runtime/model/task/ownership choices and inspect readiness with
+`koto plan check`. The shared core repeats preflight before creating workspaces.
 See [project sessions](PROJECT_SESSIONS.md) for launch approval, concurrent
-worktrees, terminal controls, review tokens and conflict handling. The current
-implementation uses ordinary pipes; native protocol adapters and PTY are absent.
-It awaits a real Mac agent demonstration, with no new platform qualification.
+worktrees, terminal controls, review tokens and conflict handling. Pipes are the
+default; [experimental Mac PTY](MAC_TERMINALS.md) is opt-in and remains unverified
+with actual native terminals. The prior real Mac pipe cooperation and the later
+failed Linux attempt are recorded in [current evidence](CORE_STATUS.md).
+Native protocol adapters and native session resume remain open. Windows project
+pipe exits report unconfirmed descendant cleanup and block automatic integration.
 
 IDE plugins and Koto's UI will be separate ways to use the installed core. They
 are planned and no placeholder package is installed today.

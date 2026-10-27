@@ -78,12 +78,14 @@ outputs supply handoffs.
 
 ## Project sessions
 
-The local project flow has four boundaries:
+The project flow uses these shared boundaries:
 
 | Module | Responsibility |
 | --- | --- |
+| `src/project-plan.js` | Expand explicit native runtime/model/task/ownership choices and inspect launch prerequisites without starting an agent |
 | `src/project-session.js` | Validate executable plans, schedule commands through the core, retain lifecycle records, enforce declared ownership during integration |
 | `src/command-session.js` | Launch raw executable/argv commands without a shell; stream stdout/stderr, forward bounded input, enforce deadlines and stop owned processes |
+| `src/darwin-pty-session.js`, `src/native-helper.js` | Expose the optional Mac PTY transport and verify an explicitly built helper before launch |
 | `src/project-workspaces.js` | Create branches/worktrees from one clean HEAD, capture review trees and tokens, snapshot contributions and integrate into the designated integration worktree |
 | `bin/project.js` | Display output/status and expose launch approval, input/EOF, stop, review and explicit integration controls |
 
@@ -92,15 +94,27 @@ plugins and UIs consume these operations rather than introducing another schedul
 
 Unlike the JSON process-worker protocol, a project plan supplies each command's
 actual arguments and optional raw stdin. These commands retain their own login,
-tools and permission enforcement. Pipes provide no PTY, native approval protocol,
-continuation translation or verified native completion. A zero exit is a process
-result, not a correctness verdict.
+tools and permission enforcement. `buildProjectPlan()` expands explicit native
+command choices; `preflightProjectPlan()` reports missing executables, dirty
+repositories and terminal/local-runtime prerequisites. Session creation uses
+the same preflight before creating worktrees and pins resolved executable paths.
+No configuration, helper build or model launch occurs during preflight.
+
+Pipes are the default. An experimental Mac PTY transport supplies duplex input,
+resize and foreground terminal attachment after an explicit helper build.
+Neither transport translates native approval protocols or continuation or
+verifies native completion. A zero exit is a process result, not a correctness
+verdict. Actual native Mac PTY operation remains unverified.
 
 Each command edits its own Git worktree from the same base commit. Control files
 and retained output live outside those worktrees. Declared file ownership is
 checked before integration; it is advisory during execution and is not an OS
 sandbox. Review includes committed, staged, unstaged and untracked contributions.
-An operator must approve the current review token after commands stop. The
+An operator must approve the current review token after every agent stops and
+settles owned-process cleanup. Unconfirmed cleanup from any agent blocks
+integration of every contribution. Windows project pipe exits always retain
+`cleanup_unconfirmed` because descendant ownership cannot be established by
+`taskkill` or the parent's exit. The
 integration owner snapshots the reviewed contribution and applies it to the
 separate integration branch. Conflicts remain visible; the original checkout
 is not updated, and session branches/worktrees are retained for explicit review
@@ -111,16 +125,19 @@ retry commands or recover/replay interrupted agent runs. Custom Git drivers,
 hidden index entries and changed symlinks have explicit refusal boundaries.
 See [project sessions](PROJECT_SESSIONS.md) for the runnable interface and details.
 
-This is local implementation awaiting a real Mac agent demonstration. No actual
-agent collaboration flow or platform qualification has been established here.
+The [delivery tracker](https://github.com/mehrdadxzaker/Koto/issues/543) records
+real Mac Codex/OpenCode cooperation using pipes and two reviewed integrations.
+The later Linux two-Codex run ended with connection errors, no completed turns
+or changes, and confirmed owned-group cleanup. See [current evidence](CORE_STATUS.md)
+for these distinct outcomes and the platform limits.
 
 ## Later adapters and delivery
 
 Commercial and open-source agent runtimes can implement the worker contract.
 Native Codex and Claude Code protocols require actual adapters; configuring
 their executable as a raw command does not provide one. Each runtime retains its
-own authentication, tools, model selection and permission enforcement. PTY
-sessions are also not implemented in this source line.
+own authentication, tools, model selection and permission enforcement. Linux
+PTY reconciliation and Windows ConPTY/owned process termination remain open.
 
 IDE plugins and Koto's UI will expose core operations and events. They must not
 duplicate task scheduling or collaboration logic. Adaptive planning, persistent

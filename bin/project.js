@@ -1,7 +1,7 @@
 import { open } from 'node:fs/promises';
 import { constants } from 'node:fs';
 import { createInterface } from 'node:readline';
-import { createProjectSession, validateProjectPlan, inspectProjectSession, integrateProjectSession } from '../src/index.js';
+import { createProjectSession, validateProjectPlan, preflightProjectPlan, inspectProjectSession, integrateProjectSession } from '../src/index.js';
 import { attachNativeTerminal } from './attach-terminal.js';
 
 const help = `Project collaboration (pipes by default; experimental Mac PTY transport)
@@ -65,6 +65,9 @@ export async function runProjectCli(args, { write, signal } = {}) {
   if (!interactive && !approved) throw new Error('project_explicit_start_required');
   write(`Project: ${visible(plan.project)}\nGoal: ${visible(plan.goal)}\nConcurrency: ${plan.maxConcurrency}\n`);
   for (const agent of plan.agents) write(`[${agent.id}] ${visible(agent.command)} ${visible(JSON.stringify(agent.args))}\n  Task: ${visible(agent.task)}\n  Owns: ${visible(agent.owns.join(', '))}\n  Transport: ${agent.transport}; stdin: ${agent.inputMode}; unset environment: ${agent.unsetEnv.join(', ') || 'none'}\n`);
+  const readiness = await preflightProjectPlan(plan);
+  for (const check of readiness.checks) write(`[${check.status}] ${check.agentId ? `${check.agentId}: ` : ''}${visible(check.message)}\n`);
+  if (!readiness.ok) return 2;
   write('Commands retain your OS permissions; worktrees are not a security sandbox. No automatic retry.\n');
   let terminal = interactive ? createInterface({ input: process.stdin, output: process.stdout }) : undefined;
   let session;

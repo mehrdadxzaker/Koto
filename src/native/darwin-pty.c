@@ -672,8 +672,11 @@ static int run_parent(struct helper *helper)
         if (getppid() != helper->host) stop(helper, "host_gone");
         observe_exit(helper);
         establish_session(helper);
+        /* Setup may finish after an early stop request. Announce its verified
+         * identity even while stopping so the host can bind confirmed cleanup
+         * to this workload. Ready records setup, not continued liveness. */
         if (helper->setup_eof && helper->session_owned && !helper->ready
-            && !helper->protocol_failed && (!helper->stopping || helper->reason == NULL)) {
+            && !helper->protocol_failed) {
             if (!enqueue_ready(helper)) {
                 helper->status_failed = true;
                 stop(helper, "status_failed");

@@ -84,17 +84,26 @@ koto project inspect /absolute/path/to/session agent_id
 koto project integrate /absolute/path/to/session agent_id --approve REVIEW_TOKEN
 ```
 
-The plan supplies actual executable paths and argument arrays. Commands use
-ordinary pipes and retain their own authentication, permissions and agent loop.
-Launch requires explicit approval. After commands end, inspect the changes and
-approve their current review token to integrate; conflicts remain visible and
-the original checkout is not updated. Worktrees separate edits, not OS access.
+Use `koto plan build <tasks.json> <new-plan.json>` to prepare executable arguments
+from explicit agent, model, task and ownership choices. `koto plan check` reports
+missing executables, dirty repositories and terminal/local-runtime prerequisites;
+session setup uses the same core preflight. See [launch setup](docs/LAUNCH_SETUP.md).
 
-This implementation awaits a real Mac agent demonstration. No actual agent
-collaboration flow or platform qualification is established by the source work.
-Native protocol adapters, verified native completion and PTY sessions are not
-implemented. See [project sessions](docs/PROJECT_SESSIONS.md) for plans, terminal
-controls, retained files and limitations.
+Commands use pipes by default and retain native authentication and permissions.
+An optional [Mac PTY transport](docs/MAC_TERMINALS.md) adds attach/input/resize
+controls after an explicit local helper build; native PTY operation is unverified.
+Launch requires approval. All agents must finish and settle cleanup before an
+inspected review token can authorize integration. Conflicts remain visible and
+the original checkout is not updated. Worktrees separate edits, not OS access.
+Windows project pipe exits retain `cleanup_unconfirmed` and block integration.
+
+[Issue #543](https://github.com/mehrdadxzaker/Koto/issues/543) records a real Mac
+Codex/OpenCode pipe collaboration and two reviewed integrations. A later Linux
+two-Codex attempt failed on native connection errors and produced no changes;
+owned process-group cleanup completed. Neither observation qualifies Mac PTY
+or other platforms. Native protocol adapters and verified native completion
+remain open. See [current evidence](docs/CORE_STATUS.md) and
+[project sessions](docs/PROJECT_SESSIONS.md).
 
 ## Product boundaries
 
@@ -106,7 +115,8 @@ controls, retained files and limitations.
 Codex, Claude Code and similar clients can be configured as external commands
 when their installed CLI supports the chosen arguments and pipe mode. This does
 not provide a native protocol adapter or verify the provider's completion state.
-IDE extensions, native-agent adapters, PTY sessions and Koto's UI remain later work.
+IDE extensions, native-agent adapters, cross-platform PTY completion and Koto's
+UI remain later work.
 
 Read the [scope](https://github.com/mehrdadxzaker/Koto/blob/main/docs/SCOPE.md), [architecture](https://github.com/mehrdadxzaker/Koto/blob/main/docs/ARCHITECTURE.md),
 [roadmap](https://github.com/mehrdadxzaker/Koto/blob/main/docs/ROADMAP.md) and [migration boundary](https://github.com/mehrdadxzaker/Koto/blob/main/docs/MIGRATION.md).
