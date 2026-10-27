@@ -327,7 +327,7 @@ export async function startLlamaServer({ modelPath, command = 'llama-server', po
         if (['local_server_identity_mismatch', 'local_socket_exhausted'].includes(error.code)) { guardError = error; controller.abort(); break; }
         if (attempts > startupMaxRetries) break;
         const backoff = Math.max(error.retryAfterMs ?? 0,
-          Math.min(30_000, 1000 * 2 ** Math.min(attempts - 1, 5)) + Math.floor(Math.random() * 250));
+          Math.min(30_000, 5000 * 2 ** Math.min(attempts - 1, 5)) + Math.floor(Math.random() * 250));
         try { await delay(Math.min(backoff, Math.max(1, deadline - Date.now())), undefined, { signal: joinedSignal }); } catch { break; }
       }
     }

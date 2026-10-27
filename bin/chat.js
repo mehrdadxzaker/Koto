@@ -1,5 +1,7 @@
 import { createInterface } from 'node:readline';
 import { homedir } from 'node:os';
+import { lstat, mkdir, realpath, writeFile } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { stripVTControlCharacters } from 'node:util';
 import { createCodingAgentSession, createCoordinator,
@@ -353,25 +355,52 @@ export async function runChat({ write, signal: parentSignal, version } = {}) {
   async function startSavedLocal() {
     const saved = preferences.localInstall;
     if (!saved) return;
+    const adopt = async endpoint => {
+      preferences.local = { endpoint, model: saved.id };
+      for (const worker of preferences.workers) if (worker.nativeKind === 'local') {
+        worker.model = saved.id;
+        worker.localEndpoint = endpoint;
+      }
+      await persist();
+    };
     // A running endpoint is reused only when it advertises the selected alias.
     try {
       const ready = await checkLocalEndpoint({ kind: 'llama', endpoint: preferences.local?.endpoint, signal });
-      if (ready.models.some(item => item.id === saved.id)) return;
+      if (ready.models.some(item => item.id === saved.id)) { await adopt(ready.apiBaseUrl); return; }
     } catch (error) {
       if (blocksFurtherWork(error) || signal.aborted) throw error;
       // Start only our selected runtime/model, never stop another listener.
     }
     await stopServer();
     print(`Starting local model ${saved.label ?? saved.id}…`);
-    ownedServer = await startLlamaServer({ modelPath: saved.modelPath, command: saved.command,
-      modelId: saved.id, port: 18089, contextSize: saved.contextSize ?? 8192, signal });
-    try { await ownedServer.ready; }
-    catch (error) { await stopServer(); throw error; }
-    preferences.local = { endpoint: ownedServer.apiBaseUrl, model: saved.id };
-    for (const worker of preferences.workers) if (worker.nativeKind === 'local' && worker.model === saved.id) {
-      worker.localEndpoint = ownedServer.apiBaseUrl;
-    }
-    await persist();
+    let startupTail = '', collectingStartup = true;
+    try {
+      ownedServer = await startLlamaServer({ modelPath: saved.modelPath, command: saved.command,
+        modelId: saved.id, port: 18089, contextSize: saved.contextSize ?? 8192, signal,
+        onEvent: item => {
+          if (collectingStartup && item.type === 'output') startupTail = Buffer.from(startupTail + item.text).subarray(-8192).toString('utf8');
+        } });
+      await ownedServer.ready;
+    } catch (error) {
+      await stopServer();
+      if (startupTail) {
+        const directory = path.join(defaultStateDirectory, 'logs');
+        const filename = path.join(directory, `local-startup-${randomUUID()}.log`);
+        try {
+          await mkdir(directory, { recursive: true, mode: 0o700 });
+          const info = await lstat(directory);
+          if (!info.isDirectory() || info.isSymbolicLink() || await realpath(directory) !== directory
+            || process.platform !== 'win32' && ((info.mode & 0o022) !== 0 || process.getuid && info.uid !== process.getuid())) {
+            throw new Error('Native startup logs need a protected Koto directory.');
+          }
+          await writeFile(filename, startupTail, { mode: 0o600, flag: 'wx' });
+          error.message += ` Native startup details were preserved at ${filename}.`;
+        } catch { /* Preserve the original failure and cleanup outcome. */ }
+      }
+      throw error;
+    } finally { collectingStartup = false; }
+    startupTail = '';
+    await adopt(ownedServer.apiBaseUrl);
     print(`Local model ready: ${saved.label ?? saved.id}.`);
   }
 
