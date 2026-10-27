@@ -144,31 +144,44 @@ export async function runChat({ write, signal, version } = {}) {
     }
   }
 
-  async function selectCoordinator(kind, reset = false, executable) {
+  async function selectCoordinator(kind, reset = false, executable, modelOverride) {
     if (!['codex', 'claude', 'local'].includes(kind)) throw new Error('Choose codex, claude or local.');
-    stop();
-    await nativeSession?.close?.();
     const previous = preferences.coordinator ?? {};
     const choice = previous.kind === kind ? { ...previous } : { kind };
+    let replacement, local = preferences.local;
     if (kind === 'local') {
-      if (!preferences.local?.model) throw new Error('Select an installed local model first: /models, then /add local MODEL.');
-      Object.assign(choice, { model: preferences.local.model, endpoint: preferences.local.endpoint });
+      if (executable) throw new Error('Local agents use a loopback model; select its weights/runtime with /models.');
+      if (modelOverride) {
+        const found = await discoverLocalModels({ signal, llamaCommand: preferences.llamaCommand ?? 'llama-server' });
+        const runtime = Object.values(found).find(item => item.reachable && item.models.some(model => model.id === modelOverride));
+        if (!runtime) throw new Error('That local model is not ready. Use /models to inspect the available models.');
+        local = { model: modelOverride, endpoint: runtime.apiBaseUrl };
+      }
+      if (!local?.model) throw new Error('Select an installed local model first: /models, then /add local MODEL.');
+      Object.assign(choice, { model: local.model, endpoint: local.endpoint });
       const saved = preferences.localConversation;
-      nativeSession = createCodingAgentSession({ kind, id: 'coordinator', endpoint: choice.endpoint,
+      replacement = createCodingAgentSession({ kind, id: 'coordinator', endpoint: choice.endpoint,
         model: choice.model, cwd: process.cwd(), mode: 'conversation', onEvent: event, onApproval: approve,
         ...(!reset && saved?.model === choice.model && saved.cwd === process.cwd() ? { resumeState: saved } : {}) });
     } else {
       choice.command = await nativeExecutable(kind, executable ?? choice.command);
       choice.account = kind === 'codex' ? 'chatgpt' : 'subscription';
+      if (modelOverride) choice.model = modelOverride;
       choice.model ??= kind === 'codex' ? 'gpt-6.1-sol' : 'sonnet';
       if (kind === 'codex') choice.effort ??= 'medium';
       const saved = preferences.conversation;
-      nativeSession = createCodingAgentSession({ id: 'coordinator', kind, command: choice.command,
+      replacement = createCodingAgentSession({ id: 'coordinator', kind, command: choice.command,
         model: choice.model, effort: choice.effort, account: choice.account, cwd: process.cwd(),
         mode: 'conversation', timeoutMs: 300_000, onEvent: event, onApproval: approve,
         ...(!reset && saved?.kind === kind && saved.command === choice.command && saved.model === choice.model
           && saved.cwd === process.cwd() && saved.sessionId ? { sessionId: saved.sessionId } : {}) });
     }
+    // Invalid or unavailable selections leave the existing conversation usable.
+    stop();
+    await nativeSession?.close?.();
+    nativeSession = replacement;
+    if (kind === 'local') preferences.local = local;
+    if (reset) { delete preferences.conversation; delete preferences.localConversation; }
     preferences.coordinator = choice;
     coordinator = createCoordinator({ session: nativeSession });
     view.register({ id: 'coordinator', name: `Koto / ${kind}`, model: choice.model, task: 'Conversation and planning' });
@@ -308,9 +321,7 @@ export async function runChat({ write, signal, version } = {}) {
           else if (command === '/stop') stop();
           else if (command === '/agent' && args.length >= 1 && args.length <= 2) await selectCoordinator(args[0], true, args[1]);
           else if (command === '/model' && args.length === 1) {
-            preferences.coordinator ??= { kind: 'codex' };
-            preferences.coordinator.model = args[0]; delete preferences.conversation;
-            await selectCoordinator(selectedKind(), true);
+            await selectCoordinator(selectedKind(), true, undefined, args[0]);
           } else if (command === '/agents') {
             print(`Coordinator: ${selectedKind()} / ${preferences.coordinator?.model ?? 'unavailable'}`);
             if (!preferences.workers.length) print('No coding workers selected yet. A build defaults to two instances of the coordinator; /add selects other agents/models.');
