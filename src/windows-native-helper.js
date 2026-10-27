@@ -267,12 +267,15 @@ async function compilerSetup() {
       const includeRoot = path.join(sdkRoot, 'Include', sdkVersion);
       const libRoot = path.join(sdkRoot, 'Lib', sdkVersion);
       if (!await available(path.join(includeRoot, 'um', 'Windows.h')) || !await available(path.join(libRoot, 'um', architecture, 'kernel32.lib'))) continue;
+      const compilerHost = path.basename(path.dirname(path.dirname(compiler))).slice(4).toLowerCase();
+      const sdkBin = path.join(sdkRoot, 'bin', sdkVersion, compilerHost);
+      if (!await available(path.join(sdkBin, 'rc.exe')) || !await available(path.join(sdkBin, 'mt.exe'))) continue;
       const selected = { ...env, INCLUDE: [path.join(msvc, 'include'), ...['ucrt', 'shared', 'um', 'winrt'].map(item => path.join(includeRoot, item))].join(';'),
         LIB: [path.join(msvc, 'lib', architecture), path.join(libRoot, 'ucrt', architecture), path.join(libRoot, 'um', architecture)].join(';') };
       // Windows environment names are case-insensitive. Remove any old Path
       // spelling before supplying the selected native toolchain directory.
       for (const key of Object.keys(selected)) if (key.toLowerCase() === 'path') delete selected[key];
-      selected.PATH = `${path.dirname(compiler)};${searchPath}`;
+      selected.PATH = `${path.dirname(compiler)};${sdkBin};${searchPath}`;
       return { compiler, env: selected };
     }
   }
@@ -313,7 +316,7 @@ export async function buildWindowsPtyHelper({ directory = path.join(homedir(), '
     const output = path.join(staging, 'windows-pty.exe');
     await writeFile(snapshot, source, { flag: 'wx', mode: 0o600 });
     const args = ['/nologo', '/W4', '/WX', '/O2', '/std:c11', '/DUNICODE', '/D_UNICODE', '/D_CRT_SECURE_NO_WARNINGS', '/MT',
-      `/Fe:${output}`, `/Fo:${path.join(staging, 'windows-pty.obj')}`, snapshot, '/link', '/INCREMENTAL:NO', '/MANIFEST:EMBED'];
+      `/Fe${output}`, `/Fo${path.join(staging, 'windows-pty.obj')}`, snapshot, '/link', '/INCREMENTAL:NO', '/MANIFEST:EMBED'];
     await runTool(compiler, args, { env, cwd: staging, timeoutMs: 60_000 });
     const binary = await checkedBytes(output, BINARY_LIMIT);
     if (!executableImage(binary)) throw failure('windows_pty_build_unrecognized', 'The compiler did not produce the expected Windows executable architecture.');
