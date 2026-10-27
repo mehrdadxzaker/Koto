@@ -4,12 +4,19 @@ import path from 'node:path';
 import { stripVTControlCharacters } from 'node:util';
 import { createCodingAgentSession, createCoordinator,
   prepareProject, loadPreferences, savePreferences, defaultStateDirectory,
-  resolveAgentExecutable, discoverLocalModels, checkLocalEndpoint, pullOllamaModel,
-  startLlamaServer, downloadGguf, buildLlamaRuntime } from '../src/index.js';
+  discoverLocalModels, checkLocalEndpoint, pullOllamaModel,
+  startLlamaServer, downloadGguf, buildLlamaRuntime, discoverAgentAccounts,
+  resolveNativeAgentExecutable, readProjectSession, inspectProjectContributionAttempt } from '../src/index.js';
 import { createActivityView } from './activity-view.js';
-import { runProjectPlan } from './project.js';
+import { runProjectPlan, runProjectResume } from './project.js';
+import { editBuildProposal } from './plan-editor.js';
+import { chooseNativeAccount, showAccounts, chooseLocalModel } from './onboarding.js';
+import { reviewSavedSession, selectResumeRequest } from './saved-session.js';
+import { runNativeLogin } from './native-login.js';
 
 const visible = value => stripVTControlCharacters(String(value)).replace(/[\x00-\x08\x0b-\x1f\x7f-\x9f]/g, '');
+const boundedContext = value => Buffer.byteLength(value) <= 8_000 ? value
+  : `${Buffer.from(value).subarray(0, 7_960).toString('utf8')}\n[Context truncated]`;
 const absolute = value => path.resolve(value.startsWith('~/') ? path.join(homedir(), value.slice(2)) : value);
 const cancelError = () => Object.assign(new Error('Conversation closed.'), { code: 'chat_cancelled' });
 const cleanupUnconfirmed = outcome => typeof outcome?.error === 'string' && /(?:^|_)cleanup_unconfirmed$/.test(outcome.error);
@@ -73,6 +80,13 @@ function terminalInput({ write, signal, onInterrupt, onBusyLine }) {
 
 const help = `Talk to Koto normally. Coding requests become a reviewed multi-agent plan.
 
+  /connect                       Discover accounts or open native subscription sign-in
+  /local                         Guided optional local-model setup
+  /team                          Choose coding agents and models interactively
+  /projects                      Choose a remembered or new project
+  /review                        Review the last build and integrate approved changes
+  /resume                        Continue a saved agent in its original workspace
+  /forget-session                Forget the last-session shortcut; retain its files
   /project PATH                  Select an existing Git project
   /new PATH                      Create an empty project after confirmation
   /agent KIND [EXECUTABLE]       Choose codex, claude or local; optional native CLI path
@@ -113,7 +127,11 @@ export async function runChat({ write, signal, version } = {}) {
     const outcome = await nativeSession?.close?.();
     requireConfirmedCleanup(coordinatorCleanupOutcome ?? outcome, 'Coordinator');
   };
-  const stopServer = async () => requireConfirmedCleanup(await ownedServer?.stop(), 'Local server');
+  const stopServer = async () => {
+    const server = ownedServer;
+    requireConfirmedCleanup(await server?.stop(), 'Local server');
+    if (ownedServer === server) ownedServer = undefined;
+  };
   const makeInput = () => terminalInput({ write, signal, onInterrupt() { quitting = true; stop(); },
     onBusyLine(line) {
       if (!busy) return;
@@ -150,16 +168,7 @@ export async function runChat({ write, signal, version } = {}) {
   };
 
   async function nativeExecutable(kind, explicit) {
-    if (explicit) return resolveAgentExecutable(absolute(explicit));
-    try { return await resolveAgentExecutable(kind); }
-    catch (original) {
-      const candidates = [path.join(homedir(), '.local', 'bin', kind), '/usr/local/bin/' + kind,
-        ...(process.platform === 'darwin' ? ['/opt/homebrew/bin/' + kind,
-          ...(kind === 'codex' ? ['/Applications/Codex.app/Contents/Resources/codex',
-            path.join(homedir(), 'Applications/Codex.app/Contents/Resources/codex')] : [])] : [])];
-      for (const candidate of candidates) { try { return await resolveAgentExecutable(candidate); } catch { /* Check known installation locations only. */ } }
-      throw original;
-    }
+    return resolveNativeAgentExecutable(kind, explicit ? absolute(explicit) : undefined);
   }
 
   async function selectCoordinator(kind, reset = false, executable, modelOverride) {
@@ -173,7 +182,7 @@ export async function runChat({ write, signal, version } = {}) {
         const found = await discoverLocalModels({ signal, llamaCommand: preferences.llamaCommand ?? 'llama-server' });
         const runtime = Object.values(found).find(item => item.reachable && item.models.some(model => model.id === modelOverride));
         if (!runtime) throw new Error('That local model is not ready. Use /models to inspect the available models.');
-        local = { model: modelOverride, endpoint: runtime.apiBaseUrl };
+        local = { kind: runtime.kind, model: modelOverride, endpoint: runtime.apiBaseUrl };
       }
       if (!local?.model) throw new Error('Select an installed local model first: /models, then /add local MODEL.');
       Object.assign(choice, { model: local.model, endpoint: local.endpoint });
@@ -231,7 +240,7 @@ export async function runChat({ write, signal, version } = {}) {
         && runtime.models.some(item => !model || item.id === model));
       if (!runtime) throw new Error('No matching local model is ready. Use /models to inspect runtimes, then pull or start the selected model.');
       model ??= runtime.models[0].id;
-      preferences.local = { endpoint: runtime.apiBaseUrl, model };
+      preferences.local = { kind: runtime.kind, endpoint: runtime.apiBaseUrl, model };
       worker = { id, command: process.execPath, args: [], nativeKind: 'local', model,
         localEndpoint: runtime.apiBaseUrl, label: `Local ${model}`, inputMode: 'closed' };
     } else {
@@ -256,12 +265,149 @@ export async function runChat({ write, signal, version } = {}) {
     await persist();
   }
 
+  async function connectAccount() {
+    const selected = await chooseNativeAccount({ preferences, ask, write: printLine, signal,
+      async signIn(account) {
+        view.pause(); input.close();
+        try { await runNativeLogin({ account, write, signal }); }
+        finally { if (!quitting && !signal?.aborted) input = makeInput(); }
+      } });
+    if (selected) await selectCoordinator(selected.kind, true, selected.command);
+  }
+
+  function printLine(text) { view.pause(); write(visible(text)); }
+
+  async function localSetup() {
+    let installed, suspendedLocal = false;
+    try { installed = await chooseLocalModel({ preferences, ask, write: printLine, signal,
+      beforeStart: async () => {
+        if (selectedKind() === 'local') {
+          stop(); await closeCoordinator(); coordinator = undefined; nativeSession = undefined;
+          suspendedLocal = true;
+        }
+        await stopServer();
+      },
+      onProgress: item => {
+        if (item.type === 'output') write(visible(item.text));
+        else if (item.type === 'download') write(`\rDownloaded ${(item.bytes / 1024 ** 2).toFixed(0)} MiB`);
+      } }); }
+    catch (error) {
+      if (suspendedLocal) print('The previous local conversation was disconnected for this model change. Retained assets are unchanged; /local can restart a model, or /connect selects a subscription. No message was replayed.');
+      throw error;
+    }
+    if (!installed) return;
+    if (installed.server) ownedServer = installed.server;
+    if (installed.route === 'llama' && installed.command) preferences.llamaCommand = installed.command;
+    preferences.local = { kind: installed.route, endpoint: installed.endpoint, model: installed.model };
+    delete preferences.localConversation;
+    await persist();
+    print(`Local model selected: ${installed.model}. Download/startup does not establish coding quality.`);
+    if (!coordinator || selectedKind() === 'local'
+      || await ask('Use this model for the Koto conversation too? [y/N]> ') === 'y') {
+      await selectCoordinator('local', true);
+    }
+    if (await ask('Add it as a coding worker? [Y/n]> ') !== 'n') await configureWorker('local', installed.model);
+  }
+
+  async function configureTeam() {
+    while (!signal?.aborted) {
+      print(`\nCoding team (${preferences.workers.length}/8):`);
+      for (const worker of preferences.workers) print(`  ${worker.id}: ${worker.nativeKind} / ${worker.model}`);
+      const action = await ask('Add codex, claude or local; remove ID; Enter keeps the team> ');
+      if (!action || action === 'cancel') return;
+      if (action.startsWith('remove ')) {
+        preferences.workers = preferences.workers.filter(worker => worker.id !== action.slice(7).trim());
+        await persist(); continue;
+      }
+      if (!['codex', 'claude', 'local'].includes(action)) { print('Choose codex, claude or local, or remove an existing agent.'); continue; }
+      if (action !== 'local') {
+        const accounts = await discoverAgentAccounts({ signal });
+        const account = accounts.find(item => item.kind === action);
+        if (account.status !== 'ready') { print(`${action} needs setup (${account.reason}). Use /connect first.`); continue; }
+        const model = await ask(`Model [${action === 'codex' ? 'gpt-6.1-sol' : 'sonnet'}]> `);
+        await configureWorker(action, model || undefined, account.command);
+      } else {
+        const found = await discoverLocalModels({ signal, llamaCommand: preferences.llamaCommand ?? 'llama-server' });
+        const models = Object.values(found).flatMap(runtime => runtime.reachable ? runtime.models : []);
+        if (!models.length) { await localSetup(); continue; }
+        models.forEach((model, index) => print(`${index + 1}. ${model.id}`));
+        const selection = await ask('Local model [number; Enter returns]> ');
+        if (!selection) continue;
+        if (!/^[1-9][0-9]*$/.test(selection) || !models[Number(selection) - 1]) { print('Choose a displayed model number.'); continue; }
+        await configureWorker('local', models[Number(selection) - 1].id);
+      }
+    }
+  }
+
+  function projectTerminalOptions(onSession) {
+    return { write, signal, approved: true,
+      coordinatorMetadata: { id: 'coordinator', name: `Koto / ${selectedKind()}`,
+        model: preferences.coordinator?.model, task: 'Coordinating the active build' },
+      onSession: async session => {
+        onSession(session); preferences.lastSession = session.sessionRoot;
+        preferences.lastSessionProject = session.status().projectRoot; await persist();
+      },
+      onControls: controls => { projectControls = controls; },
+      onConversationStop: () => coordinator?.stop(),
+      onMessage: async (text, { session }) => {
+        if (!coordinator) return { message: 'The saved agents remain controllable. Reconnect the Koto conversation with /connect after leaving this session.' };
+        const state = session.status();
+        const response = await coordinator.routeMessage(text, { signal,
+          context: boundedContext(`An approved build is active or retained. Integration workspace: ${state.integration.path}. A new coding request must wait for the current build's review/integration; never claim unobserved completion. Actual agent states: ${JSON.stringify(state.agents.map(agent => ({
+            id: agent.id, status: agent.status, model: agent.model ?? agent.native?.model, task: agent.task,
+            activity: agent.activity, workspace: agent.workspace.path, result: agent.result?.error ?? agent.result?.status })))}`) });
+        await saveConversation();
+        if (response.action === 'build') {
+          if (pendingBuildGoals.length >= 8) return { message: `${response.message}\nThe coding queue is full. Finish the current review before adding another request.` };
+          pendingBuildGoals.push(response.goal);
+          return { message: `${response.message}\nCoding request queued. Finish the current review and use :quit to continue with its plan.` };
+        }
+        return { message: response.message };
+      } };
+  }
+
+  async function retainProject(sessionRoot) {
+    const retained = readProjectSession(sessionRoot);
+    preferences.lastSession = retained.sessionRoot;
+    preferences.lastSessionProject = retained.projectRoot;
+    const pending = await inspectProjectContributionAttempt(sessionRoot);
+    const cleanupUnknown = retained.agents.some(agent => [agent.result, agent.commandOutcome,
+      ...(agent.attempts ?? []).flatMap(attempt => [attempt.result, attempt.commandOutcome])].some(cleanupUnconfirmed));
+    if (pending) print('The last integration attempt needs review. Use /review before continuing this project.');
+    if (cleanupUnknown) print('A previous agent cleanup is unconfirmed. Retained work is available for inspection; do not replay it automatically.');
+    if (!pending && !cleanupUnknown && !retained.active
+      && retained.agents.some(agent => agent.integration?.status === 'integrated')
+      && !retained.agents.some(agent => agent.integration?.status === 'conflicts')) {
+      const integrated = await prepareProject({ directory: retained.integration.path });
+      preferences.project = integrated.projectRoot;
+      print(`Further coding continues from the reviewed integration workspace: ${integrated.projectRoot}`);
+    }
+    await persist();
+  }
+
+  async function resumeSaved() {
+    const request = await selectResumeRequest({ sessionRoot: preferences.lastSession, ask, write: printLine, signal });
+    if (!request) return;
+    view.pause(); input.close();
+    try {
+      await runProjectResume(request.sessionRoot, request.agentId, {
+        ...projectTerminalOptions(() => {}), prompt: request.prompt });
+    } finally {
+      projectControls = undefined;
+      if (!quitting && !signal?.aborted) input = makeInput();
+      await retainProject(request.sessionRoot);
+    }
+  }
+
   async function chooseProject(requested, create = false) {
     if (!requested) {
+      const projects = [...new Set([preferences.project, ...(preferences.projects ?? [])].filter(Boolean))];
+      projects.forEach((project, index) => print(`${index + 1}. ${project}`));
       print('Choose a Git project for this build, or enter new PATH to create an empty project. Enter cancel to keep chatting.');
       requested = await ask(`Project${preferences.project ? ` [${visible(preferences.project)}]` : ''}> `);
       requested ||= preferences.project;
       if (!requested || requested === 'cancel') return undefined;
+      if (/^[1-9][0-9]*$/.test(requested) && projects[Number(requested) - 1]) requested = projects[Number(requested) - 1];
       if (requested.startsWith('new ')) { create = true; requested = words(requested.slice(4)).join(' '); }
     }
     if (create) {
@@ -270,6 +416,7 @@ export async function runChat({ write, signal, version } = {}) {
     }
     const selected = await prepareProject({ directory: requested, create, approveCreate: create });
     preferences.project = selected.projectRoot;
+    preferences.projects = [...new Set([selected.projectRoot, ...(preferences.projects ?? [])])].slice(0, 12);
     await persist();
     print(`Project: ${selected.projectRoot}`);
     return selected;
@@ -291,6 +438,23 @@ export async function runChat({ write, signal, version } = {}) {
       try { project = await chooseProject(); if (!project) return; }
       catch (error) { print(error.message); }
     }
+    if (preferences.lastSession) {
+      let previous;
+      try { previous = readProjectSession(preferences.lastSession); }
+      catch (error) {
+        print(`The last-session shortcut is unavailable: ${error.message}. Restore its directory or use /forget-session; that command retains all files.`);
+        if (!preferences.lastSessionProject || preferences.lastSessionProject === project.projectRoot) {
+          throw new Error('Resolve the unavailable saved-session shortcut before a new build here. No old request was replayed.');
+        }
+        print('The selected project differs from the recorded project. Continuing with a new reviewed plan.');
+      }
+      if (previous && [previous.projectRoot, previous.integration.path].includes(project.projectRoot)) {
+        if (await inspectProjectContributionAttempt(preferences.lastSession)) throw new Error('The previous integration needs reconciliation. Use /review before starting another build in this project.');
+        if (previous.active || previous.agents.some(agent => ['pending', 'running'].includes(agent.status))) throw new Error('The previous session has not settled. Return to its owning process; no work was replayed.');
+        if (previous.agents.some(agent => [agent.result, agent.commandOutcome,
+          ...(agent.attempts ?? []).flatMap(attempt => [attempt.result, attempt.commandOutcome])].some(cleanupUnconfirmed))) throw new Error('The previous agent cleanup is unconfirmed. Inspect retained work before launching another build in this project.');
+      }
+    }
     if (!preferences.workers.length) {
       const kind = selectedKind();
       await configureWorker(kind, preferences.coordinator.model);
@@ -304,50 +468,19 @@ export async function runChat({ write, signal, version } = {}) {
         controlRoot: path.join(defaultStateDirectory, 'sessions') });
       await saveConversation();
     } finally { busy = false; view.pause(); }
-    print(`\nBuild plan: ${proposal.summary}`);
-    for (const task of proposal.tasks) print(`${task.id} — ${task.label}${task.model ? ` / ${task.model}` : ''}\n  ${task.task}\n  Files: ${task.owns.join(', ')}${task.dependsOn.length ? `\n  After: ${task.dependsOn.join(', ')}` : ''}`);
-    for (const warning of proposal.warnings) print(`Note: ${warning}`);
+    proposal = await editBuildProposal({ proposal, revise: (source, changes) => coordinator.revise(source, changes),
+      ask, write: printLine });
+    if (!proposal) { print('Build cancelled; no worker was started.'); return; }
     if (await ask('Type build to launch these real agents: ') !== 'build') { print('Build cancelled; the conversation is retained.'); return; }
     view.pause(); input.close();
     let runningSession;
     try {
-      await runProjectPlan(proposal.plan, { write, signal, approved: true,
-        expectedBaseCommit: proposal.project.baseCommit,
-        coordinatorMetadata: { id: 'coordinator', name: `Koto / ${selectedKind()}`,
-          model: preferences.coordinator.model, task: 'Coordinating the active build' },
-        onSession: session => { runningSession = session; },
-        onControls: controls => { projectControls = controls; },
-        onConversationStop: () => coordinator.stop(),
-        onMessage: async (text, { session }) => {
-          const state = session.status();
-          const response = await coordinator.routeMessage(text, { signal,
-            context: `An approved build is active or retained. Actual agent states: ${JSON.stringify(state.agents.map(agent => ({
-              id: agent.id, status: agent.status, model: agent.model ?? agent.native?.model, task: agent.task,
-              activity: agent.activity, workspace: agent.workspace.path, result: agent.result?.error ?? agent.result?.status }))).slice(0, 12_000)}. Integration workspace: ${state.integration.path}. A new coding request must wait for the current build's review/integration; never claim unobserved completion.` });
-          await saveConversation();
-          if (response.action === 'build') {
-            if (pendingBuildGoals.length >= 8) return { message: `${response.message}\nThe coding queue is full. Finish the current review before adding another request.` };
-            pendingBuildGoals.push(response.goal);
-            return { message: `${response.message}\nCoding request queued. Finish the current review and use :quit to continue with its plan.` };
-          }
-          return { message: response.message };
-        } });
+      await runProjectPlan(proposal.plan, { ...projectTerminalOptions(session => { runningSession = session; }),
+        expectedBaseCommit: proposal.project.baseCommit });
     } finally {
       projectControls = undefined;
       if (!quitting && !signal?.aborted) input = makeInput();
-    }
-    if (runningSession) {
-      const retained = runningSession.status();
-      preferences.lastSession = retained.sessionRoot;
-      if (retained.agents.some(agent => agent.integration?.status === 'integrated')
-        && !retained.agents.some(agent => agent.integration?.status === 'conflicts')) {
-        // Continue from the code actually approved by the operator, while the
-        // original checkout stays under their normal Git control.
-        const integrated = await prepareProject({ directory: retained.integration.path });
-        preferences.project = integrated.projectRoot;
-        print(`Further coding continues from the reviewed integration workspace: ${integrated.projectRoot}`);
-      }
-      await persist();
+      if (runningSession) await retainProject(runningSession.sessionRoot);
     }
   }
 
@@ -365,7 +498,7 @@ export async function runChat({ write, signal, version } = {}) {
       print(`Installing local Ollama model ${values[0]} through its native cache.`);
       const installed = await pullOllamaModel({ model: values[0], signal,
         onProgress: event => { if (event.type === 'output') write(visible(event.text)); } });
-      preferences.local = { endpoint: installed.apiBaseUrl, model: installed.id };
+      preferences.local = { kind: 'ollama', endpoint: installed.apiBaseUrl, model: installed.id };
       delete preferences.localConversation;
       await persist();
       if (selectedKind() === 'local') await selectCoordinator('local', true);
@@ -377,7 +510,7 @@ export async function runChat({ write, signal, version } = {}) {
       ownedServer = await startLlamaServer({ modelPath, command: preferences.llamaCommand ?? 'llama-server',
         modelId, signal, onEvent: item => { if (item.type === 'output') write(visible(item.text)); } });
       await ownedServer.ready;
-      preferences.local = { endpoint: ownedServer.apiBaseUrl, model: ownedServer.modelId };
+      preferences.local = { kind: 'llama', endpoint: ownedServer.apiBaseUrl, model: ownedServer.modelId };
       delete preferences.localConversation;
       await persist();
       if (selectedKind() === 'local') await selectCoordinator('local', true);
@@ -392,13 +525,33 @@ export async function runChat({ write, signal, version } = {}) {
   try {
     print(`\nKOTO ${version}\nYour coding agents, working together. Type a message or a coding goal.\n/help lists controls. /stop interrupts an active turn.\n`);
     try {
-      let kind = selectedKind();
-      if (!preferences.coordinator) {
-        try { await nativeExecutable('codex'); kind = 'codex'; }
-        catch { try { await nativeExecutable('claude'); kind = 'claude'; } catch { kind = 'codex'; } }
+      const commands = ['codex', 'claude'].includes(preferences.coordinator?.kind)
+        ? { [preferences.coordinator.kind]: preferences.coordinator.command } : {};
+      const accounts = await discoverAgentAccounts({ signal, commands });
+      showAccounts(accounts, printLine);
+      let kind = selectedKind(), selected;
+      if (kind === 'local') {
+        try {
+          const endpoint = preferences.local?.endpoint;
+          const localKind = preferences.local?.kind ?? (endpoint && new URL(endpoint).port === '18089' ? 'llama' : 'ollama');
+          const local = await checkLocalEndpoint({ kind: localKind, endpoint, signal });
+          if (!local.models.some(model => model.id === preferences.local?.model)) throw new Error('The saved local model is not listed.');
+        } catch {
+          print('The saved local model is not running. /local reuses retained assets or selects another model.');
+          kind = accounts.find(account => account.status === 'ready')?.kind;
+        }
       }
-      await selectCoordinator(kind);
-    } catch (error) { print(`Coordinator unavailable: ${error.message}\nInstall/log in to the selected native CLI, then choose it with /agent. You can still configure projects and models.`); }
+      if (kind !== 'local') {
+        selected = accounts.find(account => account.kind === kind && account.status === 'ready')
+          ?? accounts.find(account => account.status === 'ready');
+        kind = selected?.kind;
+      }
+      if (kind) await selectCoordinator(kind, false, selected?.command);
+      else print('Use /connect to set up your existing subscription, or /local for optional open-source models.');
+      if (preferences.project) print(`Remembered project: ${preferences.project}. /projects changes it.`);
+      if (preferences.lastSession) print('Your last build is retained. /review inspects its changes; /resume continues a recorded agent.');
+      print('Optional: /local adds a local model; /team chooses agents before your next build.');
+    } catch (error) { print(`Coordinator unavailable: ${error.message}\n/connect checks native accounts; /local guides local setup. Your projects and retained work are unchanged.`); }
     while (!quitting && !signal?.aborted && !input.closed) {
       if (pendingBuildGoals.length) {
         try { await build(pendingBuildGoals.shift()); }
@@ -414,6 +567,21 @@ export async function runChat({ write, signal, version } = {}) {
           if (command === '/quit' || command === '/exit') break;
           if (command === '/help') print(help);
           else if (command === '/stop') stop();
+          else if (command === '/connect' && !args.length) await connectAccount();
+          else if (command === '/local' && !args.length) await localSetup();
+          else if (command === '/team' && !args.length) await configureTeam();
+          else if (command === '/projects' && !args.length) await chooseProject();
+          else if (command === '/review' && !args.length) {
+            const result = await reviewSavedSession({ sessionRoot: preferences.lastSession, ask, write: printLine, signal });
+            if (result) await retainProject(result.sessionRoot);
+          }
+          else if (command === '/resume' && !args.length) await resumeSaved();
+          else if (command === '/forget-session' && !args.length) {
+            if (await ask('Forget only the saved shortcut? All session files and edits stay on disk. Type forget> ') === 'forget') {
+              delete preferences.lastSession; delete preferences.lastSessionProject;
+              await persist(); print('Last-session shortcut forgotten.');
+            }
+          }
           else if (command === '/agent' && args.length >= 1 && args.length <= 2) await selectCoordinator(args[0], true, args[1]);
           else if (command === '/model' && args.length === 1) {
             await selectCoordinator(selectedKind(), true, undefined, args[0]);
@@ -439,7 +607,7 @@ export async function runChat({ write, signal, version } = {}) {
           } else print('Unknown or incomplete command. /help lists controls. Ordinary messages do not need a slash.');
           continue;
         }
-        if (!coordinator) throw new Error('Choose an installed, logged-in coordinator with /agent codex or /agent claude, or configure a local model.');
+        if (!coordinator) throw new Error('No coordinator is connected yet. /connect discovers native subscription accounts; /local guides optional local-model setup.');
         busy = true; view.resume();
         let result;
         try {

@@ -30,13 +30,13 @@ Install the resulting tarball globally:
 
 ```sh
 npm install --global ./mehrdadxzaker-koto-3.0.0-alpha.0.tgz
-koto --help
+koto
 ```
 
 Or run that tarball without a global installation:
 
 ```sh
-npx --yes --package ./mehrdadxzaker-koto-3.0.0-alpha.0.tgz koto --help
+npx --yes --package ./mehrdadxzaker-koto-3.0.0-alpha.0.tgz koto
 ```
 
 The intended registry name is `@mehrdadxzaker/koto`; availability and publication
@@ -78,8 +78,11 @@ The local implementation adds concurrent external commands in separate Git
 worktrees, with streamed output, per-command stop/input controls and a separate
 integration branch:
 
-Run `koto` or `koto start` in a terminal for the [guided launcher](docs/GUIDED_SESSIONS.md).
-It collects a project, agents, models, tasks and ownership without a JSON file.
+Run `koto` or `koto start` in an interactive terminal for the
+[Koto conversation](docs/CONVERSATIONAL_CLI.md). It discovers native subscription
+accounts, offers optional local models, and turns coding goals into an editable
+agent/task/workspace plan. Normal setup does not need a JSON file. The older
+[manual guided launcher](docs/GUIDED_SESSIONS.md) remains available through `koto setup`.
 Prepared plans remain available for scripted use:
 
 ```sh

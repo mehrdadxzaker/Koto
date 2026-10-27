@@ -14,5 +14,8 @@ export { createCoordinator } from './coordinator.js';
 export { loadPreferences, savePreferences, defaultStateDirectory } from './preferences.js';
 export { discoverLocalModels, checkLocalEndpoint, pullOllamaModel, startLlamaServer, downloadGguf } from './local-models.js';
 export { buildLlamaRuntime } from './runtime-install.js';
+export { discoverAgentAccounts, resolveNativeAgentExecutable, startNativeSignIn } from './account-discovery.js';
+export { localModelCatalog, localStorageCapacity, listRetainedLocalModels, inspectLocalModelSetup } from './model-catalog.js';
+export { guidedLlamaCommit, resolveCatalogGguf, setupLocalModel } from './model-setup.js';
 export { buildTerminalHelper, resolveTerminalHelper } from './terminal-helper.js';
 export { describeNativeCapabilities } from './native-agent.js';

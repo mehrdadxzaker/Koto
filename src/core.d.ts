@@ -695,9 +695,16 @@ export function createClaudeAgentSession(options: NativeControlAgentOptions & { 
 export function prepareProject(options: {
   directory: string; create?: boolean | undefined; approveCreate?: boolean | undefined;
 }): Promise<{ projectRoot: string; baseCommit: string; branch?: string | undefined; created: boolean }>;
+export interface BuildTaskInput {
+  readonly id: string; readonly worker: string; readonly task: string;
+  readonly owns: readonly string[]; readonly dependsOn?: readonly string[] | undefined;
+}
 export interface BuildProposal {
   readonly schemaVersion: 1; readonly kind: 'koto-build-proposal'; readonly id: string;
   readonly summary: string; readonly fingerprint: string; readonly plan: ProjectPlan;
+  readonly createdAt: string; readonly revisionOf?: string | undefined;
+  readonly coordinatorSessionId?: string | undefined; readonly usage?: Record<string, unknown> | undefined;
+  readonly workers: readonly { readonly id: string; readonly label: string; readonly model?: string | undefined }[];
   readonly project: { readonly projectRoot: string; readonly baseCommit: string; readonly branch?: string | undefined };
   readonly tasks: readonly { readonly id: string; readonly worker: string; readonly task: string;
     readonly owns: readonly string[]; readonly dependsOn: readonly string[]; readonly label: string; readonly model?: string | undefined }[];
@@ -707,11 +714,15 @@ export function createCoordinator(options: { session: AgentSession }): {
   readonly sessionId?: string | undefined; stop(): void;
   routeMessage(text: string, options?: { signal?: AbortSignal | undefined; context?: string | undefined }): Promise<{
     action: 'chat' | 'build'; message: string; goal?: string | undefined; sessionId?: string | undefined;
+    usage?: Record<string, unknown> | undefined;
   }>;
   plan(goal: string, options: { project: string; workers: readonly (Partial<ProjectAgentPlan> & {
     id: string; command: string; args: readonly string[]; label?: string | undefined })[];
     signal?: AbortSignal | undefined; timeoutMs?: number | undefined; maxConcurrency?: number | undefined;
     controlRoot?: string | undefined; nativeHelperDirectory?: string | undefined }): Promise<BuildProposal>;
+  /** Locally revise a proposal issued by this coordinator; no model call or workspace launch. */
+  revise(proposal: BuildProposal, changes?: { tasks?: readonly BuildTaskInput[] | undefined;
+    maxConcurrency?: number | undefined; summary?: string | undefined }): BuildProposal;
   prepare(proposal: BuildProposal, options?: ProjectSessionOptions): Promise<ProjectSession>;
   execute(proposal: BuildProposal, options: ProjectSessionOptions & { approved: true }): Promise<ProjectReport>;
 };
@@ -721,22 +732,145 @@ export function savePreferences(preferences: Record<string, unknown>, options?: 
 export interface LocalModelMetadata { id: string; bytes?: number | undefined; digest?: string | undefined; }
 export interface LocalEndpointMetadata { kind: 'ollama' | 'llama'; endpoint: string; apiBaseUrl: string; status: 'ready'; models: LocalModelMetadata[]; }
 export function checkLocalEndpoint(options?: { kind?: 'ollama' | 'llama' | undefined; endpoint?: string | undefined; signal?: AbortSignal | undefined }): Promise<LocalEndpointMetadata>;
-export function discoverLocalModels(options?: Record<string, unknown>): Promise<Record<string, Partial<LocalEndpointMetadata> & {
-  reachable: boolean; executable?: string | undefined; error?: string | undefined; message?: string | undefined;
-}>>;
+export interface LocalRuntimeDiscovery extends Omit<LocalEndpointMetadata, 'status'> {
+  reachable: boolean; executable?: string | undefined; status?: 'ready' | undefined;
+  error?: string | undefined; message?: string | undefined;
+}
+export function discoverLocalModels(options?: { ollamaCommand?: string | undefined; llamaCommand?: string | undefined;
+  ollamaEndpoint?: string | undefined; llamaEndpoint?: string | undefined; signal?: AbortSignal | undefined;
+}): Promise<Record<'ollama' | 'llama', LocalRuntimeDiscovery>>;
 export function pullOllamaModel(options: { model: string; command?: string | undefined; endpoint?: string | undefined;
   timeoutMs?: number | undefined; signal?: AbortSignal | undefined; onProgress?: ((event: Readonly<Record<string, unknown>>) => unknown) | undefined }): Promise<LocalModelMetadata & { endpoint: string; apiBaseUrl: string; executable: string }>;
+export interface OwnedLlamaServer {
+  readonly pid: number | null; readonly endpoint: string; readonly apiBaseUrl: string; readonly modelId: string;
+  readonly ready: Promise<LocalEndpointMetadata>; readonly completion: Promise<CommandOutcome>;
+  stop(): Promise<CommandOutcome>;
+}
 export function startLlamaServer(options: { modelPath: string; command?: string | undefined; port?: number | undefined;
   contextSize?: number | undefined; memoryLimitBytes?: number | undefined; minimumFreeBytes?: number | undefined;
   gpuLayers?: number | undefined; modelId?: string | undefined; startupTimeoutMs?: number | undefined;
-  timeoutMs?: number | undefined; signal?: AbortSignal | undefined; onEvent?: ((event: Readonly<Record<string, unknown>>) => unknown) | undefined }): Promise<{
-    readonly pid: number | null; readonly endpoint: string; readonly apiBaseUrl: string; readonly modelId: string;
-    readonly ready: Promise<LocalEndpointMetadata>; readonly completion: Promise<CommandOutcome>;
-    stop(): Promise<CommandOutcome>;
-  }>;
+  timeoutMs?: number | undefined; signal?: AbortSignal | undefined; onEvent?: ((event: Readonly<Record<string, unknown>>) => unknown) | undefined }): Promise<OwnedLlamaServer>;
 export function downloadGguf(options: { url: string; destination: string; sha256: string; maxBytes: number;
   timeoutMs?: number | undefined; signal?: AbortSignal | undefined;
   onProgress?: ((event: { type: 'download'; bytes: number; totalBytes?: number | undefined }) => unknown) | undefined }): Promise<{ path: string; bytes: number; sha256: string; source: string }>;
 export function buildLlamaRuntime(options: { commit: string; installDirectory: string; sourceDirectory?: string | undefined;
   approveBuild: true; jobs?: number | undefined; timeoutMs?: number | undefined; minimumFreeBytes?: number | undefined;
   signal?: AbortSignal | undefined; onEvent?: ((event: Readonly<Record<string, unknown>>) => unknown) | undefined }): Promise<{ path: string; receiptPath: string; [key: string]: unknown }>;
+
+export type NativeSubscriptionKind = 'codex' | 'claude';
+export interface NativeAccountInspection {
+  kind: NativeSubscriptionKind;
+  installed: boolean;
+  command?: string | undefined;
+  version?: string | undefined;
+  /** Native status metadata only; null means the CLI could not establish it. */
+  signedIn: boolean | null;
+  accountType?: 'chatgpt' | 'subscription' | 'api' | undefined;
+  status: 'ready' | 'needs_sign_in' | 'needs_attention' | 'not_installed';
+  reason: string;
+  /** A discovered login does not prove model entitlement or successful inference. */
+  access: 'unverified';
+  accessVerified: false;
+  nativeState?: { writable: boolean; reason?: string | undefined; needsCreation?: boolean | undefined } | undefined;
+  install?: { url: string; command: string } | undefined;
+}
+export function resolveNativeAgentExecutable(kind: NativeSubscriptionKind, explicit?: string | undefined): Promise<string>;
+/** Native version/auth metadata and filesystem prerequisites only; never inference. */
+export function discoverAgentAccounts(options?: {
+  commands?: Partial<Record<NativeSubscriptionKind, string>> | undefined;
+  cwd?: string | undefined; signal?: AbortSignal | undefined; nativeHelperDirectory?: string | undefined;
+}): Promise<NativeAccountInspection[]>;
+interface NativeSignInHandleBase {
+  readonly id: 'nativeSignIn'; readonly kind: NativeSubscriptionKind; readonly command: string;
+  readonly pid: number | null; readonly completion: Promise<CommandOutcome>;
+  endInput(): boolean;
+  stop(): void;
+}
+export interface NativeSignInPipeHandle extends NativeSignInHandleBase {
+  readonly transport: 'pipe';
+  send(text: string): boolean;
+}
+export interface NativeSignInTerminalHandle extends NativeSignInHandleBase {
+  readonly transport: 'pty';
+  send(input: string | Uint8Array): boolean;
+  resize(columns: number, rows: number): boolean;
+}
+export type NativeSignInHandle = NativeSignInPipeHandle | NativeSignInTerminalHandle;
+/** Explicit subscription-only native sign-in. Caller owns IO and awaits cleanup. */
+export function startNativeSignIn(options: {
+  kind: NativeSubscriptionKind; command?: string | undefined; approved: true;
+  cwd?: string | undefined; signal?: AbortSignal | undefined; timeoutMs?: number | undefined;
+  onEvent?: ((event: Readonly<Record<string, unknown>>) => unknown) | undefined;
+  helperPath?: string | undefined;
+}): Promise<NativeSignInHandle>;
+
+export type LocalCatalogChoiceId = 'qwen3-4b' | 'qwen3-8b' | 'qwen3-14b';
+export interface LocalCatalogChoice {
+  readonly id: LocalCatalogChoiceId; readonly name: string; readonly ggufQuantization: 'Q4_K_M';
+  readonly ollamaModel: string; readonly publisher: string; readonly parameters: string;
+  readonly downloadEstimateBytes: number; readonly minimumMemoryBytes: number;
+  readonly recommendedMemoryBytes: number; readonly estimatedWorkingBytes: number;
+}
+/** Approximate one-model guidance; not speed, quality, fit or download guarantees. */
+export const localModelCatalog: readonly LocalCatalogChoice[];
+export function localStorageCapacity(directory?: string | undefined): Promise<number | undefined>;
+export interface CatalogGgufAsset {
+  choiceId: LocalCatalogChoiceId; publisher: string; revision: string;
+  filename: string; sha256: string; bytes: number; url: string;
+}
+export interface RetainedCatalogModel extends CatalogGgufAsset { path: string; }
+export function listRetainedLocalModels(directory?: string | undefined): Promise<RetainedCatalogModel[]>;
+export interface LocalModelSetupInspection {
+  machine: { platform: string; arch: string; memoryBytes: number; freeMemoryBytes: number;
+    diskAvailableBytes?: number | undefined; };
+  runtimes: Record<'ollama' | 'llama', LocalRuntimeDiscovery>;
+  choices: (LocalCatalogChoice & {
+    retained: RetainedCatalogModel[];
+    suitability: 'insufficient_memory' | 'close_other_apps' | 'limited_headroom' | 'suggested';
+    storage: 'unknown' | 'insufficient_space' | 'available';
+    installed: (LocalModelMetadata & { kind: 'ollama' | 'llama'; endpoint: string })[];
+  })[];
+  retainedModels: RetainedCatalogModel[];
+  estimates: string; optional: true;
+  ollamaInstall: { url: string; message: string };
+}
+/** Runtime/model metadata only; does not start, download or request inference. */
+export function inspectLocalModelSetup(options?: { directory?: string | undefined;
+  ollamaCommand?: string | undefined; llamaCommand?: string | undefined; signal?: AbortSignal | undefined;
+}): Promise<LocalModelSetupInspection>;
+export const guidedLlamaCommit: '14310190cd0a0c831fe949ac8cbedd8abdc90695';
+/** Contact the official publisher to resolve one immutable Q4_K_M GGUF and digest. */
+export function resolveCatalogGguf(options: { choiceId: LocalCatalogChoiceId;
+  signal?: AbortSignal | undefined }): Promise<Readonly<CatalogGgufAsset>>;
+export type LocalModelSetupApproval = Readonly<{
+  action: 'pull-model'; runtime: 'ollama'; model: string; downloadEstimateBytes: number;
+  source: string; message: string;
+} | {
+  action: 'build-runtime'; runtime: 'llama.cpp'; commit: string; source: string;
+  directory: string; message: string;
+} | {
+  action: 'download-model'; model: string; source: string; sha256: string;
+  downloadBytes: number; destination: string; message: string;
+} | {
+  action: 'start-runtime'; runtime: 'llama.cpp'; model: string; modelPath: string; command: string;
+  endpoint: string; contextSize: 8192; message: string;
+}>;
+export interface OllamaModelSetupResult {
+  route: 'ollama'; reused: boolean; model: string; endpoint: string; command: string;
+  inferenceVerified: false;
+}
+export interface LlamaModelSetupResult {
+  route: 'llama'; reused: boolean; modelPath: string; command: string; publisher: string; sha256: string;
+  runtimeReceipt?: Awaited<ReturnType<typeof buildLlamaRuntime>> | undefined;
+  inferenceVerified: false;
+  /** Present only when setup was asked to start and metadata confirmed the model alias. */
+  model?: string | undefined; endpoint?: string | undefined; server?: OwnedLlamaServer | undefined;
+}
+/** Explicit asset acquisition; the caller must retain and stop a returned owned server. */
+export function setupLocalModel(options: {
+  choiceId: LocalCatalogChoiceId; route?: 'ollama' | 'llama' | undefined; directory?: string | undefined;
+  ollamaCommand?: string | undefined; llamaCommand?: string | undefined;
+  approve?: ((action: LocalModelSetupApproval) => boolean | Promise<boolean>) | undefined;
+  onProgress?: ((event: Readonly<Record<string, unknown>>) => unknown) | undefined;
+  signal?: AbortSignal | undefined; start?: boolean | undefined;
+}): Promise<OllamaModelSetupResult | LlamaModelSetupResult>;

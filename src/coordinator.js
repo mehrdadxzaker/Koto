@@ -106,6 +106,56 @@ function workerTemplates(workers, project, goal, timeoutMs) {
   }));
 }
 
+function proposedTasks(source, templates, responseText) {
+  if (!Array.isArray(source) || source.length < 1 || source.length > 8) {
+    fail('coordinator_plan_invalid', 'Keep one to eight coding tasks in the plan. No project agents were started.', responseText);
+  }
+  return source.map(task => {
+    if (!fields(task, ['id', 'worker', 'task', 'owns', 'dependsOn'])
+      || typeof task.id !== 'string' || !ID.test(task.id)
+      || !templates.has(task.worker) || !text(task.task, 16_384)
+      || !Array.isArray(task.owns) || task.owns.length < 1 || task.owns.length > 64
+      || task.owns.some(item => typeof item !== 'string' || /[*?\[\]{}]/.test(item))
+      || (task.dependsOn !== undefined && (!Array.isArray(task.dependsOn)
+        || task.dependsOn.length > 8
+        || task.dependsOn.some(id => typeof id !== 'string' || !ID.test(id))))) {
+      fail('coordinator_plan_invalid', 'Choose valid task IDs, configured workers, assignments, literal paths and dependencies. No project agents were started.', responseText);
+    }
+    return { id: task.id, worker: task.worker, task: task.task,
+      owns: [...task.owns], dependsOn: [...(task.dependsOn ?? [])] };
+  });
+}
+
+function projectPlan({ tasks, templates, project, goal, timeoutMs, maxConcurrency,
+  controlRoot, nativeHelperDirectory, responseText }) {
+  try {
+    validateWorkflow({ schemaVersion: 1, goal,
+      agents: Object.fromEntries([...templates.entries()].map(([id, worker]) => [id,
+        { command: worker.execution.command, args: worker.execution.args, timeoutMs: worker.execution.timeoutMs }])),
+      tasks: tasks.map(task => ({ id: task.id, agent: task.worker,
+        prompt: task.task, dependsOn: task.dependsOn })),
+      timeoutMs, maxConcurrency });
+  } catch {
+    fail('coordinator_plan_invalid', 'The plan contains duplicate tasks, invalid dependencies, a cycle or an invalid execution budget. No project agents were started.', responseText);
+  }
+  let plan;
+  try {
+    plan = validateProjectPlan({ schemaVersion: 1, project, goal,
+      agents: tasks.map(task => ({ ...templates.get(task.worker).execution,
+        id: task.id, task: task.task, owns: task.owns, dependsOn: task.dependsOn })),
+      maxConcurrency, timeoutMs,
+      ...(controlRoot === undefined ? {} : { controlRoot }),
+      ...(nativeHelperDirectory === undefined ? {} : { nativeHelperDirectory }) });
+  } catch {
+    fail('coordinator_plan_invalid', 'The plan contains invalid project paths, ownership or terminal configuration. No project agents were started.', responseText);
+  }
+  if (tasks.some(task => task.dependsOn.length
+    && JSON.stringify(plan.agents.find(agent => agent.id === task.id)?.dependsOn) !== JSON.stringify(task.dependsOn))) {
+    fail('coordinator_dependencies_unsupported', 'This core cannot retain the proposed task dependencies. No project agents were started.');
+  }
+  return plan;
+}
+
 function ownershipWarnings(tasks) {
   const warnings = [];
   const overlaps = (left, right) => left === '.' || right === '.' || left === right
@@ -135,6 +185,14 @@ export function createCoordinator({ session } = {}) {
   let activeProject;
   let executionController;
   let stoppedAt = 0;
+  // Edits may select only caller-configured workers from this exact proposal.
+  // Display metadata never becomes authority to invent an executable or model.
+  const proposals = new WeakMap();
+  const retainProposal = (value, templates) => {
+    const proposal = freeze(value);
+    proposals.set(proposal, templates);
+    return proposal;
+  };
 
   async function turn(prompt, signal) {
     if (busy) fail('coordinator_busy', 'The coordinator already has an active turn. Wait for it to finish or stop it first.');
@@ -222,55 +280,50 @@ export function createCoordinator({ session } = {}) {
         || response.tasks.length < 1 || response.tasks.length > 8) {
         fail('coordinator_plan_invalid', 'The coordinator did not provide a bounded implementation plan. No project agents were started.', result.source);
       }
-      const tasks = response.tasks.map(task => {
-        if (!fields(task, ['id', 'worker', 'task', 'owns', 'dependsOn']) || !ID.test(task.id)
-          || !templates.has(task.worker) || !text(task.task, 16_384) || !Array.isArray(task.owns)
-          || task.owns.length < 1 || task.owns.length > 64
-          || (task.dependsOn !== undefined && (!Array.isArray(task.dependsOn)
-            || task.dependsOn.some(id => typeof id !== 'string' || !ID.test(id))))) {
-          fail('coordinator_plan_invalid', 'The coordinator proposed an invalid task, worker, ownership declaration or dependency. No project agents were started.', result.source);
-        }
-        return { id: task.id, worker: task.worker, task: task.task,
-          owns: [...task.owns], dependsOn: [...(task.dependsOn ?? [])] };
-      });
+      const tasks = proposedTasks(response.tasks, templates, result.source);
       if (maxConcurrency !== undefined && (!Number.isInteger(maxConcurrency) || maxConcurrency < 1 || maxConcurrency > 8)) {
         fail('coordinator_concurrency_invalid', 'Choose one to eight concurrent coding tasks.');
       }
       const concurrency = Math.min(maxConcurrency ?? templates.size, tasks.length);
-      try {
-        // Reuse the scheduler's own identifier, reference and cycle checks.
-        validateWorkflow({ schemaVersion: 1, goal,
-          agents: Object.fromEntries([...templates.entries()].map(([id, worker]) => [id,
-            { command: worker.execution.command, args: worker.execution.args, timeoutMs: worker.execution.timeoutMs }])),
-          tasks: tasks.map(task => ({ id: task.id, agent: task.worker,
-            prompt: task.task, dependsOn: task.dependsOn })),
-          timeoutMs, maxConcurrency: concurrency });
-      } catch {
-        fail('coordinator_plan_invalid', 'The coordinator proposed duplicate tasks, invalid dependencies, a cycle or an invalid execution budget. No project agents were started.', result.source);
-      }
-      let plan;
-      try {
-        plan = validateProjectPlan({ schemaVersion: 1, project: checked.projectRoot, goal,
-          agents: tasks.map(task => ({ ...templates.get(task.worker).execution,
-            id: task.id, task: task.task, owns: task.owns, dependsOn: task.dependsOn })),
-          maxConcurrency: concurrency, timeoutMs,
-          ...(controlRoot === undefined ? {} : { controlRoot }),
-          ...(nativeHelperDirectory === undefined ? {} : { nativeHelperDirectory }) });
-      } catch {
-        fail('coordinator_plan_invalid', 'The coordinator proposed invalid project paths, ownership or terminal configuration. No project agents were started.', result.source);
-      }
-      if (tasks.some(task => task.dependsOn.length
-        && JSON.stringify(plan.agents.find(agent => agent.id === task.id)?.dependsOn) !== JSON.stringify(task.dependsOn))) {
-        fail('coordinator_dependencies_unsupported', 'This core cannot retain the proposed task dependencies. No project agents were started.');
-      }
-      return freeze({ schemaVersion: 1, kind: 'koto-build-proposal', id: randomUUID(),
+      const plan = projectPlan({ tasks, templates, project: checked.projectRoot, goal,
+        timeoutMs, maxConcurrency: concurrency, controlRoot, nativeHelperDirectory,
+        responseText: result.source });
+      return retainProposal({ schemaVersion: 1, kind: 'koto-build-proposal', id: randomUUID(),
         createdAt: new Date().toISOString(), summary: response.summary,
         project: checked, plan, fingerprint: fingerprint(plan, checked),
+        workers: workerInfo,
         tasks: tasks.map(task => ({ ...task, label: templates.get(task.worker).label,
           ...(templates.get(task.worker).model ? { model: templates.get(task.worker).model } : {}) })),
         warnings: ownershipWarnings(tasks),
         ...(result.sessionId ? { coordinatorSessionId: result.sessionId } : {}),
-        ...(result.usage === undefined ? {} : { usage: result.usage }) });
+        ...(result.usage === undefined ? {} : { usage: result.usage }) }, templates);
+    },
+
+    /** Operator edits are validated locally; no model call or workspace launch. */
+    revise(proposal, changes = {}) {
+      const templates = proposals.get(proposal);
+      if (!templates || !fields(changes, ['tasks', 'maxConcurrency', 'summary'])) {
+        fail('coordinator_proposal_invalid', 'Edit a proposal created by this coordinator using only task, summary and concurrency changes.');
+      }
+      if (proposal.fingerprint !== fingerprint(proposal.plan, proposal.project)) {
+        fail('coordinator_proposal_changed', 'The original execution plan changed. Prepare a new proposal.');
+      }
+      const tasks = proposedTasks(changes.tasks ?? proposal.tasks.map(({ id, worker, task, owns, dependsOn }) =>
+        ({ id, worker, task, owns, dependsOn })), templates);
+      const maxConcurrency = changes.maxConcurrency ?? Math.min(proposal.plan.maxConcurrency, tasks.length);
+      if (!Number.isInteger(maxConcurrency) || maxConcurrency < 1 || maxConcurrency > tasks.length) {
+        fail('coordinator_concurrency_invalid', `Choose between one and ${tasks.length} concurrent coding tasks.`);
+      }
+      const summary = changes.summary ?? proposal.summary;
+      if (!text(summary, 4_096)) fail('coordinator_plan_invalid', 'Keep a nonempty plan summary of at most 4 KiB.');
+      const plan = projectPlan({ tasks, templates, project: proposal.plan.project,
+        goal: proposal.plan.goal, timeoutMs: proposal.plan.timeoutMs, maxConcurrency,
+        controlRoot: proposal.plan.controlRoot, nativeHelperDirectory: proposal.plan.nativeHelperDirectory });
+      return retainProposal({ ...proposal, id: randomUUID(), createdAt: new Date().toISOString(),
+        revisionOf: proposal.id, summary, plan, fingerprint: fingerprint(plan, proposal.project),
+        tasks: tasks.map(task => ({ ...task, label: templates.get(task.worker).label,
+          ...(templates.get(task.worker).model ? { model: templates.get(task.worker).model } : {}) })),
+        warnings: ownershipWarnings(tasks) }, templates);
     },
 
     async prepare(proposal, { onEvent, signal, onApproval } = {}) {

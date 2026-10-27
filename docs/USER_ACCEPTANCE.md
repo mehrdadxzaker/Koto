@@ -1,5 +1,11 @@
 # One acceptance run for the shared core
 
+This procedure exercises the advanced native-terminal flow through `koto setup`.
+The default `koto` command now opens the [conversation](CONVERSATIONAL_CLI.md).
+Its fresh-user account/local-model setup, editable build plan and returning-user
+review/resume journey require separate actual acceptance; this procedure alone
+does not complete the expanded #543 CLI requirements.
+
 Use the exact reviewed installation command supplied with the handoff, so this
 run does not use an older `koto`. The steps below call that installed command
 `koto`. Use a clean, committed project and two small, non-overlapping changes you
@@ -17,7 +23,7 @@ koto --version
 koto
 ```
 
-Choose **Set up terminal support**. Keep the default directory unless you use a
+Use `koto setup`, then choose **Set up terminal support**. Keep the default directory unless you use a
 different private helper directory. An existing matching helper is verified;
 otherwise choose **Build the helper now using installed tools**.
 
