@@ -15,7 +15,8 @@ const HELPER_TERM_MS = 2_000;
 const HELPER_KILL_MS = 4_000;
 const FORCE_FINISH_MS = 4_500;
 const validString = value => typeof value === 'string' && value.length > 0 && !value.includes('\0');
-const dimension = value => Number.isInteger(value) && value >= 1 && value <= 65_535;
+const dimension = value => Number.isInteger(value) && value >= 1
+  && value <= (process.platform === 'win32' ? 32_767 : 65_535);
 const identity = value => Number.isSafeInteger(value) && value > 0;
 const HELPER_REASONS = new Set([
   'stopped', 'control_eof', 'invalid_control', 'host_signal', 'host_gone',

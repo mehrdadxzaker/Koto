@@ -571,5 +571,4 @@ finish:
     /* Threads may still own s on failure, so let process teardown release it. */
     (void)final_sent;
     ExitProcess((UINT)result);
-    return result;
 }
