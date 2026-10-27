@@ -78,6 +78,10 @@ The local implementation adds concurrent external commands in separate Git
 worktrees, with streamed output, per-command stop/input controls and a separate
 integration branch:
 
+Run `koto` or `koto start` in a terminal for the [guided launcher](docs/GUIDED_SESSIONS.md).
+It collects a project, agents, models, tasks and ownership without a JSON file.
+Prepared plans remain available for scripted use:
+
 ```sh
 koto project start /absolute/path/to/plan.json
 koto project inspect /absolute/path/to/session agent_id
@@ -95,7 +99,8 @@ controls after an explicit local helper build; native PTY operation is unverifie
 Launch requires approval. All agents must finish and settle cleanup before an
 inspected review token can authorize integration. Conflicts remain visible and
 the original checkout is not updated. Worktrees separate edits, not OS access.
-Windows project pipe exits retain `cleanup_unconfirmed` and block integration.
+Windows project launch is blocked until owned-process cleanup is implemented;
+existing retained pipe outcomes with `cleanup_unconfirmed` also block integration.
 
 [Issue #543](https://github.com/mehrdadxzaker/Koto/issues/543) records a real Mac
 Codex/OpenCode pipe collaboration and two reviewed integrations. A later Linux

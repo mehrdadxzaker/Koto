@@ -6,6 +6,7 @@ import { runWorkflow, validateWorkflow } from '../src/core.js';
 import { runProjectCli } from './project.js';
 import { runTerminalCli } from './terminal.js';
 import { runPlanCli } from './plan.js';
+import { runLauncher } from './launcher.js';
 
 const packageRoot = new URL('../', import.meta.url);
 const metadata = JSON.parse(await readFile(new URL('package.json', packageRoot), 'utf8'));
@@ -28,6 +29,8 @@ process.stderr.on('error', () => streamFailed(process.stderr));
 const help = `Koto — a shared agent orchestration core
 
 Usage:
+  koto                       Open the guided launcher
+  koto start                 Open the guided launcher
   koto --help
   koto --version
   koto validate <workflow.json>
@@ -42,7 +45,7 @@ IDE plugins and Koto's own UI will use this same core.
 `;
 
 async function main(args) {
-  if (args.length === 0 || (args.length === 1 && ['--help', '-h'].includes(args[0]))) {
+  if (args.length === 1 && ['--help', '-h'].includes(args[0])) {
     write(process.stdout, help);
     return;
   }
@@ -53,6 +56,22 @@ async function main(args) {
   const [command, path] = args;
   if (command === 'plan') {
     process.exitCode = await runPlanCli(args.slice(1), { write: text => write(process.stdout, text) });
+    return;
+  }
+  if (!args.length || (command === 'start' && args.length === 1)) {
+    const controller = new AbortController();
+    activeController = controller;
+    if (outputFailed) controller.abort();
+    const interrupt = () => controller.abort();
+    process.once('SIGINT', interrupt);
+    process.once('SIGTERM', interrupt);
+    try {
+      process.exitCode = await runLauncher({ write: text => write(process.stdout, text), signal: controller.signal, version: metadata.version });
+    } finally {
+      activeController = undefined;
+      process.removeListener('SIGINT', interrupt);
+      process.removeListener('SIGTERM', interrupt);
+    }
     return;
   }
   if (command === 'terminal') {

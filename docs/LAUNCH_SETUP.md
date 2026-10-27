@@ -113,8 +113,8 @@ and unsupported cleanup guarantees as unverified. `ok: true` only means the
 checked prerequisites passed; it never means the native journey is qualified.
 Project preflight requires an absolute executable path or a bare command found
 on an absolute PATH entry; a former raw `./agent` command must be made absolute.
-On Windows, pipe exits retain `cleanup_unconfirmed` and block automatic
-integration because complete descendant cleanup cannot be verified.
+Windows project preflight blocks launch because complete descendant cleanup
+cannot be verified. Retained pipe exits with `cleanup_unconfirmed` block integration.
 The local endpoint check opens and immediately closes one TCP connection. It
 does not send an HTTP request, authenticate, download or run a model.
 

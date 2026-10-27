@@ -139,9 +139,9 @@ must not be published as-is. Koto never deletes these worktrees automatically.
 Worktrees provide separate branches and writable directories, not a security
 sandbox. Native agents keep their host permissions and may access other paths
 if their own policy permits it. On POSIX, cancellation owns the process group;
-self-detached descendants remain outside that boundary. Windows project pipe
-termination is best effort; every exit retains `cleanup_unconfirmed` and blocks
-integration because descendant cleanup cannot be verified. A crashed session remains
+self-detached descendants remain outside that boundary. Windows project launch
+is blocked pending owned-process cleanup. Retained pipe exits with
+`cleanup_unconfirmed` block integration. A crashed session remains
 unresolved and cannot automatically integrate or replay work.
 
 This implementation provides ordinary pipes and an optional experimental Mac

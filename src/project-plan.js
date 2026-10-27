@@ -1,13 +1,11 @@
-import { execFile } from 'node:child_process';
 import { constants } from 'node:fs';
-import { access, open, realpath, stat } from 'node:fs/promises';
+import { open, realpath } from 'node:fs/promises';
 import { connect } from 'node:net';
 import path from 'node:path';
-import { promisify } from 'node:util';
 import { validateProjectPlan } from './project-session.js';
 import { resolveDarwinPtyHelper } from './native-helper.js';
+import { inspectLaunchProject, resolveAgentExecutable } from './launch-preflight.js';
 
-const execute = promisify(execFile);
 const MODEL = /^[A-Za-z0-9][A-Za-z0-9._:/+-]{0,255}$/;
 const API_ENV = ['OPENAI_API_KEY', 'CODEX_API_KEY', 'AZURE_OPENAI_API_KEY', 'OPENAI_BASE_URL', 'OPENAI_API_BASE'];
 const fail = code => { throw new Error(code); };
@@ -87,23 +85,6 @@ export function buildProjectPlan(source) {
   return { ...plan, ...(Object.keys(prerequisites).length ? { prerequisites } : {}) };
 }
 
-async function executable(command, unsetEnv = []) {
-  if (command === '$node') return process.execPath;
-  const names = process.platform === 'win32' && !path.extname(command) ? [command, `${command}.exe`] : [command];
-  const candidates = path.isAbsolute(command) ? [command] : /[/\\]/.test(command) ? []
-    : (unsetEnv.includes('PATH') ? (process.platform === 'win32' ? '' : '/usr/bin:/bin') : process.env.PATH ?? '')
-      .split(path.delimiter).filter(directory => path.isAbsolute(directory)).flatMap(directory => names.map(name => path.join(directory, name)));
-  for (const candidate of candidates) {
-    try {
-      const resolved = await realpath(candidate);
-      if (!(await stat(resolved)).isFile() || /\.(?:cmd|bat)$/i.test(resolved)) continue;
-      await access(resolved, process.platform === 'win32' ? constants.F_OK : constants.X_OK);
-      return resolved;
-    } catch { /* Try the next explicit PATH entry. */ }
-  }
-  return undefined;
-}
-
 async function readConfig(filename) {
   const handle = await open(filename, constants.O_RDONLY | (process.platform === 'win32' ? 0 : constants.O_NONBLOCK));
   try {
@@ -142,36 +123,12 @@ export async function preflightProjectPlan(source) {
   const checks = [];
   const executables = {};
   const add = (id, status, message, agentId) => checks.push({ id, status, message, ...(agentId ? { agentId } : {}) });
-  const git = await executable('git');
-  if (!git) add('git', 'blocked', 'Git was not found on an absolute PATH entry.');
-  else {
-    try {
-      const project = await realpath(plan.project);
-      const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => !/^GIT_/i.test(key)));
-      Object.assign(env, { GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: process.platform === 'win32' ? 'NUL' : '/dev/null',
-        GIT_TERMINAL_PROMPT: '0', GIT_NO_LAZY_FETCH: '1', GIT_OPTIONAL_LOCKS: '0' });
-      const options = { cwd: project, env, timeout: 5000, maxBuffer: 1024 * 1024, windowsHide: true };
-      const prefix = ['--no-pager', '-c', 'core.fsmonitor=false', '-c', 'core.untrackedCache=false', '-c', 'maintenance.auto=false'];
-      const top = (await execute(git, [...prefix, 'rev-parse', '--show-toplevel'], options)).stdout.trim();
-      if (await realpath(top) !== project) add('repository', 'blocked', 'Select the Git repository root.');
-      else {
-        await execute(git, [...prefix, 'rev-parse', '--verify', 'HEAD^{commit}'], options);
-        // Even status can execute a configured clean filter while checking
-        // changed files. Match workspace preparation's refusal before asking
-        // Git to inspect content, so readiness does not run those programs.
-        let customDrivers = '';
-        try {
-          customDrivers = (await execute(git, [...prefix, 'config', '--name-only', '--get-regexp',
-            String.raw`^(filter\..*|merge\..*\.driver)$`], options)).stdout;
-        } catch (error) { if (error.code !== 1) throw error; }
-        if (customDrivers.trim()) {
-          add('repository', 'blocked', 'Custom Git filters or merge drivers require separately reviewed integration; repository content was not inspected.');
-        } else {
-          const status = (await execute(git, [...prefix, 'status', '--porcelain=v1', '-z', '--untracked-files=all', '--ignore-submodules=none'], options)).stdout;
-          add('repository', status ? 'blocked' : 'ready', status ? 'Commit or preserve the existing project changes before starting a session.' : 'The project has a committed HEAD and a clean worktree.');
-        }
-      }
-    } catch { add('repository', 'blocked', 'The repository could not be inspected within the read-only preflight limit.'); }
+  try {
+    await inspectLaunchProject(plan.project);
+    add('repository', 'ready', 'The project has a committed HEAD and a clean worktree.');
+  } catch (error) {
+    const known = typeof error.code === 'string' && /^launch_[a-z0-9_]+$/.test(error.code);
+    add('repository', 'blocked', known ? error.message : 'The repository could not be inspected within the read-only preflight limit.');
   }
   if (plan.agents.some(agent => agent.transport === 'pty')) {
     try {
@@ -184,11 +141,14 @@ export async function preflightProjectPlan(source) {
   }
   if (process.platform === 'win32') add('cleanup', 'unverified', 'Windows pipe exits retain cleanup_unconfirmed because descendant cleanup cannot be verified; automatic integration remains blocked.');
   for (const agent of plan.agents) {
-    const command = await executable(agent.command, agent.unsetEnv);
-    if (command) {
+    try {
+      const command = await resolveAgentExecutable(agent.command === '$node' ? process.execPath : agent.command,
+        { unsetEnv: agent.unsetEnv });
       Object.defineProperty(executables, agent.id, { value: command, enumerable: true });
       add('executable', 'ready', 'The selected executable is available.', agent.id);
-    } else add('executable', 'blocked', 'The selected executable is missing, relative, non-executable, or a shell wrapper unsupported by direct spawn.', agent.id);
+    } catch {
+      add('executable', 'blocked', 'The selected executable is missing, relative, non-executable, or a shell wrapper unsupported by direct spawn.', agent.id);
+    }
     const requirement = own(prerequisites, agent.id) ? prerequisites[agent.id] : undefined;
     if (!requirement) continue;
     if (requirement.configFile) {

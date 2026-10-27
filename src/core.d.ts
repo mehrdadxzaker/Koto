@@ -351,3 +351,28 @@ export interface DarwinPtyBuildReceipt {
 export function buildDarwinPtyHelper(options?: { directory?: string | undefined }): Promise<DarwinPtyBuildReceipt>;
 /** Verify existing source/build identity without compiling or launching an agent. */
 export function resolveDarwinPtyHelper(options?: { directory?: string | undefined }): Promise<string>;
+
+export interface AgentProfileOptions {
+  kind: 'codex' | 'opencode';
+  id: string;
+  command: string;
+  model?: string | undefined;
+  effort?: string | undefined;
+  task: string;
+  owns: readonly string[];
+  account?: 'host' | 'chatgpt' | undefined;
+  timeoutMs?: number | undefined;
+}
+export function createAgentProfile(options: AgentProfileOptions): ProjectAgentPlan;
+export function describeAgentProfile(kind: 'codex' | 'opencode'): Readonly<{
+  kind: 'codex' | 'opencode'; name: string; verifiedCliVersion: string;
+  commandMode: string; transport: 'pipe'; inputMode: 'closed'; readonly accountChoices: readonly string[];
+}>;
+export const AGENT_PROFILE_DEFAULTS: Readonly<{
+  codex: Readonly<{ recommendedModel: string; recommendedEffort: string; timeoutMs: number }>;
+  opencode: Readonly<{ timeoutMs: number }>;
+}>;
+export function resolveAgentExecutable(command: string, options?: { unsetEnv?: readonly string[] }): Promise<string>;
+export function inspectLaunchProject(projectPath?: string | undefined): Promise<{
+  projectRoot: string; baseCommit: string; branch?: string | undefined;
+}>;

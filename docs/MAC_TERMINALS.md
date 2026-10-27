@@ -107,7 +107,8 @@ native prompt, resize, stop one while the other continues, and confirm owned
 cleanup before reviewing/integrating their changes. No PTY readiness claim
 follows from source inspection or the previous pipe-based run.
 
-This new transport rejects Linux and Windows. Their existing pipe mode remains
-available; earlier Linux PTY work is separate and not integrated here. Native
+This new transport rejects Linux and Windows. Linux pipe mode remains available;
+Windows project launch is blocked pending owned-process cleanup. Earlier Linux
+PTY work is separate and not integrated here. Native
 continuation, provider permission-state parsing and semantic completion
 recognition are not implemented by this generic terminal transport.

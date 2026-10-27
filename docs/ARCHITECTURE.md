@@ -112,9 +112,9 @@ checked before integration; it is advisory during execution and is not an OS
 sandbox. Review includes committed, staged, unstaged and untracked contributions.
 An operator must approve the current review token after every agent stops and
 settles owned-process cleanup. Unconfirmed cleanup from any agent blocks
-integration of every contribution. Windows project pipe exits always retain
-`cleanup_unconfirmed` because descendant ownership cannot be established by
-`taskkill` or the parent's exit. The
+integration of every contribution. Windows project launch is blocked because
+descendant ownership cannot be established by `taskkill` or the parent's exit.
+Retained Windows pipe outcomes keep `cleanup_unconfirmed`. The
 integration owner snapshots the reviewed contribution and applies it to the
 separate integration branch. Conflicts remain visible; the original checkout
 is not updated, and session branches/worktrees are retained for explicit review

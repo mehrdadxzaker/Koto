@@ -55,7 +55,8 @@ default; [experimental Mac PTY](MAC_TERMINALS.md) is opt-in and remains unverifi
 with actual native terminals. The prior real Mac pipe cooperation and the later
 failed Linux attempt are recorded in [current evidence](CORE_STATUS.md).
 Native protocol adapters and native session resume remain open. Windows project
-pipe exits report unconfirmed descendant cleanup and block automatic integration.
+launch is blocked pending owned-process cleanup; retained unconfirmed outcomes
+also block integration.
 
 IDE plugins and Koto's UI will be separate ways to use the installed core. They
 are planned and no placeholder package is installed today.

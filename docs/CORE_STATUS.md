@@ -43,11 +43,14 @@ not a registry release or a successful installed native-agent journey.
   unconfirmed cleanup from any agent blocks integration of all contributions.
 - Explicit native command plan building and shared launch preflight before
   workspace creation. A passing preflight does not prove native readiness.
+- The guided CLI launcher uses the same repository/executable checks and session
+  core as prepared plans. The concurrent launcher update was preserved during
+  integration; its earlier terminal observation is separate from native execution.
 - Optional Mac PTY source with byte input, resize, foreground attachment and
   owned-session cleanup reporting. It requires an explicit helper build using
   the existing Apple toolchain. Source compilation is separate from native use.
-- Windows project pipe exits explicitly retain `cleanup_unconfirmed`; automatic
-  integration is blocked until a suitable owned-process implementation exists.
+- Windows project launch is blocked until a suitable owned-process implementation
+  exists. Retained pipe exits with `cleanup_unconfirmed` also block integration.
 
 Source/scope checks and helper compilation do not establish model quality,
 native terminal operation, installed-package behavior or platform qualification.
