@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { describeNativeCapabilities, normalizeNativeAgent } from './native-agent.js';
 
 const ID = /^[A-Za-z][A-Za-z0-9_-]{0,63}$/;
 const MODEL = /^[A-Za-z0-9][A-Za-z0-9._:/@+-]{0,511}$/;
@@ -17,9 +18,13 @@ export const AGENT_PROFILE_DEFAULTS = Object.freeze({
 const DESCRIPTIONS = Object.freeze({
   codex: Object.freeze({ kind: 'codex', name: 'Codex', verifiedCliVersion: '0.164.0',
     commandMode: 'exec', transport: 'pipe', inputMode: 'closed',
+    transports: Object.freeze(['pipe', 'pty']),
+    capabilities: describeNativeCapabilities('codex'),
     accountChoices: Object.freeze(['host', 'chatgpt']) }),
   opencode: Object.freeze({ kind: 'opencode', name: 'OpenCode', verifiedCliVersion: '1.19.4',
     commandMode: 'run', transport: 'pipe', inputMode: 'closed',
+    transports: Object.freeze(['pipe', 'pty']),
+    capabilities: describeNativeCapabilities('opencode'),
     accountChoices: Object.freeze(['host']) }),
 });
 
@@ -36,20 +41,23 @@ function text(value, maximum) {
 }
 
 /** Metadata describes an argv profile, not discovery or native qualification. */
-export function describeAgentProfile(kind) {
+export function describeAgentProfile(kind, { transport = 'pipe' } = {}) {
   if (typeof kind !== 'string' || !Object.hasOwn(DESCRIPTIONS, kind)) {
     fail('agent_profile_kind_invalid', 'Choose a Codex or OpenCode profile.');
   }
-  return DESCRIPTIONS[kind];
+  if (!['pipe', 'pty'].includes(transport)) fail('agent_profile_transport_invalid', 'Choose pipe for native JSON events or pty for the native interactive terminal.');
+  if (transport === 'pipe') return DESCRIPTIONS[kind];
+  return Object.freeze({ ...DESCRIPTIONS[kind], commandMode: 'interactive', transport,
+    inputMode: 'pipe', capabilities: describeNativeCapabilities(kind, transport) });
 }
 
 /** Build one explicit ProjectAgentPlan without launching or configuring a CLI.
  * Commands retain their own agent loop and permissions. These profiles use the
- * verified noninteractive native exec/run modes, not Koto's JSON worker protocol.
+ * native exec/run modes or their interactive terminals, not Koto's JSON worker protocol.
  * Account/model availability stays with the selected host installation.
  */
 export function createAgentProfile({ kind, id, command, model, effort, task, owns,
-  account = 'host', timeoutMs = 300_000 } = {}) {
+  account = 'host', timeoutMs = 300_000, transport = 'pipe', sandbox } = {}) {
   describeAgentProfile(kind);
   if (typeof id !== 'string' || !ID.test(id)) {
     fail('agent_profile_id_invalid', 'Use a unique agent id starting with a letter, followed by letters, digits, underscores or hyphens (up to 64 characters).');
@@ -73,6 +81,10 @@ export function createAgentProfile({ kind, id, command, model, effort, task, own
   if (!DESCRIPTIONS[kind].accountChoices.includes(account)) {
     fail('agent_profile_account_invalid', 'Codex supports host configuration or an explicitly selected ChatGPT login; OpenCode uses its host provider configuration.');
   }
+  if (!['pipe', 'pty'].includes(transport)) fail('agent_profile_transport_invalid', 'Choose pipe for native JSON events or pty for the native interactive terminal.');
+  if (kind === 'opencode' && sandbox !== undefined) fail('agent_profile_sandbox_unsupported', 'OpenCode permissions are configured in its native settings; the sandbox option is Codex-only.');
+  const nativeSandbox = sandbox ?? 'workspace-write';
+  if (!['read-only', 'workspace-write'].includes(nativeSandbox)) fail('agent_profile_sandbox_invalid', 'Choose the native read-only or workspace-write sandbox.');
 
   let args;
   let unsetEnv;
@@ -80,7 +92,7 @@ export function createAgentProfile({ kind, id, command, model, effort, task, own
     if (effort !== undefined && !EFFORTS.has(effort)) {
       fail('agent_profile_effort_invalid', 'Choose a Codex reasoning effort supported by your model: none, minimal, low, medium, high or xhigh.');
     }
-    args = ['exec', '--json'];
+    args = transport === 'pipe' ? ['exec', '--json'] : ['--no-daemon', '--ask-for-approval', 'on-request'];
     if (model !== undefined) args.push('--model', model);
     if (effort !== undefined) args.push('-c', `model_reasoning_effort=${JSON.stringify(effort)}`);
     if (account === 'chatgpt') {
@@ -89,14 +101,20 @@ export function createAgentProfile({ kind, id, command, model, effort, task, own
       args.push('-c', 'forced_login_method="chatgpt"', '-c', 'model_provider="openai"');
       unsetEnv = [...CHATGPT_UNSET_ENV];
     }
-    args.push('--sandbox', 'workspace-write', '{prompt}');
+    args.push('--sandbox', nativeSandbox, '{prompt}');
   } else {
     if (effort !== undefined) fail('agent_profile_effort_invalid', 'Configure OpenCode model-specific effort in its native configuration.');
     if (model === undefined || !/^[A-Za-z0-9][A-Za-z0-9._-]*\/.+/.test(model)) {
       fail('agent_profile_model_required', 'OpenCode requires an explicit configured provider/model identifier, such as your local provider alias and model.');
     }
-    args = ['run', '--format', 'json', '--model', model, '--dir', '{workspace}', '{prompt}'];
+    args = transport === 'pipe'
+      ? ['run', '--format', 'json', '--model', model, '--dir', '{workspace}', '{prompt}']
+      : ['--model', model, '--prompt', '{prompt}'];
   }
+  const native = normalizeNativeAgent({ kind, protocol: transport === 'pipe' ? 'jsonl' : 'terminal',
+    account, ...(model === undefined ? {} : { model }), ...(effort === undefined ? {} : { effort }),
+    ...(kind === 'codex' ? { sandbox: nativeSandbox } : {}) });
   return { id, command, args, task, owns: [...owns], timeoutMs,
-    transport: 'pipe', inputMode: 'closed', ...(unsetEnv ? { unsetEnv } : {}) };
+    transport, inputMode: transport === 'pty' ? 'pipe' : 'closed', native,
+    ...(unsetEnv ? { unsetEnv } : {}) };
 }

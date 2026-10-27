@@ -1,19 +1,23 @@
 import { open } from 'node:fs/promises';
 import { constants } from 'node:fs';
 import { createInterface } from 'node:readline';
-import { createProjectSession, validateProjectPlan, preflightProjectPlan, inspectProjectSession, integrateProjectSession } from '../src/index.js';
+import { createProjectSession, resumeProjectSession, readProjectSession, validateProjectPlan, preflightProjectPlan,
+  inspectProjectSession, integrateProjectSession, finalizeProjectSessionIntegration } from '../src/index.js';
 import { attachNativeTerminal } from './attach-terminal.js';
 
-const help = `Project collaboration (pipes by default; experimental Mac PTY transport)
+const help = `Project collaboration (native terminal or structured pipe sessions)
 
   koto project start <plan.json> [--start] [--headless]
   koto project inspect <session-directory> <agent>
   koto project integrate <session-directory> <agent> --approve <review-token>
+  koto project status <session-directory>
+  koto project resolve <session-directory> <agent> --approve <resolution-commit>
+  koto project resume <session-directory> <agent> --prompt TEXT [--start] [--headless]
 
 start requires explicit launch approval; --start supplies it for a prepared plan.
 Each configured command runs once in its own Git worktree with native permissions.
 Integration writes only the session integration branch; it never updates main.
-Build optional Mac terminal support explicitly with koto terminal build before
+Build native terminal support explicitly with koto terminal build before
 using transport: "pty". Native completion is not inferred from terminal output.
 `;
 
@@ -36,7 +40,8 @@ async function readPlan(filename) {
 }
 
 function showReview(review, write) {
-  write(`\n[${review.agentId}] ${review.agentStatus}\n${visible(review.diff)}\n`);
+  write(`\n[${review.agentId}] ${review.agentStatus}\n${visible(review.integrationDiff ?? review.diff)}\n`);
+  if (review.contributionBaseCommit !== review.baseCommit) write(`Showing changes since the last integrated snapshot ${review.contributionBaseCommit}.\n`);
   if (review.untracked?.length) write(`Untracked: ${JSON.stringify(review.untracked)}\n`);
   if (review.outsideOwnership.length) write(`Outside declared ownership: ${JSON.stringify(review.outsideOwnership)}\n`);
   write(`Review token: ${review.reviewToken}\n`);
@@ -45,6 +50,18 @@ function showReview(review, write) {
 /** Terminal rendering is a thin consumer of core session operations/events. */
 export async function runProjectCli(args, { write, signal } = {}) {
   if (!args.length || args[0] === '--help') { write(help); return 0; }
+  if (args[0] === 'status' && args.length === 2) {
+    const state = readProjectSession(args[1]);
+    write(`${JSON.stringify({ sessionRoot: state.sessionRoot, active: state.active,
+      agents: state.agents.map(agent => ({ id: agent.id, status: agent.status, result: agent.result,
+        native: agent.nativeState, attempts: agent.attempts, integration: agent.integration?.status })) }, null, 2)}\n`);
+    return 0;
+  }
+  if (args[0] === 'resume' && args.length >= 5 && args[3] === '--prompt'
+      && args.slice(5).every(arg => ['--start', '--headless'].includes(arg))) {
+    return runProjectResume(args[1], args[2], { prompt: args[4], write, signal,
+      approved: args.includes('--start'), headless: args.includes('--headless') });
+  }
   if (args[0] === 'inspect' && args.length === 3) {
     showReview(await inspectProjectSession(args[1], args[2]), write);
     return 0;
@@ -53,6 +70,11 @@ export async function runProjectCli(args, { write, signal } = {}) {
     const result = await integrateProjectSession(args[1], args[2], { approve: args[4] });
     write(`${JSON.stringify(result, null, 2)}\n`);
     return result.status === 'conflicts' ? 1 : 0;
+  }
+  if (args[0] === 'resolve' && args.length === 5 && args[3] === '--approve') {
+    const result = await finalizeProjectSessionIntegration(args[1], args[2], { approveIntegrationCommit: args[4] });
+    write(`${JSON.stringify(result, null, 2)}\n`);
+    return 0;
   }
   if (args[0] !== 'start' || args.length < 2 || args.slice(2).some(arg => !['--start', '--headless'].includes(arg))) {
     write(help); return 2;
@@ -65,15 +87,32 @@ export async function runProjectCli(args, { write, signal } = {}) {
 
 /** Launchers and plan files use the same terminal/session implementation. */
 export async function runProjectPlan(source, { write, signal, headless = false, approved = false } = {}) {
+  return runSessionTerminal(source, { write, signal, headless, approved });
+}
+
+/** An explicit resume shares every terminal control with an initial launch. */
+export async function runProjectResume(sessionRoot, agentId, { prompt, write, signal, headless = false, approved = false } = {}) {
+  let observe;
+  const prepared = await resumeProjectSession(sessionRoot, agentId, { prompt, signal,
+    onEvent: event => observe?.(event) });
+  try {
+    return await runSessionTerminal(prepared.launchPlan, { write, signal, headless, approved,
+      prepared, observe: callback => { observe = callback; } });
+  } finally { prepared.stop(); }
+}
+
+async function runSessionTerminal(source, { write, signal, headless, approved, prepared, observe } = {}) {
   const plan = validateProjectPlan(source);
   const interactive = !headless && process.stdin.isTTY && process.stdout.isTTY;
   const initialRaw = process.stdin.isRaw === true;
   if (!interactive && !approved) throw new Error('project_explicit_start_required');
   write(`Project: ${visible(plan.project)}\nGoal: ${visible(plan.goal)}\nConcurrency: ${plan.maxConcurrency}\n`);
   for (const agent of plan.agents) write(`[${agent.id}] ${visible(agent.command)} ${visible(JSON.stringify(agent.args))}\n  Task: ${visible(agent.task)}\n  Owns: ${visible(agent.owns.join(', '))}\n  Transport: ${agent.transport}; stdin: ${agent.inputMode}; unset environment: ${agent.unsetEnv.join(', ') || 'none'}\n`);
-  const readiness = await preflightProjectPlan(plan);
-  for (const check of readiness.checks) write(`[${check.status}] ${check.agentId ? `${check.agentId}: ` : ''}${visible(check.message)}\n`);
-  if (!readiness.ok) return 2;
+  if (!prepared) {
+    const readiness = await preflightProjectPlan(plan);
+    for (const check of readiness.checks) write(`[${check.status}] ${check.agentId ? `${check.agentId}: ` : ''}${visible(check.message)}\n`);
+    if (!readiness.ok) return 2;
+  } else write('Continuing the recorded native conversation in its original worktree. Prior partial edits and attempt records are retained.\n');
   write('Commands retain your OS permissions; worktrees are not a security sandbox. No automatic retry.\n');
   let terminal = interactive ? createInterface({ input: process.stdin, output: process.stdout }) : undefined;
   let session;
@@ -115,7 +154,7 @@ export async function runProjectPlan(source, { write, signal, headless = false, 
       if (answer.trim() !== 'start') close();
     }
     if (closed || signal?.aborted) return 130;
-    session = await createProjectSession(plan, { signal, onEvent(event) {
+    const onEvent = event => {
       if (attachment) { attachment.output(event); return; }
       if (event.type === 'output') {
         const agent = plan.agents.find(record => record.id === event.agentId);
@@ -125,14 +164,21 @@ export async function runProjectPlan(source, { write, signal, headless = false, 
         write(`\n[${event.agentId}] ${event.status ?? `started pid=${event.pid}`} ${event.error ?? ''}\n`);
       } else if (event.type === 'pty_ready') {
         write(`[${event.agentId}] PTY ready; :attach ${event.agentId} to view and interact.\n`);
+      } else if (event.type === 'native_status') {
+        write(`[${event.agentId}] Native: ${visible(event.nativeStatus)}${event.nativeSessionId ? `; session ${visible(event.nativeSessionId)}` : ''}\n`);
       }
-    } });
+    };
+    if (prepared) { observe(onEvent); session = prepared; }
+    else session = await createProjectSession(plan, { signal, onEvent });
     if (closed || signal?.aborted) return 130;
     write(`Session: ${session.sessionRoot}\nIntegration workspace: ${session.status().integration.path}\n`);
-    const controls = () => write('Controls: :status | :review AGENT | :integrate AGENT | :stop AGENT/all | :attach AGENT (Ctrl-] detaches) | :resize AGENT COLS ROWS | :send AGENT TEXT | :eof AGENT | :help | :quit\n');
+    const controls = () => write('Controls: :status | :review AGENT | :integrate AGENT | :resolve AGENT COMMIT | :stop AGENT/all | :attach AGENT (Ctrl-] detaches) | :resize AGENT COLS ROWS | :send AGENT TEXT | :eof AGENT | :help | :quit\n');
     const showStatus = () => {
       write('\nAGENT             STATE        TRANSPORT PID       WORKSPACE\n');
-      for (const agent of session.status().agents) write(`${agent.id.padEnd(18)}${agent.status.padEnd(13)}${agent.transport.padEnd(10)}${String(agent.pid ?? '-').padEnd(10)}${visible(agent.workspace.path)}\n`);
+      for (const agent of session.status().agents) {
+        write(`${agent.id.padEnd(18)}${agent.status.padEnd(13)}${agent.transport.padEnd(10)}${String(agent.pid ?? '-').padEnd(10)}${visible(agent.workspace.path)}\n`);
+        if (agent.nativeState) write(`  Native ${visible(agent.nativeState.status)}; session ${visible(agent.nativeState.sessionId ?? 'not exposed')}; resume ${agent.nativeState.resumable ? 'available' : 'unavailable'}\n`);
+      }
     };
     const bindTerminal = () => {
       terminal.removeListener('close', close);
@@ -182,6 +228,11 @@ export async function runProjectPlan(source, { write, signal, headless = false, 
             reviewedTokens.delete(id);
             write(`${id}: ${result.status}. Integration workspace: ${session.status().integration.path}\n`);
             if (result.conflicts?.length) write(`Conflicts: ${result.conflicts.map(visible).join(', ')}\n`);
+          }
+          else if (command === ':resolve' && id && rest.length === 1) {
+            const result = await session.resolveIntegration(id, rest[0]);
+            reviewedTokens.delete(id);
+            write(`${id}: ${result.status}. Reviewed conflict resolution recorded.\n`);
           }
           else if (command === ':quit') close();
           else write('Use a listed :control command. Native pipe input must name its agent with :send.\n');

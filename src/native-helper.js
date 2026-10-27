@@ -173,22 +173,24 @@ function runTool(command, args, { env, timeoutMs = 10_000 } = {}) {
     try { child = spawn(command, args, { env, shell: false, detached: true, stdio: ['ignore', 'pipe', 'pipe'] }); }
     catch { reject(failure('darwin_pty_tool_unavailable', 'An existing Apple command-line developer tool could not be started.')); return; }
     const stdout = [], stderr = [];
-    let bytes = 0, closed = false, exitCode = null, terminalError, finished = false, cleanupStarted = false, cleanupComplete = false;
+    let bytes = 0, closed = false, exitCode = null, terminalError, finished = false, cleanupStarted = false, cleanupComplete = false, groupGone = false;
     let deadlineTimer, cleanupTimer, killTimer, groupTimer;
     const exists = () => {
-      if (!child.pid) return false;
+      if (!child.pid || groupGone) return false;
       try { process.kill(-child.pid, 0); return true; }
       catch (error) {
-        if (error.code === 'ESRCH') return false;
+        if (error.code === 'ESRCH') { groupGone = true; return false; }
         terminalError = failure('darwin_pty_build_cleanup_unconfirmed', 'Developer-tool cleanup could not be confirmed; inspect its process state before retrying.');
         return true;
       }
     };
     const signal = name => {
-      if (!child.pid) return;
+      // Once observed gone, this numeric group ID may belong to a later process.
+      if (!child.pid || groupGone) return;
       try { process.kill(-child.pid, name); }
       catch (error) {
-        if (error.code !== 'ESRCH') terminalError = failure('darwin_pty_build_cleanup_unconfirmed', 'Developer-tool cleanup could not be confirmed.');
+        if (error.code === 'ESRCH') groupGone = true;
+        else terminalError = failure('darwin_pty_build_cleanup_unconfirmed', 'Developer-tool cleanup could not be confirmed.');
       }
     };
     const finish = force => {

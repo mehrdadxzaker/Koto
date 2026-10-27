@@ -1,11 +1,15 @@
 import { createInterface } from 'node:readline';
 import { stripVTControlCharacters } from 'node:util';
+import { homedir } from 'node:os';
+import path from 'node:path';
 import { createAgentProfile, AGENT_PROFILE_DEFAULTS, inspectLaunchProject,
-  resolveAgentExecutable, inspectProjectSession, integrateProjectSession } from '../src/index.js';
-import { runProjectPlan } from './project.js';
+  resolveAgentExecutable, inspectProjectSession, integrateProjectSession,
+  buildTerminalHelper, resolveTerminalHelper } from '../src/index.js';
+import { runProjectPlan, runProjectResume } from './project.js';
 
 const visible = value => stripVTControlCharacters(String(value)).replace(/[\x00-\x08\x0b-\x1f\x7f-\x9f]/g, '');
 const cancelled = () => Object.assign(new Error('Launcher closed.'), { code: 'launch_cancelled' });
+const helperDirectory = () => path.join(homedir(), '.koto', 'native');
 
 function prompts(write, signal) {
   const terminal = createInterface({ input: process.stdin, output: process.stdout });
@@ -65,6 +69,29 @@ async function executable(ui, write, kind) {
   }
 }
 
+async function terminalSetup(ui, write, { required = false } = {}) {
+  const directory = await ui.ask('Terminal helper directory', helperDirectory(), true);
+  try {
+    const executable = await resolveTerminalHelper({ directory });
+    write(`Terminal helper verified: ${visible(executable)}\n`);
+    return directory;
+  } catch (error) {
+    write(`${visible(error.message)}\n`);
+    write('Terminal setup builds the versioned helper with an already installed compiler. It does not download a toolchain or start an agent.\n');
+    const answer = await choice(ui, write, 'Terminal setup', [
+      ['1', 'Build the helper now using installed tools'],
+      ['2', 'Return to the menu'],
+    ]);
+    if (answer === '2') {
+      if (required) throw Object.assign(new Error('Terminal setup was left incomplete. No agent was started.'), { code: 'launch_terminal_setup_required' });
+      return undefined;
+    }
+    const receipt = await buildTerminalHelper({ directory });
+    write(`Terminal helper built: ${visible(receipt.path)}\n`);
+    return directory;
+  }
+}
+
 async function configureSession(ui, write) {
   const project = await ui.ask('Project directory', process.cwd(), true);
   write('Checking the existing Git project; no agent is running.\n');
@@ -74,12 +101,18 @@ async function configureSession(ui, write) {
   const count = await integer(ui, write, 'Number of agents', 2, 1, 8);
   const minutes = await integer(ui, write, 'Session deadline in minutes', 5, 1, 60);
   const agents = [];
+  const prerequisites = {};
   for (let index = 0; index < count; index += 1) {
     write(`\nAgent ${index + 1} of ${count}\n`);
     const selected = await choice(ui, write, 'Agent', [['1', 'Codex — existing account'], ['2', 'OpenCode — configured provider/model']], index === 0 ? '1' : '2');
     const kind = selected === '1' ? 'codex' : 'opencode';
     const id = `${kind}${index + 1}`;
     const command = await executable(ui, write, kind);
+    const selectedTransport = await choice(ui, write, 'Interaction', [
+      ['1', 'Interactive terminal — native prompts, screen and keyboard'],
+      ['2', 'Structured pipe — native lifecycle and exact session resume'],
+    ]);
+    const transport = selectedTransport === '1' ? 'pty' : 'pipe';
     let account = 'host';
     let model;
     let effort;
@@ -91,15 +124,39 @@ async function configureSession(ui, write) {
     } else {
       write('Use an existing OpenCode provider/model. Local models need their configured server already running. Koto does not install models or add a fallback provider.\n');
       model = await ui.ask('OpenCode provider/model', undefined, true);
+      const runtime = await choice(ui, write, 'OpenCode runtime', [
+        ['1', 'Configured local model server'],
+        ['2', 'Existing native provider configuration'],
+      ]);
+      if (runtime === '1') {
+        write('Use the existing JSON file selected by OPENCODE_CONFIG. It must declare the chosen model and loopback provider URL; Koto checks it without changing it.\n');
+        const configFile = await ui.ask('Existing local JSON configuration', process.env.OPENCODE_CONFIG || undefined, true);
+        const localEndpoint = await ui.ask('Configured loopback provider URL', undefined, true);
+        Object.defineProperty(prerequisites, id, { value: { configFile, localEndpoint, model }, enumerable: true });
+      }
     }
     const task = await ui.ask(`Task for ${id}`, count === 1 ? goal : undefined, true);
     write('Ownership uses literal project-relative files/directories, separated by commas; no glob patterns.\n');
     const owns = (await ui.ask(`Files/directories ${id} may contribute`, undefined, true)).split(',').map(value => value.trim());
-    agents.push(createAgentProfile({ kind, id, command, account, model, effort, task, owns, timeoutMs: minutes * 60_000 }));
-    write(`${id} configured: ${visible(model)} via ${account === 'chatgpt' ? 'ChatGPT login' : 'native host configuration'}.\n`);
+    agents.push(createAgentProfile({ kind, id, command, account, model, effort, task, owns, transport,
+      timeoutMs: minutes * 60_000 }));
+    write(`${id} configured: ${visible(model)} via ${account === 'chatgpt' ? 'ChatGPT login' : 'native host configuration'}; ${transport === 'pty' ? 'interactive terminal' : 'structured pipe'}.\n`);
   }
+  const nativeHelperDirectory = agents.some(agent => agent.transport === 'pty')
+    ? await terminalSetup(ui, write, { required: true }) : undefined;
   return { schemaVersion: 1, project: inspected.projectRoot, goal, maxConcurrency: count,
-    timeoutMs: minutes * 60_000, agents };
+    timeoutMs: minutes * 60_000, agents,
+    ...(nativeHelperDirectory ? { nativeHelperDirectory } : {}),
+    ...(Object.keys(prerequisites).length ? { prerequisites } : {}) };
+}
+
+async function resumeSavedSession(ui, write, signal) {
+  const directory = await ui.ask('Saved session directory', undefined, true);
+  const id = await ui.ask('Agent id', undefined, true);
+  write('Resume requires the exact native session ID retained from a structured pipe run. It keeps that agent\'s workspace, executable, model and account selection.\n');
+  const prompt = await ui.ask('What should this agent do next?', undefined, true);
+  ui.close();
+  await runProjectResume(directory, id, { prompt, write, signal });
 }
 
 async function reviewSavedSession(ui, write) {
@@ -125,9 +182,14 @@ export async function runLauncher({ write, signal, version } = {}) {
     const ui = prompts(write, signal);
     try {
       write(`\nKOTO ${visible(version ?? '')}\nRun real coding agents together in isolated project workspaces.\n\n`);
-      const selected = await choice(ui, write, 'Choose', [['1', 'Start an agent session'], ['2', 'Review a saved session'], ['3', 'Exit']]);
+      const selected = await choice(ui, write, 'Choose', [
+        ['1', 'Start an agent session'], ['2', 'Review a saved session'], ['3', 'Exit'],
+        ['4', 'Resume a native agent session'], ['5', 'Set up terminal support'],
+      ]);
       if (selected === '3') return 0;
       if (selected === '2') { await reviewSavedSession(ui, write); continue; }
+      if (selected === '4') { await resumeSavedSession(ui, write, signal); continue; }
+      if (selected === '5') { await terminalSetup(ui, write); continue; }
       const plan = await configureSession(ui, write);
       ui.close();
       // The shared terminal prints exact executable/model/task/ownership data

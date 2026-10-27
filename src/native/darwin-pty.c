@@ -112,6 +112,12 @@ static uint64_t milliseconds(void)
         * clock_scale.numer / clock_scale.denom / 1000000.0L);
 }
 
+/* A stop or output write can sample the clock after the loop's snapshot. */
+static uint64_t elapsed(uint64_t now, uint64_t since)
+{
+    return now >= since ? now - since : 0;
+}
+
 static void received_signal(int number)
 {
     if (host_signal == 0) host_signal = number;
@@ -298,7 +304,7 @@ static bool scan_session(struct helper *helper, int number)
     size_t members = 0;
     bool complete = true;
     for (size_t index = 0; index < count; index++) {
-        if ((index % 32U) == 0 && milliseconds() - helper->stopped_at >= CLEANUP_MS) {
+        if ((index % 32U) == 0 && elapsed(milliseconds(), helper->stopped_at) >= CLEANUP_MS) {
             complete = false;
             break;
         }
@@ -326,11 +332,11 @@ static bool scan_session(struct helper *helper, int number)
     }
     helper->last_live = members;
     for (size_t index = 0; index < members; index++) {
-        if ((index % 16U) == 0 && milliseconds() - helper->stopped_at >= CLEANUP_MS) {
+        if ((index % 16U) == 0 && elapsed(milliseconds(), helper->stopped_at) >= CLEANUP_MS) {
             complete = false;
             break;
         }
-        int current_signal = milliseconds() - helper->stopped_at >= TERM_MS ? SIGKILL : number;
+        int current_signal = elapsed(milliseconds(), helper->stopped_at) >= TERM_MS ? SIGKILL : number;
         signal_member(helper, &helper->members[index], current_signal);
     }
     if (!complete) helper->cleanup_uncertain = true;
@@ -339,9 +345,9 @@ static bool scan_session(struct helper *helper, int number)
 
 static void cleanup_scan(struct helper *helper, uint64_t now)
 {
-    if (helper->last_scan != 0 && now - helper->last_scan < SCAN_MS) return;
+    if (helper->last_scan != 0 && elapsed(now, helper->last_scan) < SCAN_MS) return;
     helper->last_scan = now;
-    int number = now - helper->stopped_at >= TERM_MS ? SIGKILL : SIGTERM;
+    int number = elapsed(now, helper->stopped_at) >= TERM_MS ? SIGKILL : SIGTERM;
     establish_session(helper);
     bool complete = scan_session(helper, number);
     if (!helper->session_owned && helper->child_owned && !helper->child_exited) {
@@ -682,7 +688,7 @@ static int run_parent(struct helper *helper)
                 stop(helper, "status_failed");
             }
         }
-        if (!helper->ready && !helper->stopping && now - helper->started_at >= STARTUP_MS) {
+        if (!helper->ready && !helper->stopping && elapsed(now, helper->started_at) >= STARTUP_MS) {
             helper->protocol_failed = true;
             stop(helper, "child_setup_failed");
         }
@@ -697,11 +703,11 @@ static int run_parent(struct helper *helper)
             helper->status_failed = true;
             stop(helper, "status_failed");
         }
-        if (helper->output.length != 0 && now >= helper->output_progress + STALL_MS) {
+        if (helper->output.length != 0 && elapsed(now, helper->output_progress) >= STALL_MS) {
             helper->output_failed = true;
             stop(helper, "output_stalled");
         }
-        if (helper->metadata.length != 0 && now >= helper->status_progress + STALL_MS) {
+        if (helper->metadata.length != 0 && elapsed(now, helper->status_progress) >= STALL_MS) {
             helper->status_failed = true;
             stop(helper, "status_stalled");
         }
@@ -710,11 +716,12 @@ static int run_parent(struct helper *helper)
             helper->protocol_failed = true;
             stop(helper, "pty_failed");
         }
+        now = milliseconds();
         if (helper->stopping) {
             cleanup_scan(helper, now);
             if (helper->child_exited && helper->empty_scans >= 2 && helper->pty_eof
                 && helper->output.length == 0) break;
-            if (now - helper->stopped_at >= CLEANUP_MS) {
+            if (elapsed(now, helper->stopped_at) >= CLEANUP_MS) {
                 observe_exit(helper);
                 if (helper->output.length != 0) {
                     helper->output_failed = true;

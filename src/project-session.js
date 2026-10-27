@@ -1,13 +1,14 @@
-import { appendFileSync, lstatSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { appendFileSync, closeSync, lstatSync, openSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { homedir } from 'node:os';
 import { runWorkflow } from './core.js';
 import { startCommand } from './command-session.js';
-import { startDarwinPtyCommand } from './darwin-pty-session.js';
-import { resolveDarwinPtyHelper } from './native-helper.js';
-import { createProjectWorkspaces, inspectWorkspace, integrateWorkspace } from './project-workspaces.js';
-import { normalizeProjectPrerequisites, preflightProjectPlan } from './project-plan.js';
+import { startTerminalCommand } from './terminal-session.js';
+import { resolveTerminalHelper } from './terminal-helper.js';
+import { createProjectWorkspaces, inspectWorkspace, integrateWorkspace, finalizeWorkspaceIntegration } from './project-workspaces.js';
+import { normalizeProjectPrerequisites, preflightProjectPlan, preflightProjectRuntime } from './project-plan.js';
+import { normalizeNativeAgent, createNativeObserver, createNativeResumePlan } from './native-agent.js';
 
 const ID = /^[A-Za-z][A-Za-z0-9_-]{0,63}$/;
 const STATE_FILE = 'project-session.json';
@@ -65,7 +66,10 @@ export function validateProjectPlan(source) {
     if (!['closed', 'pipe'].includes(inputMode)) fail('project_invalid_input_mode');
     const unsetEnv = agent.unsetEnv ?? [];
     if (!Array.isArray(unsetEnv) || unsetEnv.length > 32 || unsetEnv.some(key => typeof key !== 'string' || !/^[A-Za-z_][A-Za-z0-9_]{0,127}$/.test(key))) fail('project_invalid_environment');
+    const native = agent.native === undefined ? undefined : normalizeNativeAgent(agent.native);
+    if (native && (native.protocol === 'jsonl') !== (transport === 'pipe')) fail('project_native_transport_mismatch');
     return { id: agent.id, command: agent.command, args: [...agent.args], task: agent.task,
+      ...(native ? { native } : {}),
       owns, transport, ...(terminal ? { terminal } : {}), inputMode, unsetEnv: [...unsetEnv], timeoutMs: duration(agent.timeoutMs, timeoutMs), ...(agent.input === undefined ? {} : { input: agent.input }) };
   });
   const maxConcurrency = source.maxConcurrency ?? agents.length;
@@ -80,8 +84,10 @@ export function validateProjectPlan(source) {
 }
 
 function persist(state) {
+  const contents = `${JSON.stringify(state, null, 2)}\n`;
+  if (Buffer.byteLength(contents) > 1024 * 1024) fail('project_state_limit');
   const temporary = path.join(state.sessionRoot, `.project-${randomUUID()}.tmp`);
-  writeFileSync(temporary, `${JSON.stringify(state, null, 2)}\n`, { mode: 0o600, flag: 'wx' });
+  writeFileSync(temporary, contents, { mode: 0o600, flag: 'wx' });
   renameSync(temporary, path.join(state.sessionRoot, STATE_FILE));
 }
 
@@ -105,16 +111,54 @@ function owned(record, filename) {
   return record.owns.some(prefix => prefix === '.' || filename === prefix || filename.startsWith(`${prefix}/`));
 }
 
+function previousIntegration(record) {
+  return record.lastSuccessfulIntegration ?? (record.integration?.status === 'integrated' ? record.integration : undefined);
+}
+
+function requireSettled(state, { allowConflicts = false } = {}) {
+  if (state.active || state.agents.some(agent => ['pending', 'running'].includes(agent.status))) fail('project_session_must_finish_before_integration');
+  if (state.agents.some(agent => agent.result?.error === 'cleanup_unconfirmed'
+      || agent.commandOutcome?.error === 'cleanup_unconfirmed')) fail('project_agent_cleanup_not_confirmed');
+  if (!allowConflicts && state.agents.some(agent => agent.integration?.status === 'conflicts')) fail('project_integration_conflicts_unresolved');
+}
+
+function lease(sessionRoot) {
+  const filename = path.join(sessionRoot, 'integration.lock');
+  let fd;
+  try { fd = openSync(filename, 'wx', 0o600); }
+  catch { fail('project_integration_busy_or_interrupted'); }
+  return () => { closeSync(fd); unlinkSync(filename); };
+}
+
+const fingerprint = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
+
+function recordIntegrationEvent(state, agentId, status, onEvent) {
+  const message = { type: 'integration', agentId, status, sessionId: state.sessionId,
+    sequence: (state.eventSequence ?? 0) + 1, time: new Date().toISOString() };
+  state.eventSequence = message.sequence;
+  // Persist the outcome and reserved sequence before appending. A failed log
+  // write can leave a gap, but a subsequent continuation cannot reuse the ID.
+  persist(state);
+  const log = path.join(state.sessionRoot, 'events.jsonl');
+  const line = `${JSON.stringify(message)}\n`;
+  let size = 0;
+  try { size = lstatSync(log).size; } catch (error) { if (error.code !== 'ENOENT') throw error; }
+  if (size + Buffer.byteLength(line) > MAX_LOG_BYTES) fail('project_event_limit');
+  appendFileSync(log, line, { mode: 0o600 });
+  // Observers cannot undo a completed and persisted integration.
+  try { Promise.resolve(onEvent?.(Object.freeze(message))).catch(() => {}); } catch { /* retained outcome is authoritative */ }
+}
+
 async function inspect(state, id) {
   const record = agentRecord(state, id);
-  const review = await inspectWorkspace({ workspace: record.workspace });
-  const outsideOwnership = review.changedPaths.filter(filename => !owned(record, filename));
+  const review = await inspectWorkspace({ workspace: record.workspace, previousIntegration: previousIntegration(record) });
+  const outsideOwnership = [...new Set([...review.changedPaths, ...(review.integrationChangedPaths ?? [])])].filter(filename => !owned(record, filename));
   return { ...review, agentId: id, agentStatus: record.status, owns: record.owns, outsideOwnership };
 }
 
 async function integrate(state, id, approve) {
   const record = agentRecord(state, id);
-  if (state.active || state.agents.some(agent => ['pending', 'running'].includes(agent.status))) fail('project_session_must_finish_before_integration');
+  requireSettled(state);
   if (!['succeeded', 'failed', 'cancelled'].includes(record.status)) fail('project_agent_not_reviewable');
   // All session agents share Git metadata and may retain host permissions.
   // An unresolved peer can still write while another contribution integrates.
@@ -127,8 +171,9 @@ async function integrate(state, id, approve) {
   if (approve !== review.reviewToken) fail('project_review_changed');
   if (record.integration?.status === 'integrated' && record.integration.reviewTree === review.tree) fail('project_contribution_already_integrated');
   const result = await integrateWorkspace({ workspace: record.workspace, integration: state.integration,
-    baseCommit: state.baseCommit, expectedReviewToken: approve });
+    baseCommit: state.baseCommit, expectedReviewToken: approve, previousIntegration: previousIntegration(record) });
   record.integration = result;
+  if (result.status === 'integrated') record.lastSuccessfulIntegration = result;
   persist(state);
   return result;
 }
@@ -138,17 +183,38 @@ export async function inspectProjectSession(sessionRoot, agentId) {
   return inspect(readState(sessionRoot), agentId);
 }
 
+/** Read retained state without launching or resuming a native process. */
+export function readProjectSession(sessionRoot) { return structuredClone(readState(sessionRoot)); }
+
 /** Explicitly integrate an inspected contribution into the session branch, never main. */
-export async function integrateProjectSession(sessionRoot, agentId, { approve } = {}) {
+export async function integrateProjectSession(sessionRoot, agentId, { approve, onEvent } = {}) {
   const initial = readState(sessionRoot);
-  // A per-session lease also covers separate CLI invocations.
-  const lock = path.join(initial.sessionRoot, 'integration.lock');
-  let fd;
-  const { openSync, closeSync, unlinkSync } = await import('node:fs');
-  try { fd = openSync(lock, 'wx', 0o600); }
-  catch { fail('project_integration_busy_or_interrupted'); }
-  try { return await integrate(readState(sessionRoot), agentId, approve); }
-  finally { closeSync(fd); unlinkSync(lock); }
+  const release = lease(initial.sessionRoot);
+  try {
+    const state = readState(sessionRoot);
+    const result = await integrate(state, agentId, approve);
+    recordIntegrationEvent(state, agentId, result.status, onEvent);
+    return result;
+  }
+  finally { release(); }
+}
+
+/** Acknowledge a manually reviewed conflict resolution at the exact target HEAD. */
+export async function finalizeProjectSessionIntegration(sessionRoot, agentId, { approveIntegrationCommit, onEvent } = {}) {
+  const initial = readState(sessionRoot);
+  const release = lease(initial.sessionRoot);
+  try {
+    const state = readState(sessionRoot);
+    requireSettled(state, { allowConflicts: true });
+    const record = agentRecord(state, agentId);
+    if (record.integration?.status !== 'conflicts') fail('project_integration_has_no_conflicts');
+    const result = await finalizeWorkspaceIntegration({ workspace: record.workspace,
+      integration: state.integration, conflictIntegration: record.integration, approveIntegrationCommit });
+    record.integration = result;
+    record.lastSuccessfulIntegration = result;
+    recordIntegrationEvent(state, agentId, result.status, onEvent);
+    return result;
+  } finally { release(); }
 }
 
 function expand(template, values) {
@@ -172,26 +238,70 @@ export async function createProjectSession(source, { onEvent, signal } = {}) {
   for (const agent of plan.agents) agent.command = readiness.executables[agent.id];
   // Resolving verifies an explicitly built local artifact. Session launch never
   // invokes a compiler, installs a runtime or starts a model during preflight.
-  const ptyHelper = plan.agents.some(agent => agent.transport === 'pty')
-    ? await resolveDarwinPtyHelper({ directory: plan.nativeHelperDirectory }) : undefined;
+  const ptyHelper = plan.agents.some(agent => agent.transport === 'pty') || process.platform === 'win32'
+    ? await resolveTerminalHelper({ directory: plan.nativeHelperDirectory }) : undefined;
   const sessionId = `s-${Date.now().toString(36)}-${randomUUID().slice(0, 8)}`;
   const workspaces = await createProjectWorkspaces({ projectRoot: plan.project, sessionId, agents: plan.agents,
+    nativeHelperDirectory: plan.nativeHelperDirectory,
     controlRoot: plan.controlRoot ?? path.join(homedir(), '.koto', 'sessions') });
   const state = { schemaVersion: 1, kind: 'koto-project-session', sessionId, createdAt: new Date().toISOString(),
     sessionRoot: workspaces.sessionRoot, projectRoot: workspaces.projectRoot, baseCommit: workspaces.baseCommit,
-    goal: plan.goal, ownerPid: process.pid, active: false, started: false, integration: workspaces.integration,
+    goal: plan.goal, timeoutMs: plan.timeoutMs, maxConcurrency: plan.maxConcurrency,
+    ...(plan.prerequisites ? { prerequisites: plan.prerequisites } : {}),
+    ...(plan.nativeHelperDirectory ? { nativeHelperDirectory: plan.nativeHelperDirectory } : {}),
+    ownerPid: process.pid, active: false, started: false, integration: workspaces.integration,
     agents: plan.agents.map(agent => ({ ...agent, workspace: workspaces.agents[agent.id], status: 'pending' })) };
+  persist(state);
+  return sessionRunner(plan, state, { onEvent, signal, ptyHelper });
+}
+
+/** Explicit continuation in the original worktree and native conversation.
+ * Preparing it launches nothing. run() takes the shared integration/resume lease
+ * and refuses any intervening state change; interrupted runs are never replayed.
+ */
+export async function resumeProjectSession(sessionRoot, agentId, { prompt, onEvent, signal } = {}) {
+  if (!string(prompt, 12_000)) fail('project_resume_prompt_required');
+  if ((onEvent !== undefined && typeof onEvent !== 'function') || (signal !== undefined && !(signal instanceof AbortSignal))) fail('project_invalid_observer_or_signal');
+  if (signal?.aborted) fail('project_cancelled');
+  const state = readState(sessionRoot);
+  requireSettled(state);
+  const expectedState = fingerprint(state);
+  const record = agentRecord(state, agentId);
+  if ((record.attempts?.length ?? 0) >= 32) fail('project_attempt_limit');
+  await inspect(state, agentId); // validates the original owned worktree, including dirty partial edits
+  const continuation = createNativeResumePlan(record, { prompt });
+  const plan = validateProjectPlan({ schemaVersion: 1, project: state.projectRoot, goal: state.goal,
+    timeoutMs: record.timeoutMs, maxConcurrency: 1, agents: [record],
+    nativeHelperDirectory: state.nativeHelperDirectory,
+    ...(state.prerequisites?.[agentId] ? { prerequisites: { [agentId]: state.prerequisites[agentId] } } : {}) });
+  const readiness = await preflightProjectRuntime(plan);
+  if (!readiness.ok) throw Object.assign(new Error('project_preflight_failed'), { checks: readiness.checks });
+  if (readiness.executables[agentId] !== record.command) fail('project_native_executable_changed');
+  const ptyHelper = record.transport === 'pty' || process.platform === 'win32'
+    ? await resolveTerminalHelper({ directory: state.nativeHelperDirectory }) : undefined;
+  record.status = 'pending';
+  return sessionRunner(plan, state, { onEvent, signal, ptyHelper,
+    resume: { agentId, continuation, prompt, expectedState } });
+}
+
+function sessionRunner(plan, state, { onEvent, signal, ptyHelper, resume }) {
+  const sessionId = state.sessionId;
   const controller = new AbortController();
   const handles = new Map();
+  const nativeObservers = new Map();
   const outputTails = new Map(plan.agents.map(agent => [agent.id, Buffer.alloc(0)]));
   const localStops = new Map(plan.agents.map(agent => [agent.id, new AbortController()]));
   let eventBytes = 0;
-  let sequence = 0;
+  try { eventBytes = lstatSync(path.join(state.sessionRoot, 'events.jsonl')).size; }
+  catch (error) { if (error.code !== 'ENOENT') throw error; }
+  let sequence = state.eventSequence ?? 0;
+  let hasRun = false;
   let storageFailure = false;
   let integrationBusy = false;
   let pendingObservers = 0;
   const emit = event => {
     const message = { ...event, sessionId, sequence: ++sequence, time: new Date().toISOString() };
+    state.eventSequence = sequence;
     try {
       const line = `${JSON.stringify(message)}\n`;
       eventBytes += Buffer.byteLength(line);
@@ -212,30 +322,49 @@ export async function createProjectSession(source, { onEvent, signal } = {}) {
     }
     catch { controller.abort(); }
   };
-  const stopAll = () => { controller.abort(); for (const handle of handles.values()) handle.stop(); };
+  const stopAll = () => {
+    controller.abort();
+    if (!hasRun) signal?.removeEventListener('abort', stopAll);
+    for (const handle of handles.values()) handle.stop();
+  };
+  const applyOutcome = (record, outcome) => {
+    const observer = nativeObservers.get(record.id);
+    if (observer) record.nativeState = observer.end(outcome);
+    const setupError = record.setupError;
+    record.commandOutcome = outcome;
+    record.result = outcome.error === 'cleanup_unconfirmed' || !setupError
+      ? outcome : { ...outcome, status: 'failed', error: setupError };
+    if (record.result.status === 'succeeded' && record.nativeState?.protocol === 'jsonl'
+        && record.nativeState.status !== 'completed') {
+      record.result = { ...outcome, status: 'failed', error: record.nativeState.status === 'failed'
+        ? 'native_turn_failed' : 'native_completion_unconfirmed' };
+    }
+    record.status = record.result.status;
+    record.finishedAt ??= new Date().toISOString();
+    return record.result;
+  };
   const settleCommands = async () => {
     await Promise.all([...handles.entries()].map(async ([id, handle]) => {
       const outcome = await handle.completion;
       const record = agentRecord(state, id);
-      const setupError = record.setupError ?? (record.result?.error?.startsWith('project_') ? record.result.error : undefined);
-      if (setupError) record.setupError = setupError;
-      record.commandOutcome = outcome;
-      record.result = outcome.error === 'cleanup_unconfirmed' || !setupError
-        ? outcome : { ...outcome, status: 'failed', error: setupError };
-      record.status = record.result.status;
-      record.finishedAt ??= new Date().toISOString();
+      applyOutcome(record, outcome);
     }));
+    for (const [id] of nativeObservers) if (!handles.has(id)) {
+      const record = agentRecord(state, id);
+      applyOutcome(record, record.result ?? { status: 'cancelled', exitCode: null });
+    }
   };
   signal?.addEventListener('abort', stopAll, { once: true });
   if (signal?.aborted) stopAll();
-  persist(state);
 
   const api = {
     sessionRoot: state.sessionRoot,
-    status: () => structuredClone(!state.active && state.started ? readState(state.sessionRoot) : state),
+    launchPlan: structuredClone(resume ? { ...plan, agents: plan.agents.map(agent =>
+      ({ ...agent, args: resume.continuation.args, task: resume.prompt })) } : plan),
+    status: () => structuredClone(!state.active && hasRun ? readState(state.sessionRoot) : state),
     stop(id) {
       if (id === undefined || id === 'all') stopAll();
-      else { agentRecord(state, id); localStops.get(id).abort(); handles.get(id)?.stop(); }
+      else { agentRecord(state, id); localStops.get(id)?.abort(); handles.get(id)?.stop(); }
     },
     send(id, input) {
       const record = agentRecord(state, id);
@@ -255,30 +384,71 @@ export async function createProjectSession(source, { onEvent, signal } = {}) {
     },
     outputTail(id) {
       agentRecord(state, id);
-      const bytes = outputTails.get(id);
+      const bytes = outputTails.get(id) ?? Buffer.alloc(0);
       // A retained tail may begin in the middle of one UTF-8 codepoint.
       let offset = 0;
       while (offset < bytes.length && (bytes[offset] & 0xc0) === 0x80) offset += 1;
       return bytes.subarray(offset).toString('utf8');
     },
-    inspect: id => inspect(state, id),
+    inspect: id => inspect(!state.active && hasRun ? readState(state.sessionRoot) : state, id),
     async integrate(id, { approve } = {}) {
       if (integrationBusy) fail('project_integration_busy_or_interrupted');
       integrationBusy = true;
       try {
         // Use the same on-disk lease as a second terminal.
-        const result = await integrateProjectSession(state.sessionRoot, id, { approve });
+        const result = await integrateProjectSession(state.sessionRoot, id, { approve, onEvent });
         agentRecord(state, id).integration = result;
-        emit({ type: 'integration', agentId: id, status: result.status });
+        if (result.status === 'integrated') agentRecord(state, id).lastSuccessfulIntegration = result;
+        sequence = readState(state.sessionRoot).eventSequence;
+        state.eventSequence = sequence;
+        return result;
+      } finally { integrationBusy = false; }
+    },
+    async resolveIntegration(id, approveIntegrationCommit) {
+      if (integrationBusy) fail('project_integration_busy_or_interrupted');
+      integrationBusy = true;
+      try {
+        const result = await finalizeProjectSessionIntegration(state.sessionRoot, id, { approveIntegrationCommit, onEvent });
+        agentRecord(state, id).integration = result;
+        agentRecord(state, id).lastSuccessfulIntegration = result;
+        sequence = readState(state.sessionRoot).eventSequence;
+        state.eventSequence = sequence;
         return result;
       } finally { integrationBusy = false; }
     },
     async run() {
-      if (state.started) fail('project_session_already_started');
+      if (hasRun) fail('project_session_already_started');
+      hasRun = true;
+      if (controller.signal.aborted) fail('project_cancelled');
+      const release = lease(state.sessionRoot);
+      try {
+      if (resume) {
+        const current = readState(state.sessionRoot);
+        requireSettled(current);
+        if (fingerprint(current) !== resume.expectedState) fail('project_resume_state_changed');
+        await inspect(current, resume.agentId);
+      }
       state.started = true;
       state.active = true;
+      state.ownerPid = process.pid;
+      delete state.finishedAt;
+      delete state.report;
+      for (const agent of plan.agents) {
+        const record = agentRecord(state, agent.id);
+        record.status = 'pending';
+        for (const key of ['startedAt', 'finishedAt', 'result', 'commandOutcome', 'setupError', 'pid', 'nativeState']) delete record[key];
+        if (agent.native) {
+          const observer = createNativeObserver({ native: agent.native, command: agent.command,
+            args: agent.args, transport: agent.transport, unsetEnv: agent.unsetEnv,
+            workspace: record.workspace.path, ...(resume ? { expectedSessionId: resume.continuation.expectedSessionId } : {}) });
+          nativeObservers.set(agent.id, observer);
+          record.nativeState = observer.state();
+        }
+      }
       persist(state);
-      emit({ type: 'session_started', status: 'running' });
+      emit({ type: resume ? 'session_resumed' : 'session_started', status: 'running',
+        ...(resume ? { agentId: resume.agentId, nativeSessionId: resume.continuation.expectedSessionId,
+          prompt: resume.prompt } : {}) });
       // Each command transport owns its agent deadline and bounded OS cleanup.
       // Keep the scheduler's adapter timeout at the total session deadline so
       // its short JS cancellation grace cannot release a concurrency slot
@@ -291,24 +461,43 @@ export async function createProjectSession(source, { onEvent, signal } = {}) {
         if (commandSignal.aborted) { record.status = 'cancelled'; throw new Error('project_cancelled'); }
         const prompt = `${plan.goal}\n\nYour task: ${agent.task}\nDeclared file ownership: ${agent.owns.join(', ')}\nWork in this task's Git worktree. Do not integrate another task or change the original checkout. Do not add or run automated test suites. Report your changes and limitations.`;
         const values = { prompt, workspace: record.workspace.path, project: state.projectRoot, goal: plan.goal, agent: agent.id };
-        const args = agent.args.map(arg => expand(arg, values));
+        const args = resume ? [...resume.continuation.args] : agent.args.map(arg => expand(arg, values));
         let tail = '';
         record.status = 'running';
         record.startedAt = new Date().toISOString();
+        delete record.finishedAt;
+        delete record.result;
+        delete record.commandOutcome;
+        delete record.setupError;
+        delete record.pid;
+        try {
         persist(state);
         emit({ type: 'agent_status', agentId: agent.id, status: 'running', workspace: record.workspace.path });
-        try {
           const input = agent.input === undefined ? undefined : expand(agent.input, values);
           if (args.some(arg => Buffer.byteLength(arg) > 16_384) || (input !== undefined && Buffer.byteLength(input) > 65_536)) fail('project_expanded_input_too_large');
-          const environment = Object.fromEntries(Object.entries(process.env).filter(([key]) => !/^GIT_/i.test(key) && !agent.unsetEnv.includes(key)));
-          const start = agent.transport === 'pty' ? startDarwinPtyCommand : startCommand;
+          const environment = Object.fromEntries(Object.entries(process.env).filter(([key]) => !/^GIT_/i.test(key)
+            && !agent.unsetEnv.some(name => process.platform === 'win32' ? name.toUpperCase() === key.toUpperCase() : name === key)));
+          const useHelper = agent.transport === 'pty' || process.platform === 'win32';
+          const start = useHelper ? startTerminalCommand : startCommand;
           const handle = start({ id: agent.id, command: agent.command, args, cwd: record.workspace.path, env: environment,
-            ...(agent.transport === 'pty' ? { helperPath: ptyHelper, columns: record.terminal.columns, rows: record.terminal.rows } : {}),
+            ...(useHelper ? { helperPath: ptyHelper, transport: agent.transport,
+              columns: record.terminal?.columns ?? 80, rows: record.terminal?.rows ?? 24 } : {}),
             timeoutMs: agent.timeoutMs, signal: commandSignal, onEvent(event) {
               if (event.type === 'output') {
                 const previous = outputTails.get(agent.id);
                 outputTails.set(agent.id, Buffer.concat([previous, Buffer.from(event.text)]).subarray(-65_536));
                 tail = api.outputTail(agent.id);
+                const observer = nativeObservers.get(agent.id);
+                if (observer) {
+                  const before = record.nativeState;
+                  observer.feed(event.stream, event.text);
+                  record.nativeState = observer.state();
+                  if (record.nativeState.sessionId !== before?.sessionId || record.nativeState.status !== before?.status) {
+                    persist(state);
+                    emit({ type: 'native_status', agentId: agent.id, nativeSessionId: record.nativeState.sessionId,
+                      nativeStatus: record.nativeState.status });
+                  }
+                }
               }
               if (event.type === 'started') record.pid = event.pid;
               if (event.type === 'pty_ready') {
@@ -321,10 +510,7 @@ export async function createProjectSession(source, { onEvent, signal } = {}) {
           handles.set(agent.id, handle);
           if (input !== undefined && !handle.send(input)) { handle.stop(); fail('project_initial_input_rejected'); }
           if (agent.inputMode === 'closed') handle.endInput();
-          const result = await handle.completion;
-          record.status = result.status;
-          record.result = result;
-          record.finishedAt = new Date().toISOString();
+          const result = applyOutcome(record, await handle.completion);
           persist(state);
           emit({ type: 'agent_status', agentId: agent.id, ...result });
           if (result.status !== 'succeeded') throw new Error('project_command_did_not_succeed');
@@ -334,7 +520,9 @@ export async function createProjectSession(source, { onEvent, signal } = {}) {
             handles.get(agent.id)?.stop();
             record.status = 'failed';
             record.result = { status: 'failed', exitCode: null, error: ['project_expanded_input_too_large', 'project_initial_input_rejected'].includes(error.message) ? error.message : 'project_command_start_failed' };
+            record.setupError = record.result.error;
             record.finishedAt = new Date().toISOString();
+            if (!handles.has(agent.id)) applyOutcome(record, record.result);
             persist(state);
             emit({ type: 'agent_status', agentId: agent.id, ...record.result });
           }
@@ -349,19 +537,31 @@ export async function createProjectSession(source, { onEvent, signal } = {}) {
         // The general core's JS-adapter cancellation grace can end before OS cleanup.
         // A project session retains ownership and waits for every command's bounded cleanup.
         await settleCommands();
-        for (const record of state.agents) if (record.status === 'pending') record.status = 'cancelled';
+        for (const record of state.agents) if (record.status === 'pending') {
+          record.status = 'cancelled';
+          record.result = { status: 'cancelled', exitCode: null };
+          record.finishedAt = new Date().toISOString();
+        }
         state.report = { status: storageFailure ? 'failed' : report.status, ...(storageFailure ? { error: 'project_storage_failed' } : {}) };
-        return { ...state.report, sessionRoot: state.sessionRoot, integration: state.integration,
-          agents: structuredClone(state.agents) };
       } finally {
         stopAll();
         await settleCommands();
         state.active = false;
         state.finishedAt = new Date().toISOString();
+        for (const agent of plan.agents) {
+          const record = agentRecord(state, agent.id);
+          record.attempts ??= [];
+          record.attempts.push({ number: record.attempts.length + 1, kind: resume ? 'resume' : 'initial',
+            startedAt: record.startedAt, finishedAt: record.finishedAt, result: record.result,
+            nativeState: record.nativeState });
+        }
         signal?.removeEventListener('abort', stopAll);
-        persist(state);
         emit({ type: 'session_finished', status: state.report?.status ?? 'failed' });
+        persist(state);
       }
+      return { ...state.report, sessionRoot: state.sessionRoot, integration: state.integration,
+        agents: structuredClone(state.agents) };
+      } finally { signal?.removeEventListener('abort', stopAll); release(); }
     },
   };
   return api;

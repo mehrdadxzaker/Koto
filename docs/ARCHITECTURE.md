@@ -59,9 +59,10 @@ instead of claiming cancellation completed.
 
 Workers must await or stop their children before exiting. Self-detached
 descendants outside the POSIX group are not contained; closed inherited pipes
-can make them invisible to the adapter. Pure Node cannot guarantee Windows
-descendant cleanup after their parent has already exited. Stronger isolation
-and Windows job ownership are required before claiming those guarantees.
+can make them invisible to this adapter. Pure Node cannot guarantee Windows
+descendant cleanup after their parent has already exited. These are the generic
+process-worker adapter's limits; project sessions use the platform-specific
+ownership mechanisms described below for terminal commands and Windows pipes.
 
 Workflow lifecycle callbacks receive metadata. The final report contains worker
 outputs and attribution and may therefore contain private content. The generic
@@ -83,11 +84,13 @@ The project flow uses these shared boundaries:
 | Module | Responsibility |
 | --- | --- |
 | `src/project-plan.js` | Expand explicit native runtime/model/task/ownership choices and inspect launch prerequisites without starting an agent |
-| `src/project-session.js` | Validate executable plans, schedule commands through the core, retain lifecycle records, enforce declared ownership during integration |
+| `src/project-session.js` | Validate executable plans, schedule commands through the core, retain native lifecycle and attempt records, serialize resume/integration and enforce declared ownership |
+| `src/native-agent.js` | Declare native capabilities, observe bounded Codex/OpenCode structured events and bind explicit continuation to the captured native identity and origin |
 | `src/command-session.js` | Launch raw executable/argv commands without a shell; stream stdout/stderr, forward bounded input, enforce deadlines and stop owned processes |
-| `src/darwin-pty-session.js`, `src/native-helper.js` | Expose the optional Mac PTY transport and verify an explicitly built helper before launch |
-| `src/project-workspaces.js` | Create branches/worktrees from one clean HEAD, capture review trees and tokens, snapshot contributions and integrate into the designated integration worktree |
-| `bin/project.js` | Display output/status and expose launch approval, input/EOF, stop, review and explicit integration controls |
+| `src/terminal-session.js`, `src/terminal-helper.js` | Share bounded terminal transport and select/verify the explicitly built host helper; Windows pipe sessions also use this transport |
+| `src/native-helper.js`, `src/linux-native-helper.js`, `src/windows-native-helper.js` | Build and verify the macOS PTY, Linux PTY and Windows ConPTY/Job Object helpers using existing host tools |
+| `src/project-workspaces.js` | Create branches/worktrees, capture review trees and tokens, apply new contribution deltas and retain verified integration/conflict receipts |
+| `bin/project.js`, `bin/launcher.js` | Expose guided setup/launch, output/input/stop, retained review, explicit integration and native continuation through the shared APIs |
 
 `src/index.js` exports workflow operations and the project-session API. Later
 plugins and UIs consume these operations rather than introducing another scheduler.
@@ -100,25 +103,55 @@ repositories and terminal/local-runtime prerequisites. Session creation uses
 the same preflight before creating worktrees and pins resolved executable paths.
 No configuration, helper build or model launch occurs during preflight.
 
-Pipes are the default. An experimental Mac PTY transport supplies duplex input,
-resize and foreground terminal attachment after an explicit helper build.
-Neither transport translates native approval protocols or continuation or
-verifies native completion. A zero exit is a process result, not a correctness
-verdict. Actual native Mac PTY operation remains unverified.
+Pipes are the default. Structured Codex and OpenCode profiles observe their
+native JSONL events to distinguish process exit from native completion, retain
+the conversation ID and report available usage. Unsupported capabilities stay
+explicit. A completed native turn remains separate from correctness of its work.
+Interactive profiles use the native terminal UI; approval interaction stays
+inside that UI, and terminal bytes are not parsed into lifecycle claims.
+
+The shared terminal transport provides duplex input, resize, foreground
+attachment and cleanup acknowledgement. macOS uses an owned PTY session. Linux
+uses procfs process identities and pidfds around the owned session; the required
+kernel facilities must be available. Windows uses ConPTY for interactive
+terminals and a Job Object for both terminal and pipe workloads. The helper is
+built explicitly with the installed host toolchain and its source/binary receipt
+is verified before launch. Source availability and compilation are separate from
+observing actual terminal and agent behavior on that host.
+
+`resumeProjectSession()` prepares an explicit follow-up in the original worktree
+using the captured native conversation ID. The observer binds that ID to the
+native protocol, executable path, original arguments, explicit model and other
+origin settings. Continuation requires confirmed cleanup; it never chooses a
+provider's latest conversation. Session locks and a retained-state fingerprint
+prevent concurrent or stale prepared continuations. Attempts are retained, and
+interrupted runs are not automatically replayed. See [native sessions](NATIVE_SESSIONS.md)
+for exact capabilities, bounds and refusal conditions.
 
 Each command edits its own Git worktree from the same base commit. Control files
 and retained output live outside those worktrees. Declared file ownership is
 checked before integration; it is advisory during execution and is not an OS
 sandbox. Review includes committed, staged, unstaged and untracked contributions.
 An operator must approve the current review token after every agent stops and
-settles owned-process cleanup. Unconfirmed cleanup from any agent blocks
-integration of every contribution. Windows project launch is blocked because
-descendant ownership cannot be established by `taskkill` or the parent's exit.
-Retained Windows pipe outcomes keep `cleanup_unconfirmed`. The
-integration owner snapshots the reviewed contribution and applies it to the
-separate integration branch. Conflicts remain visible; the original checkout
-is not updated, and session branches/worktrees are retained for explicit review
-and cleanup.
+settles owned-process cleanup. Unconfirmed cleanup from any agent blocks both
+integration and resume throughout the session. A missing or mismatched helper
+cleanup acknowledgement cannot be replaced by the helper's exit alone.
+
+The integration owner snapshots the reviewed contribution and applies it to the
+separate integration branch. Review retains the complete change from the session
+base as well as the delta since that agent's last successful integration. Repeat
+integration applies only the delta, including reversions of earlier work. The
+review token includes its baseline, and private receipts verify the snapshot,
+reviewed tree and source/target ancestry before selecting that baseline.
+
+Conflicts remain in the integration worktree and block further integration and
+resume. The operator resolves and commits them manually, then calls
+`finalizeProjectSessionIntegration()` with the exact current integration commit
+they reviewed. Finalization verifies the clean target, completed cherry-pick,
+retained conflict receipt and source/target history before saving a successful
+baseline. It makes no automatic conflict decision. Ambiguous Git mutations or
+receipt failures retain a lock for explicit recovery. The original checkout is
+not updated, and branches/worktrees remain available for review and cleanup.
 
 Project sessions retain private state and output logs, but do not automatically
 retry commands or recover/replay interrupted agent runs. Custom Git drivers,
@@ -126,20 +159,22 @@ hidden index entries and changed symlinks have explicit refusal boundaries.
 See [project sessions](PROJECT_SESSIONS.md) for the runnable interface and details.
 
 The [delivery tracker](https://github.com/mehrdadxzaker/Koto/issues/543) records
-real Mac Codex/OpenCode cooperation using pipes and two reviewed integrations.
-The later Linux two-Codex run ended with connection errors, no completed turns
-or changes, and confirmed owned-group cleanup. See [current evidence](CORE_STATUS.md)
-for these distinct outcomes and the platform limits.
+real Mac Codex/OpenCode pipe cooperation and two reviewed integrations. Current
+Linux observations establish interactive terminal mechanics and Codex version
+launch; failed native model attempts remain recorded separately. Windows source
+cross-compilation does not establish native Windows operation. See
+[current evidence](CORE_STATUS.md) and the [acceptance run](USER_ACCEPTANCE.md)
+for the observed outcomes and remaining host verification.
 
 ## Later adapters and delivery
 
 Commercial and open-source agent runtimes can implement the worker contract.
-Native Codex and Claude Code protocols require actual adapters; configuring
-their executable as a raw command does not provide one. Each runtime retains its
-own authentication, tools, model selection and permission enforcement. Linux
-PTY reconciliation and Windows ConPTY/owned process termination remain open.
+Codex and OpenCode have explicit structured and terminal profiles; other native
+protocols require their own adapters. Naming a raw command after a provider does
+not establish native protocol support. Each runtime retains its own
+authentication, tools, model selection and permission enforcement.
 
-IDE plugins and Koto's UI will expose core operations and events. They must not
-duplicate task scheduling or collaboration logic. Adaptive planning, persistent
-recovery, model scorecards and richer artifact integration can be added within
-the core when implemented and verified; they are not present in this slice.
+Core acceptance precedes another UI or plugin. Later surfaces expose the same
+operations and events without duplicating scheduling or collaboration logic.
+Adaptive planning, automatic crash recovery and richer artifact integration
+remain separate future work; explicit native continuation does not imply them.

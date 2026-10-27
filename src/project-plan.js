@@ -3,7 +3,7 @@ import { open, realpath } from 'node:fs/promises';
 import { connect } from 'node:net';
 import path from 'node:path';
 import { validateProjectPlan } from './project-session.js';
-import { resolveDarwinPtyHelper } from './native-helper.js';
+import { resolveTerminalHelper } from './terminal-helper.js';
 import { inspectLaunchProject, resolveAgentExecutable } from './launch-preflight.js';
 
 const MODEL = /^[A-Za-z0-9][A-Za-z0-9._:/+-]{0,255}$/;
@@ -64,6 +64,9 @@ export function buildProjectPlan(source) {
     if (!['pty', 'pipe'].includes(transport)) fail('project_invalid_transport');
     const common = { id: agent.id, command: agent.command ?? agent.runtime, task: agent.task, owns: agent.owns,
       transport, timeoutMs: agent.timeoutMs, ...(agent.terminal === undefined ? {} : { terminal: agent.terminal }),
+      native: { kind: agent.runtime, protocol: transport === 'pty' ? 'terminal' : 'jsonl', model: agent.model,
+        account: agent.runtime === 'codex' ? 'chatgpt' : 'host',
+        ...(agent.runtime === 'codex' ? { sandbox: agent.sandbox ?? 'workspace-write' } : {}) },
       inputMode: transport === 'pty' ? 'pipe' : 'closed' };
     if (agent.runtime === 'codex') {
       if (agent.auth !== 'chatgpt') fail('project_codex_chatgpt_auth_required');
@@ -73,6 +76,7 @@ export function buildProjectPlan(source) {
       args.push('--model', agent.model, '--sandbox', sandbox, '-c', 'model_provider="openai"', '-c', 'forced_login_method="chatgpt"', '{prompt}');
       return { ...common, args, unsetEnv: [...new Set([...API_ENV, ...(agent.unsetEnv ?? [])])] };
     }
+    if (agent.sandbox !== undefined) fail('project_opencode_sandbox_unsupported');
     if (!agent.model.includes('/')) fail('project_opencode_provider_model_required');
     if (!agent.localRuntime || !absoluteFile(agent.localRuntime.configFile)) fail('project_local_runtime_required');
     const requirement = { configFile: agent.localRuntime.configFile, localEndpoint: localEndpoint(agent.localRuntime.endpoint), model: agent.model };
@@ -118,28 +122,36 @@ async function endpointListening(endpoint) {
 
 /** Read-only readiness checks. Never builds helpers, writes config, launches agents or calls a model. */
 export async function preflightProjectPlan(source) {
+  return preflight(source, true);
+}
+
+/** Runtime prerequisites for a separately validated, retained owned workspace. */
+export async function preflightProjectRuntime(source) {
+  return preflight(source, false);
+}
+
+async function preflight(source, checkProject) {
   const plan = validateProjectPlan(source);
   const prerequisites = normalizeProjectPrerequisites(source.prerequisites, plan.agents.map(agent => agent.id));
   const checks = [];
   const executables = {};
   const add = (id, status, message, agentId) => checks.push({ id, status, message, ...(agentId ? { agentId } : {}) });
-  try {
-    await inspectLaunchProject(plan.project);
+  if (checkProject) try {
+    await inspectLaunchProject(plan.project, { nativeHelperDirectory: plan.nativeHelperDirectory });
     add('repository', 'ready', 'The project has a committed HEAD and a clean worktree.');
   } catch (error) {
     const known = typeof error.code === 'string' && /^launch_[a-z0-9_]+$/.test(error.code);
     add('repository', 'blocked', known ? error.message : 'The repository could not be inspected within the read-only preflight limit.');
   }
-  if (plan.agents.some(agent => agent.transport === 'pty')) {
+  if (plan.agents.some(agent => agent.transport === 'pty') || process.platform === 'win32') {
     try {
-      await resolveDarwinPtyHelper({ directory: plan.nativeHelperDirectory });
-      add('pty', 'ready', 'The explicitly built Mac PTY helper matches this Koto source.');
+      await resolveTerminalHelper({ directory: plan.nativeHelperDirectory });
+      add('terminal_helper', 'ready', 'The explicitly built platform terminal helper matches this Koto source.');
     } catch (error) {
       const code = typeof error.code === 'string' && /^[a-z][a-z0-9_]+$/.test(error.code) ? error.code : 'pty_unavailable';
-      add('pty', 'blocked', `PTY transport is unavailable: ${code}.`);
+      add('terminal_helper', 'blocked', `Terminal/process transport is unavailable: ${code}. Run koto terminal build on this host.`);
     }
   }
-  if (process.platform === 'win32') add('cleanup', 'unverified', 'Windows pipe exits retain cleanup_unconfirmed because descendant cleanup cannot be verified; automatic integration remains blocked.');
   for (const agent of plan.agents) {
     try {
       const command = await resolveAgentExecutable(agent.command === '$node' ? process.execPath : agent.command,

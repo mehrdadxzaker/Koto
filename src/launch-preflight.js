@@ -2,6 +2,8 @@ import { constants } from 'node:fs';
 import { access, lstat, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { startCommand } from './command-session.js';
+import { startTerminalCommand } from './terminal-session.js';
+import { resolveTerminalHelper } from './terminal-helper.js';
 
 const SHA = /^[0-9a-f]{40,64}$/;
 const GIT_OUTPUT_LIMIT = 1024 * 1024;
@@ -81,11 +83,14 @@ function gitEnvironment() {
 
 // Reuse the owned-process lifecycle. These commands inspect only; agents,
 // provider help/version commands, compilers and workspace creation stay outside preflight.
-async function git(executable, cwd, args, allow = [0]) {
+async function git(executable, cwd, args, allow = [0], nativeHelperDirectory) {
   const controller = new AbortController();
   const output = { stdout: [], stderr: [] };
   let bytes = 0, exceeded = false;
-  const handle = startCommand({ id: 'launchGit', command: executable, cwd, env: gitEnvironment(),
+  const helperPath = process.platform === 'win32' ? await resolveTerminalHelper({ directory: nativeHelperDirectory }) : undefined;
+  const start = helperPath ? startTerminalCommand : startCommand;
+  const handle = start({ id: 'launchGit', command: executable, cwd, env: gitEnvironment(),
+    ...(helperPath ? { helperPath, transport: 'pipe' } : {}),
     args: ['--no-pager', '--no-optional-locks', '-c', 'core.fsmonitor=false', '-c', 'core.untrackedCache=false',
       '-c', 'core.splitIndex=false', '-c', 'maintenance.auto=false', '-c', 'gc.auto=0', ...args],
     timeoutMs: GIT_TIMEOUT_MS, signal: controller.signal,
@@ -109,12 +114,9 @@ async function git(executable, cwd, args, allow = [0]) {
 }
 
 /** Inspect the same clean, committed repository root required by project workspaces. */
-export async function inspectLaunchProject(projectPath = process.cwd()) {
+export async function inspectLaunchProject(projectPath = process.cwd(), { nativeHelperDirectory } = {}) {
   if (typeof projectPath !== 'string' || !projectPath.trim() || projectPath.includes('\0') || Buffer.byteLength(projectPath) > 4096) {
     throw failure('launch_invalid_project', 'Choose the root directory of an existing Git repository.');
-  }
-  if (process.platform === 'win32') {
-    throw failure('launch_windows_cleanup_unsupported', 'Project launch on Windows requires owned-process cleanup that this transport does not yet provide. Git inspection and agents were not started.');
   }
   let projectRoot;
   try {
@@ -129,7 +131,7 @@ export async function inspectLaunchProject(projectPath = process.cwd()) {
   if (inside(projectRoot, executable)) {
     throw failure('launch_git_executable_overlap', 'Git must be installed outside the project. Select a PATH that resolves Git to its installed executable.');
   }
-  const run = (args, allow) => git(executable, projectRoot, args, allow);
+  const run = (args, allow) => git(executable, projectRoot, args, allow, nativeHelperDirectory);
   const top = await run(['rev-parse', '--show-toplevel'], [0, 128]);
   if (top.code !== 0 || !top.stdout.trim()) {
     throw failure('launch_git_repository_required', 'Choose an existing Git working tree. For a new project, initialize Git and create its first commit before launching Koto.');

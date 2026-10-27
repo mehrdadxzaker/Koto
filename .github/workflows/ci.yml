@@ -32,8 +32,7 @@ jobs:
           node-version: ${{ matrix.node }}
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm run check
-      - name: Compile optional Mac terminal helper from source
-        if: runner.os == 'macOS'
+      - name: Compile platform terminal helper from source
         shell: bash
         run: node bin/koto.js terminal build --directory "$RUNNER_TEMP/koto-native"
 
