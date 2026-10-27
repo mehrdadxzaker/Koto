@@ -35,8 +35,8 @@ stdin receives one JSON assignment:
 }
 ```
 
-Stdout supplies the text result. Exit zero with valid, nonempty output establishes
-process completion. An independent check is needed to establish answer quality.
+Stdout supplies the text result. Exit zero with valid, nonempty output and
+confirmed cleanup establishes worker completion. An independent check is needed to establish answer quality.
 The core does not infer semantic correctness from arbitrary output.
 
 Workflow fields are `schemaVersion`, `goal`, `agents`, `tasks`, optional `finalTask`,
@@ -54,8 +54,19 @@ bound assignment, stdout and stderr sizes. Cancellation stops scheduling and
 requests worker termination. On POSIX, the adapter cleans remaining helpers in
 the owned process group after both normal and failed worker exits before
 settling a result. Windows active cancellation uses best-effort `taskkill`.
-When process-tree cleanup cannot be confirmed, the result records that failure
-instead of claiming cancellation completed.
+Every built-in worker requires confirmed owned-workload cleanup before reporting
+success. A vanished POSIX process group or a valid native helper acknowledgement
+provides that evidence; sending a kill signal or observing a helper exit does
+not. Unknown cleanup remains `cleanup_unconfirmed` (the generic JSON worker uses
+`process_agent_cleanup_unconfirmed`) even when the command exited zero.
+
+The private `owned-worker-lifetime` module owns deadlines, cancellation intent,
+first failure, bounded stopping/draining and final outcome precedence for JSON
+workers, pipes and native terminals. Each protocol adapter keeps its input/output
+rules and each ownership adapter supplies its own cleanup evidence. This keeps
+completion policy in one place without treating a native session like a process
+group. Windows direct pipes cannot establish descendant ownership and therefore
+cannot report successful cleanup; project sessions use the native Job helper.
 
 Workers must await or stop their children before exiting. Self-detached
 descendants outside the POSIX group are not contained; closed inherited pipes
@@ -84,7 +95,9 @@ The project flow uses these shared boundaries:
 | Module | Responsibility |
 | --- | --- |
 | `src/project-plan.js` | Expand explicit native runtime/model/task/ownership choices and inspect launch prerequisites without starting an agent |
-| `src/project-session.js` | Validate executable plans, schedule commands through the core, retain native lifecycle and attempt records, serialize resume/integration and enforce declared ownership |
+| `src/project-session.js` | Validate executable plans, schedule commands through the core and retain native lifecycle and attempt records |
+| `src/approved-contribution.js`, `src/project-session-store.js` | Own approved contribution attempts, durable state and leases, and explicit reconciliation |
+| `src/owned-worker-lifetime.js` | Own bounded worker settlement, cancellation and cleanup qualification; share direct pipe process ownership |
 | `src/native-agent.js` | Declare native capabilities, observe bounded Codex/OpenCode structured events and bind explicit continuation to the captured native identity and origin |
 | `src/command-session.js` | Launch raw executable/argv commands without a shell; stream stdout/stderr, forward bounded input, enforce deadlines and stop owned processes |
 | `src/terminal-session.js`, `src/terminal-helper.js` | Share bounded terminal transport and select/verify the explicitly built host helper; Windows pipe sessions also use this transport |
@@ -152,6 +165,17 @@ retained conflict receipt and source/target history before saving a successful
 baseline. It makes no automatic conflict decision. Ambiguous Git mutations or
 receipt failures retain a lock for explicit recovery. The original checkout is
 not updated, and branches/worktrees remain available for review and cleanup.
+
+The approved-contribution module owns the ordered integration attempt: acquire
+the session lease, check eligibility and current approval, retain intent before
+Git mutation, retain its observed result, and only then clear the pending attempt.
+It delegates Git mechanisms and the workspace lease to `project-workspaces`.
+Unresolved attempts block both integration and resume. Explicit reconciliation
+binds approval to the current attempt and observed Git state; it can record a
+validated receipt or acknowledge an unchanged target. It never replays work or
+automatically derives success from a changed ref. Git and session persistence
+remain separate stores, so interrupted work can still require manual inspection.
+See [reconciliation](PROJECT_SESSIONS.md#reconcile-an-interrupted-integration).
 
 Project sessions retain private state and output logs, but do not automatically
 retry commands or recover/replay interrupted agent runs. Custom Git drivers,

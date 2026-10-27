@@ -340,6 +340,53 @@ export interface ProjectIntegrationResult {
 /** Compatibility name for the integration receipt. */
 export type ProjectIntegration = ProjectIntegrationResult;
 
+export type ContributionResolution = 'record-result' | 'not-applied';
+
+/** Inspection never applies changes or derives a successful result from a ref. */
+export interface ProjectContributionAttemptInspection {
+  attemptId: string;
+  agentId: string;
+  operation: 'integrate' | 'resolve';
+  phase: 'running' | 'receipt-retained' | 'state-recorded' | 'unresolved';
+  ownerPid: number;
+  ownerLive: boolean;
+  /** Approval binds the retained attempt, session and observed source/target state. */
+  reviewToken: string;
+  before: {
+    sourceHead: string;
+    integrationHead: string;
+    reviewTree: string;
+    contributionBaseCommit: string;
+  };
+  current: {
+    sourceHead: string;
+    integrationHead: string;
+    sourceTree: string | null;
+    integrationTree: string | null;
+    sourceStatus: ProjectStatusEntry[];
+    integrationStatus: ProjectStatusEntry[];
+    cherryPickHead: string | null;
+    sourceReviewToken: string | null;
+    integrationStateToken: string;
+  };
+  possibleResolutions: ContributionResolution[];
+  observedResult?: ProjectIntegrationResult | undefined;
+  evidenceError?: string | undefined;
+}
+
+export interface ProjectContributionReconciliation {
+  status: 'reconciled';
+  attemptId: string;
+  resolution: ContributionResolution;
+  integration?: ProjectIntegrationResult | undefined;
+}
+
+export interface ProjectContributionReconciliationOptions {
+  approve: string;
+  resolution: ContributionResolution;
+  onEvent?: ((event: ProjectEvent) => unknown) | undefined;
+}
+
 export interface ProjectAgentAttempt {
   number: number;
   kind: 'initial' | 'resume';
@@ -368,6 +415,8 @@ export interface ProjectAgentState extends ProjectAgentPlan {
   attempts?: ProjectAgentAttempt[] | undefined;
   integration?: ProjectIntegrationResult | undefined;
   lastSuccessfulIntegration?: (ProjectIntegrationResult & { status: 'integrated' }) | undefined;
+  /** Correlates a retained integration receipt with its approved attempt. */
+  lastContributionAttemptId?: string | undefined;
 }
 
 export interface ProjectSessionState {
@@ -468,6 +517,9 @@ export interface ProjectSession {
   integrate(agentId: string, options: { approve: string }): Promise<ProjectIntegrationResult>;
   /** Acknowledge a manually reviewed, committed conflict resolution; does not edit Git content. */
   resolveIntegration(agentId: string, commit: string): Promise<ProjectIntegrationResult>;
+  inspectContributionAttempt(): Promise<ProjectContributionAttemptInspection | null>;
+  /** Acknowledge an observed outcome without replay, rollback or agent execution. */
+  reconcileContributionAttempt(options: Omit<ProjectContributionReconciliationOptions, 'onEvent'>): Promise<ProjectContributionReconciliation>;
 }
 
 export interface ProjectSessionOptions {
@@ -491,6 +543,9 @@ export function finalizeProjectSessionIntegration(sessionRoot: string, agentId: 
   approveIntegrationCommit: string;
   onEvent?: ((event: ProjectEvent) => unknown) | undefined;
 }): Promise<ProjectIntegrationResult>;
+export function inspectProjectContributionAttempt(sessionRoot: string): Promise<ProjectContributionAttemptInspection | null>;
+export function reconcileProjectContributionAttempt(sessionRoot: string,
+  options: ProjectContributionReconciliationOptions): Promise<ProjectContributionReconciliation>;
 
 export interface NativeHelperBuildOptions {
   directory?: string | undefined;

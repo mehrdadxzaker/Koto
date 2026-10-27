@@ -8,6 +8,7 @@ import { basename, delimiter, dirname, isAbsolute, join, relative, resolve, sep 
 import { resolveTerminalHelper } from './terminal-helper.js';
 import { startTerminalCommand } from './terminal-session.js';
 import { verifyWindowsPrivateDirectory } from './windows-native-helper.js';
+import { writePrivateJson as retainJson, removePrivateRecord, assertNoContributionAttempt } from './project-session-store.js';
 
 const ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
 const SHA = /^[0-9a-f]{40,64}$/;
@@ -467,35 +468,20 @@ async function integrationBasis(source, previousIntegration, suppliedTarget) {
   return previous.snapshotCommit;
 }
 
-async function saveIntegrationReceipt(source, receipt) {
-  const temporary = join(source.manifest.sessionRoot, `.integration-${randomUUID()}.tmp`);
-  const saved = { kind: 'koto-workspace-integration', schemaVersion: 1,
-    baseCommit: source.manifest.baseCommit, receipt: {
-      status: 'integrated', workspace: receipt.workspace, integration: receipt.integration,
-      snapshotCommit: receipt.snapshotCommit, contributionCommit: receipt.contributionCommit,
-      contributionBaseCommit: receipt.contributionBaseCommit,
-      reviewTree: receipt.reviewTree, integrationCommit: receipt.integrationCommit,
-    } };
-  try {
-    await writeFile(temporary, `${JSON.stringify(saved, null, 2)}\n`, { mode: 0o600, flag: 'wx' });
-    await rename(temporary, receiptPath(source));
-  } finally { await rm(temporary, { force: true }); }
+async function saveIntegrationReceipt(source, receipt, attemptId) {
+  retainJson(receiptPath(source), { kind: 'koto-workspace-integration', schemaVersion: 1,
+    baseCommit: source.manifest.baseCommit, ...(attemptId ? { attemptId } : {}),
+    receipt: { ...receipt } }, { limit: RECEIPT_LIMIT });
 }
 
-async function saveConflictReceipt(source, receipt) {
-  const temporary = join(source.manifest.sessionRoot, `.integration-conflict-${randomUUID()}.tmp`);
-  const saved = { kind: 'koto-workspace-conflict', schemaVersion: 1,
-    baseCommit: source.manifest.baseCommit, receipt: {
-      status: 'conflicts', workspace: receipt.workspace, integration: receipt.integration,
-      snapshotCommit: receipt.snapshotCommit, contributionCommit: receipt.contributionCommit,
-      contributionBaseCommit: receipt.contributionBaseCommit, reviewTree: receipt.reviewTree,
-      integrationCommit: receipt.integrationCommit,
-      conflictsHash: digest(JSON.stringify(receipt.conflicts)),
-    } };
-  try {
-    await writeFile(temporary, `${JSON.stringify(saved, null, 2)}\n`, { mode: 0o600, flag: 'wx' });
-    await rename(temporary, conflictReceiptPath(source));
-  } finally { await rm(temporary, { force: true }); }
+async function saveConflictReceipt(source, receipt, attemptId, target) {
+  const current = await contributionTargetState(target);
+  if (current.head !== receipt.integrationCommit || current.cherryPickHead !== receipt.contributionCommit
+    || JSON.stringify(current.entries) !== JSON.stringify(receipt.statusEntries)) throw failure('workspace_attempt_conflicts_changed');
+  retainJson(conflictReceiptPath(source), { kind: 'koto-workspace-conflict', schemaVersion: 1,
+    baseCommit: source.manifest.baseCommit, ...(attemptId ? { attemptId } : {}),
+    targetStateToken: current.stateToken,
+    receipt: { ...receipt, conflictsHash: digest(JSON.stringify(receipt.conflicts)) } }, { limit: RECEIPT_LIMIT });
 }
 
 async function noCherryPick(target) {
@@ -547,6 +533,117 @@ export async function inspectWorkspace({ workspace, previousIntegration } = {}) 
   return withWorkspaceTransport(workspace, async () => inspect(await owned(workspace), previousIntegration));
 }
 
+async function contributionTargetState(target) {
+  const options = { hooks: target.hooks };
+  const head = (await git(target.workspace.path, ['rev-parse', 'HEAD'], options)).stdout.trim();
+  const tree = (await git(target.workspace.path, ['rev-parse', 'HEAD^{tree}'], options)).stdout.trim();
+  const entries = await status(target.workspace.path, target.hooks);
+  const index = (await git(target.workspace.path, ['ls-files', '--stage', '-z'], options)).stdout;
+  const diff = (await git(target.workspace.path, ['diff', '--binary', '--no-ext-diff', '--no-textconv', '--no-renames', 'HEAD', '--'], options)).stdout;
+  const cherry = await git(target.workspace.path, ['rev-parse', '--verify', '-q', 'CHERRY_PICK_HEAD'], { ...options, allow: [0, 1] });
+  const cherryPickHead = cherry.code === 0 ? cherry.stdout.trim() : null;
+  return { head, tree, entries: entries.entries, cherryPickHead,
+    stateToken: digest(JSON.stringify({ head, tree, status: entries.raw, index, diff, cherryPickHead })) };
+}
+
+/** Private recovery observation: inspect the workspace's own receipt, even when
+ * its successful baseline is ahead of project-session.json. Observed refs alone
+ * never establish success. A receipt must name this precise retained attempt.
+ */
+export async function inspectWorkspaceContributionAttempt({ workspace, integration, attempt }) {
+  return withWorkspaceTransport(workspace, async () => {
+    const source = await owned(workspace), target = await owned(integration);
+    if (!sameWorkspace(attempt.workspace, source.workspace) || !sameWorkspace(attempt.integration, target.workspace)
+      || source.manifest.sessionRoot !== target.manifest.sessionRoot
+      || !sameWorkspace(target.workspace, source.manifest.integration)
+      || source.workspace.path === target.workspace.path
+      || attempt.baseCommit !== source.manifest.baseCommit) throw failure('workspace_integration_mismatch');
+    const review = await inspect(source, undefined, attempt.before.contributionBaseCommit);
+    const currentTarget = await contributionTargetState(target);
+    let saved, observedResult, receiptError;
+    for (const filename of [receiptPath(source), conflictReceiptPath(source)]) {
+      let candidate;
+      try { candidate = await readPrivateJson(filename, RECEIPT_LIMIT); }
+      catch (error) { if (error.code === 'ENOENT') continue; throw error; }
+      if (candidate?.attemptId !== attempt.attemptId) continue;
+      if (saved) throw failure('workspace_attempt_receipts_ambiguous');
+      saved = candidate;
+    }
+    if (saved) {
+      try {
+        const receipt = saved.receipt;
+        if (saved.schemaVersion !== 1 || saved.baseCommit !== attempt.baseCommit
+          || !['integrated', 'conflicts'].includes(receipt?.status)
+          || saved.kind !== (receipt.status === 'integrated' ? 'koto-workspace-integration' : 'koto-workspace-conflict')
+          || !sameWorkspace(receipt.workspace, source.workspace) || !sameWorkspace(receipt.integration, target.workspace)
+          || ![receipt.snapshotCommit, receipt.contributionCommit, receipt.reviewTree, receipt.integrationCommit,
+            receipt.contributionBaseCommit].every(value => typeof value === 'string' && SHA.test(value))
+          || receipt.reviewTree !== attempt.before.reviewTree
+          || receipt.contributionBaseCommit !== attempt.before.contributionBaseCommit
+          || receipt.integrationCommit !== currentTarget.head) throw failure('workspace_attempt_receipt_changed');
+        const options = { hooks: source.hooks };
+        const snapshotTree = (await git(source.workspace.path, ['rev-parse', `${receipt.snapshotCommit}^{tree}`], options)).stdout.trim();
+        const contributionTree = (await git(source.workspace.path, ['rev-parse', `${receipt.contributionCommit}^{tree}`], options)).stdout.trim();
+        const parent = (await git(source.workspace.path, ['show', '-s', '--format=%P', receipt.contributionCommit], options)).stdout.trim();
+        const sourceAncestor = await git(source.workspace.path, ['merge-base', '--is-ancestor', receipt.snapshotCommit, 'HEAD'], { ...options, allow: [0, 1] });
+        const startingSource = await git(source.workspace.path, ['merge-base', '--is-ancestor', attempt.before.sourceHead, 'HEAD'], { ...options, allow: [0, 1] });
+        const targetAncestor = await git(target.workspace.path, ['merge-base', '--is-ancestor', attempt.before.integrationHead, 'HEAD'], { hooks: target.hooks, allow: [0, 1] });
+        if (snapshotTree !== receipt.reviewTree || contributionTree !== receipt.reviewTree
+          || parent !== receipt.contributionBaseCommit || sourceAncestor.code !== 0
+          || startingSource.code !== 0 || targetAncestor.code !== 0) throw failure('workspace_attempt_history_changed');
+        if (receipt.status === 'integrated') {
+          if (currentTarget.entries.length || currentTarget.cherryPickHead) throw failure('workspace_attempt_target_changed');
+          await integrationBasis(source, receipt, target);
+          if (attempt.operation === 'resolve' && receipt.resolvedFromCommit !== attempt.conflictIntegration?.integrationCommit) {
+            throw failure('workspace_attempt_resolution_changed');
+          }
+        } else if (attempt.operation !== 'integrate' || !Array.isArray(receipt.conflicts) || !receipt.conflicts.length
+          || saved.receipt.conflictsHash !== digest(JSON.stringify(receipt.conflicts))
+          || saved.targetStateToken !== currentTarget.stateToken
+          || currentTarget.cherryPickHead !== receipt.contributionCommit
+          || JSON.stringify(currentTarget.entries) !== JSON.stringify(receipt.statusEntries)
+          || currentTarget.entries.some(entry => entry.code === '??')) throw failure('workspace_attempt_conflicts_changed');
+        const { conflictsHash, ...result } = receipt;
+        observedResult = result;
+      } catch (error) { receiptError = error.code ?? error.message; }
+    }
+    const finalReview = await inspect(await owned(source.workspace), undefined, attempt.before.contributionBaseCommit);
+    if (finalReview.reviewToken !== review.reviewToken || finalReview.headCommit !== review.headCommit
+      || (await contributionTargetState(await owned(target.workspace))).stateToken !== currentTarget.stateToken) {
+      throw failure('workspace_changed_during_review');
+    }
+    return { current: { sourceHead: review.headCommit, integrationHead: currentTarget.head,
+      sourceTree: review.tree ?? null, integrationTree: currentTarget.tree,
+      sourceStatus: review.status, integrationStatus: currentTarget.entries,
+      cherryPickHead: currentTarget.cherryPickHead, sourceReviewToken: review.reviewToken,
+      integrationStateToken: currentTarget.stateToken }, observedResult, receiptError,
+      receiptPresent: Boolean(saved), receiptToken: saved ? digest(JSON.stringify(saved)) : null };
+  });
+}
+
+/** Remove only this settled attempt's retained mechanism lock/acknowledgement.
+ * The contribution owner holds its reconciliation lease and pending marker.
+ */
+export async function releaseWorkspaceContributionAttempt({ workspace, integration, attempt, observedResult }) {
+  await withWorkspaceTransport(workspace, async () => {
+    const source = await owned(workspace), target = await owned(integration);
+    if (!sameWorkspace(attempt.workspace, source.workspace) || !sameWorkspace(attempt.integration, target.workspace)) throw failure('workspace_integration_mismatch');
+    const filename = join(source.manifest.sessionRoot, 'workspace-integration.lock');
+    try {
+      const saved = await readPrivateJson(filename, 4096);
+      if (saved?.attemptId !== attempt.attemptId || saved.ownerPid !== attempt.ownerPid) throw failure('workspace_attempt_lock_changed');
+      removePrivateRecord(filename);
+    } catch (error) { if (error.code !== 'ENOENT') throw error; }
+    if (attempt.operation === 'resolve' && observedResult?.status === 'integrated') {
+      try {
+        const conflict = await readPrivateJson(conflictReceiptPath(source), RECEIPT_LIMIT);
+        if (receiptBinding(conflict.receipt) !== receiptBinding(attempt.conflictIntegration)) throw failure('workspace_conflict_receipt_changed');
+        removePrivateRecord(conflictReceiptPath(source));
+      } catch (error) { if (error.code !== 'ENOENT') throw error; }
+    }
+  });
+}
+
 async function safeContribution(context, review) {
   if (!review.changedPaths.length) return;
   const attributes = (await git(context.workspace.path, ['check-attr', '-z', '--stdin', 'filter', 'merge'],
@@ -579,7 +676,7 @@ export async function integrateWorkspace(options = {}) {
   return withWorkspaceTransport(options.workspace, () => integrateOwnedWorkspace(options));
 }
 
-async function integrateOwnedWorkspace({ workspace, integration, baseCommit, expectedReviewToken, previousIntegration } = {}) {
+async function integrateOwnedWorkspace({ workspace, integration, baseCommit, expectedReviewToken, previousIntegration, contributionAttempt } = {}) {
   if (typeof expectedReviewToken !== 'string' || !/^[a-f0-9]{64}$/.test(expectedReviewToken)) throw failure('workspace_review_required');
   const source = await owned(workspace), target = await owned(integration);
   if (source.manifest.sessionRoot !== target.manifest.sessionRoot || baseCommit !== source.manifest.baseCommit
@@ -593,7 +690,9 @@ async function integrateOwnedWorkspace({ workspace, integration, baseCommit, exp
     throw error;
   }
   try {
-    await lock.writeFile(`${process.pid}\n`);
+    await lock.writeFile(contributionAttempt ? `${JSON.stringify({ ownerPid: process.pid, attemptId: contributionAttempt.id })}\n` : `${process.pid}\n`);
+    await lock.sync();
+    if (!contributionAttempt) assertNoContributionAttempt(source.manifest.sessionRoot);
     try {
       await lstat(conflictReceiptPath(source));
       throw failure('workspace_conflict_resolution_required', 'Explicitly acknowledge the resolved integration commit before applying another contribution from this workspace.');
@@ -609,6 +708,10 @@ async function integrateOwnedWorkspace({ workspace, integration, baseCommit, exp
       integrationCommit: (await git(target.workspace.path, ['rev-parse', 'HEAD'], { hooks: target.hooks })).stdout.trim(), conflicts: [] };
     await owned(source.workspace);
     await indexPath(source);
+    const integrationHead = (await git(target.workspace.path, ['rev-parse', 'HEAD'], { hooks: target.hooks })).stdout.trim();
+    await contributionAttempt?.beforeMutation({ sourceHead: review.headCommit,
+      integrationHead,
+      reviewTree: review.tree, contributionBaseCommit });
     await git(source.workspace.path, ['add', '-A', '--', '.'], { hooks: source.hooks });
     const stagedTree = (await git(source.workspace.path, ['write-tree'], { hooks: source.hooks })).stdout.trim();
     if (stagedTree !== review.tree || stagedTree !== await captureTree(source)
@@ -634,6 +737,11 @@ async function integrateOwnedWorkspace({ workspace, integration, baseCommit, exp
     const contribution = (await git(source.workspace.path, [...identity, 'commit-tree', review.tree, '-p', contributionBaseCommit],
       { hooks: source.hooks, input: 'Koto: integrate reviewed contribution\n' })).stdout.trim();
     await owned(target.workspace);
+    await noCherryPick(target);
+    if ((await status(target.workspace.path, target.hooks)).raw
+      || (await git(target.workspace.path, ['rev-parse', 'HEAD'], { hooks: target.hooks })).stdout.trim() !== integrationHead) {
+      throw failure('workspace_integration_changed');
+    }
     // Once cherry-pick starts, command/stream/status failures can follow a
     // completed Git mutation. Retain the lease unless an explicit conflict or
     // a durably recorded success settles the outcome.
@@ -647,8 +755,8 @@ async function integrateOwnedWorkspace({ workspace, integration, baseCommit, exp
       integrationCommit: (await git(target.workspace.path, ['rev-parse', 'HEAD'], { hooks: target.hooks })).stdout.trim(),
       conflicts, statusEntries: finalStatus.entries };
     try {
-      if (receipt.status === 'integrated') await saveIntegrationReceipt(source, receipt);
-      else await saveConflictReceipt(source, receipt);
+      if (receipt.status === 'integrated') await saveIntegrationReceipt(source, receipt, contributionAttempt?.id);
+      else await saveConflictReceipt(source, receipt, contributionAttempt?.id, target);
     } catch {
       // Git already changed the target. Preserve the lease on receipt failure
       // so another invocation cannot automatically replay an ambiguous apply.
@@ -672,7 +780,7 @@ export async function finalizeWorkspaceIntegration(options = {}) {
 }
 
 async function finalizeOwnedWorkspaceIntegration({ workspace, integration, conflictIntegration,
-  approveIntegrationCommit } = {}) {
+  approveIntegrationCommit, contributionAttempt } = {}) {
   if (typeof approveIntegrationCommit !== 'string' || !SHA.test(approveIntegrationCommit)) {
     throw failure('workspace_resolution_commit_required');
   }
@@ -699,7 +807,9 @@ async function finalizeOwnedWorkspaceIntegration({ workspace, integration, confl
     throw error;
   }
   try {
-    await lock.writeFile(`${process.pid}\n`);
+    await lock.writeFile(contributionAttempt ? `${JSON.stringify({ ownerPid: process.pid, attemptId: contributionAttempt.id })}\n` : `${process.pid}\n`);
+    await lock.sync();
+    if (!contributionAttempt) assertNoContributionAttempt(source.manifest.sessionRoot);
     let saved, receiptPresent = false;
     try { saved = await readPrivateJson(conflictReceiptPath(source), RECEIPT_LIMIT); receiptPresent = true; }
     catch (error) { if (error.code !== 'ENOENT') throw error; }
@@ -757,10 +867,12 @@ async function finalizeOwnedWorkspaceIntegration({ workspace, integration, confl
       contributionBaseCommit, conflicts: [], statusEntries: [], resolvedFromCommit: conflict.integrationCommit };
     // No project content changes, but a partially retained acknowledgement must
     // not silently permit replay of the previously conflicted contribution.
+    await contributionAttempt?.beforeMutation({ sourceHead, integrationHead: targetHead,
+      reviewTree: conflict.reviewTree, contributionBaseCommit });
     preserveLock = true;
     try {
-      await saveIntegrationReceipt(source, receipt);
-      await rm(conflictReceiptPath(source), { force: true });
+      await saveIntegrationReceipt(source, receipt, contributionAttempt?.id);
+      try { removePrivateRecord(conflictReceiptPath(source)); } catch (error) { if (error.code !== 'ENOENT') throw error; }
     } catch {
       throw failure('workspace_integration_receipt_failed', 'The resolution acknowledgement could not be fully retained. Inspect the preserved integration lock before further integration.');
     }

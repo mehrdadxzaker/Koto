@@ -1,4 +1,4 @@
-import { appendFileSync, closeSync, lstatSync, openSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
+import { appendFileSync, lstatSync } from 'node:fs';
 import path from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
 import { homedir } from 'node:os';
@@ -6,13 +6,16 @@ import { runWorkflow } from './core.js';
 import { startCommand } from './command-session.js';
 import { startTerminalCommand } from './terminal-session.js';
 import { resolveTerminalHelper } from './terminal-helper.js';
-import { createProjectWorkspaces, inspectWorkspace, integrateWorkspace, finalizeWorkspaceIntegration } from './project-workspaces.js';
+import { createProjectWorkspaces } from './project-workspaces.js';
+import { persist, readState, agentRecord, requireSettled, lease, assertNoContributionAttempt } from './project-session-store.js';
+import { inspectContribution as inspect, integrateApprovedContribution, finalizeApprovedContribution,
+  inspectProjectContributionAttempt, reconcileProjectContributionAttempt } from './approved-contribution.js';
+export { inspectProjectContributionAttempt, reconcileProjectContributionAttempt } from './approved-contribution.js';
 import { normalizeProjectPrerequisites, preflightProjectPlan, preflightProjectRuntime } from './project-plan.js';
 import { normalizeNativeAgent, createNativeObserver, createNativeResumePlan } from './native-agent.js';
 import { createCodingAgentSession } from './coding-agent.js';
 
 const ID = /^[A-Za-z][A-Za-z0-9_-]{0,63}$/;
-const STATE_FILE = 'project-session.json';
 const MAX_LOG_BYTES = 80 * 1024 * 1024;
 
 function fail(code) { throw new Error(code); }
@@ -103,53 +106,6 @@ export function validateProjectPlan(source) {
   return plan;
 }
 
-function persist(state) {
-  const contents = `${JSON.stringify(state, null, 2)}\n`;
-  if (Buffer.byteLength(contents) > 1024 * 1024) fail('project_state_limit');
-  const temporary = path.join(state.sessionRoot, `.project-${randomUUID()}.tmp`);
-  writeFileSync(temporary, contents, { mode: 0o600, flag: 'wx' });
-  renameSync(temporary, path.join(state.sessionRoot, STATE_FILE));
-}
-
-function readState(sessionRoot) {
-  const filename = path.join(sessionRoot, STATE_FILE);
-  const stat = lstatSync(filename);
-  if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 1024 * 1024) fail('project_invalid_session');
-  const state = JSON.parse(readFileSync(filename, 'utf8'));
-  if (state.kind !== 'koto-project-session' || state.schemaVersion !== 1
-      || path.resolve(state.sessionRoot) !== path.resolve(sessionRoot) || !Array.isArray(state.agents)) fail('project_invalid_session');
-  return state;
-}
-
-function agentRecord(state, id) {
-  const record = state.agents.find(agent => agent.id === id);
-  if (!record) fail('project_unknown_agent');
-  return record;
-}
-
-function owned(record, filename) {
-  return record.owns.some(prefix => prefix === '.' || filename === prefix || filename.startsWith(`${prefix}/`));
-}
-
-function previousIntegration(record) {
-  return record.lastSuccessfulIntegration ?? (record.integration?.status === 'integrated' ? record.integration : undefined);
-}
-
-function requireSettled(state, { allowConflicts = false } = {}) {
-  if (state.active || state.agents.some(agent => ['pending', 'running'].includes(agent.status))) fail('project_session_must_finish_before_integration');
-  if (state.agents.some(agent => agent.result?.error === 'cleanup_unconfirmed'
-      || agent.commandOutcome?.error === 'cleanup_unconfirmed')) fail('project_agent_cleanup_not_confirmed');
-  if (!allowConflicts && state.agents.some(agent => agent.integration?.status === 'conflicts')) fail('project_integration_conflicts_unresolved');
-}
-
-function lease(sessionRoot) {
-  const filename = path.join(sessionRoot, 'integration.lock');
-  let fd;
-  try { fd = openSync(filename, 'wx', 0o600); }
-  catch { fail('project_integration_busy_or_interrupted'); }
-  return () => { closeSync(fd); unlinkSync(filename); };
-}
-
 const fingerprint = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 
 function nativeOrigin(record) {
@@ -161,52 +117,6 @@ function nativeOrigin(record) {
     unsetEnv: [...record.unsetEnv].sort() });
 }
 
-function recordIntegrationEvent(state, agentId, status, onEvent) {
-  const message = { type: 'integration', agentId, status, sessionId: state.sessionId,
-    sequence: (state.eventSequence ?? 0) + 1, time: new Date().toISOString() };
-  state.eventSequence = message.sequence;
-  // Persist the outcome and reserved sequence before appending. A failed log
-  // write can leave a gap, but a subsequent continuation cannot reuse the ID.
-  persist(state);
-  const log = path.join(state.sessionRoot, 'events.jsonl');
-  const line = `${JSON.stringify(message)}\n`;
-  let size = 0;
-  try { size = lstatSync(log).size; } catch (error) { if (error.code !== 'ENOENT') throw error; }
-  if (size + Buffer.byteLength(line) > MAX_LOG_BYTES) fail('project_event_limit');
-  appendFileSync(log, line, { mode: 0o600 });
-  // Observers cannot undo a completed and persisted integration.
-  try { Promise.resolve(onEvent?.(Object.freeze(message))).catch(() => {}); } catch { /* retained outcome is authoritative */ }
-}
-
-async function inspect(state, id) {
-  const record = agentRecord(state, id);
-  const review = await inspectWorkspace({ workspace: record.workspace, previousIntegration: previousIntegration(record) });
-  const outsideOwnership = [...new Set([...review.changedPaths, ...(review.integrationChangedPaths ?? [])])].filter(filename => !owned(record, filename));
-  return { ...review, agentId: id, agentStatus: record.status, owns: record.owns, outsideOwnership };
-}
-
-async function integrate(state, id, approve) {
-  const record = agentRecord(state, id);
-  requireSettled(state);
-  if (!['succeeded', 'failed', 'cancelled'].includes(record.status)) fail('project_agent_not_reviewable');
-  // All session agents share Git metadata and may retain host permissions.
-  // An unresolved peer can still write while another contribution integrates.
-  // Consult retained outcomes as well so reopening the API cannot clear it.
-  if (state.agents.some(agent => agent.result?.error === 'cleanup_unconfirmed'
-      || agent.commandOutcome?.error === 'cleanup_unconfirmed')) fail('project_agent_cleanup_not_confirmed');
-  if (!string(approve, 256)) fail('project_review_token_required');
-  const review = await inspect(state, id);
-  if (review.outsideOwnership.length) fail('project_changes_outside_declared_ownership');
-  if (approve !== review.reviewToken) fail('project_review_changed');
-  if (record.integration?.status === 'integrated' && record.integration.reviewTree === review.tree) fail('project_contribution_already_integrated');
-  const result = await integrateWorkspace({ workspace: record.workspace, integration: state.integration,
-    baseCommit: state.baseCommit, expectedReviewToken: approve, previousIntegration: previousIntegration(record) });
-  record.integration = result;
-  if (result.status === 'integrated') record.lastSuccessfulIntegration = result;
-  persist(state);
-  return result;
-}
-
 /** Inspect retained changes after exit; no command or model is launched. */
 export async function inspectProjectSession(sessionRoot, agentId) {
   return inspect(readState(sessionRoot), agentId);
@@ -216,34 +126,13 @@ export async function inspectProjectSession(sessionRoot, agentId) {
 export function readProjectSession(sessionRoot) { return structuredClone(readState(sessionRoot)); }
 
 /** Explicitly integrate an inspected contribution into the session branch, never main. */
-export async function integrateProjectSession(sessionRoot, agentId, { approve, onEvent } = {}) {
-  const initial = readState(sessionRoot);
-  const release = lease(initial.sessionRoot);
-  try {
-    const state = readState(sessionRoot);
-    const result = await integrate(state, agentId, approve);
-    recordIntegrationEvent(state, agentId, result.status, onEvent);
-    return result;
-  }
-  finally { release(); }
+export function integrateProjectSession(sessionRoot, agentId, options = {}) {
+  return integrateApprovedContribution(sessionRoot, agentId, options);
 }
 
 /** Acknowledge a manually reviewed conflict resolution at the exact target HEAD. */
-export async function finalizeProjectSessionIntegration(sessionRoot, agentId, { approveIntegrationCommit, onEvent } = {}) {
-  const initial = readState(sessionRoot);
-  const release = lease(initial.sessionRoot);
-  try {
-    const state = readState(sessionRoot);
-    requireSettled(state, { allowConflicts: true });
-    const record = agentRecord(state, agentId);
-    if (record.integration?.status !== 'conflicts') fail('project_integration_has_no_conflicts');
-    const result = await finalizeWorkspaceIntegration({ workspace: record.workspace,
-      integration: state.integration, conflictIntegration: record.integration, approveIntegrationCommit });
-    record.integration = result;
-    record.lastSuccessfulIntegration = result;
-    recordIntegrationEvent(state, agentId, result.status, onEvent);
-    return result;
-  } finally { release(); }
+export function finalizeProjectSessionIntegration(sessionRoot, agentId, options = {}) {
+  return finalizeApprovedContribution(sessionRoot, agentId, options);
 }
 
 function expand(template, values) {
@@ -298,6 +187,7 @@ export async function resumeProjectSession(sessionRoot, agentId, { prompt, onEve
     || (signal !== undefined && !(signal instanceof AbortSignal))) fail('project_invalid_observer_or_signal');
   if (signal?.aborted) fail('project_cancelled');
   const state = readState(sessionRoot);
+  assertNoContributionAttempt(state.sessionRoot);
   requireSettled(state);
   const expectedState = fingerprint(state);
   const record = agentRecord(state, agentId);
@@ -434,6 +324,25 @@ function sessionRunner(plan, state, { onEvent, signal, ptyHelper, resume, onAppr
       return bytes.subarray(offset).toString('utf8');
     },
     inspect: id => inspect(!state.active && hasRun ? readState(state.sessionRoot) : state, id),
+    inspectContributionAttempt: () => inspectProjectContributionAttempt(state.sessionRoot),
+    async reconcileContributionAttempt({ approve, resolution } = {}) {
+      if (integrationBusy) fail('project_integration_busy_or_interrupted');
+      integrationBusy = true;
+      try {
+        const result = await reconcileProjectContributionAttempt(state.sessionRoot, { approve, resolution, onEvent });
+        const current = readState(state.sessionRoot);
+        for (const retained of current.agents) {
+          const record = agentRecord(state, retained.id);
+          for (const key of ['integration', 'lastSuccessfulIntegration', 'lastContributionAttemptId']) {
+            if (retained[key] === undefined) delete record[key];
+            else record[key] = structuredClone(retained[key]);
+          }
+        }
+        sequence = current.eventSequence ?? 0;
+        state.eventSequence = sequence;
+        return result;
+      } finally { integrationBusy = false; }
+    },
     async integrate(id, { approve } = {}) {
       if (integrationBusy) fail('project_integration_busy_or_interrupted');
       integrationBusy = true;
