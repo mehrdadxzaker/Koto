@@ -120,7 +120,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     const bytes = readFileSync(filename); if (bytes.length > 65536) fail('settings_size_bound');
     process.stdout.write(`${JSON.stringify({ settingsSha256: sha256(bytes), inferenceSettingsSha256: inferenceHash(JSON.parse(bytes)) })}\n`);
   } else if (mode === 'validate') {
-    const settings = loadSettings(filename, expectedHash, { candidate, platform: 'win32' });
+    const settings = loadSettings(filename, expectedHash, { candidate, platform: 'win32', requireGates: process.env.OBS_OPERATION !== 'idle' });
     process.stdout.write(`${JSON.stringify(settings)}\n`);
   } else fail('settings_command_required');
 }

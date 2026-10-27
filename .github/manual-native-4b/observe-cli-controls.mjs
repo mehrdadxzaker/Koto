@@ -53,7 +53,7 @@ for(const item of packageEvidence.payload??[]) {
 }
 if(!packageEvidence.payload?.length||packageEvidence.candidate!==binding.candidate)fail('package_evidence_missing');
 const settingsModule=path.join(driverDirectory,'reviewed-settings.mjs');
-if(hash(bytes(settingsModule))!=='20e5299aaf79ed00218164ce1649379b5026cdc373594cda230ccd89ad610926')fail('reviewed_validator_changed');
+if(hash(bytes(settingsModule))!=='0ea8a41887ec5eb01a6cea25548547a173c2138dd063c7fa878f29e20fe79121')fail('reviewed_validator_changed');
 const {loadSettings}=await import(pathToFileURL(settingsModule));
 loadSettings(path.join(mainRoot,'reviewed-settings.json'),process.env.OBS_SETTINGS_SHA,{candidate:binding.candidate});
 

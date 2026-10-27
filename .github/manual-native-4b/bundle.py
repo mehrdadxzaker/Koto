@@ -219,7 +219,7 @@ def install_package():
     save(ROOT/'evidence'/'package.json', {'candidate':SHA,'tarSha256':digest(ROOT/'assets'/'koto.tgz'),'payload':rows})
 
 def prepare():
-    if OP != 'observe' or ROOT.exists(): raise RuntimeError('fresh_observation_root_required')
+    if OP not in ['observe','idle'] or ROOT.exists(): raise RuntimeError('fresh_observation_root_required')
     global SETTINGS, ACQUISITION_DEADLINE, PREPARE_BOOTSTRAPPED
     # Exact settings and both prior human reviews are checked before any asset request.
     settings_path=Path(os.environ.get('OBS_SETTINGS_FILE',''))
@@ -290,10 +290,12 @@ def prepare():
     installed=ROOT/'install'/'node_modules'/'@mehrdadxzaker'/'koto'
     for relative,key in [('src/local-models.js','localModelsSha256'),('src/core.d.ts','coreTypesSha256')]:
         if digest(installed/relative)!=SETTINGS['candidateApi'][key]: raise RuntimeError('reviewed_candidate_api_changed')
-    model=download('model')
-    extract_asset(download('llama'),ROOT/'tools'/'llama')
+    model=None; llama=None
+    if OP=='observe':
+        model=download('model')
+        extract_asset(download('llama'),ROOT/'tools'/'llama')
     extract_asset(download('opencode'),ROOT/'tools'/'opencode')
-    llama=find_executable(ROOT/'tools'/'llama','llama-server.exe' if WINDOWS else 'llama-server')
+    if OP=='observe': llama=find_executable(ROOT/'tools'/'llama','llama-server.exe' if WINDOWS else 'llama-server')
     opencode=find_executable(ROOT/'tools'/'opencode','opencode.exe' if WINDOWS else 'opencode')
     config={'$schema':'https://opencode.ai/config.json','autoupdate':False,'share':'disabled',
          'plugin':[],'mcp':{},'lsp':False,'formatter':False,'compaction':{'auto':False},
@@ -319,12 +321,16 @@ def prepare():
         raise RuntimeError('native_effective_model_settings_changed')
     save(ROOT/'evidence'/'native-config.json',{'requestedSha256':digest(ROOT/'host'/'opencode.json'),
          'effectiveSha256':hashlib.sha256(effective_text.encode()).hexdigest(),'checkedBeforeModelStart':True})
-    command([llama,'--version'],ROOT,'llama-version',timeout=15)
+    if OP=='observe': command([llama,'--version'],ROOT,'llama-version',timeout=15)
     save(ROOT/'evidence'/'host.json',{'system':platform.platform(),'architecture':platform.machine(),
          'node':command(['node','--version'],ROOT,'node-version').strip(),'opencode':opencode_version,
          'runnerImage':os.environ.get('ImageVersion'),'runnerImageOS':os.environ.get('ImageOS')})
-    save(ROOT/'prepared.json', {'schemaVersion':1,'variant':VARIANT,'candidate':SHA,'root':str(ROOT),'platform':platform.system(),
-         'llama':llama,'opencode':opencode,'model':str(model),'assets':ASSETS,'reviewedSettingsSha256':expected,'candidateApi':SETTINGS['candidateApi']})
+    save(ROOT/'prepared.json', {'schemaVersion':1,'variant':'idle-opencode' if OP=='idle' else VARIANT,'candidate':SHA,'root':str(ROOT),'platform':platform.system(),
+         'llama':llama,'opencode':opencode,'model':str(model) if model else None,'assets':{'opencode':ASSETS['opencode']} if OP=='idle' else ASSETS,'reviewedSettingsSha256':expected,'candidateApi':SETTINGS['candidateApi']})
+    if OP=='idle':
+        save(ROOT/'idle-bindings.json',{'schemaVersion':1,'kind':'koto-windows-idle-bindings','approvedForExecution':True,
+             'candidate':SHA,'opencodeSha256':digest(Path(opencode)),'nativeConfigSha256':digest(ROOT/'host'/'opencode.json'),
+             'opencodeArchiveSha256':ASSETS['opencode'][2]})
 
 def verify_reference():
     if OP != 'integrate': raise RuntimeError('integration_operation_required')
@@ -360,6 +366,10 @@ def seal():
     public={'schemaVersion':1,'variant':VARIANT,'candidate':SHA,'root':str(ROOT),'operation':OP,'runner':os.environ['OBS_RUNNER'],
             'observationId':ID,'runId':os.environ.get('GITHUB_RUN_ID'),'driverRevision':os.environ.get('GITHUB_SHA'),
             'reviewedSettingsSha256':os.environ.get('OBS_SETTINGS_SHA')}
+    if OP=='idle':
+        public['rehydration']='unavailable_idle_diagnosis'
+        public['interpretation']='No model, task, contribution or integration; encrypted native controls require manual review.'
+        save(ROOT/'out'/'receipt.json',public); return
     observation=ROOT/'evidence'/'observation.json'
     if not observation.exists():
         public['rehydration']='unavailable_no_observation'

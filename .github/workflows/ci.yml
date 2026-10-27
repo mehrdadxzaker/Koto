@@ -5,7 +5,7 @@ on:
     inputs:
       operation:
         type: choice
-        options: [observe, integrate]
+        options: [idle, observe, integrate]
         required: true
       runner:
         type: choice
@@ -152,9 +152,12 @@ jobs:
           with open(os.environ['GITHUB_ENV'],'a') as f: f.write('OBS_SETTINGS_FILE='+str(target)+'\n')
           PYSETTINGS
           node driver/.github/manual-native-4b/reviewed-settings.mjs validate "$RUNNER_TEMP/koto-4b-reviewed-settings.json" "$OBS_SETTINGS_SHA" "$OBS_CANDIDATE" > /dev/null
-      - name: Acquire only pinned local assets and install the exact package
-        if: inputs.operation == 'observe'
+      - name: Acquire pinned assets and install the exact package (idle acquires no model or runtime)
+        if: inputs.operation == 'observe' || inputs.operation == 'idle'
         run: python driver/.github/manual-native-4b/bundle.py prepare
+      - name: One bounded native startup and controls diagnosis without a model
+        if: inputs.operation == 'idle'
+        run: node driver/.github/manual-native-4b/observe-idle.mjs "$OBS_ROOT/idle-bindings.json"
       - name: One bounded actual native-agent observation, ending at review
         if: inputs.operation == 'observe'
         run: node driver/.github/manual-native-4b/observe.mjs

@@ -21,7 +21,7 @@ if (!/^[a-z][a-z0-9-]{7,47}$/.test(process.env.OBS_ID ?? '') || !same(request.ro
   || request.candidate !== process.env.OBS_CANDIDATE || !/^[a-z][a-z0-9-]{0,63}$/.test(request.label ?? '')
   || !['private-root','bootstrap','run'].includes(request.mode)) fail('preparation_identity_changed');
 const source = path.join(root,'project');
-const settings = loadSettings(path.join(root,'reviewed-settings.json'),process.env.OBS_SETTINGS_SHA,{candidate:request.candidate});
+const settings = loadSettings(path.join(root,'reviewed-settings.json'),process.env.OBS_SETTINGS_SHA,{candidate:request.candidate,requireGates:process.env.OBS_OPERATION!=='idle'});
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 if(request.mode!=='private-root') {
   for (const [relative,key] of [['src/local-models.js','localModelsSha256'],['src/core.d.ts','coreTypesSha256']]) {
