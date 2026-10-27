@@ -195,6 +195,13 @@ for both pipe and ConPTY workloads. Missing or unconfirmed cleanup blocks resume
 and every integration, including contributions from peers that succeeded.
 A crashed active session remains unresolved and is not automatically replayed.
 
+On macOS, cleanup requires two complete empty scans of the owned session while
+the direct child remains unreaped, followed by a successful exact-child reap.
+An incomplete process observation resets that scan sequence; lost child or
+session identity remains a permanent refusal. Final cleanup events retain the
+first structural and observation operation and errno, plus whether the
+observation was resolved, so a refusal can be investigated without clearing it.
+
 This core includes native protocol observation, explicit continuation and platform
 terminal/process implementations. It does not supply provider billing, a GUI or
 an IDE plugin. Use the [acceptance run](USER_ACCEPTANCE.md) to record the actual

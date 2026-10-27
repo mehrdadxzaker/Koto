@@ -466,6 +466,16 @@ export interface ProjectInspection extends ProjectWorkspace {
 }
 
 /** Unlike workflow metadata, project events include private native stdout/stderr. */
+export type TerminalCleanupOperation = 'none' | 'waitid' | 'child_state' | 'leader_identity' | 'leader_session'
+  | 'enumerate' | 'member_identity' | 'member_session' | 'signal' | 'reap' | 'deadline' | 'protocol';
+export interface TerminalCleanupDiagnostic {
+  readonly structuralOperation: TerminalCleanupOperation;
+  readonly structuralErrno: number;
+  readonly observationOperation: TerminalCleanupOperation;
+  readonly observationErrno: number;
+  readonly observationIncomplete: boolean;
+  readonly observationResolved: boolean;
+}
 export type ProjectEvent = Readonly<{
   type: string;
   sessionId: string;
@@ -492,6 +502,9 @@ export type ProjectEvent = Readonly<{
   model?: string | undefined;
   command?: string | undefined;
   tool?: string | undefined;
+  cleanup?: 'confirmed' | 'unconfirmed' | undefined;
+  cleanupDiagnostic?: TerminalCleanupDiagnostic | undefined;
+  reason?: string | undefined;
 }>;
 
 export interface ProjectReport {

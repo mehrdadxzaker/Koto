@@ -437,7 +437,13 @@ export function createLocalAgentSession({ id = 'local', endpoint, model, cwd, mo
         // Keep private tool diagnostics separate from the shared worker outcome.
         // Project integration must see cleanup failure even for a local Agent.
         const outcomeError = error === 'local_agent_cleanup_unconfirmed' ? 'cleanup_unconfirmed' : error;
+        const errorMessage = error === 'local_agent_required_inspection_missing'
+          ? 'The selected local model returned text instead of the required native inspection call. Its reply was retained and was not executed. Choose another configured model or inspect the retained response before continuing.'
+          : error === 'local_agent_output_limit'
+            ? 'The local model response was truncated. No tool from that response was executed; any earlier partial work remains available for review.'
+            : undefined;
         return attachContinuation({ status, text: reply, ...(outcomeError ? { error: outcomeError } : {}),
+          ...(errorMessage ? { errorMessage } : {}),
           usage, sessionId });
       };
       try {

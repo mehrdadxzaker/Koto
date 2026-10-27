@@ -22,6 +22,23 @@ const HELPER_REASONS = new Set([
   'eof_unavailable', 'child_setup_failed', 'session_inspection_failed', 'cleanup_timeout',
 ]);
 const EXPECTED_STOP_REASONS = new Set(['stopped', 'host_signal']);
+const CLEANUP_OPERATIONS = new Set(['none', 'waitid', 'child_state', 'leader_identity', 'leader_session',
+  'enumerate', 'member_identity', 'member_session', 'signal', 'reap', 'deadline', 'protocol']);
+const CLEANUP_FIELDS = ['structuralOperation', 'structuralErrno', 'observationOperation',
+  'observationErrno', 'observationIncomplete', 'observationResolved'];
+function validCleanupDiagnostic(value, cleanup) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)
+    || Object.keys(value).length !== CLEANUP_FIELDS.length
+    || Object.keys(value).some(key => !CLEANUP_FIELDS.includes(key))
+    || !CLEANUP_OPERATIONS.has(value.structuralOperation) || !CLEANUP_OPERATIONS.has(value.observationOperation)
+    || !Number.isInteger(value.structuralErrno) || value.structuralErrno < 0 || value.structuralErrno > 4095
+    || !Number.isInteger(value.observationErrno) || value.observationErrno < 0 || value.observationErrno > 4095
+    || value.structuralOperation === 'none' && value.structuralErrno !== 0
+    || value.observationOperation === 'none' && value.observationErrno !== 0
+    || typeof value.observationIncomplete !== 'boolean' || typeof value.observationResolved !== 'boolean'
+    || value.observationResolved === value.observationIncomplete) return false;
+  return cleanup !== 'confirmed' || value.structuralOperation === 'none' && !value.observationIncomplete;
+}
 
 /** Transport for the locally built, caller-approved platform helper.
  * POSIX fd 3 or Windows stderr carries helper lifecycle records; native terminal
@@ -165,15 +182,17 @@ export function startTerminalCommand({ id, command, args = [], cwd, env,
       return;
     }
     if (record.type !== 'complete' || final || !ready
-      || Object.keys(record).some(key => !['type', 'pid', 'sessionId', 'exitCode', 'signal', 'cleanup', 'reason'].includes(key))
+      || Object.keys(record).some(key => !['type', 'pid', 'sessionId', 'exitCode', 'signal', 'cleanup', 'reason', 'cleanupDiagnostic'].includes(key))
       || record.pid !== ready.pid || record.sessionId !== ready.sessionId
       || !(record.exitCode === null || (Number.isInteger(record.exitCode) && record.exitCode >= 0 && record.exitCode <= (windows ? 0xffffffff : 255)))
       || (record.signal !== undefined && record.signal !== null && !/^SIG[A-Z0-9]{1,16}$/.test(record.signal))
       || !['confirmed', 'unconfirmed'].includes(record.cleanup)
+      || record.cleanupDiagnostic !== undefined && !validCleanupDiagnostic(record.cleanupDiagnostic, record.cleanup)
       || (record.reason !== undefined && !HELPER_REASONS.has(record.reason))) { badStatus(); return; }
     if ((record.exitCode === null && !record.signal && !record.reason)
       || (record.exitCode !== null && record.signal)) { badStatus(); return; }
     final = record;
+    if (final.cleanupDiagnostic) Object.freeze(final.cleanupDiagnostic);
     const reason = final.reason && !(lifetime.cancelled && EXPECTED_STOP_REASONS.has(final.reason))
       ? final.reason : undefined;
     lifetime.endedWith(final.exitCode, final.signal, reason);
@@ -293,8 +312,16 @@ export function startTerminalCommand({ id, command, args = [], cwd, env,
     }
     if (!lifetime.cancelled && (code !== 0 || name)) fail('helper_failed');
     if (!final) lifetime.endedWith(null);
-    lifetime.ownership(Boolean(ready && final && !protocolInvalid && final.cleanup === 'confirmed'
-      && final.pid === ready.pid && final.sessionId === ready.sessionId));
+    const confirmed = Boolean(ready && final && !protocolInvalid && final.cleanup === 'confirmed'
+      && final.pid === ready.pid && final.sessionId === ready.sessionId);
+    lifetime.ownership(confirmed);
+    // This event follows stream closure, so late malformed records cannot turn
+    // an early cleanup claim into misleading persisted evidence. It adds no
+    // authority and never clears a previously uncertain lifetime.
+    emit({ type: 'terminal_cleanup', agentId: id, cleanup: confirmed ? 'confirmed' : 'unconfirmed',
+      ...(ready ? { pid: ready.pid, sessionId: ready.sessionId } : {}),
+      ...(!protocolInvalid && final ? { ...(final.reason ? { reason: final.reason } : {}),
+        ...(final.cleanupDiagnostic ? { cleanupDiagnostic: final.cleanupDiagnostic } : {}) } : {}) });
     lifetime.closed();
   });
   lifetime.arm();

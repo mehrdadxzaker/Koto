@@ -326,6 +326,7 @@ export function createNativeAgentSession({ kind, id = kind, command, cwd, model,
           turn.handle = await startSetupCommand({ id, command, args, cwd, env,
             signal: turn.launchController.signal, timeoutMs: Math.max(1, Math.floor(turn.deadline - performance.now())),
             onEvent(event) {
+              if (event.type === 'terminal_cleanup') { emit(turn, event); return; }
               if (event.type === 'started') { emit(turn, { type: 'started', pid: event.pid }); return; }
               if (event.type === 'output' && event.stream === 'stderr') {
                 // Inspect only a bounded private tail. No raw diagnostics,

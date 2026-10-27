@@ -340,6 +340,11 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
         view?.message(event.agentId, `PTY ready; :attach ${event.agentId} to view and interact.`);
       } else if (event.type === 'native_status') {
         view?.message(event.agentId, `Native: ${visible(event.nativeStatus)}${event.nativeSessionId ? `; session ${visible(event.nativeSessionId)}` : ''}`);
+      } else if (event.type === 'terminal_cleanup' && event.cleanup === 'unconfirmed') {
+        const diagnostic = event.cleanupDiagnostic;
+        const operation = diagnostic?.structuralOperation !== 'none' ? diagnostic?.structuralOperation : diagnostic?.observationOperation;
+        const code = diagnostic?.structuralOperation !== 'none' ? diagnostic?.structuralErrno : diagnostic?.observationErrno;
+        view?.message(event.agentId, `Owned process cleanup is unconfirmed${operation && operation !== 'none' ? ` (${operation}, errno ${code})` : ''}. Inspect the owned process state; this retained session remains blocked from integration and resume.`);
       }
       return onEvent?.(event);
     };
@@ -464,7 +469,7 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
     attachment?.detach('agent processes ended');
     write(`\nProcess result: ${report.status}. This is not a correctness verdict.\n`);
     showStatus();
-    for (const agent of report.agents) if (agent.result?.error) write(`${agent.id}: ${visible(agent.result.error)}\n`);
+    for (const agent of report.agents) if (agent.result?.error) write(`${agent.id}: ${visible(agent.result.errorMessage ?? agent.result.error)}\n`);
     write(`Session: ${report.sessionRoot}\nIntegration workspace: ${report.integration.path}\n`);
     if (terminal && !closed) {
       write('Agents ended. Inspect and explicitly integrate contributions, or :quit to retain all worktrees.\n');

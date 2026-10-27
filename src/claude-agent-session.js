@@ -451,6 +451,7 @@ export function createClaudeAgentSession({ id = 'claude', command, cwd, model, e
             signal: turn.launchController.signal,
             timeoutMs: Math.max(1, Math.floor(turn.deadline - performance.now())),
             onEvent(event) {
+              if (event.type === 'terminal_cleanup') { emit(turn, event); return; }
               if (event.type === 'started') { emit(turn, { type: 'started', pid: event.pid }); return; }
               if (event.type === 'output' && event.stream === 'stderr') {
                 turn.diagnosticTail = Buffer.from(turn.diagnosticTail + event.text).subarray(-16_384).toString('utf8');

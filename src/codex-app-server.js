@@ -322,6 +322,7 @@ export function createCodexAppServerSession({ id = 'codex', command, cwd, model,
       signal: current.launchController.signal,
       args: ['app-server', '--listen', 'stdio://', '-c', 'forced_login_method="chatgpt"', '-c', 'model_provider="openai"'],
       onEvent(event) {
+        if (event.type === 'terminal_cleanup') { emit(event); return; }
         if (event.type === 'started') { emit({ type: 'started', pid: event.pid }); return; }
         if (event.type !== 'output') return;
         if (event.stream === 'stderr') {

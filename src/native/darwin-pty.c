@@ -76,11 +76,18 @@ struct helper {
     bool session_announced;
     bool output_failed;
     bool status_failed;
+    /* Structural loss is sticky. Incomplete observations can be resolved only
+     * by later complete empty scans while the same child remains unreaped. */
     bool cleanup_uncertain;
+    bool observation_incomplete;
     bool protocol_failed;
     int native_code;
     int native_signal;
     const char *reason;
+    const char *structural_operation;
+    int structural_errno;
+    const char *observation_operation;
+    int observation_errno;
     uint64_t started_at;
     uint64_t stopped_at;
     uint64_t last_scan;
@@ -180,6 +187,31 @@ static void stop(struct helper *helper, const char *reason)
     }
 }
 
+static int diagnostic_errno(int number)
+{
+    return number > 0 && number <= 4095 ? number : 0;
+}
+
+static void structural_failure(struct helper *helper, const char *operation, int number)
+{
+    if (helper->structural_operation == NULL) {
+        helper->structural_operation = operation;
+        helper->structural_errno = diagnostic_errno(number);
+    }
+    helper->cleanup_uncertain = true;
+    helper->empty_scans = 0;
+}
+
+static void observation_failure(struct helper *helper, const char *operation, int number)
+{
+    if (helper->observation_operation == NULL) {
+        helper->observation_operation = operation;
+        helper->observation_errno = diagnostic_errno(number);
+    }
+    helper->observation_incomplete = true;
+    helper->empty_scans = 0;
+}
+
 static bool same_identity(const struct identity *left, const struct identity *right)
 {
     return left->pid == right->pid && left->seconds == right->seconds
@@ -194,8 +226,12 @@ static int identity(pid_t pid, struct identity *result)
     errno = 0;
     /* Darwin's nonzero arg includes the unreaped zombie leader. */
     int bytes = proc_pidinfo(pid, PROC_PIDTBSDINFO, 1, &information, (int)sizeof(information));
-    if (bytes != (int)sizeof(information)) return errno == ESRCH ? 0 : -1;
-    if (information.pbi_pid != (uint32_t)pid) return -1;
+    if (bytes != (int)sizeof(information)) {
+        if (errno == ESRCH) return 0;
+        if (errno == 0) errno = EIO;
+        return -1;
+    }
+    if (information.pbi_pid != (uint32_t)pid) { errno = EIO; return -1; }
     result->pid = pid;
     result->seconds = information.pbi_start_tvsec;
     result->microseconds = information.pbi_start_tvusec;
@@ -216,8 +252,11 @@ static void observe_exit(struct helper *helper)
         result = waitid(P_PID, (id_t)helper->child, &information, WEXITED | WNOHANG | WNOWAIT);
     } while (result < 0 && errno == EINTR);
     if (result < 0) {
-        helper->cleanup_uncertain = true;
-        if (errno == ECHILD) helper->child_owned = false;
+        int error_number = errno;
+        if (error_number == ECHILD) {
+            structural_failure(helper, "waitid", error_number);
+            helper->child_owned = false;
+        } else observation_failure(helper, "waitid", error_number);
         stop(helper, "session_inspection_failed");
         return;
     }
@@ -227,7 +266,7 @@ static void observe_exit(struct helper *helper)
     } else if (information.si_code == CLD_KILLED || information.si_code == CLD_DUMPED) {
         helper->native_signal = information.si_status;
     } else {
-        helper->cleanup_uncertain = true;
+        structural_failure(helper, "child_state", 0);
     }
     helper->child_exited = true;
     stop(helper, NULL);
@@ -236,14 +275,31 @@ static void observe_exit(struct helper *helper)
 static void establish_session(struct helper *helper)
 {
     if (helper->session_owned || !helper->child_owned || !helper->session_announced) return;
+    errno = 0;
     pid_t sid = getsid(helper->child);
-    if (sid != helper->child && !(helper->child_exited && helper->session_announced)) return;
+    int session_error = errno;
+    if (sid != helper->child) {
+        /* A zombie may not have a queryable SID. The successful pre-exec
+         * announcement plus unreaped direct-child ownership pins this SID. */
+        observe_exit(helper);
+        if (!helper->child_owned) return;
+        if (sid >= 0) {
+            structural_failure(helper, "leader_session", 0);
+            stop(helper, "session_inspection_failed");
+            return;
+        }
+        if (!helper->child_exited) {
+            observation_failure(helper, "leader_session", session_error);
+            stop(helper, "session_inspection_failed");
+            return;
+        }
+    }
     /* Never adopt the host's inherited SID. A private pre-exec announcement
      * proves setsid/TTY setup when getsid can no longer find a zombie leader. */
     struct identity current;
     int found = identity(helper->child, &current);
     if (found != 1) {
-        helper->cleanup_uncertain = true;
+        observation_failure(helper, "leader_identity", errno);
         stop(helper, "session_inspection_failed");
         return;
     }
@@ -253,51 +309,92 @@ static void establish_session(struct helper *helper)
 }
 
 /* Positive-PID signals only, with fresh start identity and SID checks. */
-static void signal_member(struct helper *helper, const struct identity *member, int number)
+static bool signal_member(struct helper *helper, const struct identity *member, int number)
 {
     struct identity current;
     int found = identity(member->pid, &current);
-    if (found == 0) return;
-    if (found < 0) {
-        helper->cleanup_uncertain = true;
-        return;
+    if (found <= 0) {
+        if (found == 0 && member->pid != helper->child) return true;
+        observation_failure(helper, member->pid == helper->child ? "leader_identity" : "member_identity", errno);
+        return false;
     }
-    if (!same_identity(member, &current)) return;
+    if (!same_identity(member, &current)) {
+        if (member->pid == helper->child) {
+            structural_failure(helper, "leader_identity", 0);
+            helper->child_owned = false;
+        } else observation_failure(helper, "member_identity", 0);
+        return false;
+    }
     errno = 0;
     pid_t sid = getsid(member->pid);
-    if (sid < 0 && errno == ESRCH) return;
+    int session_error = errno;
     if (sid != helper->child) {
-        if (sid < 0) helper->cleanup_uncertain = true;
-        return;
+        if (member->pid == helper->child) {
+            observe_exit(helper);
+            if (!helper->child_owned) return false;
+            if (sid >= 0) {
+                structural_failure(helper, "leader_session", 0);
+                return false;
+            }
+            if (helper->child_exited) return true;
+            observation_failure(helper, "leader_session", session_error);
+            return false;
+        }
+        if (sid < 0 && session_error == ESRCH) return true;
+        if (sid < 0) {
+            observation_failure(helper, "member_session", session_error);
+            return false;
+        }
+        return true;
     }
-    if (kill(member->pid, number) < 0 && errno != ESRCH) helper->cleanup_uncertain = true;
+    if (kill(member->pid, number) < 0 && errno != ESRCH) {
+        observation_failure(helper, "signal", errno);
+        return false;
+    }
+    return true;
 }
 
 /*
- * Complete bounded enumeration is required to count an empty scan. Inspection
- * failures remain sticky; later successful scans do not erase that uncertainty.
+ * Complete bounded enumeration is required to count an empty scan. A query or
+ * signal failure invalidates this scan, rather than permanently discarding the
+ * same unreaped-child proof that two later complete empty scans can establish.
  */
 static bool scan_session(struct helper *helper, int number)
 {
     helper->last_live = 0;
     if (!helper->session_owned || !helper->identity_known || !helper->child_owned) return false;
     struct identity leader;
-    if (identity(helper->child, &leader) != 1 || !same_identity(&helper->leader, &leader)) {
-        helper->cleanup_uncertain = true;
+    int found_leader = identity(helper->child, &leader);
+    if (found_leader != 1) {
+        observation_failure(helper, "leader_identity", errno);
         return false;
     }
-    if (!helper->child_exited && getsid(helper->child) != helper->child) {
+    if (!same_identity(&helper->leader, &leader)) {
+        structural_failure(helper, "leader_identity", 0);
+        helper->child_owned = false;
+        return false;
+    }
+    errno = 0;
+    pid_t leader_sid = helper->child_exited ? helper->child : getsid(helper->child);
+    int session_error = errno;
+    if (!helper->child_exited && leader_sid != helper->child) {
         /* A live leader may become a zombie between observe_exit and getsid. */
         observe_exit(helper);
+        if (!helper->child_owned) return false;
+        if (leader_sid >= 0) {
+            structural_failure(helper, "leader_session", 0);
+            return false;
+        }
         if (!helper->child_exited) {
-            helper->cleanup_uncertain = true;
+            observation_failure(helper, "leader_session", session_error);
             return false;
         }
     }
+    errno = 0;
     int bytes = proc_listpids(PROC_ALL_PIDS, 0, helper->pids, (int)sizeof(helper->pids));
     if (bytes <= 0 || bytes >= (int)sizeof(helper->pids)
         || bytes % (int)sizeof(pid_t) != 0) {
-        helper->cleanup_uncertain = true;
+        observation_failure(helper, "enumerate", errno == 0 ? EIO : errno);
         return false;
     }
     size_t count = (size_t)bytes / sizeof(pid_t);
@@ -305,6 +402,7 @@ static bool scan_session(struct helper *helper, int number)
     bool complete = true;
     for (size_t index = 0; index < count; index++) {
         if ((index % 32U) == 0 && elapsed(milliseconds(), helper->stopped_at) >= CLEANUP_MS) {
+            observation_failure(helper, "deadline", 0);
             complete = false;
             break;
         }
@@ -313,7 +411,10 @@ static bool scan_session(struct helper *helper, int number)
         errno = 0;
         pid_t sid = getsid(pid);
         if (sid < 0) {
-            if (errno != ESRCH) complete = false;
+            if (errno != ESRCH) {
+                observation_failure(helper, "member_session", errno);
+                complete = false;
+            }
             continue;
         }
         if (sid != helper->child || (pid == helper->child && helper->child_exited)) continue;
@@ -321,10 +422,12 @@ static bool scan_session(struct helper *helper, int number)
         int found = identity(pid, &member);
         if (found == 0) continue;
         if (found < 0) {
+            observation_failure(helper, "member_identity", errno);
             complete = false;
             continue;
         }
         if (members >= MEMBER_LIMIT) {
+            observation_failure(helper, "enumerate", EOVERFLOW);
             complete = false;
             continue;
         }
@@ -333,13 +436,13 @@ static bool scan_session(struct helper *helper, int number)
     helper->last_live = members;
     for (size_t index = 0; index < members; index++) {
         if ((index % 16U) == 0 && elapsed(milliseconds(), helper->stopped_at) >= CLEANUP_MS) {
+            observation_failure(helper, "deadline", 0);
             complete = false;
             break;
         }
         int current_signal = elapsed(milliseconds(), helper->stopped_at) >= TERM_MS ? SIGKILL : number;
-        signal_member(helper, &helper->members[index], current_signal);
+        if (!helper->child_owned || !signal_member(helper, &helper->members[index], current_signal)) complete = false;
     }
-    if (!complete) helper->cleanup_uncertain = true;
     return complete;
 }
 
@@ -352,10 +455,11 @@ static void cleanup_scan(struct helper *helper, uint64_t now)
     bool complete = scan_session(helper, number);
     if (!helper->session_owned && helper->child_owned && !helper->child_exited) {
         /* Direct-child ownership is pinned even before setsid succeeds. */
-        if (kill(helper->child, number) < 0 && errno != ESRCH) helper->cleanup_uncertain = true;
+        if (kill(helper->child, number) < 0 && errno != ESRCH) observation_failure(helper, "signal", errno);
     }
     if (complete && helper->last_live == 0 && helper->child_exited) helper->empty_scans++;
     else helper->empty_scans = 0;
+    if (helper->empty_scans >= 2 && helper->child_owned) helper->observation_incomplete = false;
 }
 
 static bool child_message(int descriptor, int stage, int error_number)
@@ -628,24 +732,33 @@ static bool reap_child(struct helper *helper)
     pid_t result;
     do { result = waitpid(helper->child, &status, WNOHANG); }
     while (result < 0 && errno == EINTR);
-    if (result != helper->child) return false;
+    if (result != helper->child) {
+        structural_failure(helper, "reap", result < 0 ? errno : 0);
+        if (result < 0 && errno == ECHILD) helper->child_owned = false;
+        return false;
+    }
     helper->child_owned = false;
     return true;
 }
 
 static int complete(struct helper *helper)
 {
-    bool confirmed = !helper->cleanup_uncertain && helper->child_exited
+    const char *name = signal_name(helper->native_signal);
+    if (helper->native_signal != 0 && name == NULL) helper->protocol_failed = true;
+    if (helper->protocol_failed) structural_failure(helper, "protocol", 0);
+    bool confirmed = !helper->cleanup_uncertain && !helper->observation_incomplete
+        && helper->child_owned && helper->child_exited && helper->identity_known
         && helper->session_owned && helper->empty_scans >= 2;
+    /* Each complete scan checked the anchored identity. This single-threaded
+     * helper has not reaped since those scans, so the same PID/SID is still
+     * pinned. The exact-child reap below is the final ownership check. */
     if (!reap_child(helper)) confirmed = false;
-    char code[16], sid[24], signal_field[64] = "", reason_field[96] = "", line[512];
+    char code[16], sid[24], signal_field[64] = "", reason_field[96] = "", line[1024];
     if (helper->native_code >= 0) (void)snprintf(code, sizeof(code), "%d", helper->native_code);
     else (void)snprintf(code, sizeof(code), "null");
     if (helper->session_owned) (void)snprintf(sid, sizeof(sid), "%ld", (long)helper->child);
     else (void)snprintf(sid, sizeof(sid), "null");
-    const char *name = signal_name(helper->native_signal);
     if (helper->native_signal != 0 && name == NULL) {
-        helper->protocol_failed = true;
         confirmed = false;
     } else if (name != NULL) {
         (void)snprintf(signal_field, sizeof(signal_field), ",\"signal\":\"%s\"", name);
@@ -654,8 +767,14 @@ static int complete(struct helper *helper)
         (void)snprintf(reason_field, sizeof(reason_field), ",\"reason\":\"%s\"", helper->reason);
     }
     int length = snprintf(line, sizeof(line),
-        "{\"type\":\"complete\",\"pid\":%ld,\"sessionId\":%s,\"exitCode\":%s%s,\"cleanup\":\"%s\"%s}\n",
-        (long)helper->child, sid, code, signal_field, confirmed ? "confirmed" : "unconfirmed", reason_field);
+        "{\"type\":\"complete\",\"pid\":%ld,\"sessionId\":%s,\"exitCode\":%s%s,\"cleanup\":\"%s\"%s,"
+        "\"cleanupDiagnostic\":{\"structuralOperation\":\"%s\",\"structuralErrno\":%d,"
+        "\"observationOperation\":\"%s\",\"observationErrno\":%d,"
+        "\"observationIncomplete\":%s,\"observationResolved\":%s}}\n",
+        (long)helper->child, sid, code, signal_field, confirmed ? "confirmed" : "unconfirmed", reason_field,
+        helper->structural_operation == NULL ? "none" : helper->structural_operation, helper->structural_errno,
+        helper->observation_operation == NULL ? "none" : helper->observation_operation, helper->observation_errno,
+        helper->observation_incomplete ? "true" : "false", helper->observation_incomplete ? "false" : "true");
     if (length <= 0 || (size_t)length >= sizeof(line)
         || !append(&helper->metadata, line, (size_t)length)) helper->status_failed = true;
     uint64_t deadline = milliseconds() + STATUS_FLUSH_MS;
@@ -727,9 +846,10 @@ static int run_parent(struct helper *helper)
                     helper->output_failed = true;
                     if (helper->reason == NULL) helper->reason = "output_stalled";
                 }
-                if (!helper->child_exited || helper->empty_scans < 2) helper->cleanup_uncertain = true;
+                if (!helper->child_exited || helper->empty_scans < 2) observation_failure(helper, "deadline", 0);
                 if (!helper->pty_eof) helper->protocol_failed = true;
-                if (helper->reason == NULL && (!helper->pty_eof || helper->cleanup_uncertain)) helper->reason = "cleanup_timeout";
+                if (helper->reason == NULL && (!helper->pty_eof || helper->cleanup_uncertain
+                    || helper->observation_incomplete)) helper->reason = "cleanup_timeout";
                 break;
             }
         }
@@ -767,7 +887,7 @@ static int run_parent(struct helper *helper)
         if (descriptors[3].revents & (POLLIN | POLLHUP | POLLERR)) read_pty(helper);
         if (descriptors[3].revents & POLLNVAL) {
             helper->protocol_failed = true;
-            helper->cleanup_uncertain = true;
+            structural_failure(helper, "protocol", 0);
             stop(helper, "pty_failed");
         }
         if (helper->setup >= 0 && descriptors[4].revents & (POLLIN | POLLHUP | POLLERR)) read_setup(helper);
