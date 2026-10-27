@@ -111,8 +111,12 @@ retry commands or recover/replay interrupted agent runs. Custom Git drivers,
 hidden index entries and changed symlinks have explicit refusal boundaries.
 See [project sessions](PROJECT_SESSIONS.md) for the runnable interface and details.
 
-This is local implementation awaiting a real Mac agent demonstration. No actual
-agent collaboration flow or platform qualification has been established here.
+A [recorded macOS demonstration](https://github.com/mehrdadxzaker/Koto/pull/613)
+used the same implementation tree now on `main`: Codex and OpenCode with local
+Qwen3-14B ran over pipes with 25.4 seconds of overlapping execution, followed by
+inspection and token-approved integration of both contributions. One manual
+application run does not qualify other platforms, native protocols or model
+quality; PTY support remains absent.
 
 ## Later adapters and delivery
 

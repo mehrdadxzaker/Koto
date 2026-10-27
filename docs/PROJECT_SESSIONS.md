@@ -3,8 +3,17 @@
 `koto project` runs caller-selected real executable commands in separate Git
 worktrees. It reuses the shared scheduler and exposes a small terminal consumer
 of the session API. It does not translate provider protocols or manufacture
-agent replies. This local implementation has not yet completed a live
-Codex/OpenCode cooperation run.
+agent replies.
+
+A [recorded macOS demonstration](https://github.com/mehrdadxzaker/Koto/pull/613)
+used this implementation tree with Codex and OpenCode running local Qwen3-14B.
+Their executions overlapped for 25.4 seconds while contributing separate modules
+to a task-board CLI. Both diffs were inspected and approved with review tokens,
+and both contributions were integrated without conflict. The application then
+ran manually with four tasks and 25% completion. The record retains the initial
+local shell-quoting failure and its revision: two Codex and two local CLI
+invocations in total. This is one observed pipe-based workflow on that Mac,
+not a benchmark or qualification of other platforms, models or native protocols.
 
 ## Run actual agents
 
@@ -68,10 +77,9 @@ approval and exits after both commands end. It does not approve their generated
 edits. Each executable is invoked once; Koto performs no retry. A native CLI may
 make multiple requests or internal retries within its process deadline.
 
-The older frozen Mac Koto build does not contain this command. The new source
-must become available through an authorized delivery path before this command
-can be demonstrated there; local implementation is not a source-transfer or
-publication approval.
+The project-session source is available on `main`; use that checkout or a newly
+packed local tarball. Older installed Koto builds may lack this command. Registry
+publication remains pending.
 
 ## Supervise, inspect and integrate
 
@@ -128,6 +136,7 @@ unresolved and cannot automatically integrate or replay work.
 
 This implementation is pipes only. It does not provide native continuation,
 structured permission-state parsing, PTY support, provider billing, a GUI or an
-IDE plugin. Process success is not a correctness verdict. Current verification
-is source inspection, syntax checks and CLI help only; actual simultaneous agent
-work and reviewed integration remain to be observed on the approved host.
+IDE plugin. Process success is not a correctness verdict. The recorded Mac run
+adds one actual simultaneous-agent and reviewed-integration observation to source
+inspection. It does not establish model quality, comparative latency, cost
+savings or general platform support. Current CI checks source and scope only.

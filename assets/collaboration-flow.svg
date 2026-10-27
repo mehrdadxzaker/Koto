@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="432" viewBox="0 0 1120 432" direction="ltr" role="img" aria-labelledby="flow-title flow-description">
+  <title id="flow-title">Koto: parallel agent work with operator-reviewed integration</title>
+  <desc id="flow-description">A clean Git project supplies the same committed base to two parallel commands: Codex as a commercial CLI agent in worktree A, and OpenCode as a local CLI agent in worktree B. The operator inspects both diffs and approves the exact review token before contributions enter a separate integration branch. Conflicts stay visible, and the original checkout is retained. Commands use ordinary pipes.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 1 1 L 9 5 L 1 9 Z" fill="#986044"/>
+    </marker>
+    <style>
+      text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; fill: #292723; }
+      .heading { font-size: 27px; font-weight: 650; letter-spacing: -.5px; }
+      .subheading { font-size: 16px; fill: #6B6056; }
+      .card { fill: #FFFDF9; stroke: #D9CABB; stroke-width: 1.5; }
+      .card-title { font-size: 20px; font-weight: 650; letter-spacing: -.25px; }
+      .agent-title { font-size: 23px; font-weight: 650; letter-spacing: -.3px; }
+      .body { font-size: 16px; fill: #6B6056; }
+      .note { font-size: 15px; fill: #855139; }
+      .link { fill: none; stroke: #986044; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+      .icon { fill: none; stroke: #986044; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    </style>
+  </defs>
+
+  <rect width="1120" height="432" rx="20" fill="#F9F5EE"/>
+  <text x="32" y="43" class="heading">Parallel work. Explicit integration.</text>
+  <text x="32" y="69" class="subheading">One shared core, separate contributions, and an operator in control.</text>
+
+  <!-- The same base fans out; both contributions meet at operator review. -->
+  <path class="link" d="M228 223 H264 V148 H292" marker-end="url(#arrow)"/>
+  <path class="link" d="M264 223 V298 H292" marker-end="url(#arrow)"/>
+  <circle cx="264" cy="223" r="3.5" fill="#986044"/>
+  <path class="link" d="M542 148 H578 V223 H608" marker-end="url(#arrow)"/>
+  <path class="link" d="M542 298 H578 V223"/>
+  <circle cx="578" cy="223" r="3.5" fill="#986044"/>
+  <path class="link" d="M824 223 H874" marker-end="url(#arrow)"/>
+
+  <rect x="32" y="151" width="196" height="144" rx="13" class="card"/>
+  <g class="icon" aria-hidden="true">
+    <circle cx="57" cy="176" r="4"/>
+    <circle cx="77" cy="176" r="4"/>
+    <circle cx="77" cy="191" r="4"/>
+    <path d="M61 176 H73 M57 180 V186 Q57 191 64 191 H73"/>
+  </g>
+  <text x="51" y="222" class="card-title">Clean Git project</text>
+  <text x="51" y="248" class="body">One committed base</text>
+  <text x="51" y="275" class="note">Checkout retained</text>
+
+  <rect x="302" y="92" width="240" height="112" rx="13" class="card"/>
+  <g class="icon" aria-hidden="true">
+    <rect x="321" y="111" width="30" height="23" rx="4"/>
+    <path d="M328 118 L333 123 L328 128 M338 128 H344"/>
+  </g>
+  <text x="364" y="132" class="agent-title">Codex</text>
+  <text x="321" y="162" class="body">Commercial CLI</text>
+  <text x="321" y="185" class="body">Worktree A · branch A</text>
+
+  <rect x="302" y="242" width="240" height="112" rx="13" class="card"/>
+  <g class="icon" aria-hidden="true">
+    <rect x="321" y="261" width="30" height="23" rx="4"/>
+    <path d="M328 268 L333 273 L328 278 M338 278 H344"/>
+  </g>
+  <text x="364" y="282" class="agent-title">OpenCode</text>
+  <text x="321" y="312" class="body">Local CLI</text>
+  <text x="321" y="335" class="body">Worktree B · branch B</text>
+
+  <rect x="618" y="151" width="206" height="144" rx="13" fill="#F1E6DA" stroke="#CDB59F" stroke-width="1.5"/>
+  <g class="icon" aria-hidden="true">
+    <path d="M639 169 H655 L661 175 V194 H639 Z M655 169 V175 H661 M645 182 H655 M645 188 H651"/>
+    <path d="M670 184 L674 188 L682 178"/>
+  </g>
+  <text x="638" y="222" class="card-title">Operator review</text>
+  <text x="638" y="248" class="body">Inspect both diffs</text>
+  <text x="638" y="275" class="note">Approve exact token</text>
+
+  <rect x="884" y="151" width="204" height="144" rx="13" class="card"/>
+  <g class="icon" aria-hidden="true">
+    <circle cx="908" cy="173" r="4"/>
+    <circle cx="928" cy="173" r="4"/>
+    <circle cx="918" cy="192" r="4"/>
+    <path d="M908 177 V180 Q908 184 918 188 M928 177 V180 Q928 184 918 188"/>
+  </g>
+  <text x="903" y="222" class="card-title" style="font-size:19px">Integration branch</text>
+  <text x="903" y="248" class="body">Apply contributions</text>
+  <text x="903" y="275" class="note">Conflicts stay visible</text>
+
+  <path d="M32 382 H1088" stroke="#DFD3C6"/>
+  <text x="32" y="409" class="subheading">Live output · input and stop controls · ordinary pipes</text>
+  <text x="1088" y="409" text-anchor="end" class="subheading">Worktrees separate edits, not permissions.</text>
+</svg>
