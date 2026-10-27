@@ -26,6 +26,11 @@ installed-package behavior when changing those paths. Do not require paid model
 calls or provider credentials for routine checks. A fixture result does not
 establish real-agent quality or compatibility.
 
+The Windows stdin-rejection test uses stock Windows PowerShell to compile a
+temporary native fixture during bounded setup. The actual worker keeps its
+original deadline. Installing and running Koto does not use this compiler or
+require PowerShell.
+
 Do not add unrelated products, campaign archives, old runtime compatibility
 layers or a second installation system. Earlier implementations remain in Git
 history. Preserve unrelated local work and never check in credentials or private
