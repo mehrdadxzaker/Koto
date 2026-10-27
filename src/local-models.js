@@ -267,7 +267,8 @@ export async function startLlamaServer({ modelPath, command = 'llama-server', po
     if (cancelPidWait) joinedSignal.removeEventListener('abort', cancelPidWait);
     acceptStartedPid = undefined;
   }
-  let finished = false, guarded = false, guardError, memory;
+  let finished = false, guardError, memory, confirmInitialMemory;
+  const initialMemory = new Promise(resolve => { confirmInitialMemory = resolve; });
   const completion = handle.completion.then(async result => {
     finished = true;
     controller.abort();
@@ -287,7 +288,7 @@ export async function startLlamaServer({ modelPath, command = 'llama-server', po
         if (rss > memoryLimitBytes || available < minimumFreeBytes) {
           throw failure('local_memory_limit', 'The owned server exceeded its resident-memory budget or host free-memory reserve and was stopped.');
         }
-        guarded = true;
+        confirmInitialMemory(true);
         await delay(1000, undefined, { signal: joinedSignal });
       } catch (error) {
         if (error.code === 'local_memory_cleanup_unconfirmed') {
@@ -299,11 +300,15 @@ export async function startLlamaServer({ modelPath, command = 'llama-server', po
         break;
       }
     }
+    confirmInitialMemory(false);
   })();
   const ready = (async () => {
     const deadline = startupDeadline;
+    // Do not poll a healthy endpoint while the first asynchronous RSS/host
+    // sample is pending. Admission must be confirmed before readiness probes.
+    const memoryAccepted = await initialMemory;
     let attempts = 0;
-    while (!finished && !joinedSignal.aborted && Date.now() < deadline && attempts < 30) {
+    while (memoryAccepted && !finished && !joinedSignal.aborted && Date.now() < deadline && attempts < 30) {
       attempts += 1;
       try {
         const metadata = await checkLocalEndpoint({ kind: 'llama', endpoint, signal: joinedSignal });
@@ -311,7 +316,7 @@ export async function startLlamaServer({ modelPath, command = 'llama-server', po
           throw failure('local_server_identity_mismatch', 'The loopback endpoint did not advertise this owned server\'s model alias.');
         }
         if (guardError || joinedSignal.aborted || finished) break;
-        if (guarded) return metadata;
+        return metadata;
       } catch (error) {
         if (['local_server_identity_mismatch', 'local_socket_exhausted'].includes(error.code)) { guardError = error; controller.abort(); break; }
         const backoff = Math.min(4000, 500 * 2 ** Math.min(attempts - 1, 3)) + Math.floor(Math.random() * 200);
