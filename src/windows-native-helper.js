@@ -46,7 +46,9 @@ function runTool(command, args, { env = process.env, cwd, timeoutMs = 10_000, al
       if (settled || treeStopPending) return;
       settled = true; clearTimeout(timer); clearTimeout(forced);
       if (error) reject(error);
-      else if (!allow.includes(code)) reject(failure('windows_pty_tool_failed', 'The selected existing developer tool failed.', Buffer.concat(stderr).toString('utf8')));
+      else if (!allow.includes(code)) reject(failure('windows_pty_tool_failed',
+        `The selected existing developer tool ${path.basename(command)} exited ${code}.`,
+        `${Buffer.concat(stdout).toString('utf8')}\n${Buffer.concat(stderr).toString('utf8')}`));
       else resolve({ stdout: Buffer.concat(stdout).toString('utf8'), stderr: Buffer.concat(stderr).toString('utf8'), exitCode: code });
     };
     const stop = (code, message) => {
