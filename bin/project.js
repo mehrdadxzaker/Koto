@@ -3,7 +3,8 @@ import { constants } from 'node:fs';
 import { createInterface, clearLine, clearScreenDown, cursorTo, moveCursor } from 'node:readline';
 import { basename } from 'node:path';
 import { createProjectSession, resumeProjectSession, readProjectSession, validateProjectPlan, preflightProjectPlan,
-  inspectProjectSession, integrateProjectSession, finalizeProjectSessionIntegration } from '../src/index.js';
+  inspectProjectSession, integrateProjectSession, finalizeProjectSessionIntegration,
+  inspectProjectContributionAttempt, reconcileProjectContributionAttempt } from '../src/index.js';
 import { attachNativeTerminal } from './attach-terminal.js';
 import { createActivityView } from './activity-view.js';
 
@@ -14,6 +15,8 @@ const help = `Project collaboration (native terminal or structured pipe sessions
   koto project integrate <session-directory> <agent> --approve <review-token>
   koto project status <session-directory>
   koto project resolve <session-directory> <agent> --approve <resolution-commit>
+  koto project pending <session-directory>
+  koto project reconcile <session-directory> --resolution record-result|not-applied --approve <attempt-review-token>
   koto project resume <session-directory> <agent> --prompt TEXT [--start] [--headless]
 
 start requires explicit launch approval; --start supplies it for a prepared plan.
@@ -49,6 +52,14 @@ function showReview(review, write) {
   write(`Review token: ${review.reviewToken}\n`);
 }
 
+function showContributionAttempt(attempt, write) {
+  if (!attempt) { write('No unresolved integration attempt.\n'); return; }
+  write(`${JSON.stringify(attempt, null, 2)}\n`);
+  if (attempt.ownerLive) write('The attempt owner is still active; reconciliation is unavailable.\n');
+  else if (!attempt.possibleResolutions.length) write('The current Git state needs explicit inspection before this attempt can be reconciled.\n');
+  else write(`Review these refs and the retained outcome before approving a resolution: ${attempt.possibleResolutions.join(', ')}.\n`);
+}
+
 /** Terminal rendering is a thin consumer of core session operations/events. */
 export async function runProjectCli(args, { write, signal } = {}) {
   if (!args.length || args[0] === '--help') { write(help); return 0; }
@@ -57,6 +68,16 @@ export async function runProjectCli(args, { write, signal } = {}) {
     write(`${JSON.stringify({ sessionRoot: state.sessionRoot, active: state.active,
       agents: state.agents.map(agent => ({ id: agent.id, status: agent.status, result: agent.result,
         native: agent.nativeState, attempts: agent.attempts, integration: agent.integration?.status })) }, null, 2)}\n`);
+    return 0;
+  }
+  if (args[0] === 'pending' && args.length === 2) {
+    showContributionAttempt(await inspectProjectContributionAttempt(args[1]), write);
+    return 0;
+  }
+  if (args[0] === 'reconcile' && args.length === 6 && args[2] === '--resolution'
+      && ['record-result', 'not-applied'].includes(args[3]) && args[4] === '--approve') {
+    const result = await reconcileProjectContributionAttempt(args[1], { resolution: args[3], approve: args[5] });
+    write(`${JSON.stringify(result, null, 2)}\n`);
     return 0;
   }
   if (args[0] === 'resume' && args.length >= 5 && args[3] === '--prompt'
@@ -328,7 +349,7 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
       throw Object.assign(new Error(`The project HEAD changed after planning. No agent was launched. Prepared worktrees are retained at ${session.sessionRoot}. Review a new plan from the current commit.`), { code: 'project_base_changed' });
     }
     write(`Session: ${session.sessionRoot}\nIntegration workspace: ${session.status().integration.path}\n`);
-    const controls = () => write('Controls: :status | :review AGENT | :integrate AGENT | :resolve AGENT COMMIT | :stop AGENT/all | :attach AGENT (Ctrl-] detaches) | :resize AGENT COLS ROWS | :send AGENT TEXT | :eof AGENT | :help | :quit\n');
+    const controls = () => write('Controls: :status | :review AGENT | :integrate AGENT | :resolve AGENT COMMIT | :pending | :reconcile RESOLUTION TOKEN | :stop AGENT/all | :attach AGENT (Ctrl-] detaches) | :resize AGENT COLS ROWS | :send AGENT TEXT | :eof AGENT | :help | :quit\n');
     const showStatus = () => {
       write('\nAGENT             STATE        TRANSPORT PID       WORKSPACE\n');
       for (const agent of session.status().agents) {
@@ -398,6 +419,14 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
             const result = await session.resolveIntegration(id, rest[0]);
             reviewedTokens.delete(id);
             write(`${id}: ${result.status}. Reviewed conflict resolution recorded.\n`);
+          }
+          else if (command === ':pending' && !id) {
+            showContributionAttempt(await session.inspectContributionAttempt(), write);
+          }
+          else if (command === ':reconcile' && ['record-result', 'not-applied'].includes(id) && rest.length === 1) {
+            const result = await session.reconcileContributionAttempt({ resolution: id, approve: rest[0] });
+            reviewedTokens.clear();
+            write(`Integration attempt ${result.attemptId}: ${result.status} (${result.resolution}).\n`);
           }
           else if (command === ':quit') close();
           else write('Use a listed :control command. Native pipe input must name its agent with :send.\n');

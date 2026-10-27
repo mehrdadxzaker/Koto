@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { createOwnedWorkerLifetime } from './owned-worker-lifetime.js';
 import { isAbsolute } from 'node:path';
 import { StringDecoder } from 'node:string_decoder';
 import { TextDecoder } from 'node:util';
@@ -11,9 +12,6 @@ const DATA_LIMIT = 64 * 1024;
 const CONTROL_QUEUE_LIMIT = 256 * 1024;
 const PENDING_LIMIT = 64;
 const TEXT_UNITS = 4096;
-const HELPER_TERM_MS = 2_000;
-const HELPER_KILL_MS = 4_000;
-const FORCE_FINISH_MS = 4_500;
 const validString = value => typeof value === 'string' && value.length > 0 && !value.includes('\0');
 const dimension = value => Number.isInteger(value) && value >= 1
   && value <= (process.platform === 'win32' ? 32_767 : 65_535);
@@ -53,21 +51,12 @@ export function startTerminalCommand({ id, command, args = [], cwd, env,
     throw new TypeError('Invalid terminal session configuration');
   }
 
-  let settle;
-  const completion = new Promise(resolve => { settle = resolve; });
   let child;
   let ready;
   let final;
-  let finished = false;
-  let closed = false;
   let helperExited = false;
   let helperSpawned = false;
-  let helperExitCode = null;
-  let helperExitSignal;
   let spawnFailed = false;
-  let cancelled = false;
-  let failure;
-  let stopping = false;
   let inputEnded = false;
   let protocolInvalid = false;
   let outputBytes = 0;
@@ -76,48 +65,30 @@ export function startTerminalCommand({ id, command, args = [], cwd, env,
   let statusBytes = 0;
   let statusBuffer = Buffer.alloc(0);
   let pendingControls = 0;
-  let pendingEvents = 0;
-  let deadlineTimer;
-  let termTimer;
-  let killTimer;
-  let finishTimer;
   const outputDecoder = new StringDecoder('utf8');
   const stderrDecoder = new StringDecoder('utf8');
-
-  const clearTimers = () => {
-    clearTimeout(deadlineTimer);
-    clearTimeout(termTimer);
-    clearTimeout(killTimer);
-    clearTimeout(finishTimer);
-  };
-
-  const finish = (forced = false) => {
-    if (finished || (!closed && !forced)) return;
-    finished = true;
-    clearTimers();
-    signal?.removeEventListener('abort', onAbort);
-    if (forced && child) {
-      // Error listeners remain installed for errors from late stream closure.
-      for (const stream of child.stdio) stream?.destroy();
-      child.unref();
-    }
-    const confirmed = !forced && ready && final && !protocolInvalid && final.cleanup === 'confirmed'
-      && final.pid === ready.pid && final.sessionId === ready.sessionId;
-    // No helper was spawned in these two cases, hence no workload was started.
-    const noWorkload = (!child && cancelled) || (spawnFailed && !helperSpawned);
-    let error = (!confirmed && !noWorkload) ? 'cleanup_unconfirmed' : failure;
-    if (!error && final?.reason && !(cancelled && EXPECTED_STOP_REASONS.has(final.reason))) {
-      error = final.reason;
-    }
-    if (!error && !cancelled && (helperExitCode !== 0 || helperExitSignal)) error = 'helper_failed';
-    if (!error && !cancelled && final?.exitCode !== 0) error = 'exit_failed';
-    settle({
-      status: cancelled ? 'cancelled' : error ? 'failed' : 'succeeded',
-      exitCode: final?.exitCode ?? null,
-      ...(final?.signal ? { signal: final.signal } : {}),
-      ...(error ? { error } : {}),
-    });
-  };
+  const lifetime = createOwnedWorkerLifetime({
+    timeoutMs, signal, onEvent, cleanupMs: 4_500,
+    requestStop() {
+      // Reserve one small frame even when the data queue is full. A final
+      // workload record needs only bounded helper/stream draining, not a stop.
+      if (!final) writeFrame(3, Buffer.alloc(0), true);
+    },
+    escalations: [
+      { afterMs: 2_000, run: () => signalHelper('SIGTERM') },
+      { afterMs: 4_000, run: () => signalHelper('SIGKILL') },
+    ],
+    forceStop: () => signalHelper('SIGKILL'),
+    release(forced) {
+      if (forced && child) {
+        // Retain listeners for late errors after forced handle release.
+        for (const stream of child.stdio) stream?.destroy();
+        child.unref();
+      }
+    },
+  });
+  const fail = code => lifetime.fail(code);
+  const emit = event => lifetime.emit(event);
 
   const signalHelper = name => {
     if (!child?.pid || helperExited) return;
@@ -130,10 +101,10 @@ export function startTerminalCommand({ id, command, args = [], cwd, env,
   };
 
   const writeFrame = (opcode, payload = Buffer.alloc(0), priority = false) => {
-    if (finished || helperExited || !child || child.stdin.destroyed
+    if (lifetime.finished || helperExited || !child || child.stdin.destroyed
       || !child.stdin.writable || child.stdin.writableEnded) return false;
     const bytes = payload.byteLength + 5;
-    if ((!priority && (stopping || final || pendingControls >= PENDING_LIMIT
+    if ((!priority && (lifetime.stopping || final || pendingControls >= PENDING_LIMIT
       || child.stdin.writableLength + bytes > CONTROL_QUEUE_LIMIT))
       || child.stdin.writableLength + bytes > CONTROL_QUEUE_LIMIT + 64) return false;
     const frame = Buffer.allocUnsafe(bytes);
@@ -154,41 +125,6 @@ export function startTerminalCommand({ id, command, args = [], cwd, env,
     }
   };
 
-  const beginStop = () => {
-    if (stopping || finished) return;
-    stopping = true;
-    clearTimeout(deadlineTimer);
-    // One reserved small frame can request cleanup even with a full data queue.
-    writeFrame(3, Buffer.alloc(0), true);
-    termTimer = setTimeout(() => signalHelper('SIGTERM'), HELPER_TERM_MS);
-    killTimer = setTimeout(() => signalHelper('SIGKILL'), HELPER_KILL_MS);
-    finishTimer = setTimeout(() => {
-      signalHelper('SIGKILL');
-      finish(true);
-    }, FORCE_FINISH_MS);
-  };
-
-  const fail = code => {
-    if (finished) return;
-    failure ??= code;
-    beginStop();
-  };
-
-  const emit = event => {
-    if (!onEvent || finished) return;
-    if (pendingEvents >= PENDING_LIMIT) { fail('event_queue_overflow'); return; }
-    try {
-      const result = onEvent(Object.freeze(event));
-      if (result && typeof result.then === 'function') {
-        pendingEvents += 1;
-        Promise.resolve(result).then(
-          () => { pendingEvents -= 1; },
-          () => { pendingEvents -= 1; fail('observer_failed'); },
-        );
-      }
-    } catch { fail('observer_failed'); }
-  };
-
   const outputText = (text, stream = 'stdout') => {
     for (let start = 0; start < text.length;) {
       let end = Math.min(start + TEXT_UNITS, text.length);
@@ -196,7 +132,7 @@ export function startTerminalCommand({ id, command, args = [], cwd, env,
       // Preserve native terminal controls. The UI decides how to render a PTY.
       emit({ type: 'output', agentId: id, stream, text: text.slice(start, end) });
       start = end;
-      if (failure || cancelled || finished) break;
+      if (lifetime.failure || lifetime.cancelled || lifetime.finished) break;
     }
   };
 
@@ -238,28 +174,19 @@ export function startTerminalCommand({ id, command, args = [], cwd, env,
     if ((record.exitCode === null && !record.signal && !record.reason)
       || (record.exitCode !== null && record.signal)) { badStatus(); return; }
     final = record;
-    clearTimeout(deadlineTimer);
-    // The final closes the workload lifecycle, but the helper/streams must also
-    // end. Bound a helper that emits a final and then fails to close its handles.
-    if (!stopping) {
-      termTimer = setTimeout(() => signalHelper('SIGTERM'), HELPER_TERM_MS);
-      killTimer = setTimeout(() => signalHelper('SIGKILL'), HELPER_KILL_MS);
-      finishTimer = setTimeout(() => { signalHelper('SIGKILL'); finish(true); }, FORCE_FINISH_MS);
-    }
+    const reason = final.reason && !(lifetime.cancelled && EXPECTED_STOP_REASONS.has(final.reason))
+      ? final.reason : undefined;
+    lifetime.endedWith(final.exitCode, final.signal, reason);
+    // Ownership is qualified only after all helper records and streams close;
+    // later malformed/duplicate metadata must still invalidate this evidence.
   };
 
-  const stop = () => {
-    if (finished || final || cancelled || failure) return;
-    cancelled = true;
-    beginStop();
-  };
-  const onAbort = () => stop();
   const handle = {
     id,
     get pid() { return ready?.pid ?? null; },
-    completion,
+    completion: lifetime.completion,
     send(data) {
-      if (inputEnded || stopping || final || finished) return false;
+      if (inputEnded || lifetime.stopping || final || lifetime.finished) return false;
       let payload;
       if (typeof data === 'string') {
         if (Buffer.byteLength(data) > DATA_LIMIT) return false;
@@ -271,7 +198,7 @@ export function startTerminalCommand({ id, command, args = [], cwd, env,
       return writeFrame(0, payload);
     },
     endInput() {
-      if (inputEnded || stopping || final || finished) return false;
+      if (inputEnded || lifetime.stopping || final || lifetime.finished) return false;
       const accepted = writeFrame(2);
       if (accepted) inputEnded = true;
       return accepted;
@@ -284,13 +211,11 @@ export function startTerminalCommand({ id, command, args = [], cwd, env,
       payload.writeUInt16BE(nextRows, 2);
       return writeFrame(1, payload);
     },
-    stop,
+    stop: () => lifetime.cancel(),
   };
 
   if (signal?.aborted) {
-    cancelled = true;
-    closed = true;
-    finish();
+    lifetime.notStarted(undefined, true);
     return handle;
   }
   try {
@@ -302,10 +227,7 @@ export function startTerminalCommand({ id, command, args = [], cwd, env,
       stdio: windows ? ['pipe', 'pipe', 'pipe'] : ['pipe', 'pipe', 'pipe', 'pipe'],
     });
   } catch {
-    spawnFailed = true;
-    failure = 'spawn_failed';
-    closed = true;
-    finish();
+    lifetime.notStarted('spawn_failed');
     return handle;
   }
   child.once('spawn', () => { helperSpawned = true; });
@@ -319,20 +241,20 @@ export function startTerminalCommand({ id, command, args = [], cwd, env,
   if (!windows) child.stderr.on('error', () => fail('helper_diagnostic_failed'));
   metadata.on('error', badStatus);
   child.stdout.on('data', chunk => {
-    if (finished || failure || cancelled) return;
+    if (lifetime.finished || lifetime.failure || lifetime.cancelled) return;
     outputBytes += chunk.length;
     if (outputBytes > OUTPUT_LIMIT) { fail('output_limit'); return; }
     // Decode bounded pieces, without collecting the native transcript in memory.
     for (let start = 0; start < chunk.length; start += 16_384) {
       outputText(outputDecoder.write(chunk.subarray(start, start + 16_384)));
-      if (failure || cancelled || finished) break;
+      if (lifetime.failure || lifetime.cancelled || lifetime.finished) break;
     }
   });
   child.stdout.once('end', () => {
-    if (!finished && !failure && !cancelled) outputText(outputDecoder.end());
+    if (!lifetime.finished && !lifetime.failure && !lifetime.cancelled) outputText(outputDecoder.end());
   });
   if (!windows) child.stderr.on('data', chunk => {
-    if (finished) return;
+    if (lifetime.finished) return;
     diagnosticBytes += chunk.length;
     if (diagnosticBytes > DIAGNOSTIC_LIMIT) { fail('helper_diagnostic_limit'); return; }
     if (!diagnosticAnnounced && chunk.length) {
@@ -341,7 +263,7 @@ export function startTerminalCommand({ id, command, args = [], cwd, env,
     }
   });
   metadata.on('data', chunk => {
-    if (finished || protocolInvalid) return;
+    if (lifetime.finished || protocolInvalid) return;
     statusBytes += chunk.length;
     if (statusBytes > (windows && transport === 'pipe' ? OUTPUT_LIMIT * 2 + STATUS_LIMIT : STATUS_LIMIT)) { badStatus(); return; }
     statusBuffer = Buffer.concat([statusBuffer, chunk]);
@@ -351,7 +273,7 @@ export function startTerminalCommand({ id, command, args = [], cwd, env,
       const line = statusBuffer.subarray(0, newline);
       statusBuffer = statusBuffer.subarray(newline + 1);
       statusLine(line);
-      if (protocolInvalid || finished) return;
+      if (protocolInvalid || lifetime.finished) return;
     }
     if (statusBuffer.length > STATUS_LINE_LIMIT) badStatus();
   });
@@ -359,21 +281,22 @@ export function startTerminalCommand({ id, command, args = [], cwd, env,
     if (windows && transport === 'pipe') outputText(stderrDecoder.end(), 'stderr');
     if (statusBuffer.length || !final) badStatus();
   });
-  child.once('exit', (code, name) => {
+  child.once('exit', () => {
     helperExited = true;
-    helperExitCode = code;
-    helperExitSignal = name;
-    // fd3 data may still be draining; decide validity only after stream close.
-    if (!stopping && !final) beginStop();
+    // Metadata may still be draining; qualify it only after stream closure.
+    if (!final) lifetime.drain();
   });
   child.once('close', (code, name) => {
-    closed = true;
-    helperExitCode = code;
-    helperExitSignal = name;
-    finish();
+    if (spawnFailed && !helperSpawned) {
+      lifetime.notStarted('spawn_failed');
+      return;
+    }
+    if (!lifetime.cancelled && (code !== 0 || name)) fail('helper_failed');
+    if (!final) lifetime.endedWith(null);
+    lifetime.ownership(Boolean(ready && final && !protocolInvalid && final.cleanup === 'confirmed'
+      && final.pid === ready.pid && final.sessionId === ready.sessionId));
+    lifetime.closed();
   });
-  deadlineTimer = setTimeout(() => fail('timeout'), timeoutMs);
-  signal?.addEventListener('abort', onAbort, { once: true });
-  if (signal?.aborted) onAbort();
+  lifetime.arm();
   return handle;
 }
