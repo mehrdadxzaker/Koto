@@ -525,8 +525,16 @@ static bool enqueue_ready(struct helper *helper)
 static void read_setup(struct helper *helper)
 {
     if (helper->setup < 0) return;
-    ssize_t bytes = read(helper->setup, helper->setup_bytes + helper->setup_length,
-        sizeof(helper->setup_bytes) - helper->setup_length);
+    size_t length = helper->setup_length;
+    if (length >= sizeof(helper->setup_bytes)) {
+        helper->protocol_failed = true;
+        stop(helper, "child_setup_failed");
+        (void)close(helper->setup);
+        helper->setup = -1;
+        return;
+    }
+    ssize_t bytes = read(helper->setup, helper->setup_bytes + length,
+        sizeof(helper->setup_bytes) - length);
     if (bytes > 0) {
         helper->setup_length += (size_t)bytes;
         if (helper->setup_length == sizeof(helper->setup_bytes)) {
@@ -635,10 +643,17 @@ static void parse_control(struct helper *helper)
 
 static void read_control(struct helper *helper)
 {
+    if (helper->control_length > sizeof(helper->control)) {
+        helper->control_eof = true;
+        helper->protocol_failed = true;
+        stop(helper, "invalid_control");
+        return;
+    }
     parse_control(helper);
-    size_t room = sizeof(helper->control) - helper->control_length;
-    if (room == 0) return;
-    ssize_t bytes = read(STDIN_FILENO, helper->control + helper->control_length, room);
+    size_t length = helper->control_length;
+    if (length >= sizeof(helper->control)) return;
+    size_t room = sizeof(helper->control) - length;
+    ssize_t bytes = read(STDIN_FILENO, helper->control + length, room);
     if (bytes > 0) {
         helper->control_length += (size_t)bytes;
         parse_control(helper);

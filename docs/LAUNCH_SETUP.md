@@ -4,6 +4,8 @@
 into the existing project-session format. It does not invent subtasks, choose
 a provider, start a model or infer approval. The CLI and future interfaces use
 the same `buildProjectPlan()` and `preflightProjectPlan()` core APIs.
+For guided setup without a JSON file, run `koto` and follow
+[guided sessions](GUIDED_SESSIONS.md).
 
 Save a task specification outside the project. For example, this assigns one
 real Codex client an explicit contribution to Koto:
@@ -27,8 +29,10 @@ real Codex client an explicit contribution to Koto:
 ```
 
 The model must be explicitly selected and available to the configured account.
-Native presets default to `transport: "pty"`; the currently implemented PTY
-backend requires macOS and the explicitly built [terminal helper](MAC_TERMINALS.md).
+Native presets default to `transport: "pty"`; build the helper for the current
+macOS, Linux or Windows host explicitly with `koto terminal build`.
+Windows also needs the helper for pipe agents and repository preflight.
+See [installation prerequisites](INSTALLATION.md#build-the-host-helper).
 Set `transport: "pipe"` for a noninteractive command. Codex then uses `exec
 --json`; OpenCode uses `run --format json`. Pipe mode cannot answer a native
 terminal prompt.
@@ -56,7 +60,10 @@ not read, copy or change credentials. Its sandbox defaults to `workspace-write`;
 user configuration but retains native authentication and rules. Interactive
 mode keeps native configuration, plugins, tools and permission enforcement.
 The command options were inspected using Codex CLI 0.163.0 help; this does not
-qualify model access or the interactive journey.
+qualify model access or the interactive journey. The versioned profile metadata
+also declares Codex's structured lifecycle protocol for pipe mode. Its captured
+native ID can be continued explicitly after confirmed cleanup; terminal mode
+does not infer such an ID from screen output.
 
 For the OpenCode local preset, choose the exact configured `provider/model`
 and declare its existing configuration and loopback runtime:
@@ -85,8 +92,10 @@ environment overrides are refused. Each native client's own configuration may
 merge additional project or organization settings, so the check explicitly
 leaves effective native configuration and local-only inference **unverified**.
 Inspect those settings in the installed OpenCode version before launch.
-No OpenCode executable or real OpenCode flow was available in this workspace;
-its preset remains unverified against an installed client.
+OpenCode's argv and JSON event envelope follow the referenced upstream client
+contract in [native sessions](NATIVE_SESSIONS.md). That source contract does not
+establish model access or successful native interaction on a particular host;
+see [current evidence](CORE_STATUS.md) and the [acceptance run](USER_ACCEPTANCE.md).
 
 The builder adds no model fallback, installs no runtime, and makes no inference
 request. A configured loopback listener is a prerequisite, not proof that the
@@ -108,13 +117,15 @@ The check reports every discovered blocking prerequisite in one result:
 - Missing/mismatched declared local configuration and a loopback runtime that
   is not accepting connections.
 
-It also marks overlapping ownership, native account/model/permission readiness
-and unsupported cleanup guarantees as unverified. `ok: true` only means the
+It also marks overlapping ownership and native account/model/permission readiness
+as unverified. `ok: true` only means the
 checked prerequisites passed; it never means the native journey is qualified.
 Project preflight requires an absolute executable path or a bare command found
 on an absolute PATH entry; a former raw `./agent` command must be made absolute.
-Windows project preflight blocks launch because complete descendant cleanup
-cannot be verified. Retained pipe exits with `cleanup_unconfirmed` block integration.
+Windows preflight verifies the explicitly built helper used for Job Object
+ownership, including pipe commands. Missing or mismatched helpers block launch;
+preflight never builds one. Retained `cleanup_unconfirmed` outcomes block resume
+and integration on every platform.
 The local endpoint check opens and immediately closes one TCP connection. It
 does not send an HTTP request, authenticate, download or run a model.
 

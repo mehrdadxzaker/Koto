@@ -1,9 +1,13 @@
 import { spawn } from 'node:child_process';
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { createHash, randomUUID } from 'node:crypto';
 import { constants } from 'node:fs';
-import { access, copyFile, lstat, mkdir, mkdtemp, open, readFile, readdir, realpath, rename, rm, writeFile } from 'node:fs/promises';
+import { access, copyFile, lstat, mkdir, mkdtemp, open, readdir, realpath, rename, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, delimiter, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { resolveTerminalHelper } from './terminal-helper.js';
+import { startTerminalCommand } from './terminal-session.js';
+import { verifyWindowsPrivateDirectory } from './windows-native-helper.js';
 
 const ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
 const SHA = /^[0-9a-f]{40,64}$/;
@@ -11,6 +15,7 @@ const LIMIT = 4 * 1024 * 1024;
 const MANIFEST = 'workspaces.json';
 const RECEIPT_LIMIT = 64 * 1024;
 let executablePromise;
+const workspaceTransport = new AsyncLocalStorage();
 
 function failure(code, detail) {
   const error = new Error(detail ?? code);
@@ -29,6 +34,57 @@ function checkedId(value, label) {
 }
 
 function digest(value) { return createHash('sha256').update(value).digest('hex'); }
+
+function helperDirectory(value) {
+  if (value === undefined) return undefined;
+  if (typeof value !== 'string' || !isAbsolute(value) || !value.trim() || value.includes('\0') || Buffer.byteLength(value) > 4096) {
+    throw failure('workspace_invalid_helper_directory');
+  }
+  return resolve(value);
+}
+
+async function windowsGit(cwd, executable, args, { env, allow, input, limit }) {
+  const body = Buffer.from(input ?? '');
+  const context = workspaceTransport.getStore();
+  if (!context) throw failure('workspace_transport_missing');
+  context.helper ??= resolveTerminalHelper({ directory: context.directory });
+  const helperPath = await context.helper;
+  const stdout = [], stderr = [];
+  let bytes = 0, reason, completed = false, inputFinished = false;
+  const handle = startTerminalCommand({ id: 'workspace-git', command: executable, args, cwd,
+    env: environment(env), helperPath, transport: 'pipe', timeoutMs: 30_000,
+    onEvent(event) {
+      if (event.type !== 'output' || reason) return;
+      bytes += Buffer.byteLength(event.text);
+      if (bytes > limit) { reason = failure('workspace_git_output_limit'); handle.stop(); return; }
+      (event.stream === 'stderr' ? stderr : stdout).push(event.text);
+    } });
+  const pending = handle.completion.then(result => { completed = true; return result; });
+  // Preserve NUL-delimited Git input and respect the transport's bounded frame
+  // queue. Yield between frames so native Git can consume long path lists.
+  const feed = (async () => {
+    let offset = 0;
+    while (!completed && !reason && offset < body.length) {
+      const end = Math.min(offset + 16_384, body.length);
+      if (handle.send(body.subarray(offset, end))) offset = end;
+      await new Promise(accept => setTimeout(accept, 5));
+    }
+    while (!completed && !reason) {
+      if (handle.endInput()) { inputFinished = true; return; }
+      await new Promise(accept => setTimeout(accept, 5));
+    }
+  })();
+  const completion = await pending;
+  await feed;
+  // A process exit alone cannot establish that Git's descendants were stopped.
+  if (completion.error === 'cleanup_unconfirmed') throw failure('workspace_git_cleanup_unconfirmed');
+  if (reason) throw reason;
+  if (completion.error && completion.error !== 'exit_failed') throw failure(`workspace_git_${completion.error}`);
+  if (!inputFinished) throw failure('workspace_git_input_failed');
+  const result = { code: completion.exitCode, stdout: stdout.join(''), stderr: stderr.join('') };
+  if (!allow.includes(result.code)) throw failure('workspace_git_failed', result.stderr.trim() || `Git exited ${result.code}`);
+  return result;
+}
 
 function gitExecutable() {
   executablePromise ??= (async () => {
@@ -61,6 +117,7 @@ async function git(cwd, args, { hooks, env, allow = [0], input, limit = LIMIT } 
     '-c', 'commit.gpgSign=false', '-c', 'tag.gpgSign=false', '-c', 'core.quotePath=false',
     '-c', 'core.splitIndex=false', '-c', 'maintenance.auto=false', '-c', 'gc.auto=0', '-c', 'rerere.enabled=false'];
   if (hooks) config.push('-c', `core.hooksPath=${hooks}`);
+  if (process.platform === 'win32') return windowsGit(cwd, executable, [...config, ...args], { env, allow, input, limit });
   return new Promise((accept, reject) => {
     const child = spawn(executable, [...config, ...args], { cwd, shell: false,
       detached: process.platform !== 'win32', windowsHide: true, env: environment(env), stdio: ['pipe', 'pipe', 'pipe'] });
@@ -138,6 +195,13 @@ async function privateDirectory(path) {
   if (!info.isDirectory() || info.isSymbolicLink()
     || (process.platform !== 'win32' && ((info.mode & 0o022) !== 0
       || (process.getuid && info.uid !== process.getuid())))) throw failure('workspace_control_not_private');
+  if (process.platform === 'win32') {
+    try { await verifyWindowsPrivateDirectory(path); }
+    catch (error) {
+      if (error.code === 'windows_pty_build_cleanup_unconfirmed') throw error;
+      throw failure('workspace_control_not_private', 'Workspace control storage must be owned by this user with no untrusted writers. Choose a private directory under the user profile. No permissions were changed.');
+    }
+  }
 }
 
 async function disabledHooks(path) {
@@ -164,7 +228,12 @@ async function writeManifest(manifest) {
 }
 
 /** Create isolated branches/worktrees. Nothing is ever removed automatically. */
-export async function createProjectWorkspaces({ projectRoot, controlRoot, sessionId, agents } = {}) {
+export async function createProjectWorkspaces(options = {}) {
+  const directory = helperDirectory(options.nativeHelperDirectory);
+  return workspaceTransport.run({ directory }, () => createWorkspaces({ ...options, nativeHelperDirectory: directory }));
+}
+
+async function createWorkspaces({ projectRoot, controlRoot, sessionId, agents, nativeHelperDirectory } = {}) {
   checkedId(sessionId, 'sessionId');
   if (!Array.isArray(agents) || agents.length < 1 || agents.length > 16) throw failure('workspace_invalid_agents');
   const ids = agents.map(agent => checkedId(agent?.id, 'agent id'));
@@ -198,6 +267,7 @@ export async function createProjectWorkspaces({ projectRoot, controlRoot, sessio
   const entry = name => ({ path: join(workspaceRoot, name), branch: `koto/${sessionId}/${name}`, sessionRoot });
   const manifest = { schemaVersion: 1, sessionId, projectRoot: project.root, baseCommit,
     commonDir: project.commonDir, controlRoot: canonicalControl, sessionRoot, workspaceRoot,
+    ...(nativeHelperDirectory === undefined ? {} : { nativeHelperDirectory }),
     integration: entry('integration'), agents: Object.fromEntries(ids.map(id => [id, entry(`agent-${id}`)])) };
   await writeManifest(manifest);
   for (const workspace of [manifest.integration, ...Object.values(manifest.agents)]) {
@@ -210,32 +280,54 @@ export async function createProjectWorkspaces({ projectRoot, controlRoot, sessio
   return manifest;
 }
 
-async function owned(workspace) {
+async function workspaceMetadata(workspace) {
   if (!workspace || typeof workspace !== 'object') throw failure('workspace_not_owned');
   const sessionRoot = await canonical(workspace.sessionRoot);
   await privateDirectory(sessionRoot);
   const manifestPath = join(sessionRoot, MANIFEST);
-  const info = await lstat(manifestPath);
-  if (!info.isFile() || info.isSymbolicLink() || info.size > 128 * 1024) throw failure('workspace_invalid_manifest');
-  const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
-  if (manifest.schemaVersion !== 1 || manifest.sessionRoot !== sessionRoot || !SHA.test(manifest.baseCommit)
-      || !ID.test(manifest.sessionId) || manifest.sessionRoot !== join(manifest.controlRoot, manifest.sessionId)
-      || manifest.workspaceRoot !== join(`${manifest.controlRoot}-worktrees`, manifest.sessionId)) {
+  let manifest;
+  try { manifest = await readPrivateJson(manifestPath, 128 * 1024); }
+  catch { throw failure('workspace_invalid_manifest'); }
+  if (!manifest || typeof manifest !== 'object' || Array.isArray(manifest)
+      || manifest.schemaVersion !== 1 || manifest.sessionRoot !== sessionRoot
+      || typeof manifest.baseCommit !== 'string' || !SHA.test(manifest.baseCommit)
+      || typeof manifest.controlRoot !== 'string' || !isAbsolute(manifest.controlRoot)
+      || typeof manifest.sessionId !== 'string' || !ID.test(manifest.sessionId)
+      || manifest.sessionRoot !== join(manifest.controlRoot, manifest.sessionId)
+      || manifest.workspaceRoot !== join(`${manifest.controlRoot}-worktrees`, manifest.sessionId)
+      || !manifest.agents || typeof manifest.agents !== 'object' || Array.isArray(manifest.agents)
+      || !manifest.integration || typeof manifest.integration !== 'object'
+      || (manifest.nativeHelperDirectory !== undefined
+        && helperDirectory(manifest.nativeHelperDirectory) !== manifest.nativeHelperDirectory)) {
     throw failure('workspace_invalid_manifest');
   }
   const known = [manifest.integration, ...Object.values(manifest.agents)].find(entry =>
-    entry.path === workspace.path && entry.branch === workspace.branch && entry.sessionRoot === sessionRoot);
+    entry && entry.path === workspace.path && entry.branch === workspace.branch && entry.sessionRoot === sessionRoot);
   if (!known || !inside(manifest.workspaceRoot, known.path) || inside(known.path, sessionRoot)
     || await canonical(known.path) !== known.path) throw failure('workspace_not_owned');
   const hooks = join(sessionRoot, 'disabled-hooks');
   await disabledHooks(hooks);
+  return { manifest, workspace: known, hooks };
+}
+
+async function withWorkspaceTransport(workspace, operation) {
+  const { manifest } = await workspaceMetadata(workspace);
+  return workspaceTransport.run({ directory: manifest.nativeHelperDirectory, sessionRoot: manifest.sessionRoot }, operation);
+}
+
+async function owned(workspace) {
+  const context = await workspaceMetadata(workspace);
+  const { manifest, workspace: known, hooks } = context;
+  const transport = workspaceTransport.getStore();
+  if (!transport || transport.sessionRoot !== manifest.sessionRoot
+    || transport.directory !== manifest.nativeHelperDirectory) throw failure('workspace_manifest_changed');
   const repo = await repository(known.path, hooks);
   if (repo.commonDir !== manifest.commonDir) throw failure('workspace_repository_changed');
   const branch = (await git(known.path, ['symbolic-ref', '--quiet', '--short', 'HEAD'], { hooks })).stdout.trim();
   if (branch !== known.branch) throw failure('workspace_branch_changed');
   const ancestor = await git(known.path, ['merge-base', '--is-ancestor', manifest.baseCommit, 'HEAD'], { hooks, allow: [0, 1] });
   if (ancestor.code !== 0) throw failure('workspace_base_changed');
-  return { manifest, workspace: known, hooks };
+  return context;
 }
 
 async function indexPath(context) {
@@ -452,7 +544,7 @@ async function inspect(context, previousIntegration, suppliedBasis) {
  * their complete contents. This is a freshness check, not a security sandbox.
  */
 export async function inspectWorkspace({ workspace, previousIntegration } = {}) {
-  return inspect(await owned(workspace), previousIntegration);
+  return withWorkspaceTransport(workspace, async () => inspect(await owned(workspace), previousIntegration));
 }
 
 async function safeContribution(context, review) {
@@ -483,7 +575,11 @@ async function safeContribution(context, review) {
  * Conflicts remain visible in the integration worktree; no automatic abort,
  * overwrite, branch deletion or mutation of the original project occurs.
  */
-export async function integrateWorkspace({ workspace, integration, baseCommit, expectedReviewToken, previousIntegration } = {}) {
+export async function integrateWorkspace(options = {}) {
+  return withWorkspaceTransport(options.workspace, () => integrateOwnedWorkspace(options));
+}
+
+async function integrateOwnedWorkspace({ workspace, integration, baseCommit, expectedReviewToken, previousIntegration } = {}) {
   if (typeof expectedReviewToken !== 'string' || !/^[a-f0-9]{64}$/.test(expectedReviewToken)) throw failure('workspace_review_required');
   const source = await owned(workspace), target = await owned(integration);
   if (source.manifest.sessionRoot !== target.manifest.sessionRoot || baseCommit !== source.manifest.baseCommit
@@ -571,7 +667,11 @@ export async function integrateWorkspace({ workspace, integration, baseCommit, e
  * the exact clean target commit the operator has reviewed as the resolution.
  * No Git commit, checkout, merge, reset or automatic conflict decision occurs.
  */
-export async function finalizeWorkspaceIntegration({ workspace, integration, conflictIntegration,
+export async function finalizeWorkspaceIntegration(options = {}) {
+  return withWorkspaceTransport(options.workspace, () => finalizeOwnedWorkspaceIntegration(options));
+}
+
+async function finalizeOwnedWorkspaceIntegration({ workspace, integration, conflictIntegration,
   approveIntegrationCommit } = {}) {
   if (typeof approveIntegrationCommit !== 'string' || !SHA.test(approveIntegrationCommit)) {
     throw failure('workspace_resolution_commit_required');

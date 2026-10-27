@@ -30,6 +30,8 @@ or **Return to the menu**. The build is explicit and downloads no compiler.
 **Set up terminal support** in the main menu performs the same operation.
 The default private directory is `~/.koto/native`; a custom directory must be
 absolute and outside Git worktrees.
+On Windows, this setup comes before repository inspection and applies to pipe
+agents too, because those processes also use the helper's Job Object ownership.
 
 Repository, executable, transport and declared runtime checks run through the
 shared core before creating agent workspaces. Review the complete launch

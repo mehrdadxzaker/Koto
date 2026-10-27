@@ -179,6 +179,14 @@ function paths(directory, sourceSha256) {
   return { binary: path.join(directory, `${name}.exe`), receipt: path.join(directory, `${name}.json`), lock: path.join(directory, `${name}.lock`) };
 }
 
+/** Read-only ownership/DACL check for private control storage outside worktrees.
+ * Internal orchestration layers reuse the same policy as native-helper builds.
+ */
+export async function verifyWindowsPrivateDirectory(directory) {
+  requireWindows();
+  return privateDirectory(directory, false);
+}
+
 function executableImage(bytes) {
   if (bytes.length < 256 || bytes.readUInt16LE(0) !== 0x5a4d) return false;
   const offset = bytes.readUInt32LE(0x3c);

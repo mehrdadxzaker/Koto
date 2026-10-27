@@ -93,9 +93,14 @@ async function terminalSetup(ui, write, { required = false } = {}) {
 }
 
 async function configureSession(ui, write) {
+  let nativeHelperDirectory;
+  if (process.platform === 'win32') {
+    write('Windows project sessions use the native helper for owned processes, including Git inspection and structured pipe agents. Set it up before selecting the project.\n');
+    nativeHelperDirectory = await terminalSetup(ui, write, { required: true });
+  }
   const project = await ui.ask('Project directory', process.cwd(), true);
   write('Checking the existing Git project; no agent is running.\n');
-  const inspected = await inspectLaunchProject(project);
+  const inspected = await inspectLaunchProject(project, { nativeHelperDirectory });
   write(`Project: ${visible(inspected.projectRoot)}\nBase: ${inspected.baseCommit.slice(0, 12)}${inspected.branch ? ` (${visible(inspected.branch)})` : ''}\n`);
   const goal = await ui.ask('What do you want to build?', undefined, true);
   const count = await integer(ui, write, 'Number of agents', 2, 1, 8);
@@ -142,8 +147,9 @@ async function configureSession(ui, write) {
       timeoutMs: minutes * 60_000 }));
     write(`${id} configured: ${visible(model)} via ${account === 'chatgpt' ? 'ChatGPT login' : 'native host configuration'}; ${transport === 'pty' ? 'interactive terminal' : 'structured pipe'}.\n`);
   }
-  const nativeHelperDirectory = agents.some(agent => agent.transport === 'pty')
-    ? await terminalSetup(ui, write, { required: true }) : undefined;
+  if (!nativeHelperDirectory && agents.some(agent => agent.transport === 'pty')) {
+    nativeHelperDirectory = await terminalSetup(ui, write, { required: true });
+  }
   return { schemaVersion: 1, project: inspected.projectRoot, goal, maxConcurrency: count,
     timeoutMs: minutes * 60_000, agents,
     ...(nativeHelperDirectory ? { nativeHelperDirectory } : {}),
@@ -163,12 +169,15 @@ async function reviewSavedSession(ui, write) {
   const directory = await ui.ask('Saved session directory', undefined, true);
   const id = await ui.ask('Agent id', undefined, true);
   const review = await inspectProjectSession(directory, id);
-  write(`\n${visible(review.diff)}\n`);
+  write(`\n${visible(review.integrationDiff ?? review.diff)}\n`);
+  if (review.contributionBaseCommit !== review.baseCommit) {
+    write(`Showing changes since the last integrated snapshot ${visible(review.contributionBaseCommit)}.\n`);
+  }
   if (review.outsideOwnership.length) write(`Outside declared ownership: ${review.outsideOwnership.map(visible).join(', ')}\n`);
   const answer = await ui.ask(`Type integrate to apply this exact reviewed contribution from ${id}; Enter returns`);
   if (answer !== 'integrate') return;
   const result = await integrateProjectSession(directory, id, { approve: review.reviewToken });
-  write(`${id}: ${result.status}\n`);
+  write(`${id}: ${result.status}. Integration workspace: ${visible(result.integration.path)}\n`);
   if (result.conflicts?.length) write(`Conflicts: ${result.conflicts.map(visible).join(', ')}\n`);
 }
 

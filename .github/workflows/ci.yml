@@ -33,8 +33,7 @@ jobs:
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm run check
       - name: Compile platform terminal helper from source
-        shell: bash
-        run: node bin/koto.js terminal build --directory "$RUNNER_TEMP/koto-native"
+        run: node bin/koto.js terminal build
 
   required:
     name: CI / required
