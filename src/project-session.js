@@ -6,6 +6,7 @@ import { runWorkflow } from './core.js';
 import { startCommand } from './command-session.js';
 import { startDarwinPtyCommand } from './darwin-pty-session.js';
 import { resolveDarwinPtyHelper } from './native-helper.js';
+import { createNativeAgentSession } from './native-agent.js';
 import { createProjectWorkspaces, inspectWorkspace, integrateWorkspace } from './project-workspaces.js';
 
 const ID = /^[A-Za-z][A-Za-z0-9_-]{0,63}$/;
@@ -41,6 +42,12 @@ export function validateProjectPlan(source) {
         || agent.args.some(arg => typeof arg !== 'string' || arg.includes('\0') || Buffer.byteLength(arg) > 16_384)
         || !Array.isArray(agent.owns) || !agent.owns.length || agent.owns.length > 64) fail('project_invalid_agent');
     ids.add(agent.id);
+    const dependsOn = agent.dependsOn ?? [];
+    if (!Array.isArray(dependsOn) || dependsOn.length > 8 || dependsOn.some(id => typeof id !== 'string' || !ID.test(id))) fail('project_invalid_dependencies');
+    const nativeKind = agent.nativeKind;
+    if (nativeKind !== undefined && !['codex', 'claude', 'local'].includes(nativeKind)) fail('project_invalid_native_kind');
+    if (nativeKind && agent.transport === 'pty') fail('project_native_protocol_requires_pipe');
+    for (const key of ['model', 'effort', 'account', 'localEndpoint']) if (agent[key] !== undefined && !string(agent[key], 4096)) fail('project_invalid_native_setting');
     const owns = agent.owns.map(item => {
       if (!string(item, 4096) || item.includes('\\') || item.startsWith('/')
           || item.split('/').some(part => part === '..' || part === '.git')
@@ -65,8 +72,19 @@ export function validateProjectPlan(source) {
     const unsetEnv = agent.unsetEnv ?? [];
     if (!Array.isArray(unsetEnv) || unsetEnv.length > 32 || unsetEnv.some(key => typeof key !== 'string' || !/^[A-Za-z_][A-Za-z0-9_]{0,127}$/.test(key))) fail('project_invalid_environment');
     return { id: agent.id, command: agent.command, args: [...agent.args], task: agent.task,
-      owns, transport, ...(terminal ? { terminal } : {}), inputMode, unsetEnv: [...unsetEnv], timeoutMs: duration(agent.timeoutMs, timeoutMs), ...(agent.input === undefined ? {} : { input: agent.input }) };
+      owns, dependsOn: [...new Set(dependsOn)], transport, ...(terminal ? { terminal } : {}), inputMode, unsetEnv: [...unsetEnv], timeoutMs: duration(agent.timeoutMs, timeoutMs), ...(agent.input === undefined ? {} : { input: agent.input }),
+      ...(nativeKind ? { nativeKind } : {}), ...Object.fromEntries(['model', 'effort', 'account', 'localEndpoint'].filter(key => agent[key] !== undefined).map(key => [key, agent[key]])) };
   });
+  for (const agent of agents) if (agent.dependsOn.some(id => !ids.has(id) || id === agent.id)) fail('project_invalid_dependencies');
+  const visited = new Set(), visiting = new Set();
+  const visit = agent => {
+    if (visiting.has(agent.id)) fail('project_dependency_cycle');
+    if (visited.has(agent.id)) return;
+    visiting.add(agent.id);
+    for (const id of agent.dependsOn) visit(agents.find(candidate => candidate.id === id));
+    visiting.delete(agent.id); visited.add(agent.id);
+  };
+  agents.forEach(visit);
   const maxConcurrency = source.maxConcurrency ?? agents.length;
   if (!Number.isSafeInteger(maxConcurrency) || maxConcurrency < 1 || maxConcurrency > agents.length) fail('project_invalid_concurrency');
   const plan = { schemaVersion: 1, project: source.project, goal: source.goal, agents, timeoutMs, maxConcurrency,
@@ -149,7 +167,7 @@ function expand(template, values) {
 }
 
 /** Prepare one owned branch/worktree per task. run() starts the already approved executables once. */
-export async function createProjectSession(source, { onEvent, signal } = {}) {
+export async function createProjectSession(source, { onEvent, signal, onApproval } = {}) {
   const plan = validateProjectPlan(source);
   if ((onEvent !== undefined && typeof onEvent !== 'function') || (signal !== undefined && !(signal instanceof AbortSignal))) fail('project_invalid_observer_or_signal');
   if (signal?.aborted) fail('project_cancelled');
@@ -268,7 +286,7 @@ export async function createProjectSession(source, { onEvent, signal } = {}) {
         const record = agentRecord(state, agent.id);
         const commandSignal = AbortSignal.any([context.signal, localStops.get(agent.id).signal]);
         if (commandSignal.aborted) { record.status = 'cancelled'; throw new Error('project_cancelled'); }
-        const prompt = `${plan.goal}\n\nYour task: ${agent.task}\nDeclared file ownership: ${agent.owns.join(', ')}\nWork in this task's Git worktree. Do not integrate another task or change the original checkout. Do not add or run automated test suites. Report your changes and limitations.`;
+        const prompt = `${plan.goal}\n\nYour task: ${agent.task}\nDeclared file ownership: ${agent.owns.join(', ')}\nWork in this task's Git worktree. Do not integrate another task or change the original checkout. Do not add or run automated test suites. Report your changes and limitations.${agent.dependsOn.length ? `\n\nSuccessful direct dependency results (reference their worktrees read-only; integration remains operator-controlled):\n${JSON.stringify(context.inputs).slice(0, 24_000)}` : ''}`;
         const values = { prompt, workspace: record.workspace.path, project: state.projectRoot, goal: plan.goal, agent: agent.id };
         const args = agent.args.map(arg => expand(arg, values));
         let tail = '';
@@ -280,23 +298,48 @@ export async function createProjectSession(source, { onEvent, signal } = {}) {
           const input = agent.input === undefined ? undefined : expand(agent.input, values);
           if (args.some(arg => Buffer.byteLength(arg) > 16_384) || (input !== undefined && Buffer.byteLength(input) > 65_536)) fail('project_expanded_input_too_large');
           const environment = Object.fromEntries(Object.entries(process.env).filter(([key]) => !/^GIT_/i.test(key) && !agent.unsetEnv.includes(key)));
-          const start = agent.transport === 'pty' ? startDarwinPtyCommand : startCommand;
-          const handle = start({ id: agent.id, command: agent.command, args, cwd: record.workspace.path, env: environment,
+          const receive = event => {
+            if (event.type === 'assistant_message' && typeof event.text === 'string') {
+              outputTails.set(agent.id, Buffer.from(event.text).subarray(-65_536));
+              tail = api.outputTail(agent.id);
+            }
+            if (event.type === 'session_started' && typeof event.sessionId === 'string') record.nativeSessionId = event.sessionId;
+            if (event.type === 'started') record.pid = event.pid;
+            if (event.type === 'output') {
+              const previous = outputTails.get(agent.id);
+              outputTails.set(agent.id, Buffer.concat([previous, Buffer.from(event.text)]).subarray(-65_536));
+              tail = api.outputTail(agent.id);
+            }
+            if (event.type === 'pty_ready') {
+              record.pid = event.pid;
+              record.terminalSessionId = event.sessionId;
+              persist(state);
+            }
+            emit({ ...event, agentId: agent.id, ...(event.type === 'pty_ready' ? { terminalSessionId: event.sessionId } : {}),
+              ...(event.type === 'session_started' ? { nativeSessionId: event.sessionId } : {}) });
+          };
+          let handle;
+          if (agent.nativeKind) {
+            const native = agent.nativeKind === 'local'
+              ? (await import('./local-agent.js')).createLocalAgentSession({ id: agent.id, endpoint: agent.localEndpoint,
+                model: agent.model, cwd: record.workspace.path, mode: 'coding', timeoutMs: agent.timeoutMs,
+                onEvent: receive, onApproval })
+              : createNativeAgentSession({ id: agent.id, kind: agent.nativeKind, command: agent.command,
+                model: agent.model, effort: agent.effort, account: agent.account,
+                cwd: record.workspace.path, mode: 'coding', timeoutMs: agent.timeoutMs, onEvent: receive });
+            const completion = native.send(prompt, { signal: commandSignal }).then(result => {
+              if (typeof result.text === 'string') tail = result.text.slice(-65_536);
+              if (result.sessionId) record.nativeSessionId = result.sessionId;
+              return { ...result, exitCode: result.exitCode ?? null };
+            });
+            handle = { completion, stop: () => native.stop(), send: () => false, endInput: () => true,
+              get pid() { return native.pid; } };
+          } else {
+            const start = agent.transport === 'pty' ? startDarwinPtyCommand : startCommand;
+            handle = start({ id: agent.id, command: agent.command, args, cwd: record.workspace.path, env: environment,
             ...(agent.transport === 'pty' ? { helperPath: ptyHelper, columns: record.terminal.columns, rows: record.terminal.rows } : {}),
-            timeoutMs: agent.timeoutMs, signal: commandSignal, onEvent(event) {
-              if (event.type === 'output') {
-                const previous = outputTails.get(agent.id);
-                outputTails.set(agent.id, Buffer.concat([previous, Buffer.from(event.text)]).subarray(-65_536));
-                tail = api.outputTail(agent.id);
-              }
-              if (event.type === 'started') record.pid = event.pid;
-              if (event.type === 'pty_ready') {
-                record.pid = event.pid;
-                record.terminalSessionId = event.sessionId;
-                persist(state);
-              }
-              emit(event.type === 'pty_ready' ? { ...event, terminalSessionId: event.sessionId } : event);
-            } });
+            timeoutMs: agent.timeoutMs, signal: commandSignal, onEvent: receive });
+          }
           handles.set(agent.id, handle);
           if (input !== undefined && !handle.send(input)) { handle.stop(); fail('project_initial_input_rejected'); }
           if (agent.inputMode === 'closed') handle.endInput();
@@ -307,7 +350,7 @@ export async function createProjectSession(source, { onEvent, signal } = {}) {
           persist(state);
           emit({ type: 'agent_status', agentId: agent.id, ...result });
           if (result.status !== 'succeeded') throw new Error('project_command_did_not_succeed');
-          return { output: JSON.stringify({ agentId: agent.id, ...result, outputTail: tail }) };
+          return { output: JSON.stringify({ agentId: agent.id, workspace: record.workspace.path, ...result, outputTail: tail }) };
         } catch (error) {
           if (record.status === 'running') {
             handles.get(agent.id)?.stop();
@@ -322,13 +365,17 @@ export async function createProjectSession(source, { onEvent, signal } = {}) {
       }]));
       try {
         const report = await runWorkflow({ schemaVersion: 1, goal: plan.goal, agents,
-          tasks: plan.agents.map(agent => ({ id: agent.id, agent: agent.id, prompt: agent.task })),
+          tasks: plan.agents.map(agent => ({ id: agent.id, agent: agent.id, prompt: agent.task, dependsOn: agent.dependsOn })),
           maxConcurrency: plan.maxConcurrency, timeoutMs: plan.timeoutMs },
         { adapters, signal: controller.signal, onEvent: emit });
         // The general core's JS-adapter cancellation grace can end before OS cleanup.
         // A project session retains ownership and waits for every command's bounded cleanup.
         await settleCommands();
-        for (const record of state.agents) if (record.status === 'pending') record.status = 'cancelled';
+        for (const record of state.agents) if (record.status === 'pending') {
+          const scheduled = report.tasks.find(task => task.id === record.id);
+          record.status = scheduled?.status === 'blocked' ? 'blocked' : 'cancelled';
+          emit({ type: 'agent_status', agentId: record.id, status: record.status });
+        }
         state.report = { status: storageFailure ? 'failed' : report.status, ...(storageFailure ? { error: 'project_storage_failed' } : {}) };
         return { ...state.report, sessionRoot: state.sessionRoot, integration: state.integration,
           agents: structuredClone(state.agents) };

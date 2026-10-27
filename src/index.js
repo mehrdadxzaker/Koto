@@ -3,3 +3,10 @@ export { createProjectSession, validateProjectPlan, inspectProjectSession, integ
 export { buildDarwinPtyHelper, resolveDarwinPtyHelper } from './native-helper.js';
 export { createAgentProfile, describeAgentProfile, AGENT_PROFILE_DEFAULTS } from './agent-profiles.js';
 export { inspectLaunchProject, resolveAgentExecutable } from './launch-preflight.js';
+export { prepareProject } from './project-setup.js';
+export { createNativeAgentSession } from './native-agent.js';
+export { createLocalAgentSession } from './local-agent.js';
+export { createCoordinator } from './coordinator.js';
+export { loadPreferences, savePreferences, defaultStateDirectory } from './preferences.js';
+export { discoverLocalModels, checkLocalEndpoint, pullOllamaModel, startLlamaServer, downloadGguf } from './local-models.js';
+export { buildLlamaRuntime } from './runtime-install.js';

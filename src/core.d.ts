@@ -152,6 +152,12 @@ export interface ProjectAgentPlan {
   readonly task: string;
   /** Relative paths or directories checked again before integration; not a sandbox. */
   readonly owns: readonly string[];
+  readonly dependsOn?: readonly string[] | undefined;
+  readonly nativeKind?: 'codex' | 'claude' | 'local' | undefined;
+  readonly model?: string | undefined;
+  readonly effort?: string | undefined;
+  readonly account?: string | undefined;
+  readonly localEndpoint?: string | undefined;
   readonly timeoutMs?: number | undefined;
   /** pipe remains the default. pty currently requires an explicit local Mac helper build. */
   readonly transport?: 'pipe' | 'pty' | undefined;
@@ -184,6 +190,10 @@ export interface CommandOutcome {
   exitCode: number | null;
   signal?: string | undefined;
   error?: string | undefined;
+  errorMessage?: string | undefined;
+  text?: string | undefined;
+  sessionId?: string | undefined;
+  usage?: Record<string, unknown> | undefined;
 }
 
 export interface ProjectIntegration {
@@ -199,12 +209,13 @@ export interface ProjectIntegration {
 
 export interface ProjectAgentState extends ProjectAgentPlan {
   workspace: ProjectWorkspace;
-  status: 'pending' | 'running' | CommandOutcome['status'];
+  status: 'pending' | 'running' | 'blocked' | CommandOutcome['status'];
   result?: CommandOutcome | undefined;
   commandOutcome?: CommandOutcome | undefined;
   setupError?: string | undefined;
   pid?: number | undefined;
   terminalSessionId?: number | undefined;
+  nativeSessionId?: string | undefined;
   startedAt?: string | undefined;
   finishedAt?: string | undefined;
   integration?: ProjectIntegration | undefined;
@@ -265,6 +276,12 @@ export type ProjectEvent = Readonly<{
   rows?: number | undefined;
   transport?: 'pipe' | 'pty' | undefined;
   platform?: string | undefined;
+  nativeSessionId?: string | undefined;
+  activity?: string | undefined;
+  description?: string | undefined;
+  model?: string | undefined;
+  command?: string | undefined;
+  tool?: string | undefined;
 }>;
 
 export interface ProjectReport {
@@ -292,6 +309,7 @@ export function validateProjectPlan(input: unknown): ProjectPlan;
 export function createProjectSession(source: ProjectPlan, options?: {
   onEvent?: ((event: ProjectEvent) => unknown) | undefined;
   signal?: AbortSignal | undefined;
+  onApproval?: ((request: Record<string, unknown>) => Promise<boolean>) | undefined;
 }): Promise<ProjectSession>;
 export function inspectProjectSession(sessionRoot: string, agentId: string): Promise<ProjectInspection>;
 export function integrateProjectSession(sessionRoot: string, agentId: string, options: { approve: string }): Promise<ProjectIntegration>;
@@ -334,3 +352,90 @@ export function resolveAgentExecutable(command: string): Promise<string>;
 export function inspectLaunchProject(projectPath?: string | undefined): Promise<{
   projectRoot: string; baseCommit: string; branch?: string | undefined;
 }>;
+
+export interface AgentSessionResult {
+  status: 'succeeded' | 'failed' | 'cancelled';
+  text: string;
+  sessionId?: string | undefined;
+  exitCode?: number | null | undefined;
+  signal?: string | undefined;
+  error?: string | undefined;
+  errorMessage?: string | undefined;
+  usage?: Record<string, unknown> | undefined;
+}
+export interface AgentSession {
+  readonly sessionId?: string | undefined;
+  readonly pid?: number | null | undefined;
+  send(text: string, options?: { signal?: AbortSignal | undefined }): Promise<AgentSessionResult>;
+  stop(): void;
+  close?(): Promise<CommandOutcome>;
+}
+export interface NativeAgentOptions {
+  kind: 'codex' | 'claude';
+  id?: string | undefined;
+  command: string;
+  cwd: string;
+  model?: string | undefined;
+  effort?: string | undefined;
+  account?: 'host' | 'chatgpt' | 'subscription' | undefined;
+  mode?: 'conversation' | 'coding' | undefined;
+  timeoutMs?: number | undefined;
+  sessionId?: string | undefined;
+  onEvent?: ((event: Readonly<Record<string, unknown>>) => unknown) | undefined;
+}
+export function createNativeAgentSession(options: NativeAgentOptions): AgentSession;
+export function createLocalAgentSession(options: {
+  id?: string | undefined; endpoint: string; model: string; cwd: string;
+  mode?: 'conversation' | 'coding' | undefined; timeoutMs?: number | undefined;
+  maxTurns?: number | undefined; maxOutputTokens?: number | undefined;
+  onEvent?: ((event: Readonly<Record<string, unknown>>) => unknown) | undefined;
+  onApproval?: ((request: Readonly<Record<string, unknown>>) => boolean | Promise<boolean>) | undefined;
+}): AgentSession;
+export function prepareProject(options: {
+  directory: string; create?: boolean | undefined; approveCreate?: boolean | undefined;
+}): Promise<{ projectRoot: string; baseCommit: string; branch?: string | undefined; created: boolean }>;
+export interface BuildProposal {
+  readonly schemaVersion: 1; readonly kind: 'koto-build-proposal'; readonly id: string;
+  readonly summary: string; readonly fingerprint: string; readonly plan: ProjectPlan;
+  readonly project: { readonly projectRoot: string; readonly baseCommit: string; readonly branch?: string | undefined };
+  readonly tasks: readonly { readonly id: string; readonly worker: string; readonly task: string;
+    readonly owns: readonly string[]; readonly dependsOn: readonly string[]; readonly label: string; readonly model?: string | undefined }[];
+  readonly warnings: readonly string[];
+}
+export function createCoordinator(options: { session: AgentSession }): {
+  readonly sessionId?: string | undefined; stop(): void;
+  routeMessage(text: string, options?: { signal?: AbortSignal | undefined; context?: string | undefined }): Promise<{
+    action: 'chat' | 'build'; message: string; goal?: string | undefined; sessionId?: string | undefined;
+  }>;
+  plan(goal: string, options: { project: string; workers: readonly (Partial<ProjectAgentPlan> & {
+    id: string; command: string; args: readonly string[]; label?: string | undefined })[];
+    signal?: AbortSignal | undefined; timeoutMs?: number | undefined; maxConcurrency?: number | undefined;
+    controlRoot?: string | undefined; nativeHelperDirectory?: string | undefined }): Promise<BuildProposal>;
+  prepare(proposal: BuildProposal, options?: { onEvent?: ((event: ProjectEvent) => unknown) | undefined; signal?: AbortSignal | undefined }): Promise<ProjectSession>;
+  execute(proposal: BuildProposal, options: { approved: true; onEvent?: ((event: ProjectEvent) => unknown) | undefined; signal?: AbortSignal | undefined }): Promise<ProjectReport>;
+};
+export const defaultStateDirectory: string;
+export function loadPreferences(options?: { directory?: string | undefined }): Promise<Record<string, unknown>>;
+export function savePreferences(preferences: Record<string, unknown>, options?: { directory?: string | undefined }): Promise<void>;
+export interface LocalModelMetadata { id: string; bytes?: number | undefined; digest?: string | undefined; }
+export interface LocalEndpointMetadata { kind: 'ollama' | 'llama'; endpoint: string; apiBaseUrl: string; status: 'ready'; models: LocalModelMetadata[]; }
+export function checkLocalEndpoint(options?: { kind?: 'ollama' | 'llama' | undefined; endpoint?: string | undefined; signal?: AbortSignal | undefined }): Promise<LocalEndpointMetadata>;
+export function discoverLocalModels(options?: Record<string, unknown>): Promise<Record<string, Partial<LocalEndpointMetadata> & {
+  reachable: boolean; executable?: string | undefined; error?: string | undefined; message?: string | undefined;
+}>>;
+export function pullOllamaModel(options: { model: string; command?: string | undefined; endpoint?: string | undefined;
+  timeoutMs?: number | undefined; signal?: AbortSignal | undefined; onProgress?: ((event: Readonly<Record<string, unknown>>) => unknown) | undefined }): Promise<LocalModelMetadata & { endpoint: string; apiBaseUrl: string; executable: string }>;
+export function startLlamaServer(options: { modelPath: string; command?: string | undefined; port?: number | undefined;
+  contextSize?: number | undefined; memoryLimitBytes?: number | undefined; minimumFreeBytes?: number | undefined;
+  gpuLayers?: number | undefined; modelId?: string | undefined; startupTimeoutMs?: number | undefined;
+  timeoutMs?: number | undefined; signal?: AbortSignal | undefined; onEvent?: ((event: Readonly<Record<string, unknown>>) => unknown) | undefined }): Promise<{
+    readonly pid: number | null; readonly endpoint: string; readonly apiBaseUrl: string; readonly modelId: string;
+    readonly ready: Promise<LocalEndpointMetadata>; readonly completion: Promise<CommandOutcome>;
+    stop(): Promise<CommandOutcome>;
+  }>;
+export function downloadGguf(options: { url: string; destination: string; sha256: string; maxBytes: number;
+  timeoutMs?: number | undefined; signal?: AbortSignal | undefined;
+  onProgress?: ((event: { type: 'download'; bytes: number; totalBytes?: number | undefined }) => unknown) | undefined }): Promise<{ path: string; bytes: number; sha256: string; source: string }>;
+export function buildLlamaRuntime(options: { commit: string; installDirectory: string; sourceDirectory?: string | undefined;
+  approveBuild: true; jobs?: number | undefined; timeoutMs?: number | undefined; minimumFreeBytes?: number | undefined;
+  signal?: AbortSignal | undefined; onEvent?: ((event: Readonly<Record<string, unknown>>) => unknown) | undefined }): Promise<{ path: string; receiptPath: string; [key: string]: unknown }>;

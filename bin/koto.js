@@ -6,6 +6,7 @@ import { runWorkflow, validateWorkflow } from '../src/core.js';
 import { runProjectCli } from './project.js';
 import { runTerminalCli } from './terminal.js';
 import { runLauncher } from './launcher.js';
+import { runChat } from './chat.js';
 
 const packageRoot = new URL('../', import.meta.url);
 const metadata = JSON.parse(await readFile(new URL('package.json', packageRoot), 'utf8'));
@@ -28,8 +29,9 @@ process.stderr.on('error', () => streamFailed(process.stderr));
 const help = `Koto — a shared agent orchestration core
 
 Usage:
-  koto                       Open the guided launcher
-  koto start                 Open the guided launcher
+  koto                       Talk to Koto and build with real agents
+  koto start                 Open the coding conversation
+  koto setup                 Advanced manual session setup
   koto --help
   koto --version
   koto validate <workflow.json>
@@ -52,7 +54,7 @@ async function main(args) {
     return;
   }
   const [command, path] = args;
-  if (!args.length || (command === 'start' && args.length === 1)) {
+  if (!args.length || (['start', 'setup'].includes(command) && args.length === 1)) {
     const controller = new AbortController();
     activeController = controller;
     if (outputFailed) controller.abort();
@@ -60,7 +62,8 @@ async function main(args) {
     process.once('SIGINT', interrupt);
     process.once('SIGTERM', interrupt);
     try {
-      process.exitCode = await runLauncher({ write: text => write(process.stdout, text), signal: controller.signal, version: metadata.version });
+      const launch = command === 'setup' ? runLauncher : runChat;
+      process.exitCode = await launch({ write: text => write(process.stdout, text), signal: controller.signal, version: metadata.version });
     } finally {
       activeController = undefined;
       process.removeListener('SIGINT', interrupt);
