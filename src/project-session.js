@@ -414,7 +414,15 @@ function sessionRunner(plan, state, { onEvent, signal, ptyHelper, resume, onAppr
         const record = agentRecord(state, agent.id);
         const commandSignal = AbortSignal.any([context.signal, localStops.get(agent.id).signal]);
         if (commandSignal.aborted) { record.status = 'cancelled'; throw new Error('project_cancelled'); }
-        const prompt = resume?.prompt ?? `${plan.goal}\n\nYour task: ${agent.task}\nDeclared file ownership: ${agent.owns.join(', ')}\nWork in this task's Git worktree. Do not integrate another task or change the original checkout. Do not add or run automated test suites. Report your changes and limitations.${agent.dependsOn.length ? `\n\nSuccessful direct dependency results (reference their worktrees read-only; integration remains operator-controlled):\n${JSON.stringify(assignment.inputs).slice(0, 24_000)}` : ''}`;
+        const prompt = resume?.prompt ?? [
+          'Koto execution assignment. The calling host has started this prepared task. Carry out the assigned work now; an inspection-only assignment remains read-only.',
+          'Koto planning and launch review precede this execution stage. A general request in the original project goal to review a plan refers to that earlier stage. Ask about unresolved task-specific decisions when needed; native per-action permissions and later contribution integration still require their own authorization.',
+          `Project goal (context from planning):\n${plan.goal}`,
+          `Assigned task (execute within this worktree):\n${agent.task}`,
+          `Declared file ownership: ${agent.owns.join(', ')}`,
+          'Work in this task\'s Git worktree. Do not integrate another task or change the original checkout. Do not add or run automated test suites. Report your actual changes and limitations.',
+          ...(agent.dependsOn.length ? [`Successful direct dependency results (reference their worktrees read-only; integration remains operator-controlled):\n${JSON.stringify(assignment.inputs).slice(0, 24_000)}`] : []),
+        ].join('\n\n');
         const values = { prompt, workspace: record.workspace.path, project: state.projectRoot, goal: plan.goal, agent: agent.id };
         const args = resume ? [...resume.continuation.args] : agent.args.map(arg => expand(arg, values));
         let tail = '';

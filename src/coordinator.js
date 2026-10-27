@@ -276,6 +276,7 @@ export function createCoordinator({ session } = {}) {
         'Return exactly one JSON object with no prose outside it:',
         '{"schemaVersion":1,"summary":"brief implementation approach","tasks":[{"id":"uniqueTaskId","worker":"configuredWorkerId","task":"specific assignment","owns":["literal/project/path"],"dependsOn":[]}]}',
         'Create one to eight concrete coding tasks. Use only the worker IDs listed below. You cannot select executables, CLI flags, model settings, credentials or new providers.',
+        'These are executable assignments for a later host-approved launch. Keep this coordinator\'s planning-only instructions and the general Koto plan-approval wait out of worker assignments. Preserve genuinely unresolved task-specific decisions and intentional inspection-only work.',
         'Use independent tasks concurrently when useful. Avoid invented work merely to occupy workers. Assign explicit literal project-relative file/directory ownership; no shell expressions or glob patterns.',
         'Dependencies reference task IDs and must be acyclic. Workers start from separate worktrees of the same clean base. Successful dependency output and read-only workspace references are handed to dependent tasks, but no dependency code is automatically applied into their worktrees.',
         'Specify shared interfaces/contracts in assignments when independent files must fit together. Do not instruct a worker to integrate another task, modify another worktree, write outside its ownership, or change the original checkout.',

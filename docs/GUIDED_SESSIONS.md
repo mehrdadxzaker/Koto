@@ -93,7 +93,10 @@ runtime, `/models start GGUF` starts the configured llama.cpp binary with select
 weights, and `/models get URL FILE SHA256` downloads an explicitly selected GGUF.
 `/runtime build COMMIT` is an advanced source-build option using installed
 development tools. The guided model path acquires a verified runtime binary.
-The local coding agent has workspace file tools and asks before commands.
+The local coding agent begins with a required native read-only inspection call,
+then uses its normal workspace tools and asks before commands. Tool-like text
+inside an ordinary reply is never executed. A missing native tool call or
+truncated response remains a visible failure.
 Managed startup waits for its first memory check, then makes one readiness probe
 and at most three retries with 5/10/20-second backoff plus jitter, respecting `Retry-After` and
 the startup deadline. The core's `startupMaxRetries` option is an explicit
