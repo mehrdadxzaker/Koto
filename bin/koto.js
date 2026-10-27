@@ -4,6 +4,10 @@ import { constants } from 'node:fs';
 import { TextDecoder } from 'node:util';
 import { runWorkflow, validateWorkflow } from '../src/core.js';
 import { runProjectCli } from './project.js';
+import { runTerminalCli } from './terminal.js';
+import { runPlanCli } from './plan.js';
+import { runLauncher } from './launcher.js';
+import { runChat } from './chat.js';
 
 const packageRoot = new URL('../', import.meta.url);
 const metadata = JSON.parse(await readFile(new URL('package.json', packageRoot), 'utf8'));
@@ -26,11 +30,16 @@ process.stderr.on('error', () => streamFailed(process.stderr));
 const help = `Koto — a shared agent orchestration core
 
 Usage:
+  koto                       Talk to Koto and build with real agents
+  koto start                 Open the coding conversation
+  koto setup                 Advanced manual session setup
   koto --help
   koto --version
   koto validate <workflow.json>
   koto run <workflow.json>
   koto project --help
+  koto terminal --help
+  koto plan --help
 
 run executes the commands explicitly declared in the selected workflow.
 Worker commands receive a JSON assignment on stdin and return text on stdout.
@@ -38,7 +47,7 @@ IDE plugins and Koto's own UI will use this same core.
 `;
 
 async function main(args) {
-  if (args.length === 0 || (args.length === 1 && ['--help', '-h'].includes(args[0]))) {
+  if (args.length === 1 && ['--help', '-h'].includes(args[0])) {
     write(process.stdout, help);
     return;
   }
@@ -47,6 +56,31 @@ async function main(args) {
     return;
   }
   const [command, path] = args;
+  if (command === 'plan') {
+    process.exitCode = await runPlanCli(args.slice(1), { write: text => write(process.stdout, text) });
+    return;
+  }
+  if (!args.length || (['start', 'setup'].includes(command) && args.length === 1)) {
+    const controller = new AbortController();
+    activeController = controller;
+    if (outputFailed) controller.abort();
+    const interrupt = () => controller.abort();
+    process.once('SIGINT', interrupt);
+    process.once('SIGTERM', interrupt);
+    try {
+      const launch = command === 'setup' ? runLauncher : runChat;
+      process.exitCode = await launch({ write: text => write(process.stdout, text), signal: controller.signal, version: metadata.version });
+    } finally {
+      activeController = undefined;
+      process.removeListener('SIGINT', interrupt);
+      process.removeListener('SIGTERM', interrupt);
+    }
+    return;
+  }
+  if (command === 'terminal') {
+    process.exitCode = await runTerminalCli(args.slice(1), { write: text => write(process.stdout, text) });
+    return;
+  }
   if (command === 'project') {
     const controller = new AbortController();
     activeController = controller;
