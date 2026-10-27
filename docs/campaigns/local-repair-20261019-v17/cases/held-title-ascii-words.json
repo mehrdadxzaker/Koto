@@ -1,9 +1,0 @@
-{
-  "id": "held-title-ascii-words",
-  "partition": "held_out",
-  "family": "text",
-  "prompt": "Fix the Python implementation in solution.py. Repair title_ascii_words(text): a word is a maximal nonempty run of ASCII letters A-Z or a-z. In every such run uppercase the first letter and lowercase all later letters. Every other character is a separator and must be preserved exactly, including Unicode letters/digits, punctuation, spaces and newlines. Make the edit, check the behavior, and complete the task. /no_think",
-  "initial_solution": "def title_ascii_words(text):\n    return text.title()\n",
-  "checker": "import runpy\nimport sys\ns = runpy.run_path(sys.argv[1])\nf=s['title_ascii_words']\nassert f('hELLO-woRLD')=='Hello-World'\nassert f('éfooΩBAR')=='éFooΩBar'\nassert f('a1b_a\\tb\\nC')=='A1B_A\\tB\\nC'\nassert f('ßFOO١bAR')=='ßFoo١Bar'\nassert f('')=='' and f('123__\\n')=='123__\\n' and f('XML')=='Xml'\n",
-  "reference_solution": "import re\ndef title_ascii_words(text):\n    return re.sub('[A-Za-z]+',lambda match: match.group().capitalize(),text)\n"
-}

@@ -1,137 +1,46 @@
 # Contributing
 
-New here? Follow the [first-contribution guide](docs/FIRST_CONTRIBUTION.md),
-choose a [good first issue](https://github.com/mehrdadxzaker/Koto/issues?q=is%3Aissue%20is%3Aopen%20label%3A%22good%20first%20issue%22),
-or browse [help wanted](https://github.com/mehrdadxzaker/Koto/issues?q=is%3Aissue%20is%3Aopen%20label%3A%22help%20wanted%22).
-Small documentation corrections, synthetic bug reproductions and focused tests
-are welcome. Ask in the issue before starting a larger change so a maintainer
-can help confirm scope and avoid duplicate work.
+Work on the shared orchestration core, npm installation, CLI, IDE plugins or
+Koto's own UI. Supporting documentation, tests and tooling must serve those
+components. Read the [scope](docs/SCOPE.md) and [architecture](docs/ARCHITECTURE.md).
+Build the core before additional delivery surfaces.
 
-The [roadmap](docs/ROADMAP.md) links the active product work.
-[MAINTAINERS.md](MAINTAINERS.md) explains ownership, review and the path to a
-larger role. [CONTRIBUTORS.md](CONTRIBUTORS.md) recognizes contributions beyond
-code. Community support and reviews are best effort; there is no promised
-response deadline. Follow the [code of conduct](CODE_OF_CONDUCT.md).
+## Development
 
-Work against [the customer-local router scope](docs/ROUTER_SCOPE.md). Use an
-isolated checkout and preserve unrelated dirty work. New product work must
-advance history → scorecard → classifier → model execution → observed outcome.
-Test through the approved public workflow: connect, submit through the real router,
-inspect result/status, disconnect. CLI and plugin callers share the connection
-implementation. Do not add a Koto coding UI or duplicate the host's agent loop.
-
-Use Python 3.11–3.14. Install the source in a virtual environment. During
-implementation, run the fast tests and the affected workflow module or methods:
+Use Node.js 22 or later and npm:
 
 ```sh
-python tools/verify_router_scope.py
-python -m unittest discover -s tests -p 'test_*fast.py' -v
-python -m unittest tests.test_model_benchmark_workflow -v
+npm ci --ignore-scripts --no-audit --no-fund
+npm run check
+npm test
+npm run test:package
 ```
 
-Choose the workflow module for the behavior being changed. For a packaged
-development check, use `python tools/verify_router_wheel.py dist/koto_router-*.whl
---focused`. That runs fast rules plus the public CLI/bootstrap/task workflows
-outside the checkout. Add an affected module with the repeatable
-`--workflow-module tests.test_NAME_workflow` option. For final verification,
-build one candidate and run both complete layers against its installed wheel:
+Keep core behavior independent of an IDE or UI. Delivery adapters call the same
+core. Agent runtimes own their model access, tools and permissions; worker
+adapters describe the capabilities they actually support.
 
-```sh
-python -m build
-python tools/verify_router_wheel.py dist/koto_router-*.whl
-```
+Test meaningful public behavior with synthetic workers and temporary storage.
+Cover dependency handoffs, concurrency, failures, deadlines, cancellation and
+installed-package behavior when changing those paths. Do not require paid model
+calls or provider credentials for routine checks. A fixture result does not
+establish real-agent quality or compatibility.
 
-Install the pinned build frontend with `python -m pip install build==1.3.0` if
-needed. CI builds the distributions once. Draft PR updates and ordinary manual
-runs use focused installed-wheel checks on Python 3.12. Ready PRs, main pushes,
-and manual runs with `full_checkpoint=true` run both complete test layers on
-Python 3.11–3.14, with at most four test jobs in flight. Marking a PR ready starts
-that full checkpoint automatically. `CI / required` requires the build and the
-appropriate full test job. Focused runs report `CI / focused` and cannot satisfy
-the protected `CI / required` context. Drafts gain that required context when
-the full checkpoint runs.
-The source scope check runs in the build job. The wheel verifier reports
-the 20 slowest tests in each layer on Python 3.12 and newer, including fixture
-setup and cleanup; Python 3.11 runs both layers without that newer reporting
-option.
+The Windows stdin-rejection test uses stock Windows PowerShell to compile a
+temporary native fixture during bounded setup. The actual worker keeps its
+original deadline. Installing and running Koto does not use this compiler or
+require PowerShell.
 
-## Choosing a test boundary
+Do not add unrelated products, campaign archives, old runtime compatibility
+layers or a second installation system. Earlier implementations remain in Git
+history. Preserve unrelated local work and never check in credentials or private
+workflows. See [security](SECURITY.md).
 
-Use `test_*fast.py` for deterministic comparison, validation, and contract rules
-through existing public module functions such as `check_answer`,
-`validate_suite`, and `validate_contract`. Use literal expected results and
-named table cases. Fast tests must not launch subprocesses, servers, model
-downloads, or real providers, and must not inspect private helpers.
+## Review
 
-Use `test_*workflow.py` when a change crosses a CLI, HTTP, authentication,
-process, persistence, or configuration boundary. Workflow tests use bounded
-loopback providers, a disposable coding-client executable, real routing and
-temporary private storage. Preserve integration coverage for credential and
-destination isolation, local-only enforcement, streaming, continuation affinity,
-cancellation, capacity release, deadlines, recovery, consent, and conditional
-restoration of user settings. Observe client output/status and controlled
-external traffic; do not query private ledgers or mock internal routing
-collaborators.
+Describe the concrete problem, resulting behavior and validation. Identify any
+changed workflow or adapter contract. Keep current support separate from planned
+integrations. Discuss major architecture changes with the maintainer; the owner
+has already established the product boundary in [scope](docs/SCOPE.md).
 
-New behavior follows a failing test at the narrowest public boundary that
-protects the behavior, the smallest implementation, and a passing test. Keep
-representative workflow checks proving that validation results reach the caller;
-put additional pure input variants in fast tables instead of starting another
-router for each one. Moving a validation table must preserve every distinct
-input and expected result. Test count alone is not a quality target.
-
-Remove a duplicate only after identifying the surviving test that exercises the
-same condition, public path, and observable effects. Move any unique assertions
-into that test first. Similar tests for different credentials, endpoints,
-protocols, lifecycle stages, or failure paths are not automatically duplicates.
-
-Test-only HTTP/TLS servers use an explicit bounded shutdown poll interval and
-owned threads with `shutdown`, `server_close`, and `join` cleanup. Do not shorten
-production deadlines, remove cancellation assertions, add wakeup requests, or
-introduce busy retry loops to make tests pass faster.
-
-Runtime and plugin releases follow the [versioning policy](docs/VERSIONING.md).
-Run `python tools/version.py check` to validate their canonical sources and
-mirrors. Preview a release change with
-`python tools/version.py bump runtime prerelease --dry-run` or
-`python tools/version.py bump plugin patch --dry-run`, choosing the operation
-for the intended compatibility change. Omit `--dry-run` only to apply that
-reviewed metadata change. CI and test-only PRs do not automatically bump a
-release; schema versions, client pins and historical evidence stay independent.
-
-## Pick a useful first change
-
-- `good first issue`: a small task with a starting file and explicit acceptance
-  criteria; it should not need real credentials, live providers or model downloads.
-- `help wanted`: an open request for community help; read its scope and evidence
-  requirements before starting.
-- `documentation`: docs and examples; `area:docs`, `area:selection`,
-  `area:history`, `area:client`, `area:plugin` and `area:testing` identify the
-  relevant component. Labels describe work, not supported client compatibility.
-
-Keep one PR focused on one outcome. Include the linked issue, exact checks run
-and any limitations in the PR template. Documentation-only changes usually need
-the source/link check and the documented commands they change; behavior changes
-need the relevant fast/workflow tests and final wheel verification described
-above. Add your preferred public credit to [CONTRIBUTORS.md](CONTRIBUTORS.md)
-if you would like recognition, including for documentation, review or testing.
-
-Keep queues, requests, processes and retries finite. Default to at most eight
-outbound HTTP requests in flight, three retries with backoff, explicit timeouts
-and cleanup in finally-equivalent paths. Routine validation does not call real
-providers, download models, run load tests or use real credentials.
-
-Public or durable contract changes require a documented version, compatibility
-fixture, migration rule and rollback boundary. Retain conservative reservations,
-unknown outcomes, credential isolation, redaction, continuation affinity and
-conditional restoration. Synthetic replies do not prove model quality,
-subscription eligibility, OS support or marketplace acceptance.
-
-Review documented standards and the originating spec against the exact commit.
-Use a draft PR until checks and review are complete. Do not merge or change live
-repository protections as a side effect of deleting a workflow. See the
-[required-check cutover](docs/MIGRATION_2.md).
-Merge also requires technical-lead sign-off against the exact PR head.
-
-Report defects using synthetic inputs through the [issue tracker](https://github.com/mehrdadxzaker/Koto/issues).
-Use [SECURITY.md](SECURITY.md) for private vulnerability reporting.
+Community review is best effort. Follow the [code of conduct](CODE_OF_CONDUCT.md).

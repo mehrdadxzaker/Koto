@@ -1,55 +1,13 @@
 # Domain terms
 
-- **Coding client:** Existing application owning editing, tools, permissions
-  and the agent loop. Koto connects to it.
-- **Router:** Customer-local process that admits and forwards intercepted model
-  requests, owns credentials and preserves outcomes and continuation affinity.
-- **Personal scorecard:** Local measurements of the user's retained tasks by
-  model, including checked quality, latency, failures and known or unknown costs.
-- **Model selector:** Local multiclass classifier learned from checked personal
-  examples; its classes are the current commercial model and qualified local
-  alternatives. Observation and automatic mode use the same classifier.
-- **Task quality:** An independent check or explicit user assessment of task
-  success. Transport completion alone leaves quality unknown.
-- **Execution destination:** Immutable endpoint, protocol, authentication,
-  locality and model-qualification facts bound to one generation.
-- **Qualified local route:** Destination/model with evidence for its permitted
-  request envelope and capabilities. A running process is not qualification.
-- **Coding qualification:** Reviewed outcome evidence that an exact local
-  execution envelope completed autonomous edits and independent checks under
-  predeclared criteria. Transport health and task-fit advice cannot establish it.
-- **Qualification probe:** Explicit, ephemeral permission to collect one bounded
-  frozen local coding episode. It is separate from readiness and never admits
-  ordinary unqualified coding.
-- **Local-only:** Hard permission forbidding cloud execution for all intercepted
-  model requests, including helpers. Unsupported work blocks.
-- **Automatic routing:** Selection among policy-eligible qualified destinations
-  at a safe fresh request point. Unknown evidence uses an approved baseline or
-  blocks; opaque continuation is not migrated.
-- **Observation mode:** The model selector records its choice and evidence while
-  execution keeps the client's permitted baseline. Historical binary shadow
-  recommendations remain readable as earlier evidence.
-- **Connected-client lifetime:** Shared owner of setup, status, process control,
-  recovery, disconnect and conditional configuration restoration.
-- **Plugin:** Skills-only entry point calling the same connection implementation
-  as the CLI. Plugin installation does not activate routing.
-- **Acquisition:** Consented retrieval and verification of local runtime and model
-  assets, separate from connection activation and coding qualification.
-- **Acquisition generation:** Owned local asset set associated with one reviewed
-  acquisition declaration, distinct from a connection's execution lifetime.
-- **Operational cleanup:** Separate retirement of external resources and bills
-  tracked in #494–501; source deletion does not complete it.
-- **Local history:** A user's optional retained record of intercepted requests,
-  responses and usage, kept on their device for review, export and deletion.
-- **Spending estimate:** A calculation from observed usage and configured
-  prices; it is distinct from an invoice or provider-confirmed charge.
-- **Gateway credential:** Credential authorizing a coding client as a Koto
-  identity, separate from that client's provider or native account credential.
-- **Native ChatGPT credential:** Client-owned account credential for the native
-  ChatGPT backend; its validity and permitted account scope belong to that backend.
-- **Native catalog:** Account-scoped model metadata available through the native
-  Codex path; discovery is separate from permission to execute model requests.
-- **Native response:** Model execution authorized by the coding client's native
-  account grant.
-- **Continuation affinity:** The association between provider state, tool results
-  and the identity, account and execution destination that produced them.
+- **Core:** Shared task coordination, worker lifecycle, handoffs and results.
+- **Agent:** Runtime with instructions, tools, context, permissions and session
+  state. Its model is one component of its execution.
+- **Model:** Inference engine accessed through a local runtime or provider.
+- **Worker adapter:** Connects an agent runtime to a core assignment and reports
+  results and lifecycle state.
+- **Delivery adapter:** Exposes the core inside a CLI, IDE plugin or Koto UI.
+- **Workflow:** Explicit goal, agent registry, dependent tasks and resource bounds.
+- **Handoff:** Output from a declared dependency passed to a downstream worker.
+- **Acceptance check:** Independent evidence that the requested result is correct;
+  a successful process exit alone does not supply it.

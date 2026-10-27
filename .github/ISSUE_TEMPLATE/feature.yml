@@ -1,72 +1,30 @@
 {
   "name": "Feature request",
-  "description": "Propose a bounded improvement to Koto's history, model selection, routing or contributor workflow.",
-  "title": "[Feature]: ",
-  "labels": [
-    "enhancement"
-  ],
+  "description": "Improve the orchestration core, CLI, IDE plugins or Koto UI.",
   "body": [
     {
       "type": "markdown",
       "attributes": {
-        "value": "New product work should advance the customer-local router workflow in #523: connect, submit through the router, inspect result/status, disconnect. CLI and plugin callers share setup. Standalone apps and hosted/enterprise products are retired. Operational resource cleanup remains in #494\u2013501. Use synthetic inputs and keep credentials and private data out of public reports."
+        "value": "Use synthetic examples. Keep credentials, private workflows, prompts and responses out of public reports."
       }
     },
     {
       "type": "textarea",
-      "id": "problem",
+      "id": "details",
       "attributes": {
-        "label": "Problem",
-        "description": "What cannot be governed or verified today, and who encounters it? Use a generic organization."
+        "label": "Details",
+        "description": "Which allowed product component should change, what should users be able to do, and how would success be checked?"
       },
       "validations": {
         "required": true
       }
     },
     {
-      "type": "textarea",
-      "id": "outcome",
+      "type": "input",
+      "id": "environment",
       "attributes": {
-        "label": "Verifiable outcome",
-        "description": "State what a user or operator can prove when this is complete."
-      },
-      "validations": {
-        "required": true
-      }
-    },
-    {
-      "type": "textarea",
-      "id": "boundary",
-      "attributes": {
-        "label": "Policy, evidence, and data boundary",
-        "description": "What data would cross Koto, what durable metadata is needed, and what must remain out of scope?"
-      },
-      "validations": {
-        "required": true
-      }
-    },
-    {
-      "type": "textarea",
-      "id": "alternatives",
-      "attributes": {
-        "label": "Alternatives considered",
-        "description": "Explain any existing configuration, provider, or client feature that partly addresses the problem."
-      },
-      "validations": {
-        "required": false
-      }
-    },
-    {
-      "type": "checkboxes",
-      "id": "disclosure",
-      "attributes": {
-        "label": "Disclosure check",
-        "options": [
-          {
-            "label": "I removed customer identities, internal systems, credentials, prompts, responses, and non-public security details.",
-            "required": true
-          }
-        ]
+        "label": "Environment",
+        "description": "Koto revision, Node/npm versions and operating system."
       }
     }
   ]

@@ -1,4 +1,0 @@
-Reading additional input from stdin...
-2026-10-18T15:13:10.265249Z ERROR codex_core::tools::router: error=apply_patch verification failed: invalid hunk at line 4, Unexpected line found in update hunk: 'def clamp(value, lower, upper):'. Every line should start with ' ' (context line), '+' (added line), or '-' (removed line)
-2026-10-18T15:13:13.459879Z ERROR codex_core::tools::router: error=apply_patch verification failed: invalid hunk at line 3, Unexpected line found in update hunk: 'def clamp(value, lower, upper):'. Every line should start with ' ' (context line), '+' (added line), or '-' (removed line)
-2026-10-18T15:13:19.473043Z ERROR codex_core::tools::router: error=apply_patch verification failed: invalid hunk at line 4, Unexpected line found in update hunk: 'def clamp(value, lower, upper):'. Every line should start with ' ' (context line), '+' (added line), or '-' (removed line)

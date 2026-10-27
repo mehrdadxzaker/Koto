@@ -1,9 +1,0 @@
-{
-  "id": "held-reverse-low-bits",
-  "partition": "held_out",
-  "family": "arithmetic",
-  "prompt": "Fix the Python implementation in solution.py. Repair reverse_low_bits(value, width): require built-in ints excluding bool and every int subclass, width nonnegative, and 0 <= value < 2**width; otherwise raise ValueError. Return the integer obtained by reversing exactly width binary digits, including leading zeros. The valid width-zero input value zero returns zero. Use exact integer arithmetic for large widths. Make the edit, check the behavior, and complete the task. /no_think",
-  "initial_solution": "def reverse_low_bits(value, width):\n    return value\n",
-  "checker": "import runpy\nimport sys\ns = runpy.run_path(sys.argv[1])\nf=s['reverse_low_bits']\nassert f(3,4)==12 and f(1,4)==8 and f(10,4)==5\nassert f(0,0)==0 and f(0,8)==0 and f(1,1)==1 and f(7,3)==7\nassert f(1208925819614629174706176,81)==1\nclass IntChild(int): pass\nfor v,w in [(-1,4),(16,4),(1,0),(0,-1),(True,4),(0,False),(False,4),(0,True),(IntChild(1),4),(1,IntChild(4)),(1.0,4),(1,'4')]:\n    try: f(v,w)\n    except ValueError: pass\n    else: raise AssertionError('invalid bit range accepted')\nassert f(1208925819614629174706177,81)==1208925819614629174706177\n",
-  "reference_solution": "def reverse_low_bits(value, width):\n    if type(value) is not int or type(width) is not int or width<0 or value<0 or value>=2**width:\n        raise ValueError('invalid bit range')\n    result=0\n    for _ in range(width):\n        result=(result<<1)|(value&1)\n        value>>=1\n    return result\n"
-}

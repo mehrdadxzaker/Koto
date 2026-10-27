@@ -1,7 +1,0 @@
-{
-  "integration_fix_commit": "b76aff58d7e504e7ee440c9a6eb6c71b7ed54a06",
-  "integration_fix_review_findings": [],
-  "fresh_report_review_findings": [],
-  "scope": "Independent read-only integration fix review and fresh report factual verification; not a new full PR standards/spec review",
-  "runtime_source_changes_this_verification": false
-}

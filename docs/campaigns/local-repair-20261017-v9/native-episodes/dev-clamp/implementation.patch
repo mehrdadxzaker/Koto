@@ -1,8 +1,0 @@
---- solution.py.before
-+++ solution.py.after
-@@ -1,2 +1,4 @@
- def clamp(value, lower, upper):
--    return max(lower, value)
-+    if lower > upper:
-+        raise ValueError("lower bound cannot exceed upper bound")
-+    return max(lower, min(value, upper))

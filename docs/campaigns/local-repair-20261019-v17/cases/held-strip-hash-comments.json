@@ -1,9 +1,0 @@
-{
-  "id": "held-strip-hash-comments",
-  "partition": "held_out",
-  "family": "text",
-  "prompt": "Fix the Python implementation in solution.py. Repair strip_hash_comments(text): text is a string. In each ASCII-newline-separated line remove the first ASCII # and all later characters from that same line. Preserve every newline, all characters before the first #, lines with no #, Unicode and the trailing empty line. Quotes have no special meaning; a carriage return is an ordinary character rather than a line boundary. Make the edit, check the behavior, and complete the task. /no_think",
-  "initial_solution": "def strip_hash_comments(text):\n    return text.split('#')[0]\n",
-  "checker": "import runpy\nimport sys\ns = runpy.run_path(sys.argv[1])\nf=s['strip_hash_comments']\nassert f('a#first\\nb#second\\nc')=='a\\nb\\nc'\nassert f('#x\\n\\n z #q\\n')=='\\n\\n z \\n'\nassert f('α＃β\\nγ#δ')=='α＃β\\nγ'\nassert f('a\\rb#c\\rd\\ne')=='a\\rb\\ne'\nassert f('\"#quoted\"\\n')=='\"\\n' and f('')==''\nassert f('plain\\ntext\\n')=='plain\\ntext\\n'\n",
-  "reference_solution": "def strip_hash_comments(text):\n    return '\\n'.join(line.split('#',1)[0] for line in text.split('\\n'))\n"
-}

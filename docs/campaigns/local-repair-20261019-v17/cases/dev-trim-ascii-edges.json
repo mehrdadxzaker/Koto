@@ -1,9 +1,0 @@
-{
-  "id": "dev-trim-ascii-edges",
-  "partition": "development",
-  "family": "text",
-  "prompt": "Fix the Python implementation in solution.py. Repair trim_ascii_edges(text): text is a string. Remove ASCII spaces and tabs only from its two ends. Preserve interior spaces/tabs, all newlines, carriage returns, Unicode whitespace and other characters exactly. Empty input returns an empty string. Make the edit, check the behavior, and complete the task. /no_think",
-  "initial_solution": "def trim_ascii_edges(text):\n    return text.strip()\n",
-  "checker": "import runpy\nimport sys\ns = runpy.run_path(sys.argv[1])\nf=s['trim_ascii_edges']\nassert f(' \\tX\\n ')== 'X\\n'\nassert f('\\n\\tX\\t\\n')=='\\n\\tX\\t\\n'\nassert f(' \\ta \\t b\\t ')== 'a \\t b'\nassert f('\\u00a0 X \\u00a0')=='\\u00a0 X \\u00a0'\nassert f(' \\r ')== '\\r' and f('\\t \\t')=='' and f('')==''\nassert f('λ')=='λ'\n",
-  "reference_solution": "def trim_ascii_edges(text):\n    return text.strip(' \\t')\n"
-}

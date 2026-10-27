@@ -1,7 +1,0 @@
-{
-  "schema_id": "hormuz.coding-probe-error",
-  "schema_version": 1,
-  "error": {
-    "code": "probe_subject_mismatch"
-  }
-}

@@ -1,3 +1,0 @@
-Reading additional input from stdin...
-2026-10-18T18:29:51.633651Z ERROR codex_core::tools::router: error=Goal tools require a persistent thread.
-2026-10-18T18:30:08.967490Z ERROR codex_core::tools::router: error=Goal tools require a persistent thread.

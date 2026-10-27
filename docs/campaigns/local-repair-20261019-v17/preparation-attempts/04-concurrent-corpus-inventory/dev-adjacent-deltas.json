@@ -1,9 +1,0 @@
-{
-  "id": "dev-adjacent-deltas",
-  "partition": "development",
-  "family": "collections",
-  "prompt": "Fix the Python implementation in solution.py. Repair adjacent_deltas(values): values is a list of integers. Return a new list containing each next item minus its immediately preceding item, in input order. Inputs with fewer than two items return a new empty list. Preserve values and exact large integers. Make the edit, check the behavior, and complete the task. /no_think",
-  "initial_solution": "def adjacent_deltas(values):\n    return values[:]\n",
-  "checker": "import runpy\nimport sys\ns = runpy.run_path(sys.argv[1])\nf=s['adjacent_deltas']\na=[3,8,8,-2];r=f(a)\nassert r==[5,0,-10] and a==[3,8,8,-2] and r is not a\na=[];r=f(a);assert r==[] and r is not a\nassert f([7])==[] and f([-4,-9])==[-5]\nassert f([1208925819614629174706176,1208925819614629174706183])==[7]\n",
-  "reference_solution": "def adjacent_deltas(values):\n    return [values[i] - values[i-1] for i in range(1,len(values))]\n"
-}

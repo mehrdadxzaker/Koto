@@ -1,9 +1,0 @@
-{
-  "id": "held-exact-integer-power",
-  "partition": "held_out",
-  "family": "arithmetic",
-  "prompt": "Fix the Python implementation in solution.py. Repair integer_power(base, exponent): both arguments must be built-in ints (bool and every int subclass invalid), and exponent must be nonnegative; otherwise raise ValueError. Return base raised to exponent as an exact integer, including negative bases and arbitrarily large results. Define zero raised to zero as one. Make the edit, check the behavior, and complete the task. /no_think",
-  "initial_solution": "def integer_power(base, exponent):\n    return base*exponent\n",
-  "checker": "import runpy\nimport sys\ns = runpy.run_path(sys.argv[1])\nf=s['integer_power']\nassert f(3,7)==2187 and f(-2,5)==-32 and f(-2,6)==64\nassert f(0,0)==1 and f(7,0)==1 and f(0,9)==0\nassert f(2,80)==1208925819614629174706176\nassert f(10,40)==10000000000000000000000000000000000000000\nclass IntChild(int): pass\nfor b,e in [(2,-1),(True,2),(2,True),(False,2),(2,False),(IntChild(2),3),(2,IntChild(3)),(2.0,2),(2,2.0),('2',2),(2,None)]:\n    try: f(b,e)\n    except ValueError: pass\n    else: raise AssertionError('invalid exponentiation accepted')\n",
-  "reference_solution": "def integer_power(base, exponent):\n    if type(base) is not int or type(exponent) is not int or exponent<0:\n        raise ValueError('invalid exponentiation')\n    return pow(base,exponent)\n"
-}
