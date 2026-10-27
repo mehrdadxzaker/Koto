@@ -2,10 +2,9 @@
 
 Koto requires Node.js 22 or later with npm. The package is pure JavaScript and
 has no runtime dependencies, build step or installation hook. The release
-target is Windows, macOS and Linux; CI is configured for all three. Current local
-verification covers Linux with Node 22.23.4 and 24.19.0. Check the exact revision's
-[CI results](https://github.com/mehrdadxzaker/Koto/actions/workflows/ci.yml) for
-hosted-platform evidence. Process cleanup is separate from sandboxing; see the
+target is Windows, macOS and Linux. CI runs source and scope checks on those
+platforms with Node 22 and 24; it does not execute installed packages or workers.
+Process cleanup is separate from sandboxing; see the
 [execution boundaries](ARCHITECTURE.md#lifecycle-and-execution-boundaries).
 
 ## Local package
@@ -22,13 +21,12 @@ Node.js and npm, then install or run it:
 ```sh
 npm install --global ./mehrdadxzaker-koto-3.0.0-alpha.0.tgz
 koto --version
-koto demo
 ```
 
 For execution without global installation:
 
 ```sh
-npx --yes --package ./mehrdadxzaker-koto-3.0.0-alpha.0.tgz koto demo
+npx --yes --package ./mehrdadxzaker-koto-3.0.0-alpha.0.tgz koto --help
 ```
 
 Registry publication will enable installation by package name. The intended name
@@ -37,7 +35,6 @@ must be verified before documenting a published command as working.
 
 ## Agent and delivery dependencies
 
-The demo uses bundled fixture workers without an account or model download.
 Real workflows require separately configured agent runtimes. The generic process
 worker expects Koto's JSON-stdin/text-stdout contract. It is not a native Codex
 or Claude Code integration. On Windows use an actual executable or `$node` with

@@ -4,19 +4,22 @@ Koto is experimental software with best-effort community support.
 
 | Component | Current status |
 | --- | --- |
-| npm package and CLI | Local tarball installation and execution; registry publication pending |
-| Node.js | Requires version 22 or later; verified locally on Linux with Node 22.23.4 and 24.19.0 |
-| TypeScript | Public declarations checked with TypeScript 5.9.3 under strict NodeNext and Bundler consumer resolution |
-| Platforms | Windows, macOS and Linux are CI targets; local results apply to the platform tested |
+| npm package and CLI | Package source and CLI implemented; registry publication pending |
+| Node.js | Requires version 22 or later |
+| TypeScript | Public declarations included; automated consumer checks removed |
+| Platforms | Windows, macOS and Linux are targets; CI checks source and scope with Node 22 and 24 |
 | Core | Explicit task graphs, process workers, dependency handoffs, bounded concurrency and lifecycle control |
 | Agent integrations | A generic process-worker protocol; native commercial/open-source adapters need implementation and interoperability evidence |
-| Worker isolation | No sandbox; POSIX process-group cleanup is tested locally, while Windows descendant cleanup needs stronger ownership and OS verification |
+| Worker isolation | Shared working directory; POSIX process-group cleanup implemented, Windows descendant cleanup needs stronger ownership |
+| Native coding workflow | Concurrent native agents, isolated workspaces and terminal controls remain to be implemented |
 | IDE plugins | Planned |
 | Koto UI | Planned |
 
 Agent runtimes, provider accounts, subscriptions, local models and their system
 requirements are separate from installing Koto. A worker's exit code does not
 establish answer quality. Workflows must supply their own acceptance checks.
+Current CI provides source and scope evidence only; automated suites, fixtures
+and package-execution checks are removed.
 
 For bugs, include package version, Node version, OS and a synthetic reproduction.
 Use [GitHub issues](https://github.com/mehrdadxzaker/Koto/issues). Report

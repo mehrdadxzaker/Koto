@@ -2,7 +2,6 @@
 import { open, readFile } from 'node:fs/promises';
 import { constants } from 'node:fs';
 import { TextDecoder } from 'node:util';
-import { fileURLToPath } from 'node:url';
 import { runWorkflow, validateWorkflow } from '../src/core.js';
 
 const packageRoot = new URL('../', import.meta.url);
@@ -28,11 +27,9 @@ const help = `Koto — a shared agent orchestration core
 Usage:
   koto --help
   koto --version
-  koto demo
   koto validate <workflow.json>
   koto run <workflow.json>
 
-demo runs bundled fixture workers without accounts or model calls.
 run executes the commands explicitly declared in the selected workflow.
 Worker commands receive a JSON assignment on stdin and return text on stdout.
 IDE plugins and Koto's own UI will use this same core.
@@ -48,14 +45,12 @@ async function main(args) {
     return;
   }
   const [command, path] = args;
-  if (!((command === 'demo' && args.length === 1)
-    || (['validate', 'run'].includes(command) && args.length === 2 && !path.startsWith('-')))) {
+  if (!(['validate', 'run'].includes(command) && args.length === 2 && !path.startsWith('-'))) {
     write(process.stderr, help);
     process.exitCode = 2;
     return;
   }
-  const demo = command === 'demo';
-  const workflowPath = demo ? new URL('examples/cooperative-workflow.json', packageRoot) : path;
+  const workflowPath = path;
   let bytes;
   try {
     // Opening a POSIX FIFO in blocking mode would hang before its type could
@@ -94,7 +89,7 @@ async function main(args) {
   process.once('SIGTERM', interrupt);
   try {
     const result = await runWorkflow(workflow, {
-      cwd: demo ? fileURLToPath(packageRoot) : process.cwd(),
+      cwd: process.cwd(),
       signal: controller.signal,
       onEvent: event => write(process.stderr, `${JSON.stringify(event)}\n`),
     });

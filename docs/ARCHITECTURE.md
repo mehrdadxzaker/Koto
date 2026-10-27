@@ -4,7 +4,6 @@ Koto's Node.js core is independent of an IDE, UI and model provider. All deliver
 surfaces use the same core operations and worker-adapter boundary.
 The package exports an ESM JavaScript API with TypeScript declarations for the
 workflow, worker-adapter, event and result contracts. The runtime stays JavaScript.
-Packed-package consumers are checked with strict NodeNext and Bundler resolution.
 
 ```mermaid
 flowchart TB
@@ -38,14 +37,12 @@ stdin receives one JSON assignment:
 
 Stdout supplies the text result. Exit zero with valid, nonempty output establishes
 process completion. An independent check is needed to establish answer quality.
-The bundled fixture integrator performs a check as part of its task; the core
-does not infer semantic correctness from arbitrary output.
+The core does not infer semantic correctness from arbitrary output.
 
 Workflow fields are `schemaVersion`, `goal`, `agents`, `tasks`, `finalTask`,
 optional `maxConcurrency` and optional `timeoutMs`. An agent declares `command`,
 optional `args` and optional `timeoutMs`; a task declares `id`, `agent`, `prompt`
 and optional `dependsOn`. `$node` resolves to Koto's current Node executable.
-See the [runnable example](../examples/cooperative-workflow.json).
 
 ## Lifecycle and execution boundaries
 
@@ -73,10 +70,10 @@ cancellation; arbitrary code in the same process cannot be forcibly stopped by
 the core. Built-in process workers provide a stronger owned-process boundary.
 
 The working directory and executable configuration are explicit. The current
-adapter does not create sandboxes or isolated Git worktrees. Its deterministic
-example is text-only. Coding integrations need their own workspace isolation,
-permissions and a designated integration owner before concurrent edits are
-supported. Native provider continuation stays with its originating agent;
+adapter does not create sandboxes or isolated Git worktrees. Concurrent native
+agents need isolated workspaces, terminal controls, permissions and a designated
+integration owner before concurrent coding is supported. This is the immediate
+implementation gap. Native provider continuation stays with its originating agent;
 explicit task outputs supply handoffs.
 
 ## Later adapters and delivery

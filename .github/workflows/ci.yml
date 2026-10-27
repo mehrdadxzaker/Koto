@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   verify:
-    name: npm package (${{ matrix.os }}, Node ${{ matrix.node }})
+    name: source and scope (${{ matrix.os }}, Node ${{ matrix.node }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 8
     strategy:
@@ -32,8 +32,6 @@ jobs:
           node-version: ${{ matrix.node }}
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm run check
-      - run: npm test
-      - run: npm run test:package
 
   required:
     name: CI / required

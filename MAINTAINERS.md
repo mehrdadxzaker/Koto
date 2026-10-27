@@ -8,7 +8,7 @@ maintainer and product owner. Review and community support are best effort.
 | Orchestration core | `src/core.js` |
 | Process-worker adapter | `src/process-agent.js` |
 | CLI and npm distribution | `bin/`, `package.json` |
-| Tests and package verification | `test/`, `tools/`, `.github/workflows/ci.yml` |
+| Source and scope checks | `tools/check-scope.js`, `.github/workflows/ci.yml` |
 | Product documentation | `docs/`, `README.md` |
 
 IDE plugins and Koto's UI will consume the same core when implemented. They do
