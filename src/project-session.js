@@ -4,6 +4,8 @@ import { randomUUID } from 'node:crypto';
 import { homedir } from 'node:os';
 import { runWorkflow } from './core.js';
 import { startCommand } from './command-session.js';
+import { startDarwinPtyCommand } from './darwin-pty-session.js';
+import { resolveDarwinPtyHelper } from './native-helper.js';
 import { createProjectWorkspaces, inspectWorkspace, integrateWorkspace } from './project-workspaces.js';
 
 const ID = /^[A-Za-z][A-Za-z0-9_-]{0,63}$/;
@@ -31,6 +33,7 @@ export function validateProjectPlan(source) {
   const ids = new Set();
   const timeoutMs = duration(source.timeoutMs, 300_000);
   if (source.controlRoot !== undefined && (!string(source.controlRoot, 4096) || !path.isAbsolute(source.controlRoot))) fail('project_invalid_control_root');
+  if (source.nativeHelperDirectory !== undefined && (!string(source.nativeHelperDirectory, 4096) || !path.isAbsolute(source.nativeHelperDirectory))) fail('project_invalid_native_helper_directory');
   const agents = source.agents.map(agent => {
     if (!agent || !ID.test(agent.id) || ids.has(agent.id) || !string(agent.command, 4096)
         || /\.(?:cmd|bat)$/i.test(agent.command) || !string(agent.task)
@@ -47,17 +50,28 @@ export function validateProjectPlan(source) {
       return item.replace(/\/$/, '');
     });
     if (agent.input !== undefined && !string(agent.input)) fail('project_invalid_input');
-    const inputMode = agent.inputMode ?? 'closed';
+    const transport = agent.transport ?? 'pipe';
+    if (!['pipe', 'pty'].includes(transport)) fail('project_invalid_transport');
+    let terminal;
+    if (transport === 'pty') {
+      if (agent.terminal !== undefined && (!agent.terminal || typeof agent.terminal !== 'object' || Array.isArray(agent.terminal))) fail('project_invalid_terminal');
+      const columns = agent.terminal?.columns ?? 80;
+      const rows = agent.terminal?.rows ?? 24;
+      if (![columns, rows].every(value => Number.isInteger(value) && value >= 1 && value <= 1000)) fail('project_invalid_terminal_size');
+      terminal = { columns, rows };
+    } else if (agent.terminal !== undefined) fail('project_terminal_requires_pty');
+    const inputMode = agent.inputMode ?? (transport === 'pty' ? 'pipe' : 'closed');
     if (!['closed', 'pipe'].includes(inputMode)) fail('project_invalid_input_mode');
     const unsetEnv = agent.unsetEnv ?? [];
     if (!Array.isArray(unsetEnv) || unsetEnv.length > 32 || unsetEnv.some(key => typeof key !== 'string' || !/^[A-Za-z_][A-Za-z0-9_]{0,127}$/.test(key))) fail('project_invalid_environment');
     return { id: agent.id, command: agent.command, args: [...agent.args], task: agent.task,
-      owns, inputMode, unsetEnv: [...unsetEnv], timeoutMs: duration(agent.timeoutMs, timeoutMs), ...(agent.input === undefined ? {} : { input: agent.input }) };
+      owns, transport, ...(terminal ? { terminal } : {}), inputMode, unsetEnv: [...unsetEnv], timeoutMs: duration(agent.timeoutMs, timeoutMs), ...(agent.input === undefined ? {} : { input: agent.input }) };
   });
   const maxConcurrency = source.maxConcurrency ?? agents.length;
   if (!Number.isSafeInteger(maxConcurrency) || maxConcurrency < 1 || maxConcurrency > agents.length) fail('project_invalid_concurrency');
   const plan = { schemaVersion: 1, project: source.project, goal: source.goal, agents, timeoutMs, maxConcurrency,
     ...(source.controlRoot === undefined ? {} : { controlRoot: source.controlRoot }) };
+  if (source.nativeHelperDirectory !== undefined) plan.nativeHelperDirectory = source.nativeHelperDirectory;
   if (Buffer.byteLength(JSON.stringify(plan)) > 512 * 1024) fail('project_plan_too_large');
   return plan;
 }
@@ -139,6 +153,10 @@ export async function createProjectSession(source, { onEvent, signal } = {}) {
   const plan = validateProjectPlan(source);
   if ((onEvent !== undefined && typeof onEvent !== 'function') || (signal !== undefined && !(signal instanceof AbortSignal))) fail('project_invalid_observer_or_signal');
   if (signal?.aborted) fail('project_cancelled');
+  // Resolving verifies an explicitly built local artifact. Session launch never
+  // invokes a compiler, installs a runtime or starts a model during preflight.
+  const ptyHelper = plan.agents.some(agent => agent.transport === 'pty')
+    ? await resolveDarwinPtyHelper({ directory: plan.nativeHelperDirectory }) : undefined;
   const sessionId = `s-${Date.now().toString(36)}-${randomUUID().slice(0, 8)}`;
   const workspaces = await createProjectWorkspaces({ projectRoot: plan.project, sessionId, agents: plan.agents,
     controlRoot: plan.controlRoot ?? path.join(homedir(), '.koto', 'sessions') });
@@ -148,6 +166,7 @@ export async function createProjectSession(source, { onEvent, signal } = {}) {
     agents: plan.agents.map(agent => ({ ...agent, workspace: workspaces.agents[agent.id], status: 'pending' })) };
   const controller = new AbortController();
   const handles = new Map();
+  const outputTails = new Map(plan.agents.map(agent => [agent.id, Buffer.alloc(0)]));
   const localStops = new Map(plan.agents.map(agent => [agent.id, new AbortController()]));
   let eventBytes = 0;
   let sequence = 0;
@@ -201,8 +220,30 @@ export async function createProjectSession(source, { onEvent, signal } = {}) {
       if (id === undefined || id === 'all') stopAll();
       else { agentRecord(state, id); localStops.get(id).abort(); handles.get(id)?.stop(); }
     },
-    send(id, input) { agentRecord(state, id); return handles.get(id)?.send(input) ?? false; },
+    send(id, input) {
+      const record = agentRecord(state, id);
+      if (record.transport !== 'pty' && typeof input !== 'string') return false;
+      return handles.get(id)?.send(input) ?? false;
+    },
     endInput(id) { agentRecord(state, id); return handles.get(id)?.endInput() ?? false; },
+    resize(id, columns, rows) {
+      const record = agentRecord(state, id);
+      if (record.transport !== 'pty' || ![columns, rows].every(value => Number.isInteger(value) && value >= 1 && value <= 1000)) return false;
+      const accepted = handles.get(id)?.resize(columns, rows) ?? false;
+      if (accepted) {
+        record.terminal = { columns, rows };
+        emit({ type: 'terminal_resized', agentId: id, columns, rows });
+      }
+      return accepted;
+    },
+    outputTail(id) {
+      agentRecord(state, id);
+      const bytes = outputTails.get(id);
+      // A retained tail may begin in the middle of one UTF-8 codepoint.
+      let offset = 0;
+      while (offset < bytes.length && (bytes[offset] & 0xc0) === 0x80) offset += 1;
+      return bytes.subarray(offset).toString('utf8');
+    },
     inspect: id => inspect(state, id),
     async integrate(id, { approve } = {}) {
       if (integrationBusy) fail('project_integration_busy_or_interrupted');
@@ -239,11 +280,22 @@ export async function createProjectSession(source, { onEvent, signal } = {}) {
           const input = agent.input === undefined ? undefined : expand(agent.input, values);
           if (args.some(arg => Buffer.byteLength(arg) > 16_384) || (input !== undefined && Buffer.byteLength(input) > 65_536)) fail('project_expanded_input_too_large');
           const environment = Object.fromEntries(Object.entries(process.env).filter(([key]) => !/^GIT_/i.test(key) && !agent.unsetEnv.includes(key)));
-          const handle = startCommand({ id: agent.id, command: agent.command, args, cwd: record.workspace.path, env: environment,
+          const start = agent.transport === 'pty' ? startDarwinPtyCommand : startCommand;
+          const handle = start({ id: agent.id, command: agent.command, args, cwd: record.workspace.path, env: environment,
+            ...(agent.transport === 'pty' ? { helperPath: ptyHelper, columns: record.terminal.columns, rows: record.terminal.rows } : {}),
             timeoutMs: agent.timeoutMs, signal: commandSignal, onEvent(event) {
-              if (event.type === 'output') tail = Buffer.from(tail + event.text).subarray(-65_532).toString('utf8');
+              if (event.type === 'output') {
+                const previous = outputTails.get(agent.id);
+                outputTails.set(agent.id, Buffer.concat([previous, Buffer.from(event.text)]).subarray(-65_536));
+                tail = api.outputTail(agent.id);
+              }
               if (event.type === 'started') record.pid = event.pid;
-              emit(event);
+              if (event.type === 'pty_ready') {
+                record.pid = event.pid;
+                record.terminalSessionId = event.sessionId;
+                persist(state);
+              }
+              emit(event.type === 'pty_ready' ? { ...event, terminalSessionId: event.sessionId } : event);
             } });
           handles.set(agent.id, handle);
           if (input !== undefined && !handle.send(input)) { handle.stop(); fail('project_initial_input_rejected'); }

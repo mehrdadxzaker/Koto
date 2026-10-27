@@ -153,7 +153,10 @@ export interface ProjectAgentPlan {
   /** Relative paths or directories checked again before integration; not a sandbox. */
   readonly owns: readonly string[];
   readonly timeoutMs?: number | undefined;
-  /** closed sends EOF after optional input; pipe permits explicit :send / :eof. */
+  /** pipe remains the default. pty currently requires an explicit local Mac helper build. */
+  readonly transport?: 'pipe' | 'pty' | undefined;
+  readonly terminal?: { readonly columns?: number | undefined; readonly rows?: number | undefined } | undefined;
+  /** Defaults to closed for pipe transport and pipe for PTY; closed sends EOF after optional input. */
   readonly inputMode?: 'closed' | 'pipe' | undefined;
   readonly input?: string | undefined;
   readonly unsetEnv?: readonly string[] | undefined;
@@ -165,6 +168,7 @@ export interface ProjectPlan {
   readonly goal: string;
   readonly agents: readonly ProjectAgentPlan[];
   readonly controlRoot?: string | undefined;
+  readonly nativeHelperDirectory?: string | undefined;
   readonly maxConcurrency?: number | undefined;
   readonly timeoutMs?: number | undefined;
 }
@@ -200,6 +204,7 @@ export interface ProjectAgentState extends ProjectAgentPlan {
   commandOutcome?: CommandOutcome | undefined;
   setupError?: string | undefined;
   pid?: number | undefined;
+  terminalSessionId?: number | undefined;
   startedAt?: string | undefined;
   finishedAt?: string | undefined;
   integration?: ProjectIntegration | undefined;
@@ -255,6 +260,11 @@ export type ProjectEvent = Readonly<{
   taskId?: string | undefined;
   agent?: string | undefined;
   workspace?: string | undefined;
+  terminalSessionId?: number | undefined;
+  columns?: number | undefined;
+  rows?: number | undefined;
+  transport?: 'pipe' | 'pty' | undefined;
+  platform?: string | undefined;
 }>;
 
 export interface ProjectReport {
@@ -269,8 +279,10 @@ export interface ProjectSession {
   readonly sessionRoot: string;
   run(): Promise<ProjectReport>;
   stop(agentId?: string | undefined): void;
-  send(agentId: string, text: string): boolean;
+  send(agentId: string, input: string | Uint8Array): boolean;
   endInput(agentId: string): boolean;
+  resize(agentId: string, columns: number, rows: number): boolean;
+  outputTail(agentId: string): string;
   status(): ProjectSessionState;
   inspect(agentId: string): Promise<ProjectInspection>;
   integrate(agentId: string, options: { approve: string }): Promise<ProjectIntegration>;
@@ -283,3 +295,17 @@ export function createProjectSession(source: ProjectPlan, options?: {
 }): Promise<ProjectSession>;
 export function inspectProjectSession(sessionRoot: string, agentId: string): Promise<ProjectInspection>;
 export function integrateProjectSession(sessionRoot: string, agentId: string, options: { approve: string }): Promise<ProjectIntegration>;
+
+export interface DarwinPtyBuildReceipt {
+  path: string;
+  platform: string;
+  arch: string;
+  sourceSha256: string;
+  binarySha256: string;
+  compiler: string;
+  [key: string]: unknown;
+}
+/** Explicit opt-in local compilation; never downloads or installs toolchains. */
+export function buildDarwinPtyHelper(options?: { directory?: string | undefined }): Promise<DarwinPtyBuildReceipt>;
+/** Verify existing source/build identity without compiling or launching an agent. */
+export function resolveDarwinPtyHelper(options?: { directory?: string | undefined }): Promise<string>;
