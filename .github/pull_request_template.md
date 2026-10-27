@@ -4,7 +4,8 @@ Describe the problem and resulting behavior. Link the relevant issue if present.
 
 ## Verification
 
-List commands and results, including package installation checks when relevant.
+List source/scope results and directly observed product behavior. Do not add or
+run automated test suites; identify any behavior you could not demonstrate.
 Identify platform or real-agent integration checks that remain pending.
 
 ## Compatibility

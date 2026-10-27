@@ -4,12 +4,12 @@
 
 **One shared core that lets commercial and open-source agents work together.**
 
-Install Koto with npm or run it with npx, then use the same core through your
-CLI, an IDE plugin, or Koto's own UI. The development order is **core and npm
+Install Koto with npm or run it with npx and use its CLI. IDE plugins and Koto's
+own UI are later consumers of the same core. The development order is **core and npm
 installation → delivery integrations → Koto UI**.
 
-This repository contains only that product and its supporting tests, examples,
-documentation and tooling. The previous Python router, enterprise modules,
+This repository contains only that product and its supporting documentation,
+assets and source tooling. The previous Python router, enterprise modules,
 model experiments, campaign archives and skills-only distribution are removed
 from the active tree.
 
@@ -31,13 +31,12 @@ Install the resulting tarball globally:
 ```sh
 npm install --global ./mehrdadxzaker-koto-3.0.0-alpha.0.tgz
 koto --help
-koto demo
 ```
 
 Or run that tarball without a global installation:
 
 ```sh
-npx --yes --package ./mehrdadxzaker-koto-3.0.0-alpha.0.tgz koto demo
+npx --yes --package ./mehrdadxzaker-koto-3.0.0-alpha.0.tgz koto --help
 ```
 
 The intended registry name is `@mehrdadxzaker/koto`; availability and publication
@@ -55,9 +54,8 @@ koto run /absolute/path/to/workflow.json
 ```
 
 A workflow explicitly names its worker executables and tasks. Workers receive a
-JSON assignment on stdin and return text on stdout. The bundled `demo` uses
-three deterministic fixture workers: two independent contributions feed a final
-integration and check. It makes no model calls.
+JSON assignment on stdin and return text on stdout. `finalTask` is optional;
+independent task graphs return individual results without a final text output.
 
 Agent runtimes and their model/provider access are configured separately. The
 process-worker protocol is a foundation for real adapters; it does not make
@@ -74,16 +72,41 @@ validateWorkflow(workflow);
 const result = await runWorkflow(workflow, { cwd: process.cwd() });
 ```
 
+## Project sessions
+
+The local implementation adds concurrent external commands in separate Git
+worktrees, with streamed output, per-command stop/input controls and a separate
+integration branch:
+
+```sh
+koto project start /absolute/path/to/plan.json
+koto project inspect /absolute/path/to/session agent_id
+koto project integrate /absolute/path/to/session agent_id --approve REVIEW_TOKEN
+```
+
+The plan supplies actual executable paths and argument arrays. Commands use
+ordinary pipes and retain their own authentication, permissions and agent loop.
+Launch requires explicit approval. After commands end, inspect the changes and
+approve their current review token to integrate; conflicts remain visible and
+the original checkout is not updated. Worktrees separate edits, not OS access.
+
+This implementation awaits a real Mac agent demonstration. No actual agent
+collaboration flow or platform qualification is established by the source work.
+Native protocol adapters, verified native completion and PTY sessions are not
+implemented. See [project sessions](docs/PROJECT_SESSIONS.md) for plans, terminal
+controls, retained files and limitations.
+
 ## Product boundaries
 
 - **Core:** task dependencies, scheduling, worker lifecycle, handoffs and results.
-- **CLI:** the current npm executable and a headless way to use the core.
+- **CLI:** workflow execution and terminal project sessions using the core.
 - **IDE plugins:** later delivery through VS Code and other IDEs.
 - **Koto UI:** a later interface to the same core.
 
-Codex, Claude Code and similar clients may participate through explicit agent
-or delivery adapters when implemented. IDE extensions, native-agent adapters
-and Koto's UI are not implemented in this initial slice.
+Codex, Claude Code and similar clients can be configured as external commands
+when their installed CLI supports the chosen arguments and pipe mode. This does
+not provide a native protocol adapter or verify the provider's completion state.
+IDE extensions, native-agent adapters, PTY sessions and Koto's UI remain later work.
 
 Read the [scope](https://github.com/mehrdadxzaker/Koto/blob/main/docs/SCOPE.md), [architecture](https://github.com/mehrdadxzaker/Koto/blob/main/docs/ARCHITECTURE.md),
 [roadmap](https://github.com/mehrdadxzaker/Koto/blob/main/docs/ROADMAP.md) and [migration boundary](https://github.com/mehrdadxzaker/Koto/blob/main/docs/MIGRATION.md).
@@ -93,19 +116,13 @@ Read the [scope](https://github.com/mehrdadxzaker/Koto/blob/main/docs/SCOPE.md),
 ```sh
 npm ci --ignore-scripts --no-audit --no-fund
 npm run check
-npm test
-npm run test:package
 ```
 
-Development checks use a pinned TypeScript compiler and Node declaration files;
-these are development dependencies and are not needed to install or run Koto.
-Tests use fixture processes, temporary directories and the actual packed npm
-artifact, including strict TypeScript consumer checks. CI is configured to run
-the checks on Windows, macOS and Linux with Node 22 and 24. Local checks pass on
-Linux with Node 22.23.4 and Node 24.19.0. See the exact revision's
-[CI results](https://github.com/mehrdadxzaker/Koto/actions/workflows/ci.yml) for
-hosted-platform evidence; the process-ownership limits in the security policy
-apply on every platform.
+`npm run check` inspects source scope, package metadata, runtime imports and
+documentation links. CI runs these source checks on Windows, macOS and Linux
+with Node 22 and 24. Automated suites, fixtures and package-execution checks are
+removed. A passing source check does not establish runtime or provider support.
+The process-ownership limits in the security policy apply on every platform.
 
 See [contributing](https://github.com/mehrdadxzaker/Koto/blob/main/CONTRIBUTING.md), [support](https://github.com/mehrdadxzaker/Koto/blob/main/SUPPORT.md),
 [security](https://github.com/mehrdadxzaker/Koto/blob/main/SECURITY.md) and the [license](https://github.com/mehrdadxzaker/Koto/blob/main/LICENSE).

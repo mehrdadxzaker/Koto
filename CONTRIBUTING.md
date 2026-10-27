@@ -1,7 +1,7 @@
 # Contributing
 
 Work on the shared orchestration core, npm installation, CLI, IDE plugins or
-Koto's own UI. Supporting documentation, tests and tooling must serve those
+Koto's own UI. Supporting documentation, assets and source tooling must serve those
 components. Read the [scope](docs/SCOPE.md) and [architecture](docs/ARCHITECTURE.md).
 Build the core before additional delivery surfaces.
 
@@ -12,24 +12,16 @@ Use Node.js 22 or later and npm:
 ```sh
 npm ci --ignore-scripts --no-audit --no-fund
 npm run check
-npm test
-npm run test:package
 ```
 
 Keep core behavior independent of an IDE or UI. Delivery adapters call the same
 core. Agent runtimes own their model access, tools and permissions; worker
 adapters describe the capabilities they actually support.
 
-Test meaningful public behavior with synthetic workers and temporary storage.
-Cover dependency handoffs, concurrency, failures, deadlines, cancellation and
-installed-package behavior when changing those paths. Do not require paid model
-calls or provider credentials for routine checks. A fixture result does not
-establish real-agent quality or compatibility.
-
-The Windows stdin-rejection test uses stock Windows PowerShell to compile a
-temporary native fixture during bounded setup. The actual worker keeps its
-original deadline. Installing and running Koto does not use this compiler or
-require PowerShell.
+Current CI checks source scope, package metadata, runtime imports and
+documentation links. Automated suites, fixtures and package-execution checks
+are removed. Describe source inspection and any separately observed runtime
+behavior accurately; a source check does not establish runtime compatibility.
 
 Do not add unrelated products, campaign archives, old runtime compatibility
 layers or a second installation system. Earlier implementations remain in Git

@@ -7,8 +7,8 @@ together. Users install it through npm or run it through npx. They can then use
 the same core through a CLI, an IDE plugin or Koto's own UI as those delivery
 surfaces become available.
 
-The repository contains these components and only the tests, examples,
-documentation, assets and tooling needed to develop and deliver them:
+The repository contains these components and the documentation, assets and
+source tooling needed to develop and deliver them:
 
 1. Shared orchestration core and worker adapters.
 2. Cross-platform npm/npx installation and CLI.

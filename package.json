@@ -13,21 +13,17 @@
   "exports": {
     ".": {
       "types": "./src/core.d.ts",
-      "import": "./src/core.js"
+      "import": "./src/index.js"
     }
   },
   "files": [
     "bin/",
     "src/",
-    "examples/",
     "README.md",
     "LICENSE"
   ],
   "scripts": {
-    "test": "node --test \"test/*.test.js\"",
-    "check": "node tools/check-scope.js",
-    "demo": "node bin/koto.js demo",
-    "test:package": "node tools/verify-package.js"
+    "check": "node tools/check-scope.js"
   },
   "repository": {
     "type": "git",
@@ -44,9 +40,5 @@
     "multi-agent",
     "cli",
     "koto"
-  ],
-  "devDependencies": {
-    "@types/node": "22.20.5",
-    "typescript": "5.9.3"
-  }
+  ]
 }

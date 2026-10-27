@@ -6,7 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const directories = new Set(['bin', 'src', 'plugins', 'ui', 'test', 'examples', 'tools', 'docs', '.github', 'assets']);
+const directories = new Set(['bin', 'src', 'plugins', 'ui', 'tools', 'docs', '.github', 'assets']);
 const rootFiles = new Set(['package.json', 'package-lock.json', '.gitignore', '.editorconfig', 'LICENSE', 'NOTICE']);
 const ignoredDirectories = /^(?:\.git|node_modules|dist|build|coverage|\.scratch|\.cache|\.pytest_cache|__pycache__|\.venv.*|.*\.egg-info)$/;
 const ignoredFiles = /^(?:\.env(?:\..*)?|\.coverage|.*\.runtime\.env|(?:hormuz|koto)\.json|.*\.(?:py[co]|sqlite3(?:-(?:shm|wal))?))$/;
@@ -159,12 +159,12 @@ function checkPackage() {
     ? Object.keys(publicExport) : [];
   if (!pkg.exports || Object.keys(pkg.exports).length !== 1
       || conditions.join(',') !== 'types,import'
-      || publicExport.types !== './src/core.d.ts' || publicExport.import !== './src/core.js') {
-    fail('The package root export must declare types: ./src/core.d.ts before import: ./src/core.js (ESM only)');
+      || publicExport.types !== './src/core.d.ts' || publicExport.import !== './src/index.js') {
+    fail('The package root export must declare types: ./src/core.d.ts before import: ./src/index.js (ESM only)');
   }
   packageTarget(publicExport?.types, 'The public declaration export');
   packageTarget(publicExport?.import, 'The shared-core export');
-  const expected = ['bin/', 'src/', 'examples/', 'README.md', 'LICENSE'];
+  const expected = ['bin/', 'src/', 'README.md', 'LICENSE'];
   if (!Array.isArray(pkg.files) || pkg.files.length !== expected.length
       || expected.some((name) => !pkg.files.includes(name))) {
     fail(`Published files must be limited to ${expected.join(', ')}`);
