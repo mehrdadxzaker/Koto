@@ -147,8 +147,8 @@ async function privateDirectory(value, create) {
 $p=$env:KOTO_NATIVE_DIRECTORY
 $me=[System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
 $trusted=@($me,'S-1-5-18','S-1-5-32-544')
-$danger=[System.Security.AccessControl.FileSystemRights]'Write,Delete,DeleteSubdirectoriesAndFiles,ChangePermissions,TakeOwnership'
-$ancestorDanger=[System.Security.AccessControl.FileSystemRights]'DeleteSubdirectoriesAndFiles,ChangePermissions,TakeOwnership'
+$danger=([int64][System.Security.AccessControl.FileSystemRights]'Write,Delete,DeleteSubdirectoriesAndFiles,ChangePermissions,TakeOwnership') -bor 0x50000000
+$ancestorDanger=([int64][System.Security.AccessControl.FileSystemRights]'DeleteSubdirectoriesAndFiles,ChangePermissions,TakeOwnership') -bor 0x10000000
 $first=$true
 while($p) {
   $acl=[System.IO.Directory]::GetAccessControl($p)
@@ -157,7 +157,7 @@ while($p) {
     $inheritOnly=($r.PropagationFlags -band [System.Security.AccessControl.PropagationFlags]::InheritOnly) -ne 0
     if(!$first -and $inheritOnly){continue}
     if($first -and $inheritOnly -and $r.IdentityReference.Value -eq 'S-1-3-0'){continue}
-    if($r.AccessControlType -eq 'Allow' -and $trusted -notcontains $r.IdentityReference.Value -and (($r.FileSystemRights -band $(if($first){$danger}else{$ancestorDanger})) -ne 0)){'writer_untrusted';exit 3}
+    if($r.AccessControlType -eq 'Allow' -and $trusted -notcontains $r.IdentityReference.Value -and (([int64]$r.FileSystemRights -band $(if($first){$danger}else{$ancestorDanger})) -ne 0)){'writer_untrusted';exit 3}
   }
   $first=$false
   $parent=[System.IO.Directory]::GetParent($p)
