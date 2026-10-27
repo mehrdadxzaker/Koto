@@ -149,12 +149,12 @@ $ancestorDanger=[System.Security.AccessControl.FileSystemRights]'DeleteSubdirect
 $first=$true
 while($p) {
   $acl=Get-Acl -LiteralPath $p
-  if($first -and $trusted -notcontains $acl.GetOwner([System.Security.Principal.SecurityIdentifier]).Value){exit 3}
+  if($first -and $trusted -notcontains $acl.GetOwner([System.Security.Principal.SecurityIdentifier]).Value){'owner_untrusted';exit 3}
   foreach($r in $acl.GetAccessRules($true,$true,[System.Security.Principal.SecurityIdentifier])) {
     $inheritOnly=($r.PropagationFlags -band [System.Security.AccessControl.PropagationFlags]::InheritOnly) -ne 0
     if(!$first -and $inheritOnly){continue}
     if($first -and $inheritOnly -and $r.IdentityReference.Value -eq 'S-1-3-0'){continue}
-    if($r.AccessControlType -eq 'Allow' -and $trusted -notcontains $r.IdentityReference.Value -and (($r.FileSystemRights -band $(if($first){$danger}else{$ancestorDanger})) -ne 0)){exit 3}
+    if($r.AccessControlType -eq 'Allow' -and $trusted -notcontains $r.IdentityReference.Value -and (($r.FileSystemRights -band $(if($first){$danger}else{$ancestorDanger})) -ne 0)){'writer_untrusted';exit 3}
   }
   $first=$false
   $parent=[System.IO.Directory]::GetParent($p)
@@ -165,11 +165,14 @@ while($p) {
   try {
     const tool = path.join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
     const result = await runTool(tool, ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', script],
-      { env: { ...process.env, KOTO_NATIVE_DIRECTORY: directory } });
+      { env: { ...process.env, KOTO_NATIVE_DIRECTORY: directory }, allow: [0, 3] });
+    if (result.exitCode === 3) throw failure('windows_pty_unsafe_build_directory',
+      'Helper storage must be owned by this user with no untrusted writers. Use a private directory under the user profile. No permissions were changed.',
+      ['owner_untrusted', 'writer_untrusted'].includes(result.stdout.trim()) ? result.stdout.trim() : 'acl_rejected');
     if (result.stdout.trim() !== 'ok') throw new Error('acl');
   } catch (error) {
-    if (error.code === 'windows_pty_build_cleanup_unconfirmed') throw error;
-    throw failure('windows_pty_unsafe_build_directory', 'Helper storage must be owned by this user with no untrusted writers. Use a private directory under the user profile. No permissions were changed.');
+    if (['windows_pty_build_cleanup_unconfirmed', 'windows_pty_unsafe_build_directory'].includes(error.code)) throw error;
+    throw failure('windows_pty_acl_check_failed', 'Windows directory ownership and access could not be inspected. No permissions were changed.', error.diagnostics);
   }
   return directory;
 }
@@ -257,26 +260,23 @@ async function compilerSetup() {
   const architecture = process.arch === 'arm64' ? 'arm64' : 'x64';
   for (const version of await versions(msvcRoot)) {
     const msvc = path.join(msvcRoot, version);
-    let compiler;
     for (const host of process.arch === 'arm64' ? ['Hostarm64', 'Hostx64'] : ['Hostx64']) {
-      compiler = await available(path.join(msvc, 'bin', host, architecture, 'cl.exe'));
-      if (compiler) break;
-    }
-    if (!compiler) continue;
-    for (const sdkVersion of await versions(path.join(sdkRoot, 'Include'))) {
-      const includeRoot = path.join(sdkRoot, 'Include', sdkVersion);
-      const libRoot = path.join(sdkRoot, 'Lib', sdkVersion);
-      if (!await available(path.join(includeRoot, 'um', 'Windows.h')) || !await available(path.join(libRoot, 'um', architecture, 'kernel32.lib'))) continue;
-      const compilerHost = path.basename(path.dirname(path.dirname(compiler))).slice(4).toLowerCase();
-      const sdkBin = path.join(sdkRoot, 'bin', sdkVersion, compilerHost);
-      if (!await available(path.join(sdkBin, 'rc.exe')) || !await available(path.join(sdkBin, 'mt.exe'))) continue;
-      const selected = { ...env, INCLUDE: [path.join(msvc, 'include'), ...['ucrt', 'shared', 'um', 'winrt'].map(item => path.join(includeRoot, item))].join(';'),
-        LIB: [path.join(msvc, 'lib', architecture), path.join(libRoot, 'ucrt', architecture), path.join(libRoot, 'um', architecture)].join(';') };
-      // Windows environment names are case-insensitive. Remove any old Path
-      // spelling before supplying the selected native toolchain directory.
-      for (const key of Object.keys(selected)) if (key.toLowerCase() === 'path') delete selected[key];
-      selected.PATH = `${path.dirname(compiler)};${sdkBin};${searchPath}`;
-      return { compiler, env: selected };
+      const compiler = await available(path.join(msvc, 'bin', host, architecture, 'cl.exe'));
+      if (!compiler) continue;
+      for (const sdkVersion of await versions(path.join(sdkRoot, 'Include'))) {
+        const includeRoot = path.join(sdkRoot, 'Include', sdkVersion);
+        const libRoot = path.join(sdkRoot, 'Lib', sdkVersion);
+        if (!await available(path.join(includeRoot, 'um', 'Windows.h')) || !await available(path.join(libRoot, 'um', architecture, 'kernel32.lib'))) continue;
+        const sdkBin = path.join(sdkRoot, 'bin', sdkVersion, host.slice(4).toLowerCase());
+        if (!await available(path.join(sdkBin, 'rc.exe')) || !await available(path.join(sdkBin, 'mt.exe'))) continue;
+        const selected = { ...env, INCLUDE: [path.join(msvc, 'include'), ...['ucrt', 'shared', 'um', 'winrt'].map(item => path.join(includeRoot, item))].join(';'),
+          LIB: [path.join(msvc, 'lib', architecture), path.join(libRoot, 'ucrt', architecture), path.join(libRoot, 'um', architecture)].join(';') };
+        // Windows environment names are case-insensitive. Remove any old Path
+        // spelling before supplying the selected native toolchain directory.
+        for (const key of Object.keys(selected)) if (key.toLowerCase() === 'path') delete selected[key];
+        selected.PATH = `${path.dirname(compiler)};${sdkBin};${searchPath}`;
+        return { compiler, env: selected };
+      }
     }
   }
   throw failure('windows_pty_compiler_required', 'The existing Visual Studio installation must include matching C++ tools and a Windows 10 SDK. Nothing was downloaded.');
