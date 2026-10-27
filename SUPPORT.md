@@ -8,10 +8,12 @@ Koto is experimental software with best-effort community support.
 | Node.js | Requires version 22 or later |
 | TypeScript | Public declarations included; automated consumer checks removed |
 | Platforms | Windows, macOS and Linux are targets; CI checks source and scope with Node 22 and 24 |
-| Core | Explicit task graphs, process workers, dependency handoffs, bounded concurrency and lifecycle control |
-| Agent integrations | A generic process-worker protocol; native commercial/open-source adapters need implementation and interoperability evidence |
-| Worker isolation | Shared working directory; POSIX process-group cleanup implemented, Windows descendant cleanup needs stronger ownership |
-| Native coding workflow | Concurrent native agents, isolated workspaces and terminal controls remain to be implemented |
+| Core | Explicit task graphs, optional final task, process workers, dependency handoffs, bounded concurrency and lifecycle control |
+| External command sessions | Local implementation runs configured executable/argv commands over pipes; native protocol parsing and PTY are absent |
+| Project workspaces | Separate Git worktrees and branches per command, plus a separate integration branch; worktrees do not restrict OS access |
+| Terminal collaboration | Streamed output, input/EOF, individual/all stop, review tokens and explicit integration with visible conflicts implemented locally; real Mac demonstration pending |
+| Agent qualification | No actual agent flow or platform qualification established for the new project-session implementation |
+| Process ownership | POSIX group cleanup implemented; self-detached descendants are outside ownership and Windows cleanup remains best effort |
 | IDE plugins | Planned |
 | Koto UI | Planned |
 
@@ -20,6 +22,11 @@ requirements are separate from installing Koto. A worker's exit code does not
 establish answer quality. Workflows must supply their own acceptance checks.
 Current CI provides source and scope evidence only; automated suites, fixtures
 and package-execution checks are removed.
+
+Project sessions additionally require Git and separately configured agent CLIs.
+Native interactive prompts may need a PTY and therefore may not work over these
+pipes. Raw input forwarding does not implement a provider's approval protocol.
+See [project sessions](docs/PROJECT_SESSIONS.md).
 
 For bugs, include package version, Node version, OS and a synthetic reproduction.
 Use [GitHub issues](https://github.com/mehrdadxzaker/Koto/issues). Report

@@ -40,8 +40,18 @@ worker expects Koto's JSON-stdin/text-stdout contract. It is not a native Codex
 or Claude Code integration. On Windows use an actual executable or `$node` with
 a script path; `.cmd` and `.bat` wrappers require a dedicated adapter.
 
+Project sessions additionally require Git on an absolute PATH entry and a clean
+Git project. They run separately installed command executables using the exact
+argument arrays in your plan, rather than imposing the JSON worker protocol.
+See [project sessions](PROJECT_SESSIONS.md) for launch approval, concurrent
+worktrees, terminal controls, review tokens and conflict handling. The current
+implementation uses ordinary pipes; native protocol adapters and PTY are absent.
+It awaits a real Mac agent demonstration, with no new platform qualification.
+
 IDE plugins and Koto's UI will be separate ways to use the installed core. They
 are planned and no placeholder package is installed today.
 
 Use `npm uninstall --global @mehrdadxzaker/koto` to remove a global installation.
-Koto creates no startup hooks, model downloads or persistent user configuration.
+Koto creates no startup hooks or model downloads. Project sessions retain private
+control/output files and Git branches/worktrees; uninstalling the package does
+not delete them. Inspect and preserve that work before any explicit cleanup.

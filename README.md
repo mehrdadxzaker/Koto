@@ -4,8 +4,8 @@
 
 **One shared core that lets commercial and open-source agents work together.**
 
-Install Koto with npm or run it with npx, then use the same core through your
-CLI, an IDE plugin, or Koto's own UI. The development order is **core and npm
+Install Koto with npm or run it with npx and use its CLI. IDE plugins and Koto's
+own UI are later consumers of the same core. The development order is **core and npm
 installation → delivery integrations → Koto UI**.
 
 This repository contains only that product and its supporting documentation,
@@ -54,7 +54,8 @@ koto run /absolute/path/to/workflow.json
 ```
 
 A workflow explicitly names its worker executables and tasks. Workers receive a
-JSON assignment on stdin and return text on stdout.
+JSON assignment on stdin and return text on stdout. `finalTask` is optional;
+independent task graphs return individual results without a final text output.
 
 Agent runtimes and their model/provider access are configured separately. The
 process-worker protocol is a foundation for real adapters; it does not make
@@ -71,18 +72,41 @@ validateWorkflow(workflow);
 const result = await runWorkflow(workflow, { cwd: process.cwd() });
 ```
 
+## Project sessions
+
+The local implementation adds concurrent external commands in separate Git
+worktrees, with streamed output, per-command stop/input controls and a separate
+integration branch:
+
+```sh
+koto project start /absolute/path/to/plan.json
+koto project inspect /absolute/path/to/session agent_id
+koto project integrate /absolute/path/to/session agent_id --approve REVIEW_TOKEN
+```
+
+The plan supplies actual executable paths and argument arrays. Commands use
+ordinary pipes and retain their own authentication, permissions and agent loop.
+Launch requires explicit approval. After commands end, inspect the changes and
+approve their current review token to integrate; conflicts remain visible and
+the original checkout is not updated. Worktrees separate edits, not OS access.
+
+This implementation awaits a real Mac agent demonstration. No actual agent
+collaboration flow or platform qualification is established by the source work.
+Native protocol adapters, verified native completion and PTY sessions are not
+implemented. See [project sessions](docs/PROJECT_SESSIONS.md) for plans, terminal
+controls, retained files and limitations.
+
 ## Product boundaries
 
 - **Core:** task dependencies, scheduling, worker lifecycle, handoffs and results.
-- **CLI:** the current npm executable and a headless way to use the core.
+- **CLI:** workflow execution and terminal project sessions using the core.
 - **IDE plugins:** later delivery through VS Code and other IDEs.
 - **Koto UI:** a later interface to the same core.
 
-Codex, Claude Code and similar clients may participate through explicit agent
-or delivery adapters when implemented. IDE extensions, native-agent adapters
-and Koto's UI are not implemented in this initial slice.
-Concurrent native agents in isolated workspaces, with terminal controls and
-one owner for integration, are the immediate implementation gap.
+Codex, Claude Code and similar clients can be configured as external commands
+when their installed CLI supports the chosen arguments and pipe mode. This does
+not provide a native protocol adapter or verify the provider's completion state.
+IDE extensions, native-agent adapters, PTY sessions and Koto's UI remain later work.
 
 Read the [scope](https://github.com/mehrdadxzaker/Koto/blob/main/docs/SCOPE.md), [architecture](https://github.com/mehrdadxzaker/Koto/blob/main/docs/ARCHITECTURE.md),
 [roadmap](https://github.com/mehrdadxzaker/Koto/blob/main/docs/ROADMAP.md) and [migration boundary](https://github.com/mehrdadxzaker/Koto/blob/main/docs/MIGRATION.md).

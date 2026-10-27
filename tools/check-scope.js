@@ -159,8 +159,8 @@ function checkPackage() {
     ? Object.keys(publicExport) : [];
   if (!pkg.exports || Object.keys(pkg.exports).length !== 1
       || conditions.join(',') !== 'types,import'
-      || publicExport.types !== './src/core.d.ts' || publicExport.import !== './src/core.js') {
-    fail('The package root export must declare types: ./src/core.d.ts before import: ./src/core.js (ESM only)');
+      || publicExport.types !== './src/core.d.ts' || publicExport.import !== './src/index.js') {
+    fail('The package root export must declare types: ./src/core.d.ts before import: ./src/index.js (ESM only)');
   }
   packageTarget(publicExport?.types, 'The public declaration export');
   packageTarget(publicExport?.import, 'The shared-core export');

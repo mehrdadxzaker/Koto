@@ -3,6 +3,7 @@ import { open, readFile } from 'node:fs/promises';
 import { constants } from 'node:fs';
 import { TextDecoder } from 'node:util';
 import { runWorkflow, validateWorkflow } from '../src/core.js';
+import { runProjectCli } from './project.js';
 
 const packageRoot = new URL('../', import.meta.url);
 const metadata = JSON.parse(await readFile(new URL('package.json', packageRoot), 'utf8'));
@@ -29,6 +30,7 @@ Usage:
   koto --version
   koto validate <workflow.json>
   koto run <workflow.json>
+  koto project --help
 
 run executes the commands explicitly declared in the selected workflow.
 Worker commands receive a JSON assignment on stdin and return text on stdout.
@@ -45,6 +47,23 @@ async function main(args) {
     return;
   }
   const [command, path] = args;
+  if (command === 'project') {
+    const controller = new AbortController();
+    activeController = controller;
+    if (outputFailed) controller.abort();
+    const interrupt = () => controller.abort();
+    process.once('SIGINT', interrupt);
+    process.once('SIGTERM', interrupt);
+    try {
+      process.exitCode = await runProjectCli(args.slice(1), { signal: controller.signal,
+        write: text => write(process.stdout, text) });
+    } finally {
+      activeController = undefined;
+      process.removeListener('SIGINT', interrupt);
+      process.removeListener('SIGTERM', interrupt);
+    }
+    return;
+  }
   if (!(['validate', 'run'].includes(command) && args.length === 2 && !path.startsWith('-'))) {
     write(process.stderr, help);
     process.exitCode = 2;

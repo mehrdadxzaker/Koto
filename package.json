@@ -13,7 +13,7 @@
   "exports": {
     ".": {
       "types": "./src/core.d.ts",
-      "import": "./src/core.js"
+      "import": "./src/index.js"
     }
   },
   "files": [

@@ -104,8 +104,8 @@ export function validateWorkflow(workflow) {
       fail('dependencies must reference existing tasks');
     }
   }
-  const finalTask = identifier(workflow.finalTask, 'finalTask');
-  if (!byId.has(finalTask)) fail('finalTask must reference an existing task');
+  const finalTask = workflow.finalTask == null ? null : identifier(workflow.finalTask, 'finalTask');
+  if (finalTask !== null && !byId.has(finalTask)) fail('finalTask must reference an existing task');
   const visited = new Set();
   const visiting = new Set();
   function visit(id) {
@@ -123,8 +123,10 @@ export function validateWorkflow(workflow) {
     contributing.add(id);
     for (const dependency of byId.get(id).dependsOn) contribute(dependency);
   }
-  contribute(finalTask);
-  if (contributing.size !== tasks.length) fail('every task must contribute to finalTask');
+  if (finalTask !== null) {
+    contribute(finalTask);
+    if (contributing.size !== tasks.length) fail('every task must contribute to finalTask');
+  }
   return {
     schemaVersion: 1,
     goal,
@@ -297,7 +299,7 @@ export async function runWorkflow(source, { cwd, signal, onEvent, adapters = {} 
       status,
       goal: workflow.goal,
       finalTask: workflow.finalTask,
-      output: final.status === 'succeeded' ? final.output : null,
+      output: final?.status === 'succeeded' ? final.output : null,
       tasks: workflow.tasks.map((task) => ({ ...records.get(task.id) })),
     };
     emit({ type: 'run_finished', status });
