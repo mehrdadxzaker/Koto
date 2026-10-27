@@ -510,6 +510,24 @@ export interface TerminalCleanupDiagnostic {
   readonly observationIncomplete: boolean;
   readonly observationResolved: boolean;
 }
+/** Bounded Windows helper telemetry; it never establishes cleanup ownership. */
+export interface WindowsTerminalPhase {
+  readonly sequence: number;
+  readonly operation: 'resume_process' | 'resize_console' | 'stop_requested' | 'terminate_job'
+    | 'wait_job' | 'close_console' | 'join_threads';
+  readonly state: 'begin' | 'end';
+  readonly errorCode: number;
+}
+export interface TerminalHelperDiagnostic {
+  readonly trigger: 'close' | 'cleanup_deadline';
+  readonly helperPid: number | null;
+  readonly exitCode: number | null;
+  readonly signal: string | null;
+  readonly readyReceived: boolean;
+  readonly finalReceived: boolean;
+  readonly protocolValid: boolean;
+  readonly lastPhase: WindowsTerminalPhase | null;
+}
 export type ProjectEvent = Readonly<{
   type: string;
   sessionId: string;
@@ -538,6 +556,8 @@ export type ProjectEvent = Readonly<{
   tool?: string | undefined;
   cleanup?: 'confirmed' | 'unconfirmed' | undefined;
   cleanupDiagnostic?: TerminalCleanupDiagnostic | undefined;
+  terminalPhase?: WindowsTerminalPhase | undefined;
+  helperDiagnostic?: TerminalHelperDiagnostic | undefined;
   reason?: string | undefined;
 }>;
 

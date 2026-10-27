@@ -24,12 +24,17 @@
 #define IO_STALL_MS 1500ULL
 #define CLEANUP_MS 2500ULL
 #define JOIN_MS 750U
+#define PHASE_LIMIT 64U
+#define RESIZE_PHASE_LIMIT 48U
+/* Nominal waits after stop: PTY 2500 + 6*750 = 7000 ms; pipe 2500 +
+ * 5*750 = 6250 ms. Supervisor polling and OS scheduling/API latency are extra.
+ * A blocked resize is confined to its worker and bounded join, never this loop. */
 
 struct supervisor {
     HANDLE input, output, status, host, job, process;
     HANDLE native_input, native_output, native_error;
-    HANDLE wake, input_wake, stop_io, status_wake, stop_status;
-    HANDLE control_thread, input_thread, output_thread, error_thread, status_thread, close_thread;
+    HANDLE wake, input_wake, stop_io, status_wake, stop_status, resize_wake, stop_resize;
+    HANDLE control_thread, input_thread, output_thread, error_thread, status_thread, close_thread, resize_thread;
     HPCON console;
     CRITICAL_SECTION lock;
     unsigned char queued_input[INPUT_LIMIT], queued_status[STATUS_LIMIT];
@@ -41,14 +46,94 @@ struct supervisor {
     BOOL pipe_mode, stop_requested, input_ended, resize_pending;
     volatile LONG shutting_down;
     BOOL input_busy, output_busy, status_busy, exited, cleanup_confirmed;
+    BOOL ready_queued, final_queued, close_phase_started;
+    unsigned phase_sequence, resize_phases_reserved;
     const char *reason;
 };
 
+enum phase_operation {
+    PHASE_RESUME_PROCESS, PHASE_RESIZE_CONSOLE, PHASE_STOP_REQUESTED,
+    PHASE_TERMINATE_JOB, PHASE_WAIT_JOB, PHASE_CLOSE_CONSOLE, PHASE_JOIN_THREADS
+};
+
+static const char *const phase_names[] = {
+    "resume_process", "resize_console", "stop_requested", "terminate_job",
+    "wait_job", "close_console", "join_threads"
+};
+
+/* All lifecycle records share this queue and lock. Diagnostics never supply
+ * ownership evidence, and a stalled diagnostic queue must not recurse. */
+static BOOL status_append_locked(struct supervisor *s, const char *bytes, size_t length)
+{
+    if (length > STATUS_LIMIT - s->status_length) return FALSE;
+    memcpy(s->queued_status + s->status_length, bytes, length);
+    s->status_length += length;
+    SetEvent(s->status_wake);
+    return TRUE;
+}
+
+static BOOL phase_record_locked(struct supervisor *s, enum phase_operation operation,
+    const char *state, DWORD error_code)
+{
+    char record[256];
+    int length;
+    if (!s->ready_queued || s->final_queued || s->phase_sequence >= PHASE_LIMIT) return FALSE;
+    length = snprintf(record, sizeof(record),
+        "{\"type\":\"phase\",\"pid\":%lu,\"sessionId\":%lu,\"sequence\":%u,\"operation\":\"%s\",\"state\":\"%s\",\"errorCode\":%lu}\n",
+        (unsigned long)s->pid, (unsigned long)s->pid, s->phase_sequence + 1,
+        phase_names[operation], state, (unsigned long)error_code);
+    if (length < 0 || (size_t)length >= sizeof(record)
+        || !status_append_locked(s, record, (size_t)length)) {
+        if (s->reason == NULL) s->reason = "status_stalled";
+        s->stop_requested = TRUE;
+        SetEvent(s->wake);
+        return FALSE;
+    }
+    ++s->phase_sequence;
+    return TRUE;
+}
+
+static BOOL phase_begin_locked(struct supervisor *s, enum phase_operation operation)
+{
+    /* Reserve a complete resize pair, leaving sixteen records for shutdown.
+     * A hung call intentionally leaves its begin without an end diagnostic. */
+    if (operation == PHASE_RESIZE_CONSOLE
+        && s->resize_phases_reserved > RESIZE_PHASE_LIMIT - 2) return FALSE;
+    if (!phase_record_locked(s, operation, "begin", 0)) return FALSE;
+    if (operation == PHASE_RESIZE_CONSOLE) s->resize_phases_reserved += 2;
+    return TRUE;
+}
+
+static BOOL phase_begin(struct supervisor *s, enum phase_operation operation)
+{
+    BOOL started;
+    EnterCriticalSection(&s->lock);
+    started = phase_begin_locked(s, operation);
+    LeaveCriticalSection(&s->lock);
+    return started;
+}
+
+static void phase_end(struct supervisor *s, enum phase_operation operation, BOOL started, DWORD error_code)
+{
+    if (!started) return;
+    EnterCriticalSection(&s->lock);
+    phase_record_locked(s, operation, "end", error_code);
+    LeaveCriticalSection(&s->lock);
+}
+
+static void remember_error(DWORD *first, DWORD code)
+{
+    if (*first == 0 && code != 0) *first = code;
+}
+
 static void request_stop(struct supervisor *s, const char *reason)
 {
+    BOOL phase;
     EnterCriticalSection(&s->lock);
+    phase = !s->stop_requested && phase_begin_locked(s, PHASE_STOP_REQUESTED);
     if (s->reason == NULL && reason != NULL) s->reason = reason;
     s->stop_requested = TRUE;
+    if (phase) phase_record_locked(s, PHASE_STOP_REQUESTED, "end", 0);
     LeaveCriticalSection(&s->lock);
     SetEvent(s->wake);
 }
@@ -57,14 +142,9 @@ static BOOL status_append(struct supervisor *s, const char *bytes, size_t length
 {
     BOOL result = FALSE;
     EnterCriticalSection(&s->lock);
-    if (length <= STATUS_LIMIT - s->status_length) {
-        memcpy(s->queued_status + s->status_length, bytes, length);
-        s->status_length += length;
-        result = TRUE;
-    }
+    result = status_append_locked(s, bytes, length);
     LeaveCriticalSection(&s->lock);
-    if (result) SetEvent(s->status_wake);
-    else request_stop(s, "status_stalled");
+    if (!result) request_stop(s, "status_stalled");
     return result;
 }
 
@@ -160,7 +240,11 @@ static DWORD WINAPI control_worker(void *argument)
             unsigned columns = ((unsigned)payload[0] << 8) | payload[1];
             unsigned rows = ((unsigned)payload[2] << 8) | payload[3];
             if (columns < 1 || columns > 32767 || rows < 1 || rows > 32767) bad = TRUE;
-            else { s->columns = (SHORT)columns; s->rows = (SHORT)rows; s->resize_pending = TRUE; }
+            else if (!s->stop_requested && !InterlockedCompareExchange(&s->shutting_down, 0, 0)) {
+                s->columns = (SHORT)columns; s->rows = (SHORT)rows;
+                s->resize_pending = TRUE;
+                SetEvent(s->resize_wake);
+            }
         } else if (header[0] == 2 && length == 0 && !s->input_ended) {
             if (!s->pipe_mode) {
                 if (s->input_length == INPUT_LIMIT) bad = TRUE;
@@ -172,6 +256,41 @@ static DWORD WINAPI control_worker(void *argument)
         LeaveCriticalSection(&s->lock);
         if (bad) { request_stop(s, "invalid_control"); return 1; }
         SetEvent(s->wake);
+    }
+}
+
+static DWORD WINAPI resize_worker(void *argument)
+{
+    struct supervisor *s = argument;
+    HANDLE waiters[] = { s->stop_resize, s->resize_wake };
+    for (;;) {
+        DWORD selected = WaitForMultipleObjects(2, waiters, FALSE, INFINITE);
+        if (selected == WAIT_OBJECT_0) return 0;
+        if (selected == WAIT_FAILED) { request_stop(s, "session_inspection_failed"); return 1; }
+        for (;;) {
+            COORD size;
+            BOOL phase;
+            HRESULT resized;
+            EnterCriticalSection(&s->lock);
+            if (s->stop_requested || InterlockedCompareExchange(&s->shutting_down, 0, 0)) {
+                s->resize_pending = FALSE;
+                LeaveCriticalSection(&s->lock);
+                return 0;
+            }
+            if (!s->ready_queued || !s->resize_pending) {
+                LeaveCriticalSection(&s->lock);
+                break;
+            }
+            size.X = s->columns; size.Y = s->rows;
+            s->resize_pending = FALSE;
+            phase = phase_begin_locked(s, PHASE_RESIZE_CONSOLE);
+            LeaveCriticalSection(&s->lock);
+            /* ConPTY may block here. The supervisor must retain its stop/Job
+             * deadline independently; it joins this sole worker before close. */
+            resized = ResizePseudoConsole(s->console, size);
+            phase_end(s, PHASE_RESIZE_CONSOLE, phase, FAILED(resized) ? (DWORD)resized : 0);
+            if (FAILED(resized)) { request_stop(s, "pty_failed"); return 1; }
+        }
     }
 }
 
@@ -286,22 +405,31 @@ static DWORD WINAPI close_console_worker(void *argument)
     struct supervisor *s = argument;
     ClosePseudoConsole(s->console);
     s->console = NULL;
+    phase_end(s, PHASE_CLOSE_CONSOLE, s->close_phase_started, 0);
     return 0;
 }
 
-static BOOL join_thread(HANDLE thread, DWORD timeout, BOOL cancel)
+static BOOL join_thread(HANDLE thread, DWORD timeout, BOOL cancel, DWORD *first_error)
 {
     ULONGLONG deadline;
     if (thread == NULL) return TRUE;
-    if (!cancel) return WaitForSingleObject(thread, timeout) == WAIT_OBJECT_0;
     deadline = GetTickCount64() + timeout;
-    do {
+    for (;;) {
+        DWORD selected, remaining;
+        ULONGLONG now = GetTickCount64();
+        if (now >= deadline) { remember_error(first_error, WAIT_TIMEOUT); return FALSE; }
+        remaining = (DWORD)(deadline - now);
         /* Repeat cancellation to cover the race in which the worker enters a
          * synchronous read just after the first cancellation found no I/O. */
-        CancelSynchronousIo(thread);
-        if (WaitForSingleObject(thread, 10) == WAIT_OBJECT_0) return TRUE;
-    } while (GetTickCount64() < deadline);
-    return FALSE;
+        if (cancel && !CancelSynchronousIo(thread)) {
+            DWORD code = GetLastError();
+            if (code != ERROR_NOT_FOUND) remember_error(first_error, code);
+        }
+        selected = WaitForSingleObject(thread, cancel && remaining > 10 ? 10 : remaining);
+        if (selected == WAIT_OBJECT_0) return TRUE;
+        if (selected == WAIT_FAILED) { remember_error(first_error, GetLastError()); return FALSE; }
+        if (selected != WAIT_TIMEOUT) { remember_error(first_error, ERROR_INVALID_DATA); return FALSE; }
+    }
 }
 
 /* Quote every argv entry using the CommandLineToArgvW / Microsoft CRT rules. */
@@ -363,8 +491,10 @@ int wmain(int argc, wchar_t **argv)
     SIZE_T attributes_size = 0;
     wchar_t *line = NULL;
     DWORD host_pid = 0;
+    DWORD job_error = 0, join_error = 0;
     int index, command_index = -1, result = 2;
     BOOL attributes_initialized = FALSE, final_sent = FALSE;
+    BOOL wait_job_phase = FALSE, join_phase = FALSE, resize_done = TRUE;
     ULONGLONG stopping_at = 0;
     char record[512];
     s = calloc(1, sizeof(*s));
@@ -401,7 +531,10 @@ int wmain(int argc, wchar_t **argv)
     s->stop_io = CreateEventW(NULL, TRUE, FALSE, NULL);
     s->status_wake = CreateEventW(NULL, FALSE, FALSE, NULL);
     s->stop_status = CreateEventW(NULL, TRUE, FALSE, NULL);
-    if (!s->wake || !s->input_wake || !s->stop_io || !s->status_wake || !s->stop_status) goto finish;
+    s->resize_wake = CreateEventW(NULL, FALSE, FALSE, NULL);
+    s->stop_resize = CreateEventW(NULL, TRUE, FALSE, NULL);
+    if (!s->wake || !s->input_wake || !s->stop_io || !s->status_wake || !s->stop_status
+        || !s->resize_wake || !s->stop_resize) goto finish;
     if (!make_pipe(&child_input, &s->native_input, s->pipe_mode)
         || !make_pipe(&s->native_output, &child_output, s->pipe_mode)) goto finish;
     if (s->pipe_mode) {
@@ -445,13 +578,19 @@ int wmain(int argc, wchar_t **argv)
     s->input_thread = CreateThread(NULL, 0, input_worker, s, 0, NULL);
     s->control_thread = CreateThread(NULL, 0, control_worker, s, 0, NULL);
     if (s->pipe_mode) s->error_thread = CreateThread(NULL, 0, error_worker, s, 0, NULL);
-    if (!s->status_thread || !s->output_thread || !s->input_thread || !s->control_thread || (s->pipe_mode && !s->error_thread)) goto finish;
+    else s->resize_thread = CreateThread(NULL, 0, resize_worker, s, 0, NULL);
+    if (!s->status_thread || !s->output_thread || !s->input_thread || !s->control_thread
+        || (s->pipe_mode ? !s->error_thread : !s->resize_thread)) goto finish;
     if (child_input) { CloseHandle(child_input); child_input = NULL; }
     if (child_output) { CloseHandle(child_output); child_output = NULL; }
     if (child_error) { CloseHandle(child_error); child_error = NULL; }
+    EnterCriticalSection(&s->lock);
     snprintf(record, sizeof(record), "{\"type\":\"ready\",\"pid\":%lu,\"sessionId\":%lu,\"columns\":%d,\"rows\":%d}\n",
         (unsigned long)s->pid, (unsigned long)s->pid, (int)s->columns, (int)s->rows);
-    if (!status_append(s, record, strlen(record))) goto finish;
+    s->ready_queued = status_append_locked(s, record, strlen(record));
+    LeaveCriticalSection(&s->lock);
+    if (!s->ready_queued) goto finish;
+    SetEvent(s->resize_wake);
     {
         BOOL launch;
         EnterCriticalSection(&s->lock);
@@ -460,79 +599,134 @@ int wmain(int argc, wchar_t **argv)
         if (WaitForSingleObject(s->host, 0) != WAIT_TIMEOUT) { request_stop(s, "host_gone"); launch = FALSE; }
         /* A queued cancellation during setup must not resume the native task.
          * Its suspended process is already job-owned and has an announced id. */
-        if (launch && ResumeThread(process.hThread) == (DWORD)-1) request_stop(s, "child_setup_failed");
+        if (launch) {
+            BOOL phase = phase_begin(s, PHASE_RESUME_PROCESS);
+            BOOL failed;
+            DWORD error_code = 0;
+            failed = ResumeThread(process.hThread) == (DWORD)-1;
+            if (failed) error_code = GetLastError();
+            phase_end(s, PHASE_RESUME_PROCESS, phase, error_code);
+            if (failed) request_stop(s, "child_setup_failed");
+        }
     }
     CloseHandle(process.hThread); process.hThread = NULL;
 
     for (;;) {
         HANDLE waiters[] = { s->host, s->process, s->wake };
         DWORD selected = WaitForMultipleObjects(3, waiters, FALSE, 20);
-        BOOL stop, resized = FALSE;
+        DWORD wait_error = selected == WAIT_FAILED ? GetLastError() : 0;
+        DWORD process_state;
+        BOOL stop;
         const char *stalled = NULL;
-        COORD size = {0};
         ULONGLONG now = GetTickCount64();
         if (selected == WAIT_OBJECT_0) request_stop(s, "host_gone");
-        if (selected == WAIT_FAILED) request_stop(s, "session_inspection_failed");
-        if (!s->exited && WaitForSingleObject(s->process, 0) == WAIT_OBJECT_0) {
-            if (!GetExitCodeProcess(s->process, &s->exit_code)) request_stop(s, "session_inspection_failed");
-            s->exited = TRUE;
-            request_stop(s, NULL);
+        if (selected == WAIT_FAILED) {
+            remember_error(&job_error, wait_error);
+            request_stop(s, "session_inspection_failed");
+        }
+        if (!s->exited) {
+            process_state = WaitForSingleObject(s->process, 0);
+            if (process_state == WAIT_FAILED) {
+                remember_error(&job_error, GetLastError());
+                request_stop(s, "session_inspection_failed");
+            } else if (process_state == WAIT_OBJECT_0) {
+                if (!GetExitCodeProcess(s->process, &s->exit_code)) {
+                    remember_error(&job_error, GetLastError());
+                    request_stop(s, "session_inspection_failed");
+                }
+                s->exited = TRUE;
+                request_stop(s, NULL);
+            }
         }
         EnterCriticalSection(&s->lock);
         stop = s->stop_requested;
         if (s->input_busy && now - s->input_started > IO_STALL_MS) stalled = "input_overflow";
         if (s->output_busy && now - s->output_started > IO_STALL_MS) stalled = "output_stalled";
         if (s->status_busy && now - s->status_started > IO_STALL_MS) stalled = "status_stalled";
-        if (s->resize_pending) { size.X = s->columns; size.Y = s->rows; s->resize_pending = FALSE; resized = TRUE; }
         LeaveCriticalSection(&s->lock);
         if (stalled) { request_stop(s, stalled); stop = TRUE; }
-        if (resized && !stop && FAILED(ResizePseudoConsole(s->console, size))) request_stop(s, "pty_failed");
         if (stop && stopping_at == 0) {
+            BOOL phase, failed;
+            DWORD error_code = 0;
             stopping_at = now;
             InterlockedExchange(&s->shutting_down, TRUE);
             SetEvent(s->stop_io);
+            SetEvent(s->stop_resize);
             if (s->input_thread) CancelSynchronousIo(s->input_thread);
             if (s->control_thread) CancelSynchronousIo(s->control_thread);
-            if (!TerminateJobObject(s->job, 1)) request_stop(s, "session_inspection_failed");
+            phase = phase_begin(s, PHASE_TERMINATE_JOB);
+            failed = !TerminateJobObject(s->job, 1);
+            if (failed) error_code = GetLastError();
+            phase_end(s, PHASE_TERMINATE_JOB, phase, error_code);
+            if (failed) request_stop(s, "session_inspection_failed");
+            wait_job_phase = phase_begin(s, PHASE_WAIT_JOB);
         }
         if (stopping_at != 0) {
             JOBOBJECT_BASIC_ACCOUNTING_INFORMATION accounting;
             BOOL inspected = QueryInformationJobObject(s->job, JobObjectBasicAccountingInformation,
                 &accounting, sizeof(accounting), NULL);
-            if (!inspected) request_stop(s, "session_inspection_failed");
-            if (inspected && accounting.ActiveProcesses == 0 && WaitForSingleObject(s->process, 0) == WAIT_OBJECT_0) {
+            if (!inspected) {
+                remember_error(&job_error, GetLastError());
+                request_stop(s, "session_inspection_failed");
+            }
+            process_state = WaitForSingleObject(s->process, 0);
+            if (process_state == WAIT_FAILED) {
+                remember_error(&job_error, GetLastError());
+                request_stop(s, "session_inspection_failed");
+            }
+            if (inspected && accounting.ActiveProcesses == 0 && process_state == WAIT_OBJECT_0) {
                 s->cleanup_confirmed = TRUE;
                 if (!s->exited) {
                     s->exited = GetExitCodeProcess(s->process, &s->exit_code);
-                    if (!s->exited) s->cleanup_confirmed = FALSE;
+                    if (!s->exited) {
+                        remember_error(&job_error, GetLastError());
+                        s->cleanup_confirmed = FALSE;
+                    }
                 }
                 break;
             }
-            if (now - stopping_at > CLEANUP_MS) { request_stop(s, "cleanup_timeout"); break; }
+            if (now - stopping_at > CLEANUP_MS) {
+                remember_error(&job_error, WAIT_TIMEOUT);
+                request_stop(s, "cleanup_timeout"); break;
+            }
             Sleep(10); /* A signaled process handle otherwise makes the wait spin. */
         }
     }
 
-    if (s->console) {
+    phase_end(s, PHASE_WAIT_JOB, wait_job_phase, job_error);
+    join_phase = phase_begin(s, PHASE_JOIN_THREADS);
+    resize_done = join_thread(s->resize_thread, JOIN_MS, FALSE, &join_error);
+    if (!resize_done) s->cleanup_confirmed = FALSE;
+    if (s->console && resize_done) {
         /* ClosePseudoConsole can wait on its output. Keep the output reader
-         * active while closing, and never let a stalled console block cleanup. */
+         * active while closing. The resize worker must have joined first, so
+         * no thread can concurrently resize or later reuse this console. */
+        s->close_phase_started = phase_begin(s, PHASE_CLOSE_CONSOLE);
         s->close_thread = CreateThread(NULL, 0, close_console_worker, s, 0, NULL);
-        if (!s->close_thread || !join_thread(s->close_thread, JOIN_MS, FALSE)) s->cleanup_confirmed = FALSE;
+        if (!s->close_thread) {
+            DWORD error_code = GetLastError();
+            remember_error(&join_error, error_code);
+            phase_end(s, PHASE_CLOSE_CONSOLE, s->close_phase_started, error_code);
+            s->cleanup_confirmed = FALSE;
+        } else if (!join_thread(s->close_thread, JOIN_MS, FALSE, &join_error)) s->cleanup_confirmed = FALSE;
     }
     {
-        BOOL control_done = join_thread(s->control_thread, JOIN_MS, TRUE);
-        BOOL input_done = join_thread(s->input_thread, JOIN_MS, TRUE);
-        BOOL output_done = join_thread(s->output_thread, JOIN_MS, FALSE);
-        BOOL error_done = join_thread(s->error_thread, JOIN_MS, FALSE);
+        BOOL control_done = join_thread(s->control_thread, JOIN_MS, TRUE, &join_error);
+        BOOL input_done = join_thread(s->input_thread, JOIN_MS, TRUE, &join_error);
+        BOOL output_done = join_thread(s->output_thread, JOIN_MS, FALSE, &join_error);
+        BOOL error_done = join_thread(s->error_thread, JOIN_MS, FALSE, &join_error);
         if (!control_done || !input_done || !output_done || !error_done) s->cleanup_confirmed = FALSE;
         if (!output_done) CancelSynchronousIo(s->output_thread);
         if (!error_done) CancelSynchronousIo(s->error_thread);
         /* A timed-out worker can still use its handle. Keep that handle alive
          * until ExitProcess instead of racing a close against its next I/O. */
-        if (input_done && s->native_input) { CloseHandle(s->native_input); s->native_input = NULL; }
-        if (output_done && s->native_output) { CloseHandle(s->native_output); s->native_output = NULL; }
-        if (error_done && s->native_error) { CloseHandle(s->native_error); s->native_error = NULL; }
+        /* A hung resize retains the console and its pipe handles until process
+         * teardown, rather than racing any API/handle close against that call. */
+        if (resize_done && input_done && s->native_input) { CloseHandle(s->native_input); s->native_input = NULL; }
+        if (resize_done && output_done && s->native_output) { CloseHandle(s->native_output); s->native_output = NULL; }
+        if (resize_done && error_done && s->native_error) { CloseHandle(s->native_error); s->native_error = NULL; }
     }
+    phase_end(s, PHASE_JOIN_THREADS, join_phase, join_error);
     if (s->process) { CloseHandle(s->process); s->process = NULL; }
     if (s->job) { CloseHandle(s->job); s->job = NULL; }
     EnterCriticalSection(&s->lock);
@@ -540,8 +734,9 @@ int wmain(int argc, wchar_t **argv)
         (unsigned long)s->pid, (unsigned long)s->pid, (unsigned long)s->exit_code,
         s->cleanup_confirmed ? "confirmed" : "unconfirmed",
         s->reason ? ",\"reason\":\"" : "", s->reason ? s->reason : "", s->reason ? "\"" : "");
+    final_sent = status_append_locked(s, record, strlen(record));
+    s->final_queued = TRUE;
     LeaveCriticalSection(&s->lock);
-    final_sent = status_append(s, record, strlen(record));
     if (final_sent) {
         ULONGLONG deadline = GetTickCount64() + JOIN_MS;
         for (;;) {
@@ -564,6 +759,7 @@ finish:
     if (child_output) CloseHandle(child_output);
     if (child_error) CloseHandle(child_error);
     if (s->stop_io) SetEvent(s->stop_io);
+    if (s->stop_resize) SetEvent(s->stop_resize);
     if (s->stop_status) SetEvent(s->stop_status);
     if (s->host) CloseHandle(s->host);
     if (startup.lpAttributeList) { if (attributes_initialized) DeleteProcThreadAttributeList(startup.lpAttributeList); free(startup.lpAttributeList); }
