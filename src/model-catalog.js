@@ -1,4 +1,4 @@
-import { totalmem } from 'node:os';
+import { effectiveMemoryCapacity } from './host-memory.js';
 
 const GIB = 1024 ** 3;
 
@@ -37,7 +37,7 @@ export const LOCAL_MODEL_CATALOG = Object.freeze([
 })));
 
 /** Memory recommendations are conservative selection guidance, not model qualification. */
-export function listLocalModelChoices({ memoryBytes = totalmem(), availableDiskBytes } = {}) {
+export function listLocalModelChoices({ memoryBytes = effectiveMemoryCapacity(), availableDiskBytes } = {}) {
   if (!Number.isSafeInteger(memoryBytes) || memoryBytes < 0 || availableDiskBytes !== undefined
     && (!Number.isSafeInteger(availableDiskBytes) || availableDiskBytes < 0)) {
     throw new TypeError('Model choices need non-negative safe-integer memory and optional free-disk bytes.');

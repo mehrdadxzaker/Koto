@@ -303,17 +303,35 @@ export interface ProjectWorkspace {
   sessionRoot: string;
 }
 
+export interface LinuxCgroupMemoryDiagnostic {
+  readonly version: 1 | 2;
+  readonly ancestorsChecked: number;
+  readonly memoryGroupsChecked: number;
+  readonly constrainedGroups: number;
+  /** Tightest visible numeric hard limit, capped at physical capacity; null for v2 max throughout. */
+  readonly limitBytes: number | null;
+  /** Tightest visible hard-limit-minus-usage headroom, clamped to zero and physical capacity. */
+  readonly remainingBytes: number | null;
+  /** Usage of the process's current cgroup when it has its own memory interface. */
+  readonly usageBytes: number | null;
+  /** Usage at the visible ancestor imposing the tightest sampled headroom. */
+  readonly limitingUsageBytes: number | null;
+}
+
 export interface LocalMemoryDiagnostic {
   readonly sampleStartedAtMs: number;
   readonly sampledAtMs: number;
   readonly source: string;
   readonly totalBytes: number;
-  /** The host os.freemem() result; on Linux this can include reclaimable memory. */
+  readonly physicalTotalBytes?: number | undefined;
+  readonly cgroup?: LinuxCgroupMemoryDiagnostic | undefined;
+  /** The unmodified host os.freemem() result; it can exceed a Linux cgroup capacity. */
   readonly rawFreeBytes: number;
   readonly availableBytes: number;
   readonly rssBytes: number;
   readonly memoryLimitBytes: number;
   readonly minimumFreeBytes: number;
+  readonly cacheRamMiB?: number | undefined;
   readonly rssExceeded: boolean;
   readonly availableBelowReserve: boolean;
 }
@@ -797,10 +815,11 @@ export function pullOllamaModel(options: { model: string; command?: string | und
   timeoutMs?: number | undefined; signal?: AbortSignal | undefined; onProgress?: ((event: Readonly<Record<string, unknown>>) => unknown) | undefined }): Promise<LocalModelMetadata & { endpoint: string; apiBaseUrl: string; executable: string }>;
 export function startLlamaServer(options: { modelPath: string; command?: string | undefined; port?: number | undefined;
   contextSize?: number | undefined; memoryLimitBytes?: number | undefined; minimumFreeBytes?: number | undefined;
-  gpuLayers?: number | undefined; modelId?: string | undefined; startupTimeoutMs?: number | undefined;
+  gpuLayers?: number | undefined; cacheRamMiB?: number | undefined; modelId?: string | undefined; startupTimeoutMs?: number | undefined;
   startupMaxRetries?: number | undefined;
   timeoutMs?: number | undefined; signal?: AbortSignal | undefined; onEvent?: ((event: Readonly<Record<string, unknown>>) => unknown) | undefined }): Promise<{
     readonly pid: number | null; readonly endpoint: string; readonly apiBaseUrl: string; readonly modelId: string;
+    readonly cacheRamMiB: number;
     readonly ready: Promise<LocalEndpointMetadata>; readonly completion: Promise<CommandOutcome>;
     stop(): Promise<CommandOutcome>;
   }>;

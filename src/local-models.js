@@ -2,12 +2,11 @@ import { createHash, randomUUID } from 'node:crypto';
 import { constants } from 'node:fs';
 import { link, lstat, open, readFile, realpath, unlink } from 'node:fs/promises';
 import { createServer } from 'node:net';
-import { totalmem } from 'node:os';
 import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { startCommand } from './command-session.js';
 import { startSetupCommand } from './setup-command.js';
-import { readHostMemory } from './host-memory.js';
+import { effectiveMemoryCapacity, readHostMemory } from './host-memory.js';
 import { fetchHeaders, safeDownloadCauseCode, throwOnResourceExhaustion } from './bounded-fetch.js';
 import { resolveAgentExecutable } from './launch-preflight.js';
 
@@ -183,18 +182,21 @@ async function residentBytes(pid, signal) {
  * Memory bounds are sampled process RSS and host free memory, not an OS quota or GPU accounting.
  */
 export async function startLlamaServer({ modelPath, command = 'llama-server', port = 18089, contextSize = 8192,
-  memoryLimitBytes = Math.min(16 * GIB, Math.floor(totalmem() * 0.7)), minimumFreeBytes = GIB,
-  gpuLayers = 0, modelId = `koto-local-${randomUUID().slice(0, 8)}`, startupTimeoutMs = 120_000,
+  memoryLimitBytes, minimumFreeBytes = GIB,
+  gpuLayers = 0, cacheRamMiB = 0, modelId = `koto-local-${randomUUID().slice(0, 8)}`, startupTimeoutMs = 120_000,
   startupMaxRetries = 3, timeoutMs = 1_800_000, signal, onEvent } = {}) {
   if (!['darwin', 'linux', 'win32'].includes(process.platform)) {
     throw failure('local_memory_guard_unsupported', 'Owned llama-server startup requires a supported native process and memory-monitoring platform.');
   }
+  const capacity = effectiveMemoryCapacity();
+  if (memoryLimitBytes === undefined) memoryLimitBytes = Math.min(16 * GIB, Math.floor(capacity * 0.7));
   integer(port, 1024, 65535, 'port'); integer(contextSize, 512, 32768, 'contextSize');
   integer(gpuLayers, 0, 1024, 'gpuLayers'); integer(startupTimeoutMs, 1, 600_000, 'startupTimeoutMs');
+  integer(cacheRamMiB, 0, 1024, 'cacheRamMiB');
   integer(startupMaxRetries, 0, 30, 'startupMaxRetries');
   integer(timeoutMs, startupTimeoutMs, 3_600_000, 'timeoutMs');
-  integer(memoryLimitBytes, 256 * 1024 ** 2, Math.floor(totalmem() * 0.8), 'memoryLimitBytes');
-  integer(minimumFreeBytes, 256 * 1024 ** 2, Math.floor(totalmem() * 0.5), 'minimumFreeBytes');
+  integer(memoryLimitBytes, 256 * 1024 ** 2, Math.floor(capacity * 0.8), 'memoryLimitBytes');
+  integer(minimumFreeBytes, 256 * 1024 ** 2, Math.floor(capacity * 0.5), 'minimumFreeBytes');
   if (typeof modelPath !== 'string' || !path.isAbsolute(modelPath) || modelPath.includes('\0') || !/\.gguf$/i.test(modelPath)) {
     throw failure('local_gguf_required', 'Select the absolute path to an existing GGUF model. Startup never downloads weights.');
   }
@@ -232,7 +234,7 @@ export async function startLlamaServer({ modelPath, command = 'llama-server', po
   const handle = await startSetupCommand({ id: 'llamaServer', command: executable, env, timeoutMs, signal: joinedSignal,
     args: ['--model', modelPath, '--host', '127.0.0.1', '--port', String(port), '--ctx-size', String(contextSize),
       '--parallel', '1', '--alias', modelId, '--n-gpu-layers', String(gpuLayers), '--fit', 'off',
-      '--offline', '--no-warmup', '--no-webui', '--jinja'], onEvent(event) {
+      '--cache-ram', String(cacheRamMiB), '--offline', '--no-warmup', '--no-webui', '--jinja'], onEvent(event) {
       if (event.type === 'started' && validPid(event.pid)) {
         pid = event.pid;
         acceptStartedPid?.(pid);
@@ -310,6 +312,8 @@ export async function startLlamaServer({ modelPath, command = 'llama-server', po
         if (rss > memoryLimitBytes || available < minimumFreeBytes) {
           memoryDiagnostic = Object.freeze({ sampleStartedAtMs, sampledAtMs: Date.now(),
             source: hostMemory.source, totalBytes: hostMemory.totalBytes, rawFreeBytes: hostMemory.rawFreeBytes,
+            ...(hostMemory.physicalTotalBytes === undefined ? {} : { physicalTotalBytes: hostMemory.physicalTotalBytes }),
+            ...(hostMemory.cgroup ? { cgroup: Object.freeze({ ...hostMemory.cgroup }) } : {}), cacheRamMiB,
             availableBytes: available, rssBytes: rss, memoryLimitBytes, minimumFreeBytes,
             rssExceeded: rss > memoryLimitBytes, availableBelowReserve: available < minimumFreeBytes });
           guardError = Object.assign(failure('local_memory_limit',
@@ -383,7 +387,7 @@ export async function startLlamaServer({ modelPath, command = 'llama-server', po
   })();
   ready.catch(() => {}); // An owner may await completion before checking readiness.
   return { endpoint, apiBaseUrl: `${endpoint}/v1`, modelId, modelPath, executable, pid,
-    contextSize, memoryLimitBytes, minimumFreeBytes, gpuLayers, startupMaxRetries, ready, completion,
+    contextSize, memoryLimitBytes, minimumFreeBytes, gpuLayers, cacheRamMiB, startupMaxRetries, ready, completion,
     stop() { controller.abort(); return completion; } };
 }
 
