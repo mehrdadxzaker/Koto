@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { startSetupCommand } from './setup-command.js';
+import { throwOnResourceExhaustion } from './bounded-fetch.js';
 
 // CLI contracts: installed Codex exec/resume help, and the vendors' public docs:
 // https://developers.openai.com/codex/noninteractive
@@ -261,6 +262,7 @@ export function createNativeAgentSession({ kind, id = kind, command, cwd, model,
     turn.handle.endInput();
     const outcome = await turn.handle.completion;
     if (outcome.error === 'cleanup_unconfirmed') return 'cleanup_unconfirmed';
+    if (outcome.error === 'process_socket_exhausted') return outcome.error;
     if (turn.cancelled) return 'native_cancelled';
     if (outcome.status !== 'succeeded') return 'native_subscription_auth_unavailable';
     let auth;
@@ -354,6 +356,10 @@ export function createNativeAgentSession({ kind, id = kind, command, cwd, model,
           if (turn.buffer.trim() && !turn.failure) line(turn.buffer);
         }
       } catch (error) {
+        try { throwOnResourceExhaustion(error); }
+        catch (fatal) {
+          if (!turn.failure?.endsWith('cleanup_unconfirmed')) turn.failure = fatal.code?.endsWith('cleanup_unconfirmed') ? 'cleanup_unconfirmed' : fatal.code;
+        }
         turn.failure ??= error.code === 'setup_terminal_helper_required' ? error.code : turn.cancelled ? 'native_cancelled' : 'native_launch_failed';
       } finally {
         clearTimeout(deadlineTimer);
@@ -365,12 +371,13 @@ export function createNativeAgentSession({ kind, id = kind, command, cwd, model,
         signal?.removeEventListener('abort', abort);
         active = undefined;
       }
-      const error = outcome?.error === 'cleanup_unconfirmed' ? 'cleanup_unconfirmed'
+      const error = outcome?.error === 'cleanup_unconfirmed' || turn.failure === 'cleanup_unconfirmed' ? 'cleanup_unconfirmed'
+        : outcome?.error === 'process_socket_exhausted' ? outcome.error
         : turn.failure ?? (turn.cancelled ? 'native_cancelled' : startupDiagnostic(turn, outcome) ?? (outcome?.status !== 'succeeded' ? (outcome?.error ?? 'native_process_failed')
           : turn.denied ? 'native_permission_denied' : turn.nativeFailed ? 'native_turn_failed'
             : !turn.sawSession ? 'native_session_missing' : !turn.completed ? 'native_completion_missing'
               : mode === 'conversation' && !(turn.text || turn.partialText).trim() ? 'native_response_empty' : undefined));
-      if (error === 'cleanup_unconfirmed' || (turn.launched && !nativeSessionId)) blocked = true;
+      if (error === 'cleanup_unconfirmed' || error?.endsWith('_socket_exhausted') || (turn.launched && !nativeSessionId)) blocked = true;
       const status = turn.cancelled ? 'cancelled' : error ? 'failed' : 'succeeded';
       const result = { status, text: turn.text || turn.partialText, ...(nativeSessionId ? { sessionId: nativeSessionId } : {}),
         ...(turn.usage ? { usage: turn.usage } : {}), ...(error ? { error } : {}),

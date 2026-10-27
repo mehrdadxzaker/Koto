@@ -303,6 +303,21 @@ export interface ProjectWorkspace {
   sessionRoot: string;
 }
 
+export interface LocalMemoryDiagnostic {
+  readonly sampleStartedAtMs: number;
+  readonly sampledAtMs: number;
+  readonly source: string;
+  readonly totalBytes: number;
+  /** The host os.freemem() result; on Linux this can include reclaimable memory. */
+  readonly rawFreeBytes: number;
+  readonly availableBytes: number;
+  readonly rssBytes: number;
+  readonly memoryLimitBytes: number;
+  readonly minimumFreeBytes: number;
+  readonly rssExceeded: boolean;
+  readonly availableBelowReserve: boolean;
+}
+
 export interface CommandOutcome {
   status: 'succeeded' | 'failed' | 'cancelled';
   exitCode: number | null;
@@ -313,6 +328,7 @@ export interface CommandOutcome {
   textTruncated?: boolean | undefined;
   sessionId?: string | undefined;
   usage?: Record<string, unknown> | undefined;
+  memoryDiagnostic?: LocalMemoryDiagnostic | undefined;
 }
 
 export interface ProjectStatusEntry {

@@ -7,7 +7,7 @@ const GIB = 1024 ** 3;
 export const LOCAL_MODEL_CATALOG = Object.freeze([
   {
     id: 'qwen-coder-small', label: 'Qwen2.5 Coder 1.5B',
-    description: 'Small download for modest coding and editing tasks.',
+    description: 'Small experimental model; did not complete the observed Koto coding task.',
     repository: 'Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF',
     revision: 'f86cb2c1fa58255f8052cc32aeede1b7482d4361',
     filename: 'qwen2.5-coder-1.5b-instruct-q4_k_m.gguf',
@@ -16,7 +16,7 @@ export const LOCAL_MODEL_CATALOG = Object.freeze([
   },
   {
     id: 'qwen-compact', label: 'Qwen3 4B',
-    description: 'A compact general assistant for explanation and project work.',
+    description: 'Compact general assistant; Koto coding tool use has not been verified.',
     repository: 'Qwen/Qwen3-4B-GGUF', revision: 'bc640142c66e1fdd12af0bd68f40445458f3869b',
     filename: 'Qwen3-4B-Q4_K_M.gguf', bytes: 2497280256,
     sha256: '7485fe6f11af29433bc51cab58009521f205840f5b4ae3a32fa7f92e8534fdf5',
@@ -24,7 +24,7 @@ export const LOCAL_MODEL_CATALOG = Object.freeze([
   },
   {
     id: 'qwen-coder', label: 'Qwen2.5 Coder 7B',
-    description: 'A larger coding assistant for machines with more memory.',
+    description: 'Larger experimental coding model; memory fit does not establish task quality.',
     repository: 'Qwen/Qwen2.5-Coder-7B-Instruct-GGUF', revision: '13fb94bfda8c8cf22497dc57b78f391a9acb426a',
     filename: 'qwen2.5-coder-7b-instruct-q4_k_m.gguf', bytes: 4683073536,
     sha256: '509287f78cb4d4cf6b3843734733b914b2c158e43e22a7f4bf5e963800894d3c',

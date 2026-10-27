@@ -17,6 +17,7 @@ import { createActivityView } from './activity-view.js';
 import { runProjectPlan, runProjectResume } from './project.js';
 import { configureAccounts, configureLocalModels } from './onboarding.js';
 import { startSetupCommand } from '../src/setup-command.js';
+import { throwOnResourceExhaustion } from '../src/bounded-fetch.js';
 
 const visible = value => stripVTControlCharacters(String(value)).replace(/[\x00-\x08\x0b-\x1f\x7f-\x9f]/g, '');
 const absolute = value => path.resolve(value.startsWith('~/') ? path.join(homedir(), value.slice(2)) : value);
@@ -124,6 +125,7 @@ export async function runChat({ write, signal: parentSignal, version } = {}) {
   preferences.workers ??= [];
   const view = createActivityView({ write });
   let input, coordinator, nativeSession, ownedServer, primaryFailure, quitting = false, normalQuit = false, busy = false;
+  let serverFailure;
   let coordinatorCleanupOutcome;
   let approvalQueue = Promise.resolve();
   const queued = [];
@@ -145,6 +147,39 @@ export async function runChat({ write, signal: parentSignal, version } = {}) {
     requireConfirmedCleanup(coordinatorCleanupOutcome ?? outcome, 'Coordinator');
   };
   const stopServer = async () => requireConfirmedCleanup(await ownedServer?.stop(), 'Local server');
+  const observeOwnedServer = server => {
+    const retainFatal = error => {
+      if (ownedServer !== server || !blocksFurtherWork(error)) return;
+      if (!serverFailure) serverFailure = error;
+      else if (cleanupUnconfirmed({ error: error.code }) && !cleanupUnconfirmed({ error: serverFailure.code })) {
+        error.cause ??= serverFailure;
+        serverFailure = error;
+      }
+      quitting = true;
+      for (const halt of [() => controller.abort(), stop, () => input?.close()]) {
+        try { halt(); }
+        catch (haltError) {
+          if (cleanupUnconfirmed({ error: haltError.code }) && !cleanupUnconfirmed({ error: serverFailure.code })) {
+            haltError.cause ??= serverFailure;
+            serverFailure = haltError;
+          } else if (haltError !== serverFailure) serverFailure.cause ??= haltError;
+        }
+      }
+    };
+    // Completion belongs to the captured server. A replaced server cannot
+    // invalidate its successor, and ordinary exits keep their existing behavior.
+    void server.completion.then(outcome => {
+      if (ownedServer !== server) return;
+      try {
+        requireConfirmedCleanup(outcome, 'Local server');
+        throwOnResourceExhaustion({ code: outcome?.error }, 'local_socket_exhausted');
+      } catch (error) { retainFatal(error); }
+    }, error => {
+      if (ownedServer !== server) return;
+      try { throwOnResourceExhaustion(error); }
+      catch (fatal) { retainFatal(fatal); }
+    }).catch(error => { retainFatal(error); });
+  };
   const makeInput = () => terminalInput({ write, signal, onInterrupt() { quitting = true; controller.abort(); stop(); },
     onBusyLine(line) {
       if (!busy) return;
@@ -329,6 +364,7 @@ export async function runChat({ write, signal: parentSignal, version } = {}) {
       process.stdin.resume();
       const outcome = await handle.completion;
       requireConfirmedCleanup(outcome, 'Native sign-in');
+      throwOnResourceExhaustion({ code: outcome.error }, 'native_login_socket_exhausted');
       if (outcome.status !== 'succeeded') print('Sign-in did not finish. Use /accounts to try the native sign-in again.');
     } finally {
       process.stdin.removeListener('data', forward);
@@ -381,6 +417,7 @@ export async function runChat({ write, signal: parentSignal, version } = {}) {
           if (collectingStartup && item.type === 'output') startupTail = Buffer.from(startupTail + item.text).subarray(-8192).toString('utf8');
         } });
       await ownedServer.ready;
+      observeOwnedServer(ownedServer);
     } catch (error) {
       let startupFailure = error;
       try { await stopServer(); }
@@ -403,7 +440,8 @@ export async function runChat({ write, signal: parentSignal, version } = {}) {
     } finally { collectingStartup = false; }
     startupTail = '';
     await adopt(ownedServer.apiBaseUrl);
-    print(`Local model ready: ${saved.label ?? saved.id}.`);
+    if (serverFailure) throw serverFailure;
+    print(`Local model loaded: ${saved.label ?? saved.id}.`);
   }
 
   async function localSetup() {
@@ -626,8 +664,10 @@ export async function runChat({ write, signal: parentSignal, version } = {}) {
       ownedServer = await startLlamaServer({ modelPath: absolute(values[0]), command: preferences.llamaCommand ?? 'llama-server',
         modelId: 'koto-local', signal, onEvent: item => { if (item.type === 'output') write(visible(item.text)); } });
       await ownedServer.ready;
+      observeOwnedServer(ownedServer);
       preferences.local = { endpoint: ownedServer.apiBaseUrl, model: ownedServer.modelId }; await persist();
-      print(`Local model ready at ${ownedServer.endpoint}. Use /add local ${ownedServer.modelId}.`);
+      if (serverFailure) throw serverFailure;
+      print(`Local model loaded at ${ownedServer.endpoint}. Use /add local ${ownedServer.modelId}.`);
     } else if (action === 'get' && values.length === 3) {
       const result = await downloadGguf({ url: values[0], destination: absolute(values[1]), sha256: values[2],
         maxBytes: 20 * 1024 ** 3, signal, onProgress: item => write(`\rDownloaded ${(item.bytes / 1024 ** 2).toFixed(0)} MiB`) });
@@ -739,8 +779,16 @@ export async function runChat({ write, signal: parentSignal, version } = {}) {
         view.pause(); print(`Koto: ${error.message}`);
       }
     }
+    if (serverFailure) throw serverFailure;
     return normalQuit ? 0 : signal?.aborted || quitting ? 130 : 0;
   } catch (error) {
+    const fatal = cleanupUnconfirmed({ error: error.code }) ? error
+      : serverFailure ?? (blocksFurtherWork(error) ? error : undefined);
+    if (fatal) {
+      if (serverFailure && fatal !== serverFailure) fatal.cause ??= serverFailure;
+      primaryFailure = fatal;
+      throw fatal;
+    }
     if (error.code === 'chat_quit' || normalQuit) return 0;
     if (error.code === 'chat_cancelled' || signal?.aborted) return 130;
     primaryFailure = error;
@@ -749,7 +797,18 @@ export async function runChat({ write, signal: parentSignal, version } = {}) {
     let cleanupFailure;
     for (const cleanup of [() => controller.abort(), stop, () => input.close(), () => view.dispose(), closeCoordinator, stopServer]) {
       try { await cleanup(); }
-      catch (error) { cleanupFailure ??= error; }
+      catch (error) {
+        if (!cleanupFailure || cleanupUnconfirmed({ error: error.code }) && !cleanupUnconfirmed({ error: cleanupFailure.code })) cleanupFailure = error;
+      }
+    }
+    if (cleanupFailure && cleanupUnconfirmed({ error: cleanupFailure.code })) {
+      const prior = serverFailure ?? primaryFailure;
+      if (prior && prior !== cleanupFailure) cleanupFailure.cause ??= prior;
+      throw cleanupFailure;
+    }
+    if (serverFailure && serverFailure !== primaryFailure && !cleanupUnconfirmed({ error: primaryFailure?.code })) {
+      if (primaryFailure) serverFailure.cause ??= primaryFailure;
+      throw serverFailure;
     }
     if (cleanupFailure) {
       if (!primaryFailure) throw cleanupFailure;

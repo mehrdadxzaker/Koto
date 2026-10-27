@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { createOwnedWorkerLifetime } from './owned-worker-lifetime.js';
+import { createOwnedWorkerLifetime, ownedProcessErrorCode } from './owned-worker-lifetime.js';
 import { isAbsolute } from 'node:path';
 import { StringDecoder } from 'node:string_decoder';
 import { TextDecoder } from 'node:util';
@@ -132,12 +132,16 @@ export function startTerminalCommand({ id, command, args = [], cwd, env,
     try {
       child.stdin.write(frame, error => {
         pendingControls -= 1;
-        if (error && !final) fail('control_failed');
+        if (error) {
+          const code = ownedProcessErrorCode(error, 'control_failed');
+          if (!final || code === 'process_socket_exhausted' || code === 'cleanup_unconfirmed') fail(code);
+        }
       });
       return true;
-    } catch {
+    } catch (error) {
       pendingControls -= 1;
-      if (!final) fail('control_failed');
+      const code = ownedProcessErrorCode(error, 'control_failed');
+      if (!final || code === 'process_socket_exhausted' || code === 'cleanup_unconfirmed') fail(code);
       return false;
     }
   };
@@ -245,20 +249,23 @@ export function startTerminalCommand({ id, command, args = [], cwd, env,
       shell: false, detached: !windows, windowsHide: true,
       stdio: windows ? ['pipe', 'pipe', 'pipe'] : ['pipe', 'pipe', 'pipe', 'pipe'],
     });
-  } catch {
-    lifetime.notStarted('spawn_failed');
+  } catch (error) {
+    lifetime.notStarted(ownedProcessErrorCode(error, 'spawn_failed'));
     return handle;
   }
   child.once('spawn', () => { helperSpawned = true; });
-  child.on('error', () => {
+  child.on('error', error => {
     if (!child.pid && !helperSpawned) spawnFailed = true;
-    fail('spawn_failed');
+    fail(ownedProcessErrorCode(error, 'spawn_failed'));
   });
-  child.stdin.on('error', () => { if (!final) fail('control_failed'); });
-  child.stdout.on('error', () => fail('output_failed'));
+  child.stdin.on('error', error => {
+    const code = ownedProcessErrorCode(error, 'control_failed');
+    if (!final || code === 'process_socket_exhausted' || code === 'cleanup_unconfirmed') fail(code);
+  });
+  child.stdout.on('error', error => fail(ownedProcessErrorCode(error, 'output_failed')));
   const metadata = windows ? child.stderr : child.stdio[3];
-  if (!windows) child.stderr.on('error', () => fail('helper_diagnostic_failed'));
-  metadata.on('error', badStatus);
+  if (!windows) child.stderr.on('error', error => fail(ownedProcessErrorCode(error, 'helper_diagnostic_failed')));
+  metadata.on('error', error => { protocolInvalid = true; fail(ownedProcessErrorCode(error, 'helper_protocol_failed')); });
   child.stdout.on('data', chunk => {
     if (lifetime.finished || lifetime.failure || lifetime.cancelled) return;
     outputBytes += chunk.length;
@@ -307,7 +314,7 @@ export function startTerminalCommand({ id, command, args = [], cwd, env,
   });
   child.once('close', (code, name) => {
     if (spawnFailed && !helperSpawned) {
-      lifetime.notStarted('spawn_failed');
+      lifetime.notStarted(lifetime.failure ?? 'spawn_failed');
       return;
     }
     if (!lifetime.cancelled && (code !== 0 || name)) fail('helper_failed');

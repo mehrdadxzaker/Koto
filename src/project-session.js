@@ -14,6 +14,7 @@ export { inspectProjectContributionAttempt, reconcileProjectContributionAttempt 
 import { normalizeProjectPrerequisites, preflightProjectPlan, preflightProjectRuntime } from './project-plan.js';
 import { normalizeNativeAgent, createNativeObserver, createNativeResumePlan } from './native-agent.js';
 import { createCodingAgentSession } from './coding-agent.js';
+import { throwOnResourceExhaustion } from './bounded-fetch.js';
 
 const ID = /^[A-Za-z][A-Za-z0-9_-]{0,63}$/;
 const MAX_LOG_BYTES = 80 * 1024 * 1024;
@@ -265,7 +266,8 @@ function sessionRunner(plan, state, { onEvent, signal, ptyHelper, resume, onAppr
     if (observer) record.nativeState = observer.end(outcome);
     const setupError = record.setupError;
     record.commandOutcome = outcome;
-    record.result = outcome.error === 'cleanup_unconfirmed' || !setupError
+    record.result = outcome.error === 'cleanup_unconfirmed' || setupError !== 'cleanup_unconfirmed'
+        && (outcome.error?.endsWith('_socket_exhausted') || !setupError)
       ? outcome : { ...outcome, status: 'failed', error: setupError };
     if (record.result.status === 'succeeded' && record.nativeState?.protocol === 'jsonl'
         && record.nativeState.status !== 'completed') {
@@ -273,6 +275,7 @@ function sessionRunner(plan, state, { onEvent, signal, ptyHelper, resume, onAppr
         ? 'native_turn_failed' : 'native_completion_unconfirmed' };
     }
     record.status = record.result.status;
+    if (typeof record.result.error === 'string' && record.result.error.endsWith('_socket_exhausted')) stopAll();
     record.finishedAt ??= new Date().toISOString();
     return record.result;
   };
@@ -500,7 +503,8 @@ function sessionRunner(plan, state, { onEvent, signal, ptyHelper, resume, onAppr
               if (resume && result.sessionId !== undefined && result.sessionId !== resume.continuation.expectedSessionId) {
                 if (agent.nativeKind === 'local') record.localContinuationUnavailableReason = 'project_native_session_changed';
                 return { ...outcome, status: 'failed', exitCode: result.exitCode ?? null,
-                  error: result.error === 'cleanup_unconfirmed' ? result.error : 'project_native_session_changed' };
+                  error: result.error === 'cleanup_unconfirmed' || result.error?.endsWith('_socket_exhausted')
+                    ? result.error : 'project_native_session_changed' };
               }
               if (typeof result.text === 'string') {
                 outputTails.set(agent.id, Buffer.from(result.text).subarray(-65_536));
@@ -544,9 +548,14 @@ function sessionRunner(plan, state, { onEvent, signal, ptyHelper, resume, onAppr
         } catch (error) {
           if (record.status === 'running') {
             handles.get(agent.id)?.stop();
+            let setupError = ['project_expanded_input_too_large', 'project_initial_input_rejected'].includes(error.message)
+              ? error.message : 'project_command_start_failed';
+            try { throwOnResourceExhaustion(error); }
+            catch (fatal) { setupError = fatal.code?.endsWith('cleanup_unconfirmed') ? 'cleanup_unconfirmed' : fatal.code; }
             record.status = 'failed';
-            record.result = { status: 'failed', exitCode: null, error: ['project_expanded_input_too_large', 'project_initial_input_rejected'].includes(error.message) ? error.message : 'project_command_start_failed' };
+            record.result = { status: 'failed', exitCode: null, error: setupError };
             record.setupError = record.result.error;
+            if (setupError?.endsWith('_socket_exhausted')) stopAll();
             record.finishedAt = new Date().toISOString();
             if (!handles.has(agent.id)) applyOutcome(record, record.result);
             persist(state);

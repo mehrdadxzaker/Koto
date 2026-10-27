@@ -8,6 +8,7 @@ import { startSetupCommand } from './setup-command.js';
 import { downloadGguf } from './local-models.js';
 import { resolveAgentExecutable } from './launch-preflight.js';
 import { LOCAL_MODEL_CATALOG, LLAMA_RUNTIME_CATALOG } from './model-catalog.js';
+import { throwOnResourceExhaustion } from './bounded-fetch.js';
 
 const MIB = 1024 ** 2;
 const MAX_FILES = 4096;
@@ -367,6 +368,7 @@ try {
   handle.endInput();
   const result = await handle.completion;
   if (result.error === 'cleanup_unconfirmed') throw fail('runtime_cleanup_unconfirmed', 'The owned archive extractor did not confirm cleanup. Its staging files were retained.');
+  throwOnResourceExhaustion({ code: result.error }, 'runtime_socket_exhausted');
   if (result.status !== 'succeeded') throw fail('runtime_extract_failed', 'The Windows runtime archive could not be extracted safely. Inspect native platform availability before retrying.');
 }
 
@@ -487,6 +489,7 @@ export async function acquireLlamaRuntime({ directory, signal, onProgress } = {}
     } catch (error) {
       cleanupUnconfirmed = error.code === 'runtime_cleanup_unconfirmed';
       if (cleanupUnconfirmed) throw error;
+      throwOnResourceExhaustion(error, 'runtime_socket_exhausted');
       if (bounded.aborted) throw fail('runtime_install_cancelled', 'Runtime setup was interrupted or reached its deadline. Its incomplete download was removed; existing installations were preserved.');
       throw error;
     } finally {

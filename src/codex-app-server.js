@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { startSetupCommand } from './setup-command.js';
+import { throwOnResourceExhaustion } from './bounded-fetch.js';
 
 // Derived from the installed codex-cli 0.163.0 generated v2 schemas, not from
 // exec JSON events. Protocol reference: https://developers.openai.com/codex/app-server
@@ -305,6 +306,9 @@ export function createCodexAppServerSession({ id = 'codex', command, cwd, model,
   }
 
   function startupError(current, fallback) {
+    if (fallback?.endsWith('cleanup_unconfirmed') || current?.error?.endsWith('cleanup_unconfirmed')) return 'cleanup_unconfirmed';
+    if (fallback?.endsWith('_socket_exhausted')) return fallback;
+    if (current?.error?.endsWith('_socket_exhausted')) return current.error;
     if (/read-only file system|\bEROFS\b|os error 30/i.test(current?.diagnostics ?? '')) return 'native_state_not_writable';
     return current?.error ?? fallback;
   }
@@ -343,7 +347,7 @@ export function createCodexAppServerSession({ id = 'codex', command, cwd, model,
     catch (error) { current.closed = true; throw error; }
     current.handle.completion.then(outcome => {
       current.closed = true; current.outcome = outcome;
-      if (outcome.error === 'cleanup_unconfirmed') blocked = true;
+      if (['cleanup_unconfirmed', 'process_socket_exhausted'].includes(outcome.error)) blocked = true;
       const error = startupError(current, outcome.error ?? 'native_transport_closed');
       for (const pending of current.pending.values()) { clearTimeout(pending.timer); pending.reject(failure(error)); }
       current.pending.clear();
@@ -460,7 +464,10 @@ export function createCodexAppServerSession({ id = 'codex', command, cwd, model,
         if (!bindTurn(current, turn, started?.turn?.id)) throw failure('native_turn_mismatch');
         final = await terminal;
       } catch (error) {
-        final = { error: turn.connection?.error ?? (turn.cancelled ? 'native_cancelled'
+        let fatalCode;
+        try { throwOnResourceExhaustion(error); }
+        catch (fatal) { fatalCode = fatal.code?.endsWith('cleanup_unconfirmed') ? 'cleanup_unconfirmed' : fatal.code; }
+        final = { error: turn.connection?.error?.endsWith('cleanup_unconfirmed') ? 'cleanup_unconfirmed' : fatalCode ?? turn.connection?.error ?? (turn.cancelled ? 'native_cancelled'
           : typeof error.code === 'string' ? error.code : 'native_app_server_failed') };
         if (turn.connection) breakConnection(turn.connection, final.error);
       } finally {
@@ -469,11 +476,12 @@ export function createCodexAppServerSession({ id = 'codex', command, cwd, model,
         if (mode === 'coding' || final?.error || turn.cancelled) processOutcome = await shutdownConnection(turn.connection);
         active = undefined;
       }
-      const error = processOutcome?.error === 'cleanup_unconfirmed' ? 'cleanup_unconfirmed'
+      const error = processOutcome?.error === 'cleanup_unconfirmed' || final?.error === 'cleanup_unconfirmed' ? 'cleanup_unconfirmed'
+        : processOutcome?.error === 'process_socket_exhausted' ? processOutcome.error
         : (final?.error ? startupError(turn.connection, final.error) : undefined) ?? processOutcome?.error ?? (turn.cancelled || final?.nativeStatus === 'interrupted' ? 'native_cancelled'
           : final?.nativeStatus !== 'completed' ? 'native_turn_failed'
             : mode === 'conversation' && !(turn.text || turn.deltaText).trim() ? 'native_response_empty' : undefined);
-      if (error === 'cleanup_unconfirmed' || error === 'native_effective_policy_mismatch') blocked = true;
+      if (error === 'cleanup_unconfirmed' || error?.endsWith('_socket_exhausted') || error === 'native_effective_policy_mismatch') blocked = true;
       const status = turn.cancelled || final?.nativeStatus === 'interrupted' ? 'cancelled' : error ? 'failed' : 'succeeded';
       const result = { status, text: turn.text || turn.deltaText, ...(threadId ? { sessionId: threadId } : {}),
         ...(rootSessionId ? { rootSessionId } : {}), ...(turn.usage ? { usage: turn.usage } : {}),

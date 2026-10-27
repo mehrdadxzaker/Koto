@@ -471,6 +471,15 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
     showStatus();
     for (const agent of report.agents) if (agent.result?.error) write(`${agent.id}: ${visible(agent.result.errorMessage ?? agent.result.error)}\n`);
     write(`Session: ${report.sessionRoot}\nIntegration workspace: ${report.integration.path}\n`);
+    if (report.agents.some(agent => /(?:socket_exhausted|cleanup_unconfirmed)$/.test(agent.result?.error ?? ''))) {
+      // session.run has settled every owned command before returning its report.
+      // Keep that report and close the caller instead of offering another run.
+      const cleanupUnconfirmed = report.agents.some(agent => /cleanup_unconfirmed$/.test(agent.result?.error ?? ''));
+      throw Object.assign(new Error(cleanupUnconfirmed
+        ? 'Owned project cleanup could not be confirmed after resource exhaustion. Inspect the retained session before continuing.'
+        : 'Socket or file-descriptor capacity is unavailable. The owned project was stopped and retained; inspect system resources before retrying.'),
+      { code: cleanupUnconfirmed ? 'cleanup_unconfirmed' : 'local_socket_exhausted' });
+    }
     if (terminal && !closed) {
       write('Agents ended. Inspect and explicitly integrate contributions, or :quit to retain all worktrees.\n');
       reporting = false;

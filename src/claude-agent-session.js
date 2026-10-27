@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { startSetupCommand } from './setup-command.js';
+import { throwOnResourceExhaustion } from './bounded-fetch.js';
 
 // Native stdio control contract: official Claude Agent SDK Python source,
 // commit 717cea09021fac3654879f0a362ed254a73ec35d (bundled CLI 2.1.311):
@@ -371,6 +372,7 @@ export function createClaudeAgentSession({ id = 'claude', command, cwd, model, e
     turn.handle.endInput();
     const outcome = await turn.handle.completion;
     if (outcome.error === 'cleanup_unconfirmed') return 'cleanup_unconfirmed';
+    if (outcome.error === 'process_socket_exhausted') return outcome.error;
     if (turn.cancelled) return 'native_cancelled';
     let auth;
     try { auth = JSON.parse(output); } catch { return 'claude_auth_unavailable'; }
@@ -477,7 +479,13 @@ export function createClaudeAgentSession({ id = 'claude', command, cwd, model, e
           outcome = await turn.handle.completion;
           if (turn.buffer.trim() && !turn.failure) line(turn.buffer);
         }
-      } catch (error) { turn.failure ??= error.code === 'setup_terminal_helper_required' ? error.code : turn.cancelled ? 'native_cancelled' : 'claude_launch_failed'; }
+      } catch (error) {
+        try { throwOnResourceExhaustion(error); }
+        catch (fatal) {
+          if (!turn.failure?.endsWith('cleanup_unconfirmed')) turn.failure = fatal.code?.endsWith('cleanup_unconfirmed') ? 'cleanup_unconfirmed' : fatal.code;
+        }
+        turn.failure ??= error.code === 'setup_terminal_helper_required' ? error.code : turn.cancelled ? 'native_cancelled' : 'claude_launch_failed';
+      }
       finally {
         clearTimeout(deadlineTimer);
         abortApprovals(turn);
@@ -491,7 +499,8 @@ export function createClaudeAgentSession({ id = 'claude', command, cwd, model, e
         active = undefined;
         resolveDone();
       }
-      const error = outcome?.error === 'cleanup_unconfirmed' ? 'cleanup_unconfirmed'
+      const error = outcome?.error === 'cleanup_unconfirmed' || turn.failure === 'cleanup_unconfirmed' ? 'cleanup_unconfirmed'
+        : outcome?.error === 'process_socket_exhausted' ? outcome.error
         : turn.failure ?? (turn.cancelled ? 'native_cancelled'
           : outcome?.status !== 'succeeded' ? startupFailure(turn) ?? outcome?.error ?? 'claude_process_failed'
             : !turn.sawSession ? 'native_session_missing' : !turn.completed || !turn.resultSeen ? 'native_completion_missing'
@@ -499,7 +508,7 @@ export function createClaudeAgentSession({ id = 'claude', command, cwd, model, e
                 : turn.denied ? 'native_permission_denied' : turn.unsupportedControl ? 'claude_control_unsupported'
                   : turn.nativeFailed ? 'native_turn_failed' : mode === 'conversation' && !(turn.text || turn.partialText).trim()
                     ? 'native_response_empty' : undefined);
-      if (error === 'cleanup_unconfirmed' || (turn.launched && !turn.sawSession)) blocked = true;
+      if (error === 'cleanup_unconfirmed' || error?.endsWith('_socket_exhausted') || (turn.launched && !turn.sawSession)) blocked = true;
       const status = turn.cancelled ? 'cancelled' : error ? 'failed' : 'succeeded';
       const result = { status, text: turn.text || turn.partialText, exitCode: outcome?.exitCode ?? null,
         ...(nativeSessionId ? { sessionId: nativeSessionId } : {}),

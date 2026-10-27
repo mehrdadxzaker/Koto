@@ -18,19 +18,27 @@ must be observed on those actual hosts before claiming equivalent acceptance.
 
 Account discovery on this Mac found an existing Codex ChatGPT login. Claude Code
 was found outside PATH and reported that native sign-in was required. These are
-account-status observations, not successful model requests.
+account-status observations. Later native Codex work and a fresh-install
+conversation used that subscription successfully; Claude inference remains
+unverified.
 
 The first guided local setup acquired and verified a model download, then
 refused startup because observed free RAM was approximately 0.95 GiB, below the
 1 GiB reserve. The verified assets were retained. That run used raw macOS free
 pages; the subsequent source uses the system memory-pressure estimate while
-retaining the same reserve and separate raw metric. The revised guard still
-requires actual runtime acceptance. Successful local inference
-through this new onboarding path has not yet been observed. This partial result
-does not establish commercial/local cooperation or complete installed acceptance.
-Claude live inference and the full Linux/Windows native journeys also remain
-unverified. Earlier evidence remains recorded in [core status](CORE_STATUS.md)
-and issue #543.
+retaining the same reserve and separate raw metric. Later installed runs loaded
+that model and remembered setup, but its native inspection request failed and
+produced no useful contribution. A larger Mac download was interrupted and
+cleaned up. A separate Linux native run stopped under its memory guard without
+changes; that result does not establish model quality. A fresh offline install
+of candidate `9b643fd8a234f22a94a42599c651acfce205c59a` also completed
+conversation before project selection, project/account recovery and normal exit.
+A separate two-Codex PTY run on that package completed native interaction,
+independent stop, confirmed cleanup and an explicitly reviewed/integrated note.
+Useful commercial/local cooperation and full Linux/Windows journeys remain
+pending. Exact candidates, failed outcomes and later diagnostic
+changes remain recorded in [core status](CORE_STATUS.md) and issue #543; earlier
+observations must not be attributed to a later candidate.
 
 ## 1. Complete fresh-user onboarding
 

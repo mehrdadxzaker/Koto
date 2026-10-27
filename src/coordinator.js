@@ -217,6 +217,12 @@ export function createCoordinator({ session } = {}) {
     try {
       const result = await session.send(prompt, { signal });
       if (result?.status !== 'succeeded') {
+        if (typeof result?.error === 'string' && /(?:socket_exhausted|cleanup_unconfirmed)$/.test(result.error)) {
+          fail(result.error.endsWith('cleanup_unconfirmed') ? 'cleanup_unconfirmed' : 'local_socket_exhausted',
+            result.error.endsWith('cleanup_unconfirmed')
+              ? 'Coordinator process cleanup could not be confirmed. Inspect its owned process state before continuing.'
+              : 'Socket or file-descriptor capacity is unavailable. Stop new requests and inspect system resources before retrying.');
+        }
         fail(result?.status === 'cancelled' ? 'coordinator_cancelled' : 'coordinator_turn_failed',
           text(result?.errorMessage, 2048) ? result.errorMessage
             : `The real coordinator ${result?.status === 'cancelled' ? 'was cancelled' : 'did not complete'}${text(result?.error, 256) ? ` (${result.error})` : ''}. No automatic retry or project-agent launch occurred.`,

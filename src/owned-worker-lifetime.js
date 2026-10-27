@@ -1,6 +1,17 @@
 import { spawn } from 'node:child_process';
+import { throwOnResourceExhaustion } from './bounded-fetch.js';
 
 const MAX_PENDING_EVENTS = 64;
+
+/** Inspect actual Node errors only. Native output is never an error-code source. */
+export function ownedProcessErrorCode(error, fallback) {
+  try { throwOnResourceExhaustion(error, 'process_socket_exhausted'); }
+  catch (fatal) {
+    if (typeof fatal?.code === 'string' && fatal.code.endsWith('cleanup_unconfirmed')) return 'cleanup_unconfirmed';
+    if (typeof fatal?.code === 'string' && fatal.code.endsWith('socket_exhausted')) return 'process_socket_exhausted';
+  }
+  return fallback;
+}
 
 /** Private lifetime owner shared by process and native-helper adapters.
  * Adapters supply ownership evidence; closing a stream or killing a helper is
@@ -65,7 +76,10 @@ export function createOwnedWorkerLifetime({ timeoutMs, signal, cleanupMs,
   };
   const fail = code => {
     if (finished) return;
-    failure ??= code;
+    // Finite-resource failure must survive an earlier generic stream error;
+    // uncertainty about cleanup still has precedence when settling ownership.
+    if (code === 'cleanup_unconfirmed' || code === 'process_socket_exhausted' && failure !== 'cleanup_unconfirmed') failure = code;
+    else failure ??= code;
     drain();
   };
   function cancel() {
@@ -129,10 +143,10 @@ export function createOwnedWorkerLifetime({ timeoutMs, signal, cleanupMs,
           pendingEvents += 1;
           Promise.resolve(result).then(
             () => { pendingEvents -= 1; },
-            () => { pendingEvents -= 1; fail('observer_failed'); },
+            error => { pendingEvents -= 1; fail(ownedProcessErrorCode(error, 'observer_failed')); },
           );
         }
-      } catch { fail('observer_failed'); }
+      } catch (error) { fail(ownedProcessErrorCode(error, 'observer_failed')); }
     },
   };
 }
@@ -233,27 +247,27 @@ export function startOwnedPipe({ command, args, cwd, env, timeoutMs, signal,
       shell: false, detached: process.platform !== 'win32', windowsHide: true,
       stdio: ['pipe', 'pipe', 'pipe'],
     });
-  } catch { lifetime.notStarted('spawn_failed'); return owner; }
-  child.on('error', () => lifetime.fail('spawn_failed'));
+  } catch (error) { lifetime.notStarted(ownedProcessErrorCode(error, 'spawn_failed')); return owner; }
+  child.on('error', error => lifetime.fail(ownedProcessErrorCode(error, 'spawn_failed')));
   child.once('spawn', () => {
-    try { onSpawn?.(child.pid); } catch { lifetime.fail('observer_failed'); }
+    try { onSpawn?.(child.pid); } catch (error) { lifetime.fail(ownedProcessErrorCode(error, 'observer_failed')); }
   });
-  child.stdin.on('error', () => lifetime.fail('stdin_failed'));
+  child.stdin.on('error', error => lifetime.fail(ownedProcessErrorCode(error, 'stdin_failed')));
   for (const stream of ['stdout', 'stderr']) {
-    child[stream].on('error', () => lifetime.fail('output_failed'));
+    child[stream].on('error', error => lifetime.fail(ownedProcessErrorCode(error, 'output_failed')));
     child[stream].on('data', chunk => {
       if (lifetime.finished || lifetime.failure || lifetime.cancelled) return;
-      try { onOutput?.(stream, chunk); } catch { lifetime.fail('output_failed'); }
+      try { onOutput?.(stream, chunk); } catch (error) { lifetime.fail(ownedProcessErrorCode(error, 'output_failed')); }
     });
   }
   child.once('exit', (code, name) => {
     exited = true;
     lifetime.endedWith(code, name);
-    try { onExit?.(code, name); } catch { lifetime.fail('output_failed'); }
+    try { onExit?.(code, name); } catch (error) { lifetime.fail(ownedProcessErrorCode(error, 'output_failed')); }
   });
   child.once('close', (code, name) => {
     exited = true;
-    try { onClose?.(); } catch { lifetime.fail('output_failed'); }
+    try { onClose?.(); } catch (error) { lifetime.fail(ownedProcessErrorCode(error, 'output_failed')); }
     lifetime.endedWith(code, name);
     lifetime.closed();
   });

@@ -1,5 +1,6 @@
 import { freemem, totalmem } from 'node:os';
 import { startSetupCommand } from './setup-command.js';
+import { throwOnResourceExhaustion } from './bounded-fetch.js';
 
 const LIMIT = 4096;
 const fail = (code, message, cause) => Object.assign(new Error(message, cause ? { cause } : undefined), { code });
@@ -35,6 +36,7 @@ export async function readHostMemory({ signal } = {}) {
     handle.endInput();
     const outcome = await handle.completion;
     if (outcome.error === 'cleanup_unconfirmed') throw cleanupFailure();
+    throwOnResourceExhaustion({ code: outcome.error });
     if (outcome.status !== 'succeeded' || exceeded || signal?.aborted) throw unavailable();
     const matches = [...stdout.matchAll(/^System-wide memory free percentage: ([0-9]{1,3})%\r?$/gm)];
     if (matches.length !== 1) throw unavailable();
@@ -43,6 +45,7 @@ export async function readHostMemory({ signal } = {}) {
     return { totalBytes, rawFreeBytes, availableBytes: Math.floor(totalBytes * percentage / 100), source: 'macos-memory-pressure' };
   } catch (error) {
     if (['local_memory_metrics_unavailable', 'local_memory_cleanup_unconfirmed'].includes(error.code)) throw error;
+    throwOnResourceExhaustion(error);
     throw unavailable(error);
   } finally {
     if (handle) {

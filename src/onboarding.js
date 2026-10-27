@@ -3,6 +3,7 @@ import path from 'node:path';
 import { stripVTControlCharacters } from 'node:util';
 import { startSetupCommand } from './setup-command.js';
 import { resolveAgentExecutable } from './launch-preflight.js';
+import { throwOnResourceExhaustion } from './bounded-fetch.js';
 
 const CLIENTS = Object.freeze({
   codex: { label: 'Codex / ChatGPT', account: 'chatgpt', statusArgs: ['login', 'status'], loginArgs: ['login'],
@@ -97,6 +98,7 @@ async function inspectAccount(kind, command, { cwd, signal }) {
     if (outcome.error === 'cleanup_unconfirmed') {
       throw fail('onboarding_cleanup_unconfirmed', 'Cleanup of an owned native account-status process could not be confirmed. Inspect that process before retrying setup.');
     }
+    throwOnResourceExhaustion({ code: outcome.error }, 'onboarding_socket_exhausted');
     if (exceeded) return result(kind, command, 'unavailable', 'The native client returned too much account-status output. Check its native account setup.', 'onboarding_status_output_limit');
     if (signal?.aborted || outcome.status === 'cancelled') return result(kind, command, 'unavailable', 'Account discovery was cancelled.', 'onboarding_cancelled');
     if (outcome.error && outcome.error !== 'exit_failed') {

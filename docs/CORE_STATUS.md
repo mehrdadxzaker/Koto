@@ -15,6 +15,60 @@ review/integration/continuation without copying session-directory paths. The
 same setup and plan operations are shared core exports for later delivery
 adapters. Provider API keys are not required for native subscription use.
 
+### Installed observations and retained failures
+
+Candidate `9b643fd8a234f22a94a42599c651acfce205c59a` passed all seven
+[source CI jobs](https://github.com/mehrdadxzaker/Koto/actions/runs/40575030474).
+A fresh offline `npm exec` installation matched all 52 packaged payloads to that
+commit. The actual CLI discovered the existing ChatGPT login, completed a native
+conversation before selecting a project, rejected a non-Git folder with recovery
+guidance, and then selected a clean project. Declining the offered Claude native
+sign-in preserved the working account and project. Exit was zero and owned
+cleanup was confirmed; no local server was started in that observation.
+
+A separate two-Codex PTY observation on the same `9b643fd` package completed
+native question/answer input, resize/reflow and detach controls, stopping the
+reader while its peer continued, and an explicitly reviewed 98-word operator
+note. Integration commit `78f0c1e0ea6b46eb4590b501e3c5d2abd3056925` contains only
+that note in the separate integration worktree; the original project remained
+clean. Both product cleanup events were confirmed and the outer driver retained
+no owned processes. Aggregate CLI exit was 1 because the reader was deliberately
+cancelled; the writer succeeded. The earlier empty-review deadline and OpenCode
+cleanup failure remain separate records. The OpenCode failure lacked a cause
+receipt and was not reproduced by this positive two-Codex observation.
+
+Earlier installed candidates also completed optional runtime/model acquisition,
+remembered returning-user setup, plan editing, saved review and explicit
+integration. After correcting the planning/execution handoff, actual native Codex
+execution produced a useful 25-line documentation contribution that was reviewed
+and integrated in a separate worktree. The original checkout remained clean.
+The small 1.5B model failed its required native inspection request and produced
+no useful change; its plaintext/truncated reply was retained and never executed.
+The catalog now describes that model as experimental rather than promising
+successful coding. Hardware guidance and a loaded model do not establish task
+quality.
+
+Two larger 7B acquisitions on the Mac failed after about 3,458 MiB and 415 MiB.
+Incomplete assets were removed, existing assets were preserved, and both CLIs
+exited zero with confirmed cleanup. The transfer causes remain unconfirmed. A
+separate Linux native observation reached two actual OpenCode PTYs, but the
+runtime stopped with `local_memory_limit` and both worktrees had no changes.
+Its driver also labeled this as cleanup failure; the retained runtime outcome
+does not itself report `cleanup_unconfirmed`. The old receipt lacks the triggering
+RSS and available-memory values, so it cannot identify which limit fired or
+establish model quality. No Windows native run followed that failure.
+
+Subsequent diagnostics retain the exact first memory-guard sample in the error
+and completion result, including both thresholds and which comparison failed.
+They add no sampling or retries and do not change the memory policy. Linux
+`os.freemem()` on the observed Node/libuv version
+[reads `MemAvailable` first](https://github.com/nodejs/node/blob/v22.23.3/deps/uv/src/unix/linux.c#L1965);
+it must not be described as Linux `MemFree`. Setup error handling also preserves
+socket/file-descriptor exhaustion as a fatal recovery boundary. These later
+changes require their own source/package review; the observations above remain
+bound to their original candidates. Useful commercial/local cooperation and
+complete supported-platform acceptance remain pending in #543.
+
 The first installed pre-final candidate found the existing ChatGPT login and a
 Claude Code installation outside PATH that required sign-in. It downloaded and
 verified the official Qwen2.5 Coder 1.5B Q4_K_M asset (1,117,320,768 bytes), reused

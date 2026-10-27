@@ -4,6 +4,7 @@ import path from 'node:path';
 import { stripVTControlCharacters } from 'node:util';
 import { startSetupCommand } from './setup-command.js';
 import { resolveAgentExecutable } from './launch-preflight.js';
+import { throwOnResourceExhaustion } from './bounded-fetch.js';
 
 const PACKAGES = Object.freeze({ codex: '@openai/codex', claude: '@anthropic-ai/claude-code' });
 const REGISTRY = 'https://registry.npmjs.org';
@@ -87,6 +88,7 @@ async function registryMetadata(npmPackage, signal) {
     }
     return { version: metadata.version, integrity: metadata.dist.integrity };
   } catch (error) {
+    throwOnResourceExhaustion(error, 'native_client_socket_exhausted');
     if (error.code?.startsWith('native_client_')) throw error;
     throw fail(bounded.aborted ? 'native_client_install_cancelled' : 'native_client_registry_unavailable',
       bounded.aborted ? 'Native-client setup was cancelled or the metadata request reached its deadline.' : 'The official npm registry is unavailable. Check connectivity before retrying; no automatic retry was made.');
@@ -198,6 +200,7 @@ export async function installNativeClient({ kind, directory, signal, onProgress 
     const outcome = await handle.completion;
     cleanupConfirmed = outcome.error !== 'cleanup_unconfirmed';
     if (!cleanupConfirmed) throw fail('native_client_cleanup_unconfirmed', 'Native installation cleanup could not be confirmed. Its private staging directory was retained; inspect owned processes before retrying.');
+    throwOnResourceExhaustion({ code: outcome.error }, 'native_client_socket_exhausted');
     if (outcome.status !== 'succeeded') throw fail(outcome.status === 'cancelled' ? 'native_client_install_cancelled' : 'native_client_install_failed',
       'The native-client installation did not complete. Existing clients and native accounts were preserved; no automatic retry was made.');
     const lock = await jsonFile(path.join(stage, 'package-lock.json'));
@@ -214,6 +217,7 @@ export async function installNativeClient({ kind, directory, signal, onProgress 
     catch (error) { if (!['EEXIST', 'ENOTEMPTY'].includes(error.code)) throw error; }
     return { kind, command: await installedCommand(prefix, kind, metadata.version), version: metadata.version };
   } catch (error) {
+    throwOnResourceExhaustion(error, 'native_client_socket_exhausted');
     if (error.code?.startsWith('native_client_') || /^(?:windows_pty_|terminal_|setup_)/.test(error.code ?? '')) throw error;
     throw fail(signal?.aborted ? 'native_client_install_cancelled' : 'native_client_install_failed',
       signal?.aborted ? 'Native-client setup was cancelled.' : 'Native-client installation could not finish. Existing clients and native accounts were preserved.');

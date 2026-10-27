@@ -4,6 +4,7 @@ import { link, lstat, open, opendir, realpath, rename, unlink } from 'node:fs/pr
 import path from 'node:path';
 import { startCommand } from './command-session.js';
 import { resolveAgentExecutable } from './launch-preflight.js';
+import { throwOnResourceExhaustion } from './bounded-fetch.js';
 
 const CONTEXT_BYTES = 8192;
 const FILE_BYTES = 256 * 1024;
@@ -339,6 +340,7 @@ export function createLocalAgentSession({ id = 'local', endpoint, model, cwd, mo
     handle.endInput();
     const result = await handle.completion;
     if (result.error === 'cleanup_unconfirmed') throw failure('local_agent_cleanup_unconfirmed', 'Owned command cleanup could not be confirmed; inspect its process before continuing.');
+    throwOnResourceExhaustion({ code: result.error });
     return { ...result, ...(exceeded ? { status: 'failed', error: 'output_limit' } : {}), ...output };
   }
 
@@ -515,6 +517,7 @@ export function createLocalAgentSession({ id = 'local', endpoint, model, cwd, mo
               else throw failure('local_agent_tool_unavailable', 'This tool is unavailable in the selected session mode.');
             } catch (error) {
               if (error.code === 'local_agent_cleanup_unconfirmed' || joined.aborted) throw error;
+              throwOnResourceExhaustion(error);
               observation = { status: 'failed', error: error.code ?? 'local_agent_tool_failed', message: bounded(error.message ?? 'Tool failed.', 512) };
             }
             turn.push({ role: 'tool', tool_call_id: call.id, content: bounded(JSON.stringify(observation)) });
@@ -525,6 +528,8 @@ export function createLocalAgentSession({ id = 'local', endpoint, model, cwd, mo
         return result('failed', 'local_agent_turn_limit');
       } catch (error) {
         if (error.code === 'local_agent_cleanup_unconfirmed') return result('failed', error.code);
+        try { throwOnResourceExhaustion(error); }
+        catch (fatal) { return result('failed', fatal.code); }
         if (deadline.aborted) return result('failed', 'local_agent_timeout');
         if (controller.signal.reason?.code === 'local_agent_observer_failed') return result('failed', 'local_agent_observer_failed');
         if (joined.aborted) return result('cancelled', controller.signal.reason?.code ?? 'local_agent_cancelled');

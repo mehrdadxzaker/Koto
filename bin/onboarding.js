@@ -47,6 +47,7 @@ export async function configureAccounts({ ask, print, preferences, signal, login
 export async function configureLocalModels({ ask, print, signal, onProgress }) {
   const choices = listLocalModelChoices();
   print('Optional open-source models run on this computer. You can skip this and use your subscriptions.');
+  print('Memory guidance describes resource fit. Review local coding results before integrating them.');
   for (const [index, model] of choices.entries()) {
     print(`  ${index + 1}. ${model.label} — ${gib(model.bytes)} download, ${model.license}${model.suitable ? '' : ' (does not fit the suggested memory budget)'}`);
     if (model.description) print(`     ${model.description}`);
