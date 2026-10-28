@@ -5,8 +5,8 @@ Koto CLI. The same CLI owns coordination, planning, native agent terminals,
 review and approved integration. The desktop does not implement another agent
 scheduler or convert terminal output into a model transcript.
 
-Status: implementation preview. Platform observations, source identity and
-packaging boundaries must be recorded before claiming a supported desktop release.
+Status: implementation preview with bounded macOS ARM64 observations below.
+This is not a signed/notarized or cross-platform desktop release.
 The existing npm alpha remains a separate frozen release; this source change
 does not replace an already published package.
 
@@ -71,3 +71,36 @@ delivery work.
 
 See [architecture](ARCHITECTURE.md), [session controls](GUIDED_SESSIONS.md) and the
 [UI milestone proposal](UI_IDE_MILESTONE.md).
+
+## Recorded Mac preview observations
+
+On October 28, 2026, the unsigned built app was opened outside the checkout with
+private app/Koto state and existing native account ownership preserved:
+
+- Explicit terminal-support setup compiled the matching packaged helper.
+- Native folder selection opened the real Koto project, and its sidebar entry
+  survived an ordinary app close/reopen.
+- Fresh CLI onboarding discovered the existing Codex login; local model setup
+  was declined. Returning startup reached the selected project conversation.
+- A real Codex response showed the provider glyph and successive working-spinner
+  frames. No build, worker launch, code edit or tool action was requested.
+- A draft started during a response retained its insertion point: typing
+  `/he`, waiting for the response, then typing `lp` executed `/help` correctly.
+- Sidebar collapse/reopen and font changes resized the terminal. Settings and
+  reduced-motion selection worked through the native app controls.
+- Stop CLI showed the ordinary stopped state. The 16 recorded CLI, helper,
+  Codex and MCP child process identities were absent afterward.
+- Source/scope checks and the desktop production build passed. Packaged core,
+  CLI and desktop payloads were compared against the source files.
+
+Initial actual runs exposed terminal geometry clipping, a requested stop shown
+as `exit_failed`, and a retained draft whose cursor reset to its beginning.
+Those observations were retained, the causes corrected, and the affected
+interactions repeated successfully.
+
+The fresh private setup had no saved build shortcuts. Saved-session selection
+was source-reviewed but not observed with a retained build in this desktop run.
+Worker native-TUI attachment, forced cleanup/crash paths, reduced-motion during
+an active model response, Windows/Linux desktop operation and signed/notarized
+installation remain unobserved. The earlier CLI acceptance is not expanded by
+these desktop observations.

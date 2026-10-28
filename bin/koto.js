@@ -44,7 +44,7 @@ Usage:
 
 run executes the commands explicitly declared in the selected workflow.
 Worker commands receive a JSON assignment on stdin and return text on stdout.
-IDE plugins and Koto's own UI will use this same core.
+The CLI and desktop preview use this core; IDE plugins can consume it too.
 First launch finds native subscription logins and offers optional local models.
 No provider API key is required. Returning launches remember your setup.
 `;

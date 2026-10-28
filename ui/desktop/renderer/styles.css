@@ -103,8 +103,8 @@ button svg { display: block; }
 .terminal-area { position: relative; flex: 1; min-height: 0; min-width: 0; overflow: hidden; }
 .terminal-container { position: absolute; inset: 28px 30px 18px 32px; padding: 0; visibility: hidden; }
 .terminal-container.is-visible { visibility: visible; }
-.terminal-container .xterm { height: 100%; }
-.terminal-container .xterm-viewport { scrollbar-color: #3d4651 transparent; scrollbar-width: thin; }
+.terminal-container .xterm { height: 100%; background-color: var(--terminal); }
+.terminal-container .xterm-viewport { background-color: var(--terminal); scrollbar-color: #3d4651 transparent; scrollbar-width: thin; }
 .terminal-container .xterm-screen { margin: 0; }
 .terminal-container .xterm .xterm-helper-textarea { outline: none; }
 .terminal-container:focus-within { outline: none; }
