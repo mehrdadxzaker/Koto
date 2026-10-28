@@ -138,6 +138,21 @@ else
 fi
 sha256sum --check "$koto_observe_root/foreign-before.sha256" > "$koto_observe_root/foreign-preserved.txt"
 [ ! -e "$koto_observe_root/foreign-bin/koto" ]
+# Reject a path whose mutable shared ancestor could redirect later removal.
+mkdir -m 777 "$koto_observe_root/shared-parent"
+chmod 777 "$koto_observe_root/shared-parent"
+printf 'preserve shared directory data\n' > "$koto_observe_root/shared-parent/keep"
+if timeout --signal=TERM --kill-after=10s 30s sh "$koto_observe_installer" \
+  --prefix "$koto_observe_root/shared-parent/koto" --bin-dir "$koto_observe_root/shared-bin" \
+  > "$koto_observe_root/shared-install.stdout" 2> "$koto_observe_root/shared-install.stderr"; then
+  printf '%s\n' 'Installer accepted an unsafe writable ancestor.' >&2
+  exit 1
+else
+  printf '%s\n' "$?" > "$koto_observe_root/shared-install.exit"
+fi
+[ ! -e "$koto_observe_root/shared-parent/koto" ]
+[ "$(cat "$koto_observe_root/shared-parent/keep")" = 'preserve shared directory data' ]
+chmod 700 "$koto_observe_root/shared-parent"
 timeout --signal=TERM --kill-after=10s 60s sh "$koto_observe_installer" --uninstall \
   --prefix "$koto_observe_prefix" --bin-dir "$koto_observe_bin" \
   > "$koto_observe_root/uninstall.stdout" 2> "$koto_observe_root/uninstall.stderr"

@@ -86,6 +86,24 @@ secure_directory() {
     directory_mode=$(stat -c %a -- "$1")
     [ $((0$directory_mode & 022)) -eq 0 ] || die "directory is writable by other users: $1"
 }
+secure_ancestors() {
+    ancestor=$1
+    while [ -n "$ancestor" ]; do
+        if [ -e "$ancestor" ] || [ -L "$ancestor" ]; then
+            [ -d "$ancestor" ] && [ ! -L "$ancestor" ] || die "ancestor is not a real directory: $ancestor"
+            ancestor_uid=$(stat -c %u -- "$ancestor")
+            case $ancestor_uid in 0|"$installer_uid") ;; *) die "ancestor belongs to another user: $ancestor" ;; esac
+            ancestor_mode=$(stat -c %a -- "$ancestor")
+            if [ $((0$ancestor_mode & 022)) -ne 0 ]; then
+                [ "$ancestor_uid" = 0 ] && [ $((0$ancestor_mode & 01000)) -ne 0 ] || die "ancestor is writable by other users: $ancestor"
+            fi
+        fi
+        if [ "$ancestor" = / ]; then ancestor=
+        else ancestor=${ancestor%/*}; [ -n "$ancestor" ] || ancestor=/; fi
+    done
+}
+secure_ancestors "$prefix"
+secure_ancestors "$bin_dir"
 check_link() {
     if [ -L "$bin_dir/koto" ]; then
         [ "$(readlink -- "$bin_dir/koto")" = "$prefix/current/koto" ] || die 'existing koto link is not owned by this installation'
@@ -95,9 +113,11 @@ if [ ! -e "$prefix" ]; then
     if [ "$uninstall" = 1 ]; then printf 'Koto is not installed at %s\n' "$prefix"; exit 0; fi
     prefix_parent=${prefix%/*}; [ -n "$prefix_parent" ] || prefix_parent=/
     mkdir -p -- "$prefix_parent"
+    secure_ancestors "$prefix_parent"
     mkdir -- "$prefix" || die 'prefix destination appeared; refusing to replace it'
     prefix_created=1
 fi
+secure_ancestors "$prefix"
 secure_directory "$prefix"
 owner_text=$(printf 'koto-linux-installer-v1\n%s\n%s' "$prefix" "$bin_dir")
 owned=0
@@ -126,7 +146,7 @@ elif [ -e "$prefix/current" ]; then die 'current is not an installer-owned link'
 verify_release() {
     verify_dir=$1
     case ${verify_dir##*/} in koto-*-node-v*-linux-x64|koto-*-node-v*-linux-arm64) ;; *) die 'unknown retained release directory' ;; esac
-    [ -d "$verify_dir" ] && [ ! -L "$verify_dir" ] || die 'release is not an owned directory'
+    secure_directory "$verify_dir"
     for record in .koto-release .paths .sha256 koto; do
         [ -f "$verify_dir/$record" ] && [ ! -L "$verify_dir/$record" ] || die 'release ownership/inventory record is missing'
     done
@@ -151,6 +171,8 @@ fi
 [ -z "$old_current" ] || [ -d "$prefix/$old_current" ] || die 'current release is missing'
 if [ "$uninstall" = 1 ]; then
     [ "$owned" = 1 ] || die 'installation ownership is unconfirmed'
+    secure_ancestors "$prefix"
+    secure_ancestors "$bin_dir"
     [ ! -L "$bin_dir/koto" ] || rm -- "$bin_dir/koto"
     [ -z "$old_current" ] || rm -- "$prefix/current"
     if [ -d "$prefix/releases" ]; then
@@ -252,7 +274,10 @@ if [ -n "$old_current" ]; then [ -L "$prefix/current" ] && [ "$(readlink -- "$pr
 else [ ! -e "$prefix/current" ] && [ ! -L "$prefix/current" ] || die 'current destination appeared'; fi
 ln -s -- "releases/$release" "$stage/current"
 mv -Tf -- "$stage/current" "$prefix/current"
-mkdir -p -- "$bin_dir"; secure_directory "$bin_dir"; check_link
+secure_ancestors "$bin_dir"
+mkdir -p -- "$bin_dir"
+secure_ancestors "$bin_dir"
+secure_directory "$bin_dir"; check_link
 [ -L "$bin_dir/koto" ] || ln -s -- "$prefix/current/koto" "$bin_dir/koto"
 prefix_created=0
 printf 'Installed Koto %s with managed Node %s.\nRun: %s/koto\nAdd %s to PATH if needed.\n' "$KOTO_VERSION" "$NODE_VERSION" "$bin_dir" "$bin_dir"

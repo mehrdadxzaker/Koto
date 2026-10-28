@@ -58,6 +58,9 @@ Download the installer first when using those commands; repeat custom paths for
 custom-location removal. Uninstall preserves `~/.koto`, downloaded models,
 native-agent authentication and projects. Existing unrelated command files or
 installation directories are refused rather than overwritten.
+Custom locations also require ancestor directories controlled by your user or
+root and not writable by other users; root-owned sticky directories such as
+`/tmp` are allowed.
 
 The pinned CLI, Node version and artifact digests are recorded in
 [the distribution manifest](../install/manifest.json). These recipes package the
