@@ -12,6 +12,8 @@ class Koto < Formula
 
   def install
     libexec.install Dir["*"]
+    # Supply metadata without letting Homebrew move it out of the frozen payload.
+    cp [libexec/"LICENSE", libexec/"README.md"], prefix
     (bin/"koto").write_env_script libexec/"bin/koto.js",
                                 PATH: "#{Formula["node@24"].opt_bin}:$PATH"
   end
