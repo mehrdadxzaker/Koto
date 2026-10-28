@@ -11,7 +11,7 @@
 
 <p align="center"><strong>English</strong> · <a href="README.fa.md" lang="fa">فارسی</a></p>
 
-<p align="center"><a href="https://skills.sh/mehrdadxzaker/koto/koto"><img src="https://skills.sh/b/mehrdadxzaker/Koto" alt="Koto on skills.sh" /></a></p>
+<p align="center"><a href="https://skills.sh/mehrdadxzaker/koto/koto"><img src="https://skills.sh/b/mehrdadxzaker/koto" alt="Koto on skills.sh" /></a></p>
 
 <p align="center"><strong>Run multiple coding agents together, in one coordinated workspace.</strong></p>
 <p align="center">Give each agent an isolated Git worktree, follow its output, review its changes, and bring the results together.</p>
@@ -101,7 +101,7 @@ dependencies, required build step or install hooks.
 Install the optional **Koto** skill for your coding agents:
 
 ```sh
-npx skills add mehrdadxzaker/Koto -g
+npx skills add mehrdadxzaker/koto -g
 ```
 
 Choose Codex, Claude Code, or both in the installer. Omit `-g` to install only
