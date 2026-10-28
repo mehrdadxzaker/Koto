@@ -77,6 +77,7 @@ export async function runChat({ write, signal: parentSignal, version, project: s
   let input, coordinator, nativeSession, ownedServer, primaryFailure, quitting = false, normalQuit = false, busy = false;
   let plain = process.env.KOTO_PLAIN === '1' || process.env.KOTO_SCREEN_READER === '1' || process.env.TERM === 'dumb';
   let interactionMode = 'auto', currentMode = 'ask', catalog, lastFailure, activeConversationController;
+  let historyLoaded = false;
   const attachments = new Map(), transcript = [], toolRecords = [], observedAt = new Map();
   let transcriptBytes = 0, toolBytes = 0;
   const makeView = () => createActivityView({ write, enabled: !plain,
@@ -160,7 +161,9 @@ export async function runChat({ write, signal: parentSignal, version, project: s
   };
   const suggestions = createTuiSuggestions({ getCatalog: () => catalog, getCommands: () => TUI_COMMANDS,
     getSessions: () => savedBuilds(), getQueue: () => queued });
-  const makeInput = () => createTerminalInput({ write, signal, plain, suggest: suggestions, getStatus,
+  const makeInput = () => {
+    const previousHistory = input?.history ?? [], previousDraft = input?.getDraft() ?? '';
+    const next = createTerminalInput({ write, signal, plain, suggest: suggestions, getStatus,
     onInterrupt() { if (busy) { stop(); return false; } quitting = true; controller.abort(); stop(); },
     onBusyTyping() { if (busy) view.pause(); },
     onBusyInputIdle() { if (busy && !quitting && !signal.aborted) view.resume(); },
@@ -182,6 +185,10 @@ export async function runChat({ write, signal: parentSignal, version, project: s
         queued.push(line.trim()); print(`Follow-up ${queued.length} queued. /queue edits or sends it after this turn; /stop stops this turn.`);
       }
     } });
+    next.setHistory(previousHistory);
+    if (previousDraft) next.setDraft(previousDraft);
+    return next;
+  };
   input = makeInput();
   const ask = async (text, options) => {
     view.pause();
@@ -197,7 +204,7 @@ export async function runChat({ write, signal: parentSignal, version, project: s
     if (!observedAt.has(id)) observedAt.set(id, Date.now());
     if (['activity', 'tool_started', 'tool_completed', 'command_started', 'command_output', 'permission_required', 'approval_required'].includes(item.type)) {
       const detail = visible(JSON.stringify(Object.fromEntries(Object.entries(item).filter(([key]) => !['signal'].includes(key))), null, 2)).slice(0, 8192);
-      const record = { value: String(Date.now()) + ':' + toolRecords.length, label: `${id}: ${item.description ?? item.tool ?? item.command ?? item.activity ?? item.type}`.slice(0, 180),
+      const record = { value: String(Date.now()) + ':' + toolRecords.length, label: `${id}: ${item.command ?? item.tool ?? item.description ?? item.activity ?? item.type}`.slice(0, 180),
         description: `${new Date().toLocaleTimeString()} · ${item.status ?? item.type}`, detail };
       toolRecords.push(record); toolBytes += Buffer.byteLength(detail);
       while (toolRecords.length > 128 || toolBytes > 256 * 1024) toolBytes -= Buffer.byteLength(toolRecords.shift().detail);
@@ -219,11 +226,15 @@ export async function runChat({ write, signal: parentSignal, version, project: s
     return catalog;
   }
   async function saveHistory() {
+    // Startup project selection precedes the first history read. Never replace
+    // an existing project's history with the newly constructed empty editor.
+    if (!historyLoaded) return;
     try { await savePromptHistory(input.history, { project: preferences.project ?? process.cwd() }); }
     catch (error) { recoverable(error); print(`Prompt history was not saved: ${error.message}`); }
   }
   async function restoreHistory() {
-    try { input.setHistory(await loadPromptHistory({ project: preferences.project ?? process.cwd() })); }
+    historyLoaded = false;
+    try { input.setHistory(await loadPromptHistory({ project: preferences.project ?? process.cwd() })); historyLoaded = true; }
     catch (error) { recoverable(error); print(`Prompt history is unavailable: ${error.message}`); }
   }
   async function installedMenu(refreshModels = false) {
@@ -805,9 +816,9 @@ export async function runChat({ write, signal: parentSignal, version, project: s
     if (action === 'resume') {
       const prompt = await ask(`What should ${id} do next? `);
       if (!prompt) return;
-      input.close();
+      await saveHistory(); input.close();
       try { await runProjectResume(saved.directory, id, { prompt, write, signal }); }
-      finally { if (!quitting && !signal?.aborted) input = makeInput(); }
+      finally { if (!quitting && !signal?.aborted) { input = makeInput(); await restoreHistory(); } }
       return;
     }
     const review = await inspectProjectSession(saved.directory, id);
@@ -845,6 +856,7 @@ export async function runChat({ write, signal: parentSignal, version, project: s
     delete preferences.selectedSession;
     reviewedBuildBase = undefined;
     preferences.project = selected.projectRoot;
+    historyLoaded = false;
     attachments.clear();
     await persist();
     print(`Project: ${selected.projectRoot}`);

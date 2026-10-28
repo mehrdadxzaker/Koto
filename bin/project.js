@@ -9,6 +9,7 @@ import { createActivityView } from './activity-view.js';
 import { createTuiReadline } from './tui-readline.js';
 import { createTuiSuggestions, discoverTuiCatalog } from '../src/tui-catalog.js';
 import { diffItems, taskItems, formatCompletion, formatError, renderMarkdown } from './tui-views.js';
+import { clipText } from './tui-text.js';
 
 const help = `Project collaboration (native terminal or structured pipe sessions)
 
@@ -304,8 +305,9 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
     const next = createTuiReadline({ write, signal, suggest: suggestions, plain: conversation?.plain,
       getStatus: () => {
         const state = session?.status();
-        const working = state?.agents.filter(agent => ['pending', 'running'].includes(agent.status)).length ?? 0;
-        return `${basename(plan.project)} · Build · ${working} active${conversation ? ` · ${conversation.provider ?? 'coordinator'} / ${conversation.model ?? 'native default'}${heldMessages.length ? ` · ${heldMessages.length} queued` : ''}` : ''}`;
+        const running = state?.agents.filter(agent => agent.status === 'running').length ?? 0;
+        const pending = state?.agents.filter(agent => agent.status === 'pending').length ?? 0;
+        return `${basename(plan.project)} · Build · ${running} running · ${pending} pending${conversation ? ` · ${conversation.provider ?? 'coordinator'} / ${conversation.model ?? 'native default'}${heldMessages.length ? ` · ${heldMessages.length} queued` : ''}` : ''}`;
       } });
     next.getInput().setHistory(inputHistory);
     next.on('inputError', error => { write(`${formatError(error)}\n`); close(); });
@@ -580,7 +582,7 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
               || item.command || item.tool) : activityRecords;
             const items = selected.slice().reverse().map((item, index) => ({ value: String(index),
               label: `${item.at.slice(11, 19)} · ${item.agentId ?? 'agent'} · ${item.type}${item.status ? ` · ${item.status}` : ''}`,
-              description: item.description || item.command || item.tool || item.text.split('\n')[0],
+              description: item.command || item.tool || item.description || item.text.split('\n')[0],
               detail: `${JSON.stringify(item, null, 2)}${item.truncated ? '\n[Only the bounded output tail is retained.]' : ''}` }));
             if (!items.length) write('No matching activity has been observed in this terminal yet.\n');
             else await terminal.browse({ title: command === ':tools' ? 'Observed tool and command output · Right expands' : 'Observed agent activity · Right expands', items, signal });
@@ -748,11 +750,21 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
     else fileWarnings.push('Changed-file inspection was skipped because owned cleanup/resources remain unresolved.');
     if (fileWarnings.length) write(`Changed-file list is incomplete; unavailable inspection:\n${fileWarnings.map(item => `  ${item}`).join('\n')}\n`);
     if (omittedPaths) write(`Changed-file collection retained the first 4096 paths; ${omittedPaths} additional observed paths were omitted.\n`);
-    write(`${formatCompletion({ ...report, changedFiles: [...changedFiles], outsideOwnership: [...outsideOwnership] })}\n`);
-    const commands = activityRecords.filter(item => item.command).slice(-24);
+    write(`${formatCompletion({ ...report, goal: plan.goal, changedFiles: [...changedFiles], outsideOwnership: [...outsideOwnership] })}\n`);
+    const latestCommands = new Map();
+    for (const item of activityRecords) {
+      if (!item.command) continue;
+      const key = `${item.agentId ?? 'agent'}\0${item.command}`;
+      latestCommands.delete(key);
+      latestCommands.set(key, item);
+    }
+    const allCommands = [...latestCommands.values()];
+    const commands = allCommands.slice(-6);
     if (commands.length) {
-      write('Observed native commands (reported activity; not independent acceptance):\n');
-      for (const item of commands) write(`  ${visible(item.agentId ?? 'agent')}: ${visible(item.command)} · ${visible(item.status ?? 'outcome unreported')}\n`);
+      write('Observed native command receipts (latest recorded status; not independent acceptance):\n');
+      const lineWidth = Math.max(20, Math.min(120, (process.stdout.columns ?? 80) - 1));
+      for (const item of commands) write(`${clipText(`  ${clipText(item.agentId ?? 'agent', 18)} · ${visible(item.status ?? 'outcome unreported')} · ${visible(item.command).replace(/\s+/g, ' ')}`, lineWidth)}\n`);
+      if (allCommands.length > commands.length) write(`  ${allCommands.length - commands.length} more retained commands in /tools.\n`);
     }
     showStatus();
     for (const agent of report.agents) if (agent.result?.error) write(`${agent.id}: ${visible(agent.result.errorMessage ?? agent.result.error)}\n`);
