@@ -89,7 +89,18 @@ function terminalInput({ write, signal, onInterrupt, onBusyLine, onBusyTyping, o
         const abort = () => finish(cancelError());
         pending = { reject: error => finish(error) };
         questionSignal?.addEventListener('abort', abort, { once: true });
+        const draft = terminal.line;
+        const draftCursor = terminal.cursor;
         terminal.question(label, { signal: controller.signal }, value => finish(undefined, value));
+        // question() redraws via prompt() and resets the cursor to zero while
+        // retaining the draft. Restore its public cursor before a preserving
+        // redraw, so a message started during a turn keeps its insertion point.
+        if (!settled && !closed && !controller.signal.aborted && draft.length > 0
+          && terminal.line === draft && Number.isInteger(draftCursor)
+          && draftCursor >= 0 && draftCursor <= draft.length) {
+          terminal.cursor = draftCursor;
+          terminal.prompt(true);
+        }
         if (questionSignal?.aborted) abort();
       });
     },
