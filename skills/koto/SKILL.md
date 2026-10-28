@@ -10,10 +10,16 @@ Koto owns account discovery, plans, agent sessions, review and integration.
 
 ## Use the published CLI
 
+Resolve the actual project first. Create a private empty invocation directory
+outside the project and run every command below with that directory as its
+working directory. Pass absolute project, task, plan and session paths. This
+prevents npm from selecting a same-named package in the current project instead
+of the published release. Keep the invocation directory separate from artifacts.
+
 Run the pinned package instead of a possibly unrelated global `koto` executable:
 
 ```sh
-npx --yes --registry=https://registry.npmjs.org/ @mehrdadz/koto@3.0.0-alpha.0 --version
+npx --yes --registry=https://registry.npmjs.org/ --package=@mehrdadz/koto@3.0.0-alpha.0 -- koto --version
 ```
 
 Use that full prefix for every Koto call. Node.js 22+ and Git are prerequisites.
@@ -34,6 +40,7 @@ Use finite command deadlines and retain the actual output and exit status.
 - **Onboard, select subscriptions or add local models:** run the pinned command
   with no arguments in a real terminal the user can operate. Koto discovers
   native Codex/ChatGPT and Claude Code logins; no provider API key is required.
+  Select the actual project at Koto's prompt; the invocation directory is not it.
   Let the user perform native sign-in and approve any client/model installation.
   Local models are optional. The normal CLI remembers the selected setup.
 

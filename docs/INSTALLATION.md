@@ -71,13 +71,15 @@ agent and installation scope, then restart the agent.
 The skill is an optional set of [instructions](../skills/koto/SKILL.md) over the
 existing CLI. It uses the exact published `@mehrdadz/koto@3.0.0-alpha.0` release
 through `npx`, so an old `koto` executable on your PATH cannot silently select a
-different runtime. The first invocation needs registry access and may prompt
+different runtime. It invokes the package from a private empty directory to
+avoid npm selecting a same-named source project. The first invocation needs
+registry access and may prompt
 for the host agent's normal tool permission. No global CLI install, new Koto
 account or provider API key is required for subscription use. For guided account
 discovery or optional local-model setup, open Koto in a real terminal:
 
 ```sh
-npx --yes --registry=https://registry.npmjs.org/ @mehrdadz/koto@3.0.0-alpha.0
+npx --yes --registry=https://registry.npmjs.org/ --package=@mehrdadz/koto@3.0.0-alpha.0 -- koto
 ```
 
 Downloads and native sign-in follow the CLI's normal guided choices. In a host
