@@ -119,14 +119,14 @@ export async function runProjectPlan(source, { write, signal, headless = false, 
 
 /** An explicit resume shares every terminal control with an initial launch. */
 export async function runProjectResume(sessionRoot, agentId, { prompt, write, signal, headless = false,
-  approved = false, onEvent } = {}) {
+  approved = false, onEvent, conversation } = {}) {
   let observe;
   let approve;
   const prepared = await resumeProjectSession(sessionRoot, agentId, { prompt, signal,
     onEvent: event => observe?.(event), onApproval: request => approve?.(request) ?? false });
   try {
     return await runSessionTerminal(prepared.launchPlan, { write, signal, headless, approved,
-      prepared, onEvent, observe: callback => { observe = callback; },
+      prepared, onEvent, conversation, observe: callback => { observe = callback; },
       bindApproval: callback => { approve = callback; } });
   } finally { prepared.stop(); }
 }
@@ -303,11 +303,30 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
     getSessions: () => session ? [session.status()] : [], getQueue: () => heldMessages });
   const makeTerminal = () => {
     const next = createTuiReadline({ write, signal, suggest: suggestions, plain: conversation?.plain,
+      ...(typeof conversation?.previewContext === 'function' ? { onContext: async ({ draft, signal: contextSignal }) => {
+        if (pendingControls || attachment || approvalActive || reporting) throw new Error('Return to the Agents prompt before previewing draft context.');
+        view?.pause();
+        try { await conversation.previewContext({ draft, editor: next.getInput(), state: session?.status(), signal: contextSignal }); }
+        catch (error) {
+          if (fatalOperation(error)) { retainConversationFailure(error); close(); }
+          throw error;
+        } finally {
+          if (!closed && !attachment && !approvalActive && !reporting && !pendingControls) {
+            controlTyping = false;
+            finishInput();
+            promptVisible = true;
+            // The original main ask stays pending underneath the context
+            // modal. Resume its rendering, never create a second question.
+            view?.resume();
+            next.redraw();
+          }
+        }
+      } } : {}),
       getStatus: () => {
         const state = session?.status();
         const running = state?.agents.filter(agent => agent.status === 'running').length ?? 0;
         const pending = state?.agents.filter(agent => agent.status === 'pending').length ?? 0;
-        return `${basename(plan.project)} · Build · ${running} running · ${pending} pending${conversation ? ` · ${conversation.provider ?? 'coordinator'} / ${conversation.model ?? 'native default'}${heldMessages.length ? ` · ${heldMessages.length} queued` : ''}` : ''}`;
+        return `${basename(plan.project)} · Build · ${running} running · ${pending} pending${conversation ? ` · ${conversation.provider ?? 'coordinator'} / ${conversation.model ?? 'native default'}${conversation.contextCount ? ` · ${conversation.contextCount} ref` : ''}${heldMessages.length ? ` · ${heldMessages.length} queued` : ''}` : ''}`;
       } });
     next.getInput().setHistory(inputHistory);
     next.on('inputError', error => { write(`${formatError(error)}\n`); close(); });
@@ -381,6 +400,10 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
         ? request.approvalTimeoutMs : undefined;
       const deadline = expiresAt ? `Expires at ${expiresAt}`
         : timeoutMs ? `Decision window: ${timeoutMs / 1000} seconds` : '';
+      const approvalInput = terminal;
+      await approvalInput.getInput().cancelContext();
+      if (closed || signal?.aborted || requestSignal?.aborted || !acceptingApprovals
+        || attachment || terminal !== approvalInput || approvalInput.closed) return false;
       rememberActivity({ type: 'approval_request', agentId: request.agentId, tool: request.tool,
         command: request.command, status: 'waiting', text: detail });
       view?.pause();
@@ -606,6 +629,9 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
           } else if (command === ':eof' && id) write(`EOF ${session.endInput(id) ? 'sent' : 'unavailable'} for ${id}\n`);
           else if (command === ':resize' && id && rest.length === 2) write(`Resize ${session.resize(id, Number(rest[0]), Number(rest[1])) ? 'sent' : 'unavailable'} for ${id}\n`);
           else if (command === ':attach' && id && !rest.length) {
+            const inputOwner = terminal;
+            await inputOwner.getInput().cancelContext();
+            if (closed || signal?.aborted || terminal !== inputOwner || inputOwner.closed) return;
             switchingTerminal = true;
             inputHistory = terminal.getInput().history;
             const handoffDraft = terminal.getInput().getDraft();
@@ -814,6 +840,8 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
     attachment?.detach('session ended');
     session?.stop();
     terminal?.close();
+    try { await terminal?.getInput().cancelContext(); }
+    catch (error) { retainConversationFailure(error); }
     view?.dispose({ clear: true });
     restoreRaw();
     // Keep approval routing bound until the last owned coordinator turn settles.

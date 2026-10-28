@@ -30,6 +30,11 @@ node bin/koto.js
   agents. Files with spaces use `@{path with spaces}`; agents use
   `@agent:AGENT_ID`. Folder completion narrows the file search. Mentioning an agent
   adds its context and does not start a worker.
+- Ctrl+O previews selected file context before sending and lets you remove an
+  attachment without losing the draft. Removing a referenced file also removes
+  its mention token. `/context` previews or clears retained context afterward.
+  Plain mode supports `/context add PATH` to select and preview a file before
+  sending any model request; `/context add agent:ID` selects a configured agent.
 - Ctrl+J or Alt+Enter inserts a newline. Bracketed paste retains pasted newlines
   in one draft. Enter sends the completed prompt.
 - Ctrl+R searches this project's prompt history. Up/Down navigate choices;
@@ -77,7 +82,7 @@ selects a discovered skill, previews it and lets the user attach it as context.
 | 5. Installed capabilities | `/installed`, `/models`, `/skills`, `/accounts` |
 | 6. Multiline composer | Ctrl+J, Alt+Enter, bracketed paste |
 | 7. Argument completion | Command-specific suggestions after a space |
-| 8. Context attachments | `@`, `/skills`, `/context` preview/remove/clear |
+| 8. Context attachments | `@`, Ctrl+O before sending, `/skills`, `/context` preview/remove/clear |
 | 9. Persistent status | Selected project/branch, mode, coordinator/model and context |
 | 10. Agent activity | Activity indicators and `/activity` |
 | 11. Task tree | `/tasks`, retained statuses and dependencies |

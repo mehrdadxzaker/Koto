@@ -22,7 +22,7 @@ const validItems = items => Array.isArray(items) ? items.slice(0, ITEM_LIMIT)
  * ownership to activity/output rendering without consuming terminal history.
  * No screen, terminal profile, font, shell integration or clipboard is changed. */
 export function createTerminalInput({ write, signal, onInterrupt, onBusyLine,
-  onBusyTyping, onBusyInputIdle, onClose, suggest, getStatus, plain,
+  onBusyTyping, onBusyInputIdle, onClose, onContext, suggest, getStatus, plain,
   stream = process.stdout, input = process.stdin } = {}) {
   if (typeof write !== 'function') throw new TypeError('Terminal input requires write().');
   const isPlain = plain === true || process.env.KOTO_PLAIN === '1'
@@ -41,6 +41,8 @@ export function createTerminalInput({ write, signal, onInterrupt, onBusyLine,
   let label = 'You>', completion = false, menu = [], menuIndex = 0;
   let dismissedAt, suggestionEpoch = 0, suggestionController, suggestionLoading = false, paste = false, pasteText = '';
   let deferredEnter;
+  let contextActive = false, ignorePaste = false;
+  let contextController, contextTask;
   let history = [], historyIndex = 0, historyDraft = '', historySearch;
   let rendered = [], renderedCursor = { row: 0, column: 0 }, renderedColumns = 0;
   let statusOverride, notice = '';
@@ -195,9 +197,11 @@ export function createTerminalInput({ write, signal, onInterrupt, onBusyLine,
       lines.push(`${ink(frame.v, '36')}${marker}${line}${' '.repeat(Math.max(0, innerWidth - cellWidth(line)))} ${ink(frame.v, '36')}`);
     }
     lines.push(ink(`${frame.bl}${frame.h.repeat(width - 2)}${frame.br}`, '36'));
-    const hints = menu.length ? 'Enter/Tab insert · Esc dismiss · then Enter sends · Up/Down choose'
-      : pending ? width < 62 ? 'Enter send · Esc menu · Ctrl+C stop · Ctrl+J newline'
-        : 'Enter send · Ctrl+J/Alt+Enter newline · / commands · @ context · Ctrl+R history · Esc dismiss · Ctrl+C stop'
+    const contextHint = completion && typeof onContext === 'function' ? ' · Ctrl+O context' : '';
+    const hints = menu.length ? `Enter/Tab insert · Esc dismiss${contextHint} · then Enter sends · Up/Down choose`
+      : pending && !completion ? 'Enter answer · Ctrl+J newline · Ctrl+C stop'
+      : pending ? width < 62 ? `Enter send${contextHint} · Ctrl+C stop`
+        : `Enter send · Ctrl+J newline · / commands · @ references${contextHint} · Ctrl+R history · Esc dismiss · Ctrl+C stop`
       : 'Enter queues · /stop cancels · Ctrl+J newline · Ctrl+R history · Ctrl+C stop';
     lines.push(ink(clipText(notice || hints, width), notice ? '33' : '2'));
     if (historySearch) {
@@ -228,7 +232,7 @@ export function createTerminalInput({ write, signal, onInterrupt, onBusyLine,
     // A previous menu is never selectable for a newer draft while asynchronous
     // discovery/filtering is pending, even when keystrokes arrive in one batch.
     menu = []; menuIndex = 0;
-    if (closed || modal || historySearch || !completion || !suggest || dismissedAt === draft || paste) { menu = []; return; }
+    if (closed || modal || historySearch || contextActive || !completion || !suggest || dismissedAt === draft || paste) { menu = []; return; }
     const before = draft.slice(0, cursor);
     // Argument completion is also delegated to the actual capability catalog.
     const trigger = before.startsWith('/') || /(?:^|\s)@[^\n]*$/.test(before);
@@ -397,6 +401,7 @@ export function createTerminalInput({ write, signal, onInterrupt, onBusyLine,
     if (key.name !== 'return' || key.meta) deferredEnter = undefined;
     if (key.name === 'paste-start') {
       cancelSuggestions(); menu = [];
+      ignorePaste = contextActive && !modal;
       paste = true; pasteText = '';
       if (!pending && !modal) onBusyTyping?.();
       return;
@@ -405,12 +410,13 @@ export function createTerminalInput({ write, signal, onInterrupt, onBusyLine,
       if (!paste) return;
       paste = false;
       const contents = pasteText; pasteText = '';
+      if (ignorePaste) { ignorePaste = false; return; }
       if (modal) { modal.query = boundedDraft(modal.query + terminalText(contents, { multiline: false })).slice(0, 512); modal.index = 0; redraw(); }
       else insert(contents);
       return;
     }
     if (paste) {
-      if (Buffer.byteLength(pasteText) < DRAFT_LIMIT) pasteText += key.sequence ?? character ?? '';
+      if (!ignorePaste && Buffer.byteLength(pasteText) < DRAFT_LIMIT) pasteText += key.sequence ?? character ?? '';
       return;
     }
     if (key.ctrl && key.name === 'c') {
@@ -418,6 +424,9 @@ export function createTerminalInput({ write, signal, onInterrupt, onBusyLine,
       try { keep = onInterrupt?.() === false; } finally { if (!keep) close(); }
       return;
     }
+    // A context callback may read local files before showing its nested view.
+    // Keep the original pending ask and unsent draft intact during that gap.
+    if (contextActive && !modal) return;
     if (!pending && !modal) onBusyTyping?.();
     if (modal) { modalKey(character, key); return; }
     if (historySearch) {
@@ -429,6 +438,33 @@ export function createTerminalInput({ write, signal, onInterrupt, onBusyLine,
       else if (key.ctrl && key.name === 'u') { historySearch.query = ''; historySearch.index = 0; }
       else if (character && !key.ctrl && !key.meta && !/[\x00-\x1f\x7f]/.test(character)) { historySearch.query = (historySearch.query + character).slice(0, 512); historySearch.index = 0; }
       redraw(); return;
+    }
+    if (key.ctrl && key.name === 'o' && active && completion && typeof onContext === 'function') {
+      if (contextActive) return;
+      const currentQuestion = pending, originalDraft = draft, originalCursor = cursor;
+      contextActive = true;
+      contextController = new AbortController();
+      const contextSignal = AbortSignal.any([contextController.signal, ...(signal ? [signal] : [])]);
+      cancelSuggestions(); menu = [];
+      notice = 'Opening draft context…'; redraw();
+      const task = Promise.resolve().then(() => {
+        contextSignal.throwIfAborted();
+        return onContext({ draft: originalDraft, signal: contextSignal });
+      }).catch(error => {
+        if (closed || contextSignal.aborted) return;
+        if (pending === currentQuestion && !draft && originalDraft) { draft = originalDraft; cursor = originalCursor; }
+        notice = `Context unavailable: ${terminalText(error?.message ?? error, { multiline: false }).slice(0, 160)}`;
+      }).finally(() => {
+        if (contextTask !== task) return;
+        contextController = undefined;
+        contextTask = undefined;
+        contextActive = false;
+        if (closed) return;
+        if (notice === 'Opening draft context…') notice = '';
+        refreshSuggestions(); redraw();
+      });
+      contextTask = task;
+      return;
     }
     if (key.name === 'escape') { menu = []; dismissedAt = draft; cancelSuggestions(); redraw(); return; }
     if (key.name === 'tab') { if (menu.length) acceptSuggestion(); else { dismissedAt = undefined; refreshSuggestions(); } return; }
@@ -491,7 +527,7 @@ export function createTerminalInput({ write, signal, onInterrupt, onBusyLine,
 
   function openModal({ title, items, multiple = false, initial, allowCustom = false, signal: modalSignal } = {}) {
     if (closed || modalSignal?.aborted) return Promise.reject(cancelled());
-    if (pending || modal) return Promise.reject(new Error('An input question is already open.'));
+    if (modal || pending && !(contextActive && completion)) return Promise.reject(new Error('An input question is already open.'));
     const saved = saveState();
     cancelSuggestions(); menu = []; active = true;
     return new Promise((resolve, reject) => {
@@ -501,15 +537,27 @@ export function createTerminalInput({ write, signal, onInterrupt, onBusyLine,
       modal = { title: terminalText(title ?? 'Choose'), items: prepared, query: '',
         multiple, selected: new Set(Array.isArray(initial) ? initial : []),
         allowCustom, index: Math.max(0, index), expanded: false, scroll: 0,
+        contextOwner: contextActive ? contextController : undefined,
         saved, resolve, reject, abort, signal: modalSignal };
       modalSignal?.addEventListener('abort', abort, { once: true });
       if (modalSignal?.aborted) abort(); else redraw();
     });
   }
 
+  async function cancelContext() {
+    const task = contextTask, owner = contextController;
+    if (!task) return;
+    owner?.abort();
+    // Also close an owned context view if a caller omitted the supplied signal.
+    // Other questions/approval panels never belong to this controller.
+    if (owner && modal?.contextOwner === owner) settleModal(undefined, cancelled());
+    await task;
+  }
+
   function close() {
     if (closed) return;
     clear(); closed = true; cancelSuggestions();
+    contextController?.abort();
     input.removeListener('keypress', keypress); input.removeListener('end', close);
     input.removeListener('error', close); stream.removeListener('resize', redraw);
     signal?.removeEventListener('abort', close);
@@ -529,7 +577,7 @@ export function createTerminalInput({ write, signal, onInterrupt, onBusyLine,
   if (signal?.aborted) close();
   return {
     get closed() { return closed; }, get plain() { return false; },
-    ask, choose: openModal, browse: openModal, clear, redraw, close,
+    ask, choose: openModal, browse: openModal, clear, redraw, close, cancelContext,
     suspend() { clear(); active = false; cancelSuggestions(); },
     resume() { active = true; refreshSuggestions(); redraw(); },
     refresh() { refreshSuggestions(); redraw(); },
@@ -603,7 +651,7 @@ function plainInput({ write, signal, onInterrupt, onBusyLine, onClose, input, st
       if (item?.detail) write(`${terminalText(item.detail)}\n`);
       return value;
     },
-    clear() {}, redraw() {}, refresh() {}, suspend() {}, resume() {}, close,
+    clear() {}, redraw() {}, refresh() {}, suspend() {}, resume() {}, close, async cancelContext() {},
     setDraft(value) { draft = boundedDraft(value); }, getDraft() { return draft; },
     get history() { return [...history]; },
     setHistory(values) { history = Array.isArray(values) ? values.filter(value => typeof value === 'string').slice(-HISTORY_LIMIT).map(boundedDraft) : []; },

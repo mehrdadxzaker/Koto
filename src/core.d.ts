@@ -600,6 +600,8 @@ export interface ProjectSession {
 }
 
 export interface AgentApprovalRequest extends Readonly<Record<string, unknown>> {
+  /** Identity supplied by the host-selected coding session, not model text. */
+  readonly agentId?: string | undefined;
   readonly signal?: AbortSignal | undefined;
   /** Host-owned ISO deadline; present when this adapter exposes a decision window. */
   readonly approvalExpiresAt?: string | undefined;

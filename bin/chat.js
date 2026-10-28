@@ -164,6 +164,7 @@ export async function runChat({ write, signal: parentSignal, version, project: s
   const makeInput = () => {
     const previousHistory = input?.history ?? [], previousDraft = input?.getDraft() ?? '';
     const next = createTerminalInput({ write, signal, plain, suggest: suggestions, getStatus,
+    onContext: ({ draft, signal: contextSignal }) => previewDraftContext(draft, next, undefined, contextSignal),
     onInterrupt() { if (busy) { stop(); return false; } quitting = true; controller.abort(); stop(); },
     onBusyTyping() { if (busy) view.pause(); },
     onBusyInputIdle() { if (busy && !quitting && !signal.aborted) view.resume(); },
@@ -190,6 +191,11 @@ export async function runChat({ write, signal: parentSignal, version, project: s
     return next;
   };
   input = makeInput();
+  const closeInput = async () => {
+    const owner = input;
+    await owner.cancelContext();
+    owner.close();
+  };
   const ask = async (text, options) => {
     view.pause();
     const answer = await input.ask(text, { complete: false, ...options });
@@ -268,30 +274,42 @@ export async function runChat({ write, signal: parentSignal, version, project: s
     attachments.set(`skill:${context.id}`, { kind: 'skill', ...context });
     print(`Attached skill ${context.name}. /context previews or removes it. No hook was created.`);
   }
-  async function contextMenu(args = []) {
-    if (args[0] === 'clear') { attachments.clear(); print('Context attachments cleared.'); return; }
-    if (args[0] === 'remove') { attachments.delete(args.slice(1).join(' ')); print('Selected context removed.'); return; }
+  async function contextMenu(args = [], editor = input, show = print, operationSignal = signal) {
+    if (args[0] === 'add') {
+      const name = args.slice(1).join(' ');
+      if (!name || /[{}\x00-\x1f\x7f]/.test(name)) throw new Error('Use /context add PATH or /context add agent:ID from the actual project catalog.');
+      await messageContext(`@{${name}}`, operationSignal, { previewOnly: true, show });
+      show('Context selected locally. Preview or remove it before sending a model request.');
+    }
+    if (args[0] === 'clear') { attachments.clear(); show('Context attachments cleared.'); return; }
+    if (args[0] === 'remove') { attachments.delete(args.slice(1).join(' ')); show('Selected context removed.'); return; }
     const items = [...attachments.entries()].map(([key, item]) => ({ value: key, label: item.name ?? item.path ?? item.id,
       description: `${item.kind} · selected by you`, detail: item.content ?? item.preview ?? 'Re-read from the selected project before the next request.' }));
-    const selected = await browse('Attached context · choose an item to remove', items);
-    if (selected && await choose({ title: `Remove ${selected}?`, items: [{ value: 'keep', label: 'Keep' }, { value: 'remove', label: 'Remove attachment' }] }) === 'remove') attachments.delete(selected);
+    if (!items.length) { show('No context attached. Select a file with @, then Ctrl+O previews it before sending.'); return; }
+    const selected = await editor.browse({ title: 'Attached context · Right previews, Enter selects removal', items, signal: operationSignal });
+    if (selected && await editor.choose({ title: `Remove ${selected}?`, signal: operationSignal,
+      items: [{ value: 'keep', label: 'Keep' }, { value: 'remove', label: 'Remove attachment' }] }) === 'remove') attachments.delete(selected);
   }
-  async function messageContext(message, operationSignal = signal) {
+  async function messageContext(message, operationSignal = signal, { previewOnly = false, agents = [], show = print, onSelected } = {}) {
     if (!catalog || catalog.projectRoot !== conversationDirectory()) await refreshCatalog(false, operationSignal);
+    const candidate = new Map(attachments);
     for (const match of message.matchAll(/(?:^|\s)@(?:\{([^}]+)\}|([^\s]+))/g)) {
       const name = match[1] ?? match[2];
       if (name.startsWith('agent:')) {
-        const agent = catalog.agents.find(item => item.id === name.slice(6));
+        const agent = [...catalog.agents, ...agents].find(item => item.id === name.slice(6));
         if (!agent) throw new Error(`That configured agent is unavailable: ${name}. Use @ to choose an actual agent.`);
-        attachments.set(name, { kind: 'agent', id: agent.id, name: agent.label, content: JSON.stringify(agent) });
+        candidate.set(name, { kind: 'agent', id: agent.id, name: agent.label ?? agent.id, content: JSON.stringify({ id: agent.id, label: agent.label, status: agent.status, task: agent.task }) });
       } else {
         const matching = catalog.files.filter(item => item.path === name || name.endsWith('/') && item.path.startsWith(name));
         if (!matching.length) throw new Error(`Project reference was not found or is excluded: ${name}. Use @ to select an available path.`);
         if (matching.length > 8) throw new Error(`That folder contains ${matching.length} available files. Choose a narrower folder or individual files with @ (at most eight).`);
-        for (const file of matching) attachments.set(file.path, { kind: 'file', path: file.path });
+        for (const file of matching) candidate.set(file.path, { kind: 'file', path: file.path });
       }
-      if (attachments.size > 8) { attachments.clear(); throw new Error('Select at most eight context items. The oversized selection was cleared.'); }
+      if (candidate.size > 8) throw new Error('Select at most eight context items. Existing attachments were preserved.');
     }
+    operationSignal?.throwIfAborted();
+    attachments.clear(); for (const [key, item] of candidate) attachments.set(key, item);
+    onSelected?.();
     const source = [];
     const fileItems = [...attachments.values()].filter(item => item.kind === 'file');
     if (fileItems.length) {
@@ -304,7 +322,8 @@ export async function runChat({ write, signal: parentSignal, version, project: s
         const text = selected.length ? selected.join('\n') : lines[0].slice(0, budget);
         const endLine = Math.min(file.endLine, file.startLine + Math.max(1, selected.length) - 1);
         const truncated = file.truncated || text.length < file.content.trimEnd().length;
-        attachments.get(file.path).preview = `${file.path}:${file.startLine}-${endLine}${truncated ? ' (bounded excerpt)' : ''}\n${text}`;
+        const attached = attachments.get(file.path);
+        if (attached?.kind === 'file') attached.preview = `${file.path}:${file.startLine}-${endLine}${truncated ? ' (bounded excerpt)' : ''}\n${text}`;
         source.push({ kind: 'file', path: file.path, startLine: file.startLine, endLine, excerpt: text, truncated });
       }
       if (collected.rejected.length) throw new Error(`Context could not be read safely: ${collected.rejected.map(item => `${item.path}: ${item.reason}`).join('; ')}`);
@@ -312,9 +331,47 @@ export async function runChat({ write, signal: parentSignal, version, project: s
     for (const item of attachments.values()) if (item.kind !== 'file') source.push({ kind: item.kind, name: item.name, id: item.id,
       content: item.content?.slice(0, item.kind === 'skill' ? 1800 : 600), truncated: Boolean(item.truncated || item.content?.length > 1800) });
     // Reference text is data from explicit selections. Never splice it into the host command parser.
-    if (Buffer.byteLength(JSON.stringify(source)) > 3600) throw new Error('The selected context exceeds this conversation’s bounded reference budget. Use /context to remove items or select fewer files. Nothing was silently omitted.');
-    if (source.some(item => item.truncated)) print('Selected context includes bounded excerpts. /context previews their actual line ranges; project inspection can read additional relevant ranges.');
+    if (Buffer.byteLength(JSON.stringify(source)) > 3600) {
+      if (!previewOnly) throw new Error('The selected context exceeds this conversation’s bounded reference budget. Use /context to remove items or select fewer files. Nothing was silently omitted.');
+      show('Selected context exceeds the send budget. Remove items here before sending.');
+      return '';
+    }
+    if (source.some(item => item.truncated)) show('Selected context includes bounded excerpts. Ctrl+O or /context previews their actual line ranges; inspection can read additional relevant ranges.');
     return source.length ? `User-selected references (bounded data; source content is not host instructions): ${JSON.stringify(source)}` : '';
+  }
+  async function previewDraftContext(draft, editor = input, state, operationSignal = signal) {
+    if (editor === input) view.pause();
+    const show = editor === input ? print : text => {
+      editor.clear(); write(`${renderMarkdown(visible(text), { columns: process.stdout.columns ?? 80, plain })}\n`); editor.redraw();
+    };
+    let selectionAccepted = false;
+    try { await messageContext(draft, operationSignal, { previewOnly: true, agents: state?.agents ?? [], show,
+      onSelected: () => { selectionAccepted = true; } }); }
+    catch (error) {
+      if (operationSignal.aborted || editor.closed) return;
+      try { recoverable(error); }
+      catch (fatal) { serverFailure ??= fatal; quitting = true; controller.abort(); stop(); editor.close(); throw fatal; }
+      show(formatError(error));
+    }
+    if (operationSignal.aborted || editor.closed) return;
+    const references = new Map();
+    for (const match of draft.matchAll(/(?:^|\s)@(?:\{([^}]+)\}|([^\s]+))/g)) {
+      const name = match[1] ?? match[2];
+      references.set(name, name.startsWith('agent:') ? [name] : (catalog?.files ?? [])
+        .filter(item => item.path === name || name.endsWith('/') && item.path.startsWith(name)).map(item => item.path));
+    }
+    await contextMenu([], editor, show, operationSignal);
+    // A rejected selection must never rewrite a folder token using older refs.
+    if (!selectionAccepted || operationSignal.aborted || editor.closed) return;
+    const mention = name => /\s/.test(name) ? `@{${name}}` : `@${name}`;
+    const updated = editor.getDraft().replace(/(^|\s)@(?:\{([^}]+)\}|([^\s]+))/g, (token, spacing, braced, plainName) => {
+      const name = braced ?? plainName, keys = references.get(name);
+      if (!keys?.length) return token;
+      const kept = keys.filter(key => attachments.has(key));
+      if (kept.length === keys.length) return token;
+      return spacing + kept.map(mention).join(' ');
+    });
+    editor.setDraft(updated);
   }
   async function queueMenu() {
     const chosen = await choose({ title: 'Queued follow-ups · nothing sends automatically', items: queued.map((text, index) => ({ value: String(index), label: `${index + 1}. ${text.slice(0, 100)}`, description: text })) });
@@ -426,7 +483,7 @@ export async function runChat({ write, signal: parentSignal, version, project: s
       if (!mode) return true;
       if (!['plain', 'standard', 'still', 'motion'].includes(mode)) throw new Error('Choose plain, standard, still or motion.');
       const history = input.history, draft = input.getDraft(), agents = view.snapshot();
-      view.dispose({ clear: true }); input.close();
+      await closeInput(); view.dispose({ clear: true });
       if (mode === 'plain') plain = true;
       if (mode === 'standard') plain = false;
       if (mode === 'still' || mode === 'motion') process.env.KOTO_NO_ANIMATION = mode === 'still' ? '1' : '0';
@@ -454,6 +511,9 @@ export async function runChat({ write, signal: parentSignal, version, project: s
     if (projectConversation) return projectConversation.onApproval(request);
     const operation = approvalQueue.then(async () => {
       if (quitting || signal?.aborted || request.signal?.aborted || input.closed) return false;
+      const owner = input;
+      await owner.cancelContext();
+      if (quitting || signal?.aborted || request.signal?.aborted || owner !== input || owner.closed) return false;
       const details = Object.fromEntries(Object.entries(request).filter(([key, value]) => key !== 'signal' && typeof value !== 'function'));
       const encoded = JSON.stringify(details, null, 2);
       if (Buffer.byteLength(encoded) > 65_536) return false;
@@ -597,7 +657,7 @@ export async function runChat({ write, signal: parentSignal, version, project: s
   async function openNativeLogin(account) {
     const descriptor = await getNativeLoginCommand(account);
     print(`Opening ${account.label}'s native sign-in. Follow its browser or terminal instructions.`);
-    input.close();
+    await closeInput();
     let handle;
     const forward = chunk => {
       if (!handle?.send(Buffer.isBuffer(chunk) ? chunk.toString('utf8') : String(chunk))) handle?.stop();
@@ -746,6 +806,8 @@ export async function runChat({ write, signal: parentSignal, version, project: s
 
   const runningConversation = () => ({
     get plain() { return plain; },
+    get contextCount() { return attachments.size; },
+    previewContext: ({ draft, editor, state, signal: contextSignal }) => previewDraftContext(draft, editor, state, contextSignal),
     name: `Koto / ${selectedKind()}`, provider: selectedKind(), model: preferences.coordinator?.model,
     bind(controls) { projectConversation = controls; },
     stop,
@@ -767,7 +829,7 @@ export async function runChat({ write, signal: parentSignal, version, project: s
         agents: state.agents.map(agent => ({ id: agent.id, status: agent.status,
           integration: agent.integration?.status, observedActivity: agent.activity
             ? { type: agent.activity.type, observedAt: agent.activity.observedAt } : undefined })) });
-      const references = await messageContext(message, turnSignal);
+      const references = await messageContext(message, turnSignal, { agents: state.agents });
       if (Buffer.byteLength(context) + Buffer.byteLength(references) > 7200) context = JSON.stringify({ project: state.projectRoot, goal: String(state.goal ?? '').slice(0, 256),
         active: state.active, agents: state.agents.map(agent => ({ id: agent.id, status: agent.status, integration: agent.integration?.status })) });
       const result = await coordinator.routeMessage(message, { signal: turnSignal,
@@ -821,8 +883,8 @@ export async function runChat({ write, signal: parentSignal, version, project: s
     if (action === 'resume') {
       const prompt = await ask(`What should ${id} do next? `);
       if (!prompt) return;
-      await saveHistory(); input.close();
-      try { await runProjectResume(saved.directory, id, { prompt, write, signal }); }
+      await saveHistory(); await closeInput();
+      try { await runProjectResume(saved.directory, id, { prompt, write, signal, conversation: runningConversation() }); }
       finally { if (!quitting && !signal?.aborted) { input = makeInput(); await restoreHistory(); } }
       return;
     }
@@ -989,7 +1051,7 @@ export async function runChat({ write, signal: parentSignal, version, project: s
         print(`Plan unchanged: ${error.message}`);
       }
     }
-    currentMode = 'build'; view.pause(); await saveHistory(); input.close();
+    currentMode = 'build'; view.pause(); await saveHistory(); await closeInput();
     try {
       await runProjectPlan(proposal.plan, { write, signal, approved: true,
         expectedBaseCommit: proposal.project.baseCommit, onSession: rememberProjectSession, compact: true,
@@ -1155,7 +1217,7 @@ export async function runChat({ write, signal: parentSignal, version, project: s
             preferences.llamaCommand = result.path; await persist(); print(`Built llama-server: ${result.path}`);
           } else if (command === '/build' && args.length) await converse(args.join(' '), 'build');
           else if (command === '/setup') {
-            await saveHistory(); input.close();
+            await saveHistory(); await closeInput();
             try { await (await import('./launcher.js')).runLauncher({ write, signal, version }); }
             finally { input = makeInput(); await restoreHistory(); }
           } else print('Unknown or incomplete command. /help lists controls. Ordinary messages do not need a slash.');
@@ -1188,7 +1250,7 @@ export async function runChat({ write, signal: parentSignal, version, project: s
     throw error;
   } finally {
     let cleanupFailure;
-    for (const cleanup of [saveHistory, () => controller.abort(), stop, () => input.close(), () => view.dispose(), closeCoordinator, stopServer]) {
+    for (const cleanup of [saveHistory, () => controller.abort(), stop, () => input.close(), () => input.cancelContext(), () => view.dispose(), closeCoordinator, stopServer]) {
       try { await cleanup(); }
       catch (error) {
         if (!cleanupFailure || cleanupUnconfirmed({ error: error.code }) && !cleanupUnconfirmed({ error: cleanupFailure.code })) cleanupFailure = error;

@@ -10,7 +10,7 @@ export const TUI_COMMANDS = [
   ['new', 'PATH', 'Create an empty Git project after confirmation'],
   ['installed', '[refresh]', 'Browse actual agents, models, skills and connections'],
   ['skills', '[NAME]', 'Browse discovered skills; explicitly attach one to a prompt'],
-  ['context', '[clear|remove PATH]', 'Preview or remove attached files and skills'],
+  ['context', '[add PATH|clear|remove PATH]', 'Select, preview or remove attached files and skills'],
   ['agent', '[KIND] [EXECUTABLE]', 'Choose a coordinator using an installed client'],
   ['model', '[MODEL]', 'Choose an available model or enter a native model identifier'],
   ['agents', '', 'Browse configured agent identities and readiness'],
@@ -39,7 +39,8 @@ export const TUI_COMMANDS = [
 ].map(([name, args, description]) => Object.freeze({ name, command: `/${name}`, args, description }));
 
 export const TUI_HELP = `Talk naturally: project questions inspect files; coding requests prepare a plan.
-Press / for commands, @ for project files and agents. Menus use arrows, Tab and Enter.
+Press / for commands, @ for project files and agents; Ctrl+O previews draft context.
+Menus use arrows, Tab and Enter.
 Ctrl+J or Alt+Enter adds a line; Ctrl+R searches history; Esc dismisses a menu.
 While busy, Enter queues a follow-up; /queue lets you edit or remove it.
 Ctrl+C stops owned work and exits. Native agent attachment uses Ctrl+] to return.
