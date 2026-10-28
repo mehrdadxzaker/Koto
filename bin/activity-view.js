@@ -76,6 +76,7 @@ export function createActivityView({ write, stream = process.stdout,
   let drawnRows = 0;
   let frame = 0;
   let timer;
+  let lastPaintKey;
 
   function failed(error) {
     clearInterval(timer);
@@ -161,10 +162,17 @@ export function createActivityView({ write, stream = process.stdout,
       }
       return;
     }
+    // Native providers can stream hundreds of deltas for one unchanged phase.
+    // Repainting the input/menu block for every token floods slow terminals.
+    // Animate on the existing bounded clock; otherwise draw only actual changes.
+    const paintKey = JSON.stringify([stream.columns, stream.rows,
+      [...agents.values()].map(agent => row(agent))]);
+    if (paintKey === lastPaintKey && !queue.length && !omitted && drawnRows) return;
     if (!hook(beforeRender)) return;
     clearOwned();
     flushMessages();
     paint();
+    lastPaintKey = paintKey;
     hook(afterRender);
   }
   function animate() {
@@ -299,6 +307,7 @@ export function createActivityView({ write, stream = process.stdout,
     if (disposed || paused) return;
     if (interactive && hook(beforeRender)) { clearOwned(); hook(afterRender); }
     paused = true;
+    lastPaintKey = undefined;
     clearInterval(timer);
     timer = undefined;
   }
