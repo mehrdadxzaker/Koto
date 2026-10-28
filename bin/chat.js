@@ -46,13 +46,28 @@ function words(value) {
   return result;
 }
 
-function terminalInput({ write, signal, onInterrupt, onBusyLine }) {
+function terminalInput({ write, signal, onInterrupt, onBusyLine, onBusyTyping, onBusyInputIdle }) {
   const terminal = createInterface({ input: process.stdin, output: process.stdout });
   let closed = false, pending;
   const close = () => terminal.close();
   const interrupted = () => { onInterrupt(); close(); };
+  const beforeTyping = () => {
+    if (closed || pending) return;
+    // Prepend before readline's own keypress handler: remove the activity block
+    // before the first key is echoed, leaving readline's draft/cursor untouched.
+    onBusyTyping?.();
+    queueMicrotask(() => {
+      // Enter/backspace may empty the draft. Wait until readline processed the
+      // key, and keep redraw paused for a partial next line in a multi-line paste.
+      if (!closed && !pending && terminal.line.length === 0) onBusyInputIdle?.();
+    });
+  };
+  process.stdin.prependListener('keypress', beforeTyping);
   terminal.on('SIGINT', interrupted);
-  terminal.on('close', () => { closed = true; pending?.reject(cancelError()); pending = undefined; });
+  terminal.on('close', () => {
+    closed = true; process.stdin.removeListener('keypress', beforeTyping);
+    pending?.reject(cancelError()); pending = undefined;
+  });
   terminal.on('line', line => { if (!pending) onBusyLine?.(line); });
   signal?.addEventListener('abort', close, { once: true });
   if (signal?.aborted) close();
@@ -109,7 +124,13 @@ const help = `Talk to Koto normally. Coding requests become a reviewed multi-age
 `;
 
 /** Conversation, project selection and rendering consume the same core APIs. */
-export async function runChat({ write, signal: parentSignal, version } = {}) {
+export async function runChat({ write, signal: parentSignal, version, project: startupProject, session: startupSession } = {}) {
+  const startupPath = value => typeof value === 'string' && value.trim().length > 0 && !/[\x00-\x1f\x7f]/.test(value)
+    && path.isAbsolute(value) && Buffer.byteLength(value) <= 4096;
+  if (startupProject !== undefined && !startupPath(startupProject)) throw new Error('chat_project_invalid');
+  if (startupSession !== undefined && (!startupPath(startupSession) || startupProject === undefined)) {
+    throw new Error('chat_session_requires_project');
+  }
   if (!process.stdin.isTTY || !process.stdout.isTTY) {
     write('Open Koto in an interactive terminal, or use koto project start PLAN --start --headless.\n');
     return 2;
@@ -185,6 +206,8 @@ export async function runChat({ write, signal: parentSignal, version } = {}) {
     }).catch(error => { retainFatal(error); });
   };
   const makeInput = () => terminalInput({ write, signal, onInterrupt() { quitting = true; controller.abort(); stop(); },
+    onBusyTyping() { if (busy) view.pause(); },
+    onBusyInputIdle() { if (busy && !quitting && !signal.aborted) view.resume(); },
     onBusyLine(line) {
       if (!busy) return;
       if (line.trim() === '/stop') stop();
@@ -306,7 +329,7 @@ export async function runChat({ write, signal: parentSignal, version } = {}) {
         return outcome;
       },
     } });
-    view.register({ id: 'coordinator', name: `Koto / ${kind}`, model: choice.model, task: 'Conversation and planning' });
+    view.register({ id: 'coordinator', name: `Koto / ${kind}`, provider: kind, model: choice.model, task: 'Conversation and planning', status: 'idle' });
     await persist();
     print(`Coordinator: ${kind} / ${choice.model ?? 'native default model'}. Uses ${kind === 'local' ? 'your loopback model' : kind === 'codex' ? 'your ChatGPT login through Codex' : 'your Claude login through Claude Code'}.`);
   }
@@ -506,7 +529,7 @@ export async function runChat({ write, signal: parentSignal, version } = {}) {
   }
 
   const runningConversation = () => ({
-    name: `Koto / ${selectedKind()}`, model: preferences.coordinator?.model,
+    name: `Koto / ${selectedKind()}`, provider: selectedKind(), model: preferences.coordinator?.model,
     bind(controls) { projectConversation = controls; },
     stop,
     async send(message, { state, signal: turnSignal }) {
@@ -761,7 +784,7 @@ export async function runChat({ write, signal: parentSignal, version } = {}) {
   }
 
   try {
-    print(`\nKOTO ${version}\nYour coding agents, working together.\n`);
+    print(`\n  ◇  KOTO ${version}\n     Your coding agents, working together.\n`);
     if (process.platform === 'win32') {
       const directory = path.join(defaultStateDirectory, 'native');
       try { await resolveTerminalHelper({ directory }); }
@@ -775,6 +798,26 @@ export async function runChat({ write, signal: parentSignal, version } = {}) {
       if (await ask('Type reset to preserve a backup and restart setup, or Enter to quit: ') !== 'reset') return 2;
       print(`Saved setup preserved at ${await archivePreferences()}.`);
     }
+    if (startupProject !== undefined) {
+      // The desktop selects a canonical project/session, never a command or a
+      // request to resume work. Validate the whole selection before persisting.
+      const selected = await prepareProject({ directory: startupProject });
+      let saved, state;
+      if (startupSession !== undefined) {
+        const directory = await realpath(startupSession);
+        saved = (preferences.recentSessions ?? []).find(item => item.directory === directory
+          && item.project === selected.projectRoot);
+        if (!saved) throw Object.assign(new Error('That saved build does not belong to the selected project.'),
+          { code: 'chat_session_project_mismatch' });
+        state = readProjectSession(saved.directory);
+      }
+      await chooseProject(selected.projectRoot);
+      if (saved) {
+        preferences.selectedSession = saved.directory;
+        await persist();
+        print(`Saved build: ${state.goal}\nUse /review to inspect changes or /resume to choose a continuation. No saved agent was started.`);
+      }
+    }
     if (!preferences.onboardingComplete) {
       print('Welcome. Bring your existing subscriptions, optionally add local models, then choose a project.');
       await accountSetup();
@@ -785,7 +828,7 @@ export async function runChat({ write, signal: parentSignal, version } = {}) {
           print(`Local setup did not finish: ${error.message}\nUse /models add to retry. Your subscription setup is retained.`);
         }
       }
-      for (;;) {
+      if (startupProject === undefined) for (;;) {
         try { await chooseProject(); break; }
         catch (error) { if (['chat_quit', 'chat_cancelled'].includes(error.code) || signal?.aborted) throw error; print(error.message); }
       }

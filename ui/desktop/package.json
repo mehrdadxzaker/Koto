@@ -1,0 +1,42 @@
+{
+  "name": "@mehrdadz/koto-desktop",
+  "version": "3.0.0-alpha.0",
+  "private": true,
+  "type": "module",
+  "description": "A sidebar and the real Koto terminal in one local desktop window.",
+  "main": "main.cjs",
+  "author": "Koto contributors",
+  "license": "Apache-2.0",
+  "scripts": {
+    "build": "vite build",
+    "start": "electron .",
+    "pack": "npm run build && electron-builder --dir"
+  },
+  "dependencies": {
+    "@xterm/addon-fit": "0.11.0",
+    "@xterm/xterm": "6.0.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "electron": "45.1.0",
+    "electron-builder": "26.18.0",
+    "vite": "8.3.5"
+  },
+  "build": {
+    "appId": "dev.koto.desktop",
+    "productName": "Koto",
+    "directories": { "output": "build" },
+    "files": ["main.cjs", "preload.cjs", "dist/**", "package.json"],
+    "extraResources": [
+      { "from": "../../bin", "to": "koto/bin", "filter": ["**/*"] },
+      { "from": "../../src", "to": "koto/src", "filter": ["**/*"] },
+      { "from": "../../package.json", "to": "koto/package.json" },
+      { "from": "../../LICENSE", "to": "koto/LICENSE" },
+      { "from": "../../assets/koto-logo.png", "to": "koto/assets/koto-logo.png" }
+    ],
+    "mac": { "category": "public.app-category.developer-tools", "identity": null, "icon": "../../assets/koto-logo.png" },
+    "linux": { "category": "Development" },
+    "win": { "target": "dir" }
+  }
+}

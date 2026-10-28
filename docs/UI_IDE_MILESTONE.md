@@ -1,94 +1,68 @@
-# Proposed next milestone: Koto Session Workspace
+# Selected milestone: Koto sidebar and terminal
 
-Status: proposal following completed [CLI acceptance #543](https://github.com/mehrdadxzaker/Koto/issues/543).
+The first UI is a standalone desktop window with a left project/session sidebar
+and one interactive Koto CLI. The user selected this smaller surface after the
+Orca review. It supersedes the earlier proposal to build a VS Code workspace
+view first. IDE plugins remain later delivery hosts for the same core.
 
-Deliver the first Koto workspace UI as a locally installed VS Code extension.
-Use a reusable presentation layer and a small editor adapter so a later
-standalone Koto UI can consume the same application operations. VS Code is the
-recommended first host; the roadmap has not previously committed to an IDE.
-
-The user outcome is one complete project journey: choose an existing account or
-optional local model, describe a goal, edit and approve a plan, supervise native
-agents, review their changes, integrate an approved contribution, and return to
-the saved session. Start with one local Git project and the existing supported
-agent profiles.
+The CLI remains the coordinator. Its existing commands own setup, optional local
+models, editable plans, explicit launch approval, isolated agent worktrees,
+native terminal attachment, contribution review, approved integration and saved
+work. The desktop provides navigation and an interactive terminal around that
+journey; it does not introduce another scheduler or agent protocol.
 
 ## Deliverables
 
-1. **Shared application operations.** Extract recent-session discovery, project
-   selection and saved-build actions from the CLI into the core application
-   layer. The CLI and extension read the same retained session records. Reuse
-   the existing proposal revision, session lifecycle, review, integration and
-   continuation APIs. Keep scheduling and workspace ownership in the core.
-2. **Reusable workspace UI.** Show account/prerequisite readiness, the editable
-   plan, agent activity and cleanup state, retained sessions, and contribution
-   diffs. Use explicit launch and integration actions. Render unknown and
-   unsupported states honestly, with keyboard access and editor theme support.
-3. **VS Code host adapter.** Add commands, a workspace view, native diff views
-   and one terminal per agent. Validate messages at the UI boundary; keep
-   credentials, executable launch and review-token checks in the host/core.
-   Forward native input and resize through the existing terminal session API.
-   Preserve native sign-in and permission ownership.
-4. **Installed delivery and lifecycle.** Produce an installable extension,
-   document core/helper prerequisites and bind the shipped core version. Stop
-   and await owned work on ordinary extension shutdown. Retain explicit cleanup
-   uncertainty after a crash, along with the existing continuation/integration
-   blocks.
+1. **Desktop host.** Run the real CLI through the matching owned native terminal
+   helper. Keep a single live CLI owner, validate the renderer bridge, and await
+   cleanup before switching projects or closing the window. Show cleanup
+   uncertainty and block replacement when cleanup is unconfirmed.
+2. **Sidebar.** Open an existing project through the native folder picker and
+   show actual known projects and retained session shortcuts. Selecting saved
+   work never launches, resumes or integrates an agent automatically.
+3. **Terminal presentation.** Add compact provider glyphs, readable activity
+   labels and bounded animated spinners to the existing CLI activity view.
+   Distinguish response, command/tool, approval and unknown native activity.
+   Support plain output, no-color and reduced-motion modes, and preserve native
+   terminal attachment and input ownership.
+4. **Installed preview.** Build the desktop with its exact core/CLI sources and
+   keep desktop dependencies separate from the dependency-free npm core.
+   Document native helper prerequisites and source/package identities.
 
-The public API supports live control of sessions created by its caller and
-retained inspection from disk. It does not expose cross-process live attachment
-to a CLI-owned session. In this milestone, the extension owns the sessions it
-launches; other sessions appear as retained history/status. A live-session broker
-would require a separate ownership and protocol design.
-
-## Delivery slices
-
-1. Extract the shared application operations; open real retained sessions and
-   diffs in a read-only editor view.
-2. Add plan editing/approval, one owned live build, native terminal interaction,
-   independent stop and explicit reviewed integration.
-3. Add returning-session continuation and later contribution integration; finish
-   packaging, accessibility and host-shutdown handling.
-
-Use a named first acceptance host, preferably the existing Mac environment.
-Extend supported IDE/OS claims only after observing those installed combinations.
-Registry installation/onboarding acceptance is a prerequisite for binding the
-extension to a released core package; publication is handled by its own release
-transaction.
+The desktop owns only the CLI it launches. Cross-process attachment to an
+unrelated CLI, concurrent live workspaces, separate agent pane grids, a visual
+plan editor, built-in code/diff editors, remote/mobile access and automatic
+updates are outside this first selected interface.
 
 ## Acceptance
 
-- Install the extension and its declared core package outside the source
-  checkout. Discover actual account, model and helper readiness, including a
-  clear missing-prerequisite path.
-- On a real project, edit a proposed plan and revalidate it before explicit
-  launch. Run two actual supported agents with separate worktrees; demonstrate
-  native input/resize and stopping one while the other continues useful work.
-- Inspect actual diffs in the editor, reject a stale review token, and integrate
-  the explicitly approved current contribution into the separate integration
-  worktree. The original checkout remains under its owner's control.
-- Reopen the project and select the same retained session. Resume the exact
-  native identity where the profile supports it, then review/integrate only the
-  new contribution. Show unsupported continuation explicitly.
-- Verify ordinary shutdown cleans owned processes, terminals and listeners.
-  Verify interrupted or unconfirmed cleanup is visible and blocks unsafe
-  continuation/integration. Closing a view must not silently discard work.
-- Read the same retained session through CLI and IDE without duplicate session
-  state or competing live owners. Check keyboard navigation, themes and bounded
-  output handling on the installed first host.
+Start with the existing Mac environment. Record actual observations separately
+from source/CI checks:
 
-Record package/source versions, host, observed results and failures separately
-from CI. Follow the repository's direct-observation policy; do not add automated
-suites, fixture agents or benchmarks to satisfy this milestone.
+- Open the built desktop outside its source folder and operate its real CLI.
+- Select a real project and verify native keyboard input, pane resize and focus.
+- Complete or reuse actual account setup without copying provider credentials.
+- Observe a real coordinator response with the provider identity and activity
+  indicators; preserve unobserved states rather than inventing thinking.
+- Exercise sidebar selection and retained history with the existing explicit
+  CLI review/resume controls. Saved selection must not start workers.
+- Verify no-color/reduced-motion behavior, narrow-window navigation, keyboard
+  access and clear prerequisite/error states.
+- Close or stop the owned CLI and independently check process/helper cleanup.
+  Record any interrupted or unconfirmed outcome without treating it as success.
+- Confirm the built app contains the exact reviewed core/CLI bytes and that npm
+  installation/publication remains its own versioned release transaction.
 
-## Later milestones
+Follow the repository's direct-observation policy. Do not add automated suites,
+fixture agents or benchmarks to satisfy this milestone. A source preview is not
+a signed/notarized or cross-platform desktop release.
 
-After this editor slice is accepted, add a standalone Koto UI host reusing the
-presentation/application layers, then additional IDE adapters. Multi-window live
-session ownership, remote workspaces and broader host distribution need their
-own explicit contracts and acceptance.
+## Later delivery
 
-References: [roadmap](ROADMAP.md), [architecture](ARCHITECTURE.md),
-[scope](SCOPE.md), [public API](../src/core.d.ts),
-[VS Code webviews](https://code.visualstudio.com/api/extension-guides/webview) and
-[terminal API](https://code.visualstudio.com/api/references/vscode-api#Pseudoterminal).
+After this interface is accepted, add IDE hosts and richer views only where they
+improve the same workflow. Shared application operations should remain in the
+core; host adapters own their window/editor/terminal presentation. A future live
+session broker needs an explicit ownership and reconnection contract.
+
+See [desktop use](DESKTOP_UI.md), [roadmap](ROADMAP.md),
+[architecture](ARCHITECTURE.md) and [public API](../src/core.d.ts).

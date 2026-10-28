@@ -7,12 +7,12 @@ same core**. The CLI covers onboarding, subscription discovery, optional local
 setup, useful project work and retained sessions. Additional interfaces follow
 the accepted journey and consume the same core operations and product state.
 
-**Proposed next milestone:** [Koto Session Workspace](UI_IDE_MILESTONE.md), a
-reusable workspace UI delivered first through a VS Code extension. It covers
-plan approval, owned native terminals, reviewed integration and returning work
-through the existing core. A standalone UI host follows the accepted editor
-slice. This is a proposal; implementation and installed-host acceptance are
-still required.
+**Selected next milestone:** [Koto sidebar and terminal](UI_IDE_MILESTONE.md), a
+standalone desktop window with project/session navigation and the real Koto CLI.
+The CLI keeps coordination, native agents and reviewed integration; its activity
+view gains provider glyphs and observed-state spinners. This replaces the earlier
+VS Code-first proposal. IDE plugins follow through the same core. See
+[desktop preview](DESKTOP_UI.md) for implementation and delivery boundaries.
 
 Follow-on CLI coordination and reviewed-base improvements are recorded in
 [PR #617](https://github.com/mehrdadxzaker/Koto/pull/617) and
