@@ -978,8 +978,6 @@ export async function runChat({ write, signal: parentSignal, version, project: s
         expectedBaseCommit: proposal.project.baseCommit, onSession: rememberProjectSession, compact: true,
         conversation: runningConversation() });
     } finally { if (!quitting && !signal?.aborted) { input = makeInput(); await restoreHistory(); } }
-    const completed = selectedBuildState();
-    if (completed) print(formatCompletion(completed));
   }
 
   async function modelCommand(args) {
