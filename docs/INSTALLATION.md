@@ -43,14 +43,17 @@ installation has completed.
 Use the same installation style as [Hallmark](https://github.com/Nutlope/hallmark#install):
 
 ```sh
-npx skills add mehrdadxzaker/Koto -g
+npx skills add mehrdadxzaker/koto -g
 ```
+
+The canonical `mehrdadxzaker/koto` address keeps installer and directory audit
+results consistent while pointing to the same GitHub repository.
 
 The installer discovers the `koto` skill and lets you choose your agents. For
 Codex and Claude Code explicitly:
 
 ```sh
-npx skills add mehrdadxzaker/Koto -g --skill koto --agent codex claude-code
+npx skills add mehrdadxzaker/koto -g --skill koto --agent codex claude-code
 ```
 
 Leave off `-g` for a project installation. The Skills CLI currently requires
