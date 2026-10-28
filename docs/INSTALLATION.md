@@ -65,7 +65,11 @@ existing `3.0.0-alpha.0` release; they do not retarget its immutable npm archive
 
 ## npm and npx prerequisites
 
-The npm/npx route requires Node.js 22 or later with npm. The Node.js core has no runtime
+The npm/npx route requires Node.js 22 or later with npm.
+
+## Shared runtime and terminal support
+
+The Node.js core has no runtime
 dependencies, required build step or installation hook. Native process helpers
 ship as versioned C source for macOS, Linux and Windows. Build the host helper
 explicitly with an already installed toolchain; package installation never

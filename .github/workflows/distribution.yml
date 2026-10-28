@@ -38,7 +38,6 @@ jobs:
       HOMEBREW_NO_ANALYTICS: '1'
       HOMEBREW_DOWNLOAD_CONCURRENCY: '1'
       HOMEBREW_CURL_RETRIES: '0'
-      HOMEBREW_CURLRC: ${{ runner.temp }}/koto-brew-curlrc
       GIT_CONFIG_COUNT: '2'
       GIT_CONFIG_KEY_0: http.lowSpeedLimit
       GIT_CONFIG_VALUE_0: '1'

@@ -3,6 +3,7 @@
 set -euo pipefail
 umask 077
 koto_observe_root="$RUNNER_TEMP/koto-brew-observation"
+export HOMEBREW_CURLRC="$RUNNER_TEMP/koto-brew-curlrc"
 mkdir -m 700 "$koto_observe_root"
 koto_formula=mehrdadxzaker/koto/koto
 koto_tap_owned=0
