@@ -9,6 +9,18 @@ Use Node.js 22+ and open `koto` in an interactive terminal. From a source checko
 `node bin/koto.js` opens the same application. An explicit project can be selected
 with `koto start --project /absolute/project/path` or `/project PATH` inside Koto.
 
+In an iTerm2 tab or window, launch the installed CLI:
+
+```sh
+koto
+```
+
+Or, from the root of a source checkout:
+
+```sh
+node bin/koto.js
+```
+
 ## Input and menus
 
 - Type `/` at the beginning of a prompt to browse commands. Continue typing to
@@ -88,6 +100,9 @@ selects a discovered skill, previews it and lets the user attach it as context.
 The interactive renderer uses standard terminal input and ANSI cursor control.
 It restores owned raw-input, paste and cursor state on exit. Compatibility must
 be observed in each host; source support alone is not a native-terminal result.
+The terminal behavior described here is supported by Koto's shared TUI;
+native iTerm2 acceptance has not yet been observed. These launch examples do
+not establish runtime verification in iTerm2.
 
 Use `KOTO_PLAIN=1 koto` or `KOTO_SCREEN_READER=1 koto` for ordinary line output and
 numbered choices. `TERM=dumb` also selects plain input. `NO_COLOR=1` removes color;
