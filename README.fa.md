@@ -76,7 +76,7 @@ Mac با Codex/ChatGPT و مدل محلی Qwen3 4B دانلودشده، تغیی
 <div dir="ltr">
 
 ```sh
-npm install --global @mehrdadxzaker/koto@alpha
+npm install --global @mehrdadz/koto@alpha
 koto
 ```
 
@@ -87,7 +87,7 @@ koto
 <div dir="ltr">
 
 ```sh
-npx --yes @mehrdadxzaker/koto@alpha
+npx --yes @mehrdadz/koto@alpha
 ```
 
 </div>
@@ -97,7 +97,7 @@ npx --yes @mehrdadxzaker/koto@alpha
 <div dir="ltr">
 
 ```sh
-npm install --global @mehrdadxzaker/koto@3.0.0-alpha.0
+npm install --global @mehrdadz/koto@3.0.0-alpha.0
 koto
 ```
 
@@ -128,7 +128,7 @@ node bin/koto.js
 
 ```sh
 npm pack --ignore-scripts
-npm install --global ./mehrdadxzaker-koto-3.0.0-alpha.0.tgz
+npm install --global ./mehrdadz-koto-3.0.0-alpha.0.tgz
 koto
 ```
 
@@ -256,7 +256,7 @@ Codex/OpenCode، حالت‌های pipe و برنامه‌های اسکریپت�
 <div dir="ltr">
 
 ```js
-import { createProjectSession } from '@mehrdadxzaker/koto';
+import { createProjectSession } from '@mehrdadz/koto';
 
 const session = await createProjectSession(plan, {
   onEvent: event => renderEvent(event)

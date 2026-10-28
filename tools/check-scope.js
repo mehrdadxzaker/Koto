@@ -123,7 +123,7 @@ function checkPackage() {
     fail('package.json must contain an object');
     return;
   }
-  if (pkg.name !== '@mehrdadxzaker/koto') fail('The npm package name must be @mehrdadxzaker/koto');
+  if (pkg.name !== '@mehrdadz/koto') fail('The npm package name must be @mehrdadz/koto');
   if (pkg.type !== 'module') fail('The shared core and CLI must use Node ESM');
   if (pkg.private === true) fail('The npm package must be publishable');
   if (typeof pkg.version !== 'string' || !/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(pkg.version)) {
