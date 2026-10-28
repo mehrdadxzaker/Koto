@@ -207,17 +207,22 @@ export function startTerminalCommand({ id, command, args = [], cwd, env,
       return;
     }
     if (record.type === 'phase') {
-      if (!windows || !ready || final || Object.keys(record).length !== WINDOWS_PHASE_FIELDS.length
-        || Object.keys(record).some(key => !WINDOWS_PHASE_FIELDS.includes(key))
+      const hasResumeCount = Object.hasOwn(record, 'resumeCount');
+      if (!windows || !ready || final
+        || Object.keys(record).length !== WINDOWS_PHASE_FIELDS.length + (hasResumeCount ? 1 : 0)
+        || Object.keys(record).some(key => !WINDOWS_PHASE_FIELDS.includes(key) && key !== 'resumeCount')
         || record.pid !== ready.pid || record.sessionId !== ready.sessionId
         || !Number.isInteger(record.sequence) || record.sequence !== (lastWindowsPhase?.sequence ?? 0) + 1
         || record.sequence > 64 || !WINDOWS_PHASE_OPERATIONS.has(record.operation)
         || !['begin', 'end'].includes(record.state)
-        || !Number.isInteger(record.errorCode) || record.errorCode < 0 || record.errorCode > 0xffffffff) {
+        || !Number.isInteger(record.errorCode) || record.errorCode < 0 || record.errorCode > 0xffffffff
+        || hasResumeCount && (record.operation !== 'resume_process' || record.state !== 'end'
+          || !Number.isInteger(record.resumeCount) || record.resumeCount < 0 || record.resumeCount > 0xffffffff)) {
         badStatus(); return;
       }
       lastWindowsPhase = Object.freeze({ sequence: record.sequence, operation: record.operation,
-        state: record.state, errorCode: record.errorCode });
+        state: record.state, errorCode: record.errorCode,
+        ...(hasResumeCount ? { resumeCount: record.resumeCount } : {}) });
       emit({ type: 'terminal_phase', agentId: id, platform: 'win32', pid: ready.pid,
         terminalSessionId: ready.sessionId, terminalPhase: lastWindowsPhase });
       return;

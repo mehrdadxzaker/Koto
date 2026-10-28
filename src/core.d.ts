@@ -517,6 +517,8 @@ export interface WindowsTerminalPhase {
     | 'wait_job' | 'close_console' | 'join_threads';
   readonly state: 'begin' | 'end';
   readonly errorCode: number;
+  /** Actual ResumeThread return, only on resume_process/end; no automatic re-resume. */
+  readonly resumeCount?: number | undefined;
 }
 export interface TerminalHelperDiagnostic {
   readonly trigger: 'close' | 'cleanup_deadline';

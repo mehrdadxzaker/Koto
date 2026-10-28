@@ -41,7 +41,7 @@ struct supervisor {
     size_t input_length, status_length;
     unsigned long long total_output;
     ULONGLONG input_started, output_started, status_started;
-    DWORD pid, exit_code;
+    DWORD pid, exit_code, resume_count;
     SHORT columns, rows;
     BOOL pipe_mode, stop_requested, input_ended, resize_pending;
     volatile LONG shutting_down;
@@ -76,12 +76,16 @@ static BOOL phase_record_locked(struct supervisor *s, enum phase_operation opera
     const char *state, DWORD error_code)
 {
     char record[256];
+    char resume_detail[48] = "";
     int length;
     if (!s->ready_queued || s->final_queued || s->phase_sequence >= PHASE_LIMIT) return FALSE;
+    if (operation == PHASE_RESUME_PROCESS && strcmp(state, "end") == 0) {
+        snprintf(resume_detail, sizeof(resume_detail), ",\"resumeCount\":%lu", (unsigned long)s->resume_count);
+    }
     length = snprintf(record, sizeof(record),
-        "{\"type\":\"phase\",\"pid\":%lu,\"sessionId\":%lu,\"sequence\":%u,\"operation\":\"%s\",\"state\":\"%s\",\"errorCode\":%lu}\n",
+        "{\"type\":\"phase\",\"pid\":%lu,\"sessionId\":%lu,\"sequence\":%u,\"operation\":\"%s\",\"state\":\"%s\",\"errorCode\":%lu%s}\n",
         (unsigned long)s->pid, (unsigned long)s->pid, s->phase_sequence + 1,
-        phase_names[operation], state, (unsigned long)error_code);
+        phase_names[operation], state, (unsigned long)error_code, resume_detail);
     if (length < 0 || (size_t)length >= sizeof(record)
         || !status_append_locked(s, record, (size_t)length)) {
         if (s->reason == NULL) s->reason = "status_stalled";
@@ -561,8 +565,15 @@ int wmain(int argc, wchar_t **argv)
         startup.StartupInfo.hStdInput = child_input;
         startup.StartupInfo.hStdOutput = child_output;
         startup.StartupInfo.hStdError = child_error;
-    } else if (!UpdateProcThreadAttribute(startup.lpAttributeList, 0, PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE,
-        s->console, sizeof(s->console), NULL, NULL)) goto finish;
+    } else {
+        /* A redirected helper host must not lend its protocol pipes to the
+         * console child. Explicit NULL standard handles let ConPTY establish
+         * console handles, even with bInheritHandles=FALSE.
+         * https://github.com/microsoft/terminal/discussions/15814 */
+        startup.StartupInfo.dwFlags = STARTF_USESTDHANDLES;
+        if (!UpdateProcThreadAttribute(startup.lpAttributeList, 0, PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE,
+            s->console, sizeof(s->console), NULL, NULL)) goto finish;
+    }
     if (!CreateProcessW(argv[command_index], line, NULL, NULL, s->pipe_mode,
         EXTENDED_STARTUPINFO_PRESENT | CREATE_SUSPENDED | CREATE_UNICODE_ENVIRONMENT,
         NULL, NULL, &startup.StartupInfo, &process)) goto finish;
@@ -602,9 +613,13 @@ int wmain(int argc, wchar_t **argv)
         if (launch) {
             BOOL phase = phase_begin(s, PHASE_RESUME_PROCESS);
             BOOL failed;
-            DWORD error_code = 0;
-            failed = ResumeThread(process.hThread) == (DWORD)-1;
+            DWORD error_code = 0, previous_count;
+            previous_count = ResumeThread(process.hThread);
+            failed = previous_count == (DWORD)-1;
             if (failed) error_code = GetLastError();
+            EnterCriticalSection(&s->lock);
+            s->resume_count = previous_count;
+            LeaveCriticalSection(&s->lock);
             phase_end(s, PHASE_RESUME_PROCESS, phase, error_code);
             if (failed) request_stop(s, "child_setup_failed");
         }
