@@ -1,6 +1,6 @@
 # Koto product scope
 
-Owner decision: October 26, clarified October 27, 2026.
+Owner decision: October 26, clarified October 28, 2026.
 
 Koto has one shared core that lets commercial and open-source agents work
 together. Users install it through npm or run it through npx. They can then use
@@ -11,7 +11,8 @@ The repository contains these components and the documentation, assets and
 source tooling needed to develop and deliver them:
 
 1. Shared orchestration core and worker adapters.
-2. Cross-platform npm/npx installation and CLI.
+2. Cross-platform npm/npx installation and CLI, with an optional agent skill
+   that invokes that same CLI.
 3. IDE plugins consuming the core.
 4. Koto's own UI consuming the core.
 
@@ -21,6 +22,13 @@ and IDE plugins. A host such as Codex or Claude Code can be an agent runtime,
 a delivery surface, or both through explicitly implemented adapters.
 The scope guard reserves `plugins/` and `ui/` for those later deliveries without
 adding placeholder implementations.
+
+The optional `skills/koto` delivery makes Koto available inside Codex and Claude
+Code through the Skills CLI. Its installed name is `koto` and its display name
+is Koto. It contains instructions and references, not another engine, account
+store or agent launcher. Runtime actions use the published npm CLI. Native
+subscription credentials remain with their clients, and local downloads and
+project launches retain the CLI's normal choices and approval boundaries.
 
 The previous Python router, finance/portfolio/enterprise modules, hosted-service
 products, model-specific experiments, historical campaigns, skills-only packages
