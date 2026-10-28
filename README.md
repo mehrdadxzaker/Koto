@@ -72,20 +72,20 @@ subscription, a local model, or both; a local-model download is optional.
 The alpha release installation path is:
 
 ```sh
-npm install --global @mehrdadxzaker/koto@alpha
+npm install --global @mehrdadz/koto@alpha
 koto
 ```
 
 Without a global installation:
 
 ```sh
-npx --yes @mehrdadxzaker/koto@alpha
+npx --yes @mehrdadz/koto@alpha
 ```
 
 To select the exact prerelease version instead of following the `alpha` tag:
 
 ```sh
-npm install --global @mehrdadxzaker/koto@3.0.0-alpha.0
+npm install --global @mehrdadz/koto@3.0.0-alpha.0
 koto
 ```
 
@@ -109,7 +109,7 @@ Or build and install the local package from that checkout:
 
 ```sh
 npm pack --ignore-scripts
-npm install --global ./mehrdadxzaker-koto-3.0.0-alpha.0.tgz
+npm install --global ./mehrdadz-koto-3.0.0-alpha.0.tgz
 koto
 ```
 
@@ -226,7 +226,7 @@ commits and issue reports. Read [security](SECURITY.md) and
 ## One core, multiple interfaces
 
 ```js
-import { createProjectSession } from '@mehrdadxzaker/koto';
+import { createProjectSession } from '@mehrdadz/koto';
 
 const session = await createProjectSession(plan, {
   onEvent: event => renderEvent(event)
