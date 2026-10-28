@@ -13,5 +13,11 @@
     "src/native/windows-pty.c": "59c34064bf608cff5830f0c2535ed3811bc7fe9b86ffe69aa9f6fe603b60962a"
   },
   "scope": "One idle Windows OpenCode terminal controlled through the actual installed Koto CLI, either standalone or after the independent model/API run has fully cleaned up. No model or task is started by this control observation.",
-  "semanticReviewRequired": true
+  "semanticReviewRequired": true,
+  "diagnosis": {
+    "enabled": true,
+    "acceptanceClaim": false,
+    "traceSha256": "8a68bc63f1a80a9c627db014369251cf2f7e712696aaf5c7de6e9b1db378128a",
+    "reason": "One bounded controls-only diagnosis of premature Ctrl-] exit observed in run40615660295; all product payloads remain063."
+  }
 }

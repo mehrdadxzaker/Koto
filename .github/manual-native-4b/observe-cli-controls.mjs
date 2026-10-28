@@ -24,6 +24,11 @@ if(!bindingFile||!driverDirectory)fail('explicit_bindings_and_driver_required');
 const bindingBytes=bytes(bindingFile,65536), binding=JSON.parse(bindingBytes);
 const standalone=process.env.OBS_OPERATION==='controls';
 if(binding.approvedForExecution!==true)fail('cli_control_draft_not_approved');
+const diagnosis=binding.diagnosis;
+if(!standalone||diagnosis?.enabled!==true||diagnosis?.acceptanceClaim!==false
+  ||!/^[a-f0-9]{64}$/.test(diagnosis?.traceSha256??''))fail('explicit_trace_diagnosis_required');
+const traceModule=path.join(driverDirectory,'terminal-trace.mjs');
+if(hash(bytes(traceModule,65536))!==diagnosis.traceSha256)fail('terminal_trace_source_changed');
 if(process.platform!=='win32'||process.arch!=='x64'||process.env.GITHUB_ACTIONS!=='true'
   ||process.env.OBS_EXECUTION!=='windows-actions'||!['observe','controls'].includes(process.env.OBS_OPERATION)
   ||!/^[a-z][a-z0-9-]{7,47}$/.test(process.env.OBS_ID??'')
@@ -276,8 +281,10 @@ try {
   await endpointAbsent();
   clearTimeout(deadline);
   deadline=setTimeout(()=>{remember('cli_control_observation_deadline');deadlineExpired=true;},60000);
-  handle=startTerminalCommand({id:'cli',command:process.execPath,args:[path.join(installed,'bin/koto.js'),'project','start',path.join(root,'plan.json'),'--start'],
-    cwd:project,env,timeoutMs:90000,columns:100,rows:30,helperPath,signal:controller.signal,onEvent:event=>capture(event,'outer')});
+  const terminalEnv={...env,OBS_TERMINAL_TRACE:'1',
+    KOTO_TERMINAL_TRACE_FILE:path.join(root,'evidence','terminal-trace.jsonl')};
+  handle=startTerminalCommand({id:'cli',command:process.execPath,args:['--import',pathToFileURL(traceModule).href,path.join(installed,'bin/koto.js'),'project','start',path.join(root,'plan.json'),'--start'],
+    cwd:project,env:terminalEnv,timeoutMs:90000,columns:100,rows:30,helperPath,signal:controller.signal,onEvent:event=>capture(event,'outer')});
   handle.completion.then(result=>{outcome=result;ended=true;}).catch(e=>{ended=true;remember(e);stop();});
   await gate('Agents>',20000,'initial_koto_controls_missing');
   await waitInnerReady(15000);
@@ -329,6 +336,8 @@ try {
 }catch(e){remember(e);}
 const receipt={schemaVersion:1,kind:'koto-windows-cli-control-observation',candidate:binding.candidate,
   observationId:process.env.OBS_ID,root,mainRoot,bindingsSha256:hash(bindingBytes),
+  diagnosisOnly:true,acceptanceClaim:false,traceModuleSha256:diagnosis.traceSha256,
+  traceFile:path.join(root,'evidence','terminal-trace.jsonl'),
   route:standalone?'standalone-idle-controls':'post-model-controls',
   priorObservationSha256:observationBytes?hash(observationBytes):null,priorRuntimeCompletionSha256:runtimeBytes?hash(runtimeBytes):null,
   nativeExecutableSha256:hash(bytes(prepared.opencode,256*1024**2)),nativeConfigSha256:hash(configBytes),
@@ -336,7 +345,7 @@ const receipt={schemaVersion:1,kind:'koto-windows-cli-control-observation',candi
   firstError:firstError??null,errors,cleanupErrors,
   noTaskPromptSubmitted:true,noModelStarted:true,cliControlsSemanticallyVerified:false,
   nativeRedrawVerified:false,humanTerminalRestorationVerified:false,
-  interpretation:'Requires human inspection of actual CLI/native output and retained cleanup. Sending controls is not a pass.'};
+  interpretation:'Instrumented diagnosis only, not an acceptance pass. Requires human inspection of actual CLI/native output, trace and retained cleanup.'};
 try{writeFileSync(path.join(root,'evidence','observation.json'),JSON.stringify(receipt,null,2)+'\n',{flag:'wx',mode:0o600});}
 catch(e){remember(e,'cli_control_receipt_write_failed');}
 process.stdout.write(JSON.stringify({root,error:errorCode??null,semanticReviewRequired:true})+'\n');
