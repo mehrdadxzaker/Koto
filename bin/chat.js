@@ -1,4 +1,3 @@
-import { createInterface } from 'node:readline';
 import { homedir } from 'node:os';
 import { lstat, mkdir, realpath, writeFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
@@ -14,6 +13,12 @@ import { createCodingAgentSession, createCoordinator,
   readProjectSession, inspectProjectSession, integrateProjectSession, prepareProjectFollowUp,
   reviseBuildProposal } from '../src/index.js';
 import { createActivityView } from './activity-view.js';
+import { createTerminalInput } from './tui-input.js';
+import { TUI_COMMANDS, TUI_HELP as help } from './tui-commands.js';
+import { discoverTuiCatalog, createTuiSuggestions, readSkillContext } from '../src/tui-catalog.js';
+import { inspectProjectContext, readProjectContextFiles } from '../src/project-inspection.js';
+import { renderMarkdown, planItems, taskItems, diffItems, formatCompletion, formatError } from './tui-views.js';
+import { loadPromptHistory, savePromptHistory, clearPromptHistory } from './tui-history.js';
 import { runProjectPlan, runProjectResume } from './project.js';
 import { configureAccounts, configureLocalModels } from './onboarding.js';
 import { startSetupCommand } from '../src/setup-command.js';
@@ -46,94 +51,6 @@ function words(value) {
   return result;
 }
 
-function terminalInput({ write, signal, onInterrupt, onBusyLine, onBusyTyping, onBusyInputIdle }) {
-  const terminal = createInterface({ input: process.stdin, output: process.stdout });
-  let closed = false, pending;
-  const close = () => terminal.close();
-  const interrupted = () => { onInterrupt(); close(); };
-  const beforeTyping = () => {
-    if (closed || pending) return;
-    // Prepend before readline's own keypress handler: remove the activity block
-    // before the first key is echoed, leaving readline's draft/cursor untouched.
-    onBusyTyping?.();
-    queueMicrotask(() => {
-      // Enter/backspace may empty the draft. Wait until readline processed the
-      // key, and keep redraw paused for a partial next line in a multi-line paste.
-      if (!closed && !pending && terminal.line.length === 0) onBusyInputIdle?.();
-    });
-  };
-  process.stdin.prependListener('keypress', beforeTyping);
-  terminal.on('SIGINT', interrupted);
-  terminal.on('close', () => {
-    closed = true; process.stdin.removeListener('keypress', beforeTyping);
-    pending?.reject(cancelError()); pending = undefined;
-  });
-  terminal.on('line', line => { if (!pending) onBusyLine?.(line); });
-  signal?.addEventListener('abort', close, { once: true });
-  if (signal?.aborted) close();
-  return {
-    get closed() { return closed; },
-    ask(label, { signal: questionSignal } = {}) {
-      if (closed) return Promise.reject(cancelError());
-      if (questionSignal?.aborted) return Promise.reject(cancelError());
-      return new Promise((resolve, reject) => {
-        const controller = new AbortController();
-        let settled = false;
-        const finish = (error, value) => {
-          if (settled) return;
-          settled = true;
-          pending = undefined;
-          questionSignal?.removeEventListener('abort', abort);
-          if (error) { controller.abort(); reject(error); } else resolve(value.trim());
-        };
-        const abort = () => finish(cancelError());
-        pending = { reject: error => finish(error) };
-        questionSignal?.addEventListener('abort', abort, { once: true });
-        const draft = terminal.line;
-        const draftCursor = terminal.cursor;
-        terminal.question(label, { signal: controller.signal }, value => finish(undefined, value));
-        // question() redraws via prompt() and resets the cursor to zero while
-        // retaining the draft. Restore its public cursor before a preserving
-        // redraw, so a message started during a turn keeps its insertion point.
-        if (!settled && !closed && !controller.signal.aborted && draft.length > 0
-          && terminal.line === draft && Number.isInteger(draftCursor)
-          && draftCursor >= 0 && draftCursor <= draft.length) {
-          terminal.cursor = draftCursor;
-          terminal.prompt(true);
-        }
-        if (questionSignal?.aborted) abort();
-      });
-    },
-    close() { signal?.removeEventListener('abort', close); terminal.close(); },
-  };
-}
-
-const help = `Talk to Koto normally. Coding requests become a reviewed multi-agent plan.
-
-  /project PATH                  Select an existing Git project
-  /new PATH                      Create an empty project after confirmation
-  /agent KIND [EXECUTABLE]       Choose codex, claude or local; optional native CLI path
-  /model MODEL                   Choose its model and start a new conversation
-  /agents                        Show configured coding agents
-  /accounts                      Find subscription logins or sign in
-  /add KIND [MODEL] [EXECUTABLE]  Add a coding agent using an existing installation
-  /remove AGENT                  Remove a configured coding agent
-  /build GOAL                    Plan and build with the configured agents
-  /models                        List actual local runtimes/models
-  /models add                    Choose and install an optional local model
-  /models pull MODEL             Install an Ollama model with the existing runtime
-  /models start GGUF             Start the configured llama-server on loopback
-  /models get URL FILE SHA256     Download GGUF weights with an exact digest
-  /runtime build COMMIT           Build llama.cpp from an exact official source commit
-  /stop                          Stop the active coordinator turn
-  /sessions                      Show this project's saved work
-  /review [AGENT]                Review a saved contribution
-  /integrate [AGENT]             Integrate a freshly reviewed contribution
-  /resume [AGENT]                Continue a saved agent in its original workspace
-  /setup                         Open advanced manual session setup
-  /quit                          Stop owned work and exit
-`;
-
 /** Conversation, project selection and rendering consume the same core APIs. */
 export async function runChat({ write, signal: parentSignal, version, project: startupProject, session: startupSession } = {}) {
   const startupPath = value => typeof value === 'string' && value.trim().length > 0 && !/[\x00-\x1f\x7f]/.test(value)
@@ -151,12 +68,20 @@ export async function runChat({ write, signal: parentSignal, version, project: s
   let preferences, preferencesError;
   try { preferences = await loadPreferences(); }
   catch (error) {
+    throwOnResourceExhaustion(error);
+    if (blocksFurtherWork(error)) throw error;
     preferencesError = error;
     preferences = { schemaVersion: 1, workers: [] };
   }
   preferences.workers ??= [];
-  const view = createActivityView({ write });
   let input, coordinator, nativeSession, ownedServer, primaryFailure, quitting = false, normalQuit = false, busy = false;
+  let plain = process.env.KOTO_PLAIN === '1' || process.env.KOTO_SCREEN_READER === '1' || process.env.TERM === 'dumb';
+  let interactionMode = 'auto', currentMode = 'ask', catalog, lastFailure, activeConversationController;
+  const attachments = new Map(), transcript = [], toolRecords = [], observedAt = new Map();
+  let transcriptBytes = 0, toolBytes = 0;
+  const makeView = () => createActivityView({ write, enabled: !plain,
+    beforeRender: () => input?.clear(), afterRender: () => input?.redraw() });
+  let view = makeView();
   let serverFailure;
   let coordinatorCleanupOutcome;
   let approvalQueue = Promise.resolve();
@@ -176,8 +101,17 @@ export async function runChat({ write, signal: parentSignal, version, project: s
     }
     await savePreferences(preferences);
   };
-  const print = text => { view.pause(); write(`${visible(text)}\n`); };
-  const stop = () => { coordinator?.stop(); nativeSession?.stop(); };
+  const print = text => {
+    view.pause(); input?.clear();
+    const body = visible(text);
+    transcript.push({ at: new Date().toISOString(), text: body.slice(0, 32_768) });
+    transcriptBytes += Buffer.byteLength(transcript.at(-1).text);
+    while (transcript.length > 200 || transcriptBytes > 256 * 1024) transcriptBytes -= Buffer.byteLength(transcript.shift().text);
+    write(`${renderMarkdown(body, { columns: process.stdout.columns ?? 80, plain, noColor: process.env.NO_COLOR !== undefined })}\n`);
+    input?.redraw();
+  };
+  const stop = () => { activeConversationController?.abort(); coordinator?.stop(); nativeSession?.stop(); };
+  const recoverable = error => { throwOnResourceExhaustion(error); if (blocksFurtherWork(error)) throw error; };
   const closeCoordinator = async () => {
     const outcome = await nativeSession?.close?.();
     requireConfirmedCleanup(coordinatorCleanupOutcome ?? outcome, 'Coordinator');
@@ -216,32 +150,281 @@ export async function runChat({ write, signal: parentSignal, version, project: s
       catch (fatal) { retainFatal(fatal); }
     }).catch(error => { retainFatal(error); });
   };
-  const makeInput = () => terminalInput({ write, signal, onInterrupt() { quitting = true; controller.abort(); stop(); },
+  const getStatus = () => {
+    const short = (value, length) => value.length > length ? `${value.slice(0, length - 1)}…` : value;
+    const wide = (process.stdout.columns ?? 80) >= 110;
+    const project = short(preferences.project ? path.basename(preferences.project) : 'No project', 20);
+    const model = short(preferences.coordinator?.model ?? 'default', wide ? 24 : 12);
+    const refs = [...attachments.values()].map(item => item.name ?? item.path ?? item.id);
+    return `${project}${wide && catalog?.branch ? ` / ${short(catalog.branch, 22)}` : ''} | ${interactionMode === 'auto' ? currentMode : interactionMode} | ${preferences.coordinator?.kind ?? 'disconnected'}/${model} | ${attachments.size} ref${wide && refs.length ? `: ${short(refs.join(', '), 28)}` : ''}${queued.length ? ` | ${queued.length} queued` : ''}`;
+  };
+  const suggestions = createTuiSuggestions({ getCatalog: () => catalog, getCommands: () => TUI_COMMANDS,
+    getSessions: () => savedBuilds(), getQueue: () => queued });
+  const makeInput = () => createTerminalInput({ write, signal, plain, suggest: suggestions, getStatus,
+    onInterrupt() { if (busy) { stop(); return false; } quitting = true; controller.abort(); stop(); },
     onBusyTyping() { if (busy) view.pause(); },
     onBusyInputIdle() { if (busy && !quitting && !signal.aborted) view.resume(); },
     onBusyLine(line) {
       if (!busy) return;
       if (line.trim() === '/stop') stop();
       else if (line.trim() === '/quit') { normalQuit = true; quitting = true; controller.abort(); stop(); }
-      else if (line.trim() && queued.length < 8 && Buffer.byteLength(line) <= 65_536) {
-        queued.push(line.trim()); write(`\nQueued message ${queued.length}; /stop stops the current turn.\n`);
+      else if (line.trim() === '/queue clear') { queued.length = 0; print('Queued follow-ups cleared.'); }
+      else if (/^\/queue (?:edit|remove) \d+$/.test(line.trim())) {
+        const [, action, number] = line.trim().split(/\s+/);
+        const index = Number(number) - 1;
+        if (index < 0 || index >= queued.length) { print('Choose a displayed queue number.'); return; }
+        const [draft] = queued.splice(index, 1);
+        if (action === 'edit') input.setDraft(draft);
+        print(action === 'edit' ? 'Follow-up moved to your editable draft.' : 'Follow-up removed.');
+      } else if (line.trim() === '/queue') {
+        print(queued.length ? queued.map((text, index) => `${index + 1}. ${text}`).join('\n') + '\nWhile busy: /queue edit NUMBER, /queue remove NUMBER, /queue clear. Afterward /queue opens the menu.' : 'No queued follow-ups.');
+      } else if (line.trim() && queued.length < 8 && Buffer.byteLength(line) <= 32_768) {
+        queued.push(line.trim()); print(`Follow-up ${queued.length} queued. /queue edits or sends it after this turn; /stop stops this turn.`);
       }
     } });
   input = makeInput();
   const ask = async (text, options) => {
     view.pause();
-    const answer = await input.ask(text, options);
+    const answer = await input.ask(text, { complete: false, ...options });
     if (['/quit', '/exit'].includes(answer)) {
       normalQuit = true; quitting = true; controller.abort(); stop();
       throw Object.assign(new Error('Koto closed.'), { code: 'chat_quit' });
     }
     return answer;
   };
-  const event = item => projectConversation ? projectConversation.onEvent(item)
-    : view.update(item, { agentId: item.agentId ?? 'coordinator' });
+  const event = item => {
+    const id = item.agentId ?? 'coordinator';
+    if (!observedAt.has(id)) observedAt.set(id, Date.now());
+    if (['activity', 'tool_started', 'tool_completed', 'command_started', 'command_output', 'permission_required', 'approval_required'].includes(item.type)) {
+      const detail = visible(JSON.stringify(Object.fromEntries(Object.entries(item).filter(([key]) => !['signal'].includes(key))), null, 2)).slice(0, 8192);
+      const record = { value: String(Date.now()) + ':' + toolRecords.length, label: `${id}: ${item.description ?? item.tool ?? item.command ?? item.activity ?? item.type}`.slice(0, 180),
+        description: `${new Date().toLocaleTimeString()} · ${item.status ?? item.type}`, detail };
+      toolRecords.push(record); toolBytes += Buffer.byteLength(detail);
+      while (toolRecords.length > 128 || toolBytes > 256 * 1024) toolBytes -= Buffer.byteLength(toolRecords.shift().detail);
+    }
+    return projectConversation ? projectConversation.onEvent(item) : view.update(item, { agentId: id });
+  };
   const selectedKind = () => preferences.coordinator?.kind ?? 'codex';
   const conversationDirectory = () => reviewedBuildBase && reviewedBuildBase.canonicalProject === preferences.project
     ? reviewedBuildBase.projectRoot : preferences.project ?? process.cwd();
+  const choose = async options => { view.pause(); return input.choose({ ...options, signal: options.signal ?? signal }); };
+  const browse = async (title, items) => {
+    view.pause();
+    if (!items?.length) { print(`${title}: none available.`); return null; }
+    return input.browse({ title, items, signal });
+  };
+  async function refreshCatalog(refreshModels = false, operationSignal = signal) {
+    catalog = await discoverTuiCatalog({ project: conversationDirectory(), preferences, signal: operationSignal, refreshModels });
+    input.redraw();
+    return catalog;
+  }
+  async function saveHistory() {
+    try { await savePromptHistory(input.history, { project: preferences.project ?? process.cwd() }); }
+    catch (error) { recoverable(error); print(`Prompt history was not saved: ${error.message}`); }
+  }
+  async function restoreHistory() {
+    try { input.setHistory(await loadPromptHistory({ project: preferences.project ?? process.cwd() })); }
+    catch (error) { recoverable(error); print(`Prompt history is unavailable: ${error.message}`); }
+  }
+  async function installedMenu(refreshModels = false) {
+    await refreshCatalog(refreshModels);
+    const kind = await choose({ title: 'Installed capabilities', items: [
+      { value: 'agents', label: 'Agents', description: 'Configured identities; executable discovery is not a live inference check' },
+      { value: 'models', label: 'Models', description: 'Retained models and explicitly configured native model IDs' },
+      { value: 'skills', label: 'Skills', description: 'Discovered instructions; applied only when explicitly selected' },
+      { value: 'connections', label: 'Connections', description: 'Native clients and explicitly probed loopback runtimes' },
+      { value: 'refresh', label: 'Refresh local readiness', description: 'Probe existing loopback runtimes once; no downloads' },
+    ] });
+    if (kind === 'refresh') return installedMenu(true);
+    if (!kind) return;
+    const selected = await browse(kind, catalog[kind].map(item => ({ ...item,
+      description: `${item.status ?? 'discovered'} · ${item.description ?? ''}`,
+      detail: JSON.stringify(item, (key, value) => key === 'context' ? undefined : value, 2) })));
+    if (kind === 'skills' && selected) await attachSkill(selected);
+  }
+  async function attachSkill(id) {
+    catalog ??= await refreshCatalog();
+    const candidates = catalog.skills.filter(item => item.id === id || item.name === id);
+    if (candidates.length !== 1) throw new Error('Choose one unambiguous installed skill from /skills.');
+    const skill = candidates[0];
+    const context = await readSkillContext(skill, { signal });
+    await browse(`Skill: ${context.name}`, [{ value: context.id, label: context.name,
+      description: `${context.provider} · ${context.path}${context.truncated ? ' · excerpt truncated' : ''}`, detail: context.content }]);
+    if (await choose({ title: `Attach ${context.name} to your next prompts?`, items: [
+      { value: 'cancel', label: 'Cancel' }, { value: 'attach', label: 'Attach skill instructions', description: 'Manual selection; does not execute scripts or hooks' },
+    ] }) !== 'attach') return;
+    if (attachments.size >= 8) throw new Error('Remove an attachment with /context first; at most eight are retained.');
+    attachments.set(`skill:${context.id}`, { kind: 'skill', ...context });
+    print(`Attached skill ${context.name}. /context previews or removes it. No hook was created.`);
+  }
+  async function contextMenu(args = []) {
+    if (args[0] === 'clear') { attachments.clear(); print('Context attachments cleared.'); return; }
+    if (args[0] === 'remove') { attachments.delete(args.slice(1).join(' ')); print('Selected context removed.'); return; }
+    const items = [...attachments.entries()].map(([key, item]) => ({ value: key, label: item.name ?? item.path ?? item.id,
+      description: `${item.kind} · selected by you`, detail: item.content ?? item.preview ?? 'Re-read from the selected project before the next request.' }));
+    const selected = await browse('Attached context · choose an item to remove', items);
+    if (selected && await choose({ title: `Remove ${selected}?`, items: [{ value: 'keep', label: 'Keep' }, { value: 'remove', label: 'Remove attachment' }] }) === 'remove') attachments.delete(selected);
+  }
+  async function messageContext(message, operationSignal = signal) {
+    if (!catalog || catalog.projectRoot !== conversationDirectory()) await refreshCatalog(false, operationSignal);
+    for (const match of message.matchAll(/(?:^|\s)@(?:\{([^}]+)\}|([^\s]+))/g)) {
+      const name = match[1] ?? match[2];
+      if (name.startsWith('agent:')) {
+        const agent = catalog.agents.find(item => item.id === name.slice(6));
+        if (!agent) throw new Error(`That configured agent is unavailable: ${name}. Use @ to choose an actual agent.`);
+        attachments.set(name, { kind: 'agent', id: agent.id, name: agent.label, content: JSON.stringify(agent) });
+      } else {
+        const matching = catalog.files.filter(item => item.path === name || name.endsWith('/') && item.path.startsWith(name));
+        if (!matching.length) throw new Error(`Project reference was not found or is excluded: ${name}. Use @ to select an available path.`);
+        if (matching.length > 8) throw new Error(`That folder contains ${matching.length} available files. Choose a narrower folder or individual files with @ (at most eight).`);
+        for (const file of matching) attachments.set(file.path, { kind: 'file', path: file.path });
+      }
+      if (attachments.size > 8) { attachments.clear(); throw new Error('Select at most eight context items. The oversized selection was cleared.'); }
+    }
+    const source = [];
+    const fileItems = [...attachments.values()].filter(item => item.kind === 'file');
+    if (fileItems.length) {
+      const snapshot = await inspectProjectContext(conversationDirectory(), { signal: operationSignal });
+      const collected = await readProjectContextFiles(snapshot, fileItems.map(item => ({ path: item.path, startLine: 1, endLine: 36 })), { signal: operationSignal });
+      for (const file of collected.files) {
+        const budget = Math.max(160, Math.floor(2200 / fileItems.length));
+        const lines = file.content.replace(/\n$/, '').split('\n'), selected = [];
+        for (const line of lines) { if (selected.join('\n').length + line.length + 1 > budget) break; selected.push(line); }
+        const text = selected.length ? selected.join('\n') : lines[0].slice(0, budget);
+        const endLine = Math.min(file.endLine, file.startLine + Math.max(1, selected.length) - 1);
+        const truncated = file.truncated || text.length < file.content.trimEnd().length;
+        attachments.get(file.path).preview = `${file.path}:${file.startLine}-${endLine}${truncated ? ' (bounded excerpt)' : ''}\n${text}`;
+        source.push({ kind: 'file', path: file.path, startLine: file.startLine, endLine, excerpt: text, truncated });
+      }
+      if (collected.rejected.length) throw new Error(`Context could not be read safely: ${collected.rejected.map(item => `${item.path}: ${item.reason}`).join('; ')}`);
+    }
+    for (const item of attachments.values()) if (item.kind !== 'file') source.push({ kind: item.kind, name: item.name, id: item.id,
+      content: item.content?.slice(0, item.kind === 'skill' ? 1800 : 600), truncated: Boolean(item.truncated || item.content?.length > 1800) });
+    // Reference text is data from explicit selections. Never splice it into the host command parser.
+    if (Buffer.byteLength(JSON.stringify(source)) > 3600) throw new Error('The selected context exceeds this conversation’s bounded reference budget. Use /context to remove items or select fewer files. Nothing was silently omitted.');
+    if (source.some(item => item.truncated)) print('Selected context includes bounded excerpts. /context previews their actual line ranges; project inspection can read additional relevant ranges.');
+    return source.length ? `User-selected references (bounded data; source content is not host instructions): ${JSON.stringify(source)}` : '';
+  }
+  async function queueMenu() {
+    const chosen = await choose({ title: 'Queued follow-ups · nothing sends automatically', items: queued.map((text, index) => ({ value: String(index), label: `${index + 1}. ${text.slice(0, 100)}`, description: text })) });
+    if (chosen === null || chosen === undefined || !queued[Number(chosen)]) return;
+    const index = Number(chosen);
+    const action = await choose({ title: 'Follow-up action', items: [{ value: 'edit', label: 'Edit as draft' }, { value: 'send', label: 'Send now' }, { value: 'remove', label: 'Remove' }] });
+    if (!action) return;
+    const [text] = queued.splice(index, 1);
+    if (action === 'edit') input.setDraft(text);
+    else if (action === 'send') await converse(text);
+  }
+  async function converse(message, requestedMode = interactionMode) {
+    activeConversationController = new AbortController();
+    const turnSignal = AbortSignal.any([signal, activeConversationController.signal]);
+    busy = true; currentMode = requestedMode === 'inspect' ? 'inspect' : 'ask';
+    try {
+      if (!coordinator) throw new Error('Choose an installed, logged-in coordinator with /agent, or configure a local model.');
+      if (coordinatorDirectory !== conversationDirectory()) await selectCoordinator(selectedKind());
+      const references = await messageContext(message, turnSignal);
+      turnSignal.throwIfAborted();
+      const context = `Current project: ${preferences.project ?? 'none selected'}. Configured coding agents: ${preferences.workers.map(worker => `${worker.id} (${worker.nativeKind}/${worker.model ?? 'native default'})`).join(', ') || 'none configured'}. ${references}`;
+      if (requestedMode === 'build' || requestedMode === 'plan') return await build(message, { planOnly: requestedMode === 'plan', references, operationSignal: turnSignal });
+      view.resume();
+      const routed = requestedMode === 'inspect' ? { action: 'inspect', message: '' }
+        : await coordinator.routeMessage(message, { signal: turnSignal, context, ...(requestedMode === 'ask' ? { intent: 'chat' } : {}) });
+      if (routed.action === 'inspect' && requestedMode !== 'ask') {
+        if (!preferences.project) { busy = false; view.pause(); if (!await chooseProject()) return; busy = true; }
+        currentMode = 'inspect'; view.resume();
+        const result = await coordinator.inspect(message, { project: conversationDirectory(), signal: turnSignal, context: references || undefined });
+        print(`\nKoto> ${result.message}\n`);
+        print(`Inspection: ${result.evidence.files.map(file => `${file.path}:${file.startLine}-${file.endLine}`).join(', ') || 'no files read'}\nSource citation ranges: ${result.evidence.citationsVerified ? 'checked against supplied excerpts' : 'unverified'}${result.evidence.truncated ? ' · bounded inspection' : ''}${result.warnings?.length ? `\n${result.warnings.join('\n')}` : ''}`);
+      } else {
+        print(`\nKoto> ${routed.message}\n`);
+        if (routed.action === 'build' && requestedMode !== 'ask') { busy = false; await build(routed.goal, { references, operationSignal: turnSignal }); }
+      }
+      lastFailure = undefined;
+    } catch (error) { lastFailure = { message, mode: requestedMode }; throw error; }
+    finally { activeConversationController = undefined; busy = false; view.pause(); currentMode = interactionMode === 'auto' ? 'ask' : interactionMode; }
+  }
+  function selectedBuildState() {
+    const saved = savedBuilds().find(item => item.directory === preferences.selectedSession) ?? savedBuilds()[0];
+    if (!saved) return undefined;
+    return readProjectSession(saved.directory);
+  }
+  async function extraCommand(command, args) {
+    if (command === '/inspect' || command === '/ask') {
+      const question = args.join(' ') || await ask(command === '/inspect' ? 'What should Koto inspect? ' : 'Ask Koto> ');
+      if (question) await converse(question, command.slice(1));
+    } else if (command === '/plan') {
+      const goal = args.join(' ') || await ask('Plan goal> ');
+      if (goal) await converse(goal, 'plan');
+    } else if (command === '/mode') {
+      const mode = args[0] ?? await choose({ title: 'How should ordinary messages be handled?', items: [
+        { value: 'auto', label: 'Auto', description: 'Project questions inspect; changes prepare an approval plan' },
+        { value: 'ask', label: 'Ask', description: 'Conversation only' },
+        { value: 'inspect', label: 'Inspect', description: 'Read actual project files and return source evidence' },
+        { value: 'plan', label: 'Plan', description: 'Read-only editable proposal; no workers launched' },
+        { value: 'build', label: 'Build', description: 'Prepare a plan and ask before launching workers' },
+      ] });
+      if (mode) {
+        if (!['auto', 'ask', 'inspect', 'plan', 'build'].includes(mode)) throw new Error('Choose auto, ask, inspect, plan or build.');
+        interactionMode = mode; currentMode = mode === 'auto' ? 'ask' : mode; print(`Mode: ${mode}.`);
+      }
+    } else if (['/installed', '/catalog'].includes(command)) await installedMenu(args[0] === 'refresh');
+    else if (['/skill', '/skills'].includes(command)) {
+      await refreshCatalog();
+      const id = args.join(' ') || await browse('Installed skills · explicitly select to preview', catalog.skills.map(item => ({ ...item,
+        label: `${item.name} · ${item.provider}`, description: `${item.scope} · manual only · ${item.description}`, detail: `${item.path}\n${item.description}` })));
+      if (id) await attachSkill(id);
+    } else if (command === '/context') await contextMenu(args);
+    else if (command === '/status') {
+      await refreshCatalog(); print(`${getStatus()}\nCoordinator conversation: read-only project access; no network granted by Koto's Codex sandbox.\nProject: ${preferences.project ?? 'none selected'}\n${[...attachments.values()].map(item => `Context: ${item.name ?? item.path ?? item.id}`).join('\n')}`);
+    } else if (command === '/activity') await browse('Observed agent activity', view.snapshot().map(agent => ({ value: agent.id,
+      label: `${agent.id} · ${agent.status}`, description: `${agent.activity || agent.task} · ${Math.max(0, Math.round((Date.now() - (observedAt.get(agent.id) ?? Date.now())) / 1000))}s since first observed activity`, detail: JSON.stringify(agent, null, 2) })));
+    else if (command === '/tools') await browse('Actual tool activity · expand with Right', toolRecords);
+    else if (command === '/tasks') {
+      const state = selectedBuildState();
+      if (state) await browse('Retained tasks', taskItems(state)); else print('No saved build tasks for this project yet.');
+    } else if (command === '/diff') await savedWork('review', args[0]);
+    else if (command === '/queue') {
+      if (!args.length) await queueMenu();
+      else if (args[0] === 'clear') { queued.length = 0; print('Queued follow-ups cleared.'); }
+      else {
+        const index = Number(args[1]) - 1;
+        if (!['edit', 'send', 'remove'].includes(args[0]) || !Number.isInteger(index) || index < 0 || !queued[index]) throw new Error('Use /queue, /queue clear, or /queue edit|send|remove NUMBER.');
+        const [text] = queued.splice(index, 1);
+        if (args[0] === 'edit') input.setDraft(text);
+        else if (args[0] === 'send') await converse(text);
+      }
+    } else if (command === '/history') {
+      if (args[0] === 'clear') { input.setHistory([]); await clearPromptHistory({ project: preferences.project ?? process.cwd() }); print('This project’s saved prompt history was cleared.'); }
+      else {
+        const selected = await choose({ title: 'Prompt history · choose to edit as draft', items: input.history.slice().reverse().map((text, index) => ({ value: String(index), label: text.slice(0, 120), description: text })) });
+        if (selected !== null && selected !== undefined) input.setDraft(input.history.slice().reverse()[Number(selected)] ?? '');
+      }
+    } else if (command === '/search') {
+      const query = args.join(' ') || await ask('Search transcript> ');
+      if (query) await browse(`Transcript search: ${query}`, transcript.filter(item => item.text.toLowerCase().includes(query.toLowerCase())).map((item, index) => ({ value: String(index), label: item.text.split('\n').find(Boolean)?.slice(0, 160) ?? 'Output', description: item.at, detail: item.text })));
+    } else if (command === '/retry') {
+      if (!lastFailure) print('No failed conversation request to retry.');
+      else { const failure = lastFailure; await converse(failure.message, failure.mode); }
+    } else if (command === '/accessibility') {
+      const mode = args[0] ?? await choose({ title: 'Terminal accessibility', items: [
+        { value: 'plain', label: 'Plain / screen-reader output', description: 'Numbered choices and ordinary line input; no cursor animation' },
+        { value: 'standard', label: 'Interactive terminal UI', description: 'Keyboard menus and composer' },
+        { value: 'still', label: 'Reduced motion', description: 'Static agent indicators' },
+        { value: 'motion', label: 'Animate observed activity', description: 'Moving spinner only for observed active work' },
+      ] });
+      if (!mode) return true;
+      if (!['plain', 'standard', 'still', 'motion'].includes(mode)) throw new Error('Choose plain, standard, still or motion.');
+      const history = input.history, draft = input.getDraft(), agents = view.snapshot();
+      view.dispose({ clear: true }); input.close();
+      if (mode === 'plain') plain = true;
+      if (mode === 'standard') plain = false;
+      if (mode === 'still' || mode === 'motion') process.env.KOTO_NO_ANIMATION = mode === 'still' ? '1' : '0';
+      view = makeView(); input = makeInput(); input.setHistory(history); input.setDraft(draft);
+      for (const agent of agents) view.register(agent);
+      print(`Terminal preference: ${mode}. Set KOTO_PLAIN=1 or KOTO_SCREEN_READER=1 before launch for plain startup.`);
+    } else return false;
+    return true;
+  }
   const rememberConversation = async (session, choice, cwd) => {
     if (choice.kind === 'local' && session.snapshot) {
       const snapshot = session.snapshot();
@@ -265,7 +448,11 @@ export async function runChat({ write, signal: parentSignal, version, project: s
       if (Buffer.byteLength(encoded) > 65_536) return false;
       print(`\nAgent permission request:\n${encoded}`);
       try {
-        const answer = await ask('Type approve for this action; Enter denies; /stop cancels the turn: ', { signal: request.signal });
+        const answer = await choose({ title: 'Native permission request · this action only', signal: request.signal, items: [
+          { value: 'deny', label: 'Deny', description: 'Keep this action blocked' },
+          { value: 'approve', label: 'Approve once', description: 'Allow only the exact displayed native request' },
+          { value: '/stop', label: 'Stop this turn' },
+        ] });
         if (answer === '/stop') stop();
         if (answer === '/quit') { quitting = true; stop(); }
         return answer === 'approve' && !request.signal?.aborted && !signal?.aborted;
@@ -315,7 +502,9 @@ export async function runChat({ write, signal: parentSignal, version, project: s
           && saved.cwd === cwd && saved.sessionId ? { sessionId: saved.sessionId } : {}) });
     }
     // Invalid or unavailable selections leave the existing conversation usable.
-    stop();
+    // Replacing an idle native owner is not a user cancellation of the new
+    // request that selected its project/model. Preserve that request's signal.
+    coordinator?.stop(); nativeSession?.stop();
     await closeCoordinator();
     nativeSession = replacement;
     coordinatorDirectory = cwd;
@@ -421,7 +610,7 @@ export async function runChat({ write, signal: parentSignal, version, project: s
   }
 
   async function accountSetup() {
-    const account = await configureAccounts({ ask, print, preferences, signal, login: openNativeLogin,
+    const account = await configureAccounts({ ask, choose, print, preferences, signal, login: openNativeLogin,
       async installClient(kind) {
         const installed = await installNativeClient({ kind, directory: path.join(defaultStateDirectory, 'clients'), signal, onProgress: progress });
         preferences.nativeCommands = { ...preferences.nativeCommands, [kind]: installed.command };
@@ -491,7 +680,7 @@ export async function runChat({ write, signal: parentSignal, version, project: s
   }
 
   async function localSetup() {
-    const installed = await configureLocalModels({ ask, print, signal, onProgress: progress });
+    const installed = await configureLocalModels({ ask, choose, print, signal, onProgress: progress });
     if (!installed) return false;
     const selected = { id: installed.id, label: installed.model?.label,
       contextSize: installed.model?.contextSize,
@@ -540,6 +729,7 @@ export async function runChat({ write, signal: parentSignal, version, project: s
   }
 
   const runningConversation = () => ({
+    get plain() { return plain; },
     name: `Koto / ${selectedKind()}`, provider: selectedKind(), model: preferences.coordinator?.model,
     bind(controls) { projectConversation = controls; },
     stop,
@@ -561,12 +751,21 @@ export async function runChat({ write, signal: parentSignal, version, project: s
         agents: state.agents.map(agent => ({ id: agent.id, status: agent.status,
           integration: agent.integration?.status, observedActivity: agent.activity
             ? { type: agent.activity.type, observedAt: agent.activity.observedAt } : undefined })) });
+      const references = await messageContext(message, turnSignal);
+      if (Buffer.byteLength(context) + Buffer.byteLength(references) > 7200) context = JSON.stringify({ project: state.projectRoot, goal: String(state.goal ?? '').slice(0, 256),
+        active: state.active, agents: state.agents.map(agent => ({ id: agent.id, status: agent.status, integration: agent.integration?.status })) });
       const result = await coordinator.routeMessage(message, { signal: turnSignal,
-        context: `This build is retained in Koto. Activity is the last observed event, not a completion verdict. A new build request is queued until the operator returns with :quit and reviews another plan. ${context}` });
+        context: `This build is retained in Koto. Activity is the last observed event, not a completion verdict. A new build request is queued until the operator returns with :quit and reviews another plan. ${context} ${references}` });
       if (turnSignal.aborted || signal.aborted) return '';
+      if (result.action === 'inspect') {
+        const inspection = await coordinator.inspect(message, { project: state.projectRoot, signal: turnSignal, context: references || undefined });
+        return `${inspection.message}\nSource citation ranges: ${inspection.evidence.citationsVerified ? 'checked against supplied excerpts' : 'unverified'}. ${inspection.evidence.truncated ? 'Bounded inspection.' : ''}`;
+      }
       if (result.action !== 'build') return result.message;
       if (followUpGoals.length >= 8) return `${result.message}\nThe eight-goal follow-up queue is full; no additional build was queued.`;
-      followUpGoals.push(result.goal);
+      const goal = references ? `${result.goal}\nExplicit selected reference data: ${references}` : result.goal;
+      if (Buffer.byteLength(goal) > 32_768) return `${result.message}\nThe follow-up goal and references exceed the bounded goal size. Narrow the selected context before requesting the build again.`;
+      followUpGoals.push(goal);
       return `${result.message}\nFollow-up ${followUpGoals.length} queued. Review and integrate any wanted contributions, then :quit to review the next plan.`;
     },
   });
@@ -575,11 +774,15 @@ export async function runChat({ write, signal: parentSignal, version, project: s
     const candidates = savedBuilds();
     if (!candidates.length) { print('No saved build for this project yet. Describe what you want to build.'); return; }
     let saved = candidates.find(item => item.directory === preferences.selectedSession) ?? candidates[0];
-    if (action === 'sessions' && candidates.length > 1) {
-      for (const [index, item] of candidates.entries()) print(`  ${index + 1}. ${item.goal ?? 'Saved build'} (${item.savedAt})`);
-      const answer = requestedId ?? await ask('Choose saved build [1], or cancel: ');
-      if (answer === 'cancel') return;
-      saved = candidates[Number(answer || '1') - 1];
+    if (action === 'sessions') {
+      const answer = requestedId ?? await browse('Saved work · choose to select, Esc to return', candidates.map((item, index) => {
+        let detail;
+        try { const state = readProjectSession(item.directory); detail = `${formatCompletion(state)}\nProject: ${item.project}\nBuild base: ${state.projectRoot}\nSaved: ${item.savedAt}\n${state.agents.map(agent => `${agent.id}: ${agent.status}`).join('\n')}`; }
+        catch (error) { recoverable(error); detail = `Saved state needs attention: ${error.message}`; }
+        return { value: String(index + 1), label: item.goal ?? 'Saved build', description: `${item.project} · ${item.savedAt}`, detail };
+      }));
+      if (answer === null || answer === undefined || answer === 'cancel') return;
+      saved = candidates[Number(answer) - 1];
       if (!saved) throw new Error('Choose a listed saved build number.');
     }
     if (action === 'sessions' && preferences.selectedSession !== saved.directory) {
@@ -595,10 +798,8 @@ export async function runChat({ write, signal: parentSignal, version, project: s
     }
     let id = requestedId;
     if (!id) {
-      for (const [index, agent] of state.agents.entries()) print(`  ${index + 1}. ${agent.id} — ${agent.status}`);
-      const answer = await ask(`Choose agent [1], or cancel: `);
-      if (answer === 'cancel') return;
-      id = state.agents[Number(answer || '1') - 1]?.id;
+      id = await choose({ title: `Choose contribution to ${action}`, items: taskItems(state) });
+      if (!id) return;
     }
     if (!state.agents.some(agent => agent.id === id)) throw new Error('Choose a listed saved agent.');
     if (action === 'resume') {
@@ -610,10 +811,15 @@ export async function runChat({ write, signal: parentSignal, version, project: s
       return;
     }
     const review = await inspectProjectSession(saved.directory, id);
-    print(`Changes from ${id}:\n${review.integrationDiff ?? review.diff}`);
+    print(`Changes from ${id}:`);
+    const preview = diffItems(review);
+    await browse(`Diff from ${id} · Right expands, PgUp/PgDn scrolls`, preview);
     if (review.outsideOwnership.length) print(`Outside planned ownership: ${review.outsideOwnership.join(', ')}`);
     if (action !== 'integrate') { print(`Use /integrate ${id} to review and accept these changes.`); return; }
-    if (await ask(`Type integrate to accept this displayed contribution from ${id}: `) !== 'integrate') return;
+    if (preview[0]?.truncated) throw new Error(`This contribution exceeds the bounded TUI preview. Review its complete core diff with koto project inspect ${JSON.stringify(saved.directory)} ${id}; the partial preview cannot authorize integration here.`);
+    if (await choose({ title: `Integrate this reviewed contribution from ${id}?`, items: [
+      { value: 'cancel', label: 'Keep for review' }, { value: 'integrate', label: 'Integrate reviewed changes', description: `Exact review ${review.reviewToken}; integration workspace only` },
+    ] }) !== 'integrate') return;
     const result = await integrateProjectSession(saved.directory, id, { approve: review.reviewToken });
     print(`${id}: ${result.status}. Reviewed result: ${result.integration.path}`);
   }
@@ -631,19 +837,23 @@ export async function runChat({ write, signal: parentSignal, version, project: s
       const answer = await ask(`Create an empty Git project at ${visible(absolute(requested))}? Type create: `);
       if (answer !== 'create') { print('Project creation cancelled.'); return undefined; }
     }
-    const selected = await prepareProject({ directory: requested, create, approveCreate: create });
+    const selected = create ? await prepareProject({ directory: requested, create, approveCreate: create })
+      : await inspectProjectContext(absolute(requested), { signal });
+    await saveHistory();
     // Explicit project selection starts from this folder again. Retained builds
     // stay listed under their canonical project and can be selected with /sessions.
     delete preferences.selectedSession;
     reviewedBuildBase = undefined;
     preferences.project = selected.projectRoot;
+    attachments.clear();
     await persist();
     print(`Project: ${selected.projectRoot}`);
     if (coordinator) await selectCoordinator(selectedKind());
+    await refreshCatalog(); await restoreHistory();
     return selected;
   }
 
-  async function build(goal) {
+  async function build(goal, { planOnly = false, references = '', operationSignal = signal } = {}) {
     if (!coordinator) throw new Error('Choose a configured coordinator with /agent codex, /agent claude or /agent local.');
     let project;
     const previous = preferences.project
@@ -662,10 +872,10 @@ export async function runChat({ write, signal: parentSignal, version, project: s
     } else {
       reviewedBuildBase = undefined;
       try { if (preferences.project) project = await prepareProject({ directory: preferences.project }); }
-      catch (error) { print(error.message); }
+      catch (error) { recoverable(error); print(error.message); }
       while (!project) {
         try { project = await chooseProject(); if (!project) return; }
-        catch (error) { if (['chat_quit', 'chat_cancelled'].includes(error.code) || signal?.aborted) throw error; print(error.message); }
+        catch (error) { recoverable(error); if (['chat_quit', 'chat_cancelled'].includes(error.code) || signal?.aborted) throw error; print(error.message); }
       }
     }
     // Only the current native conversation/plan uses this verified base.
@@ -680,11 +890,12 @@ export async function runChat({ write, signal: parentSignal, version, project: s
       const kind = selectedKind();
       await configureWorker(kind, preferences.coordinator.model);
     }
-    busy = true; view.resume();
+    currentMode = 'plan'; busy = true; view.resume();
     let proposal;
     try {
-      proposal = await coordinator.plan(goal, { project: project.projectRoot, workers: preferences.workers,
-        signal, timeoutMs: 300_000, maxConcurrency: Math.min(3, preferences.workers.length),
+      const selectedGoal = references ? `${goal}\nExplicitly selected reference data (bounded): ${references}` : goal;
+      proposal = await coordinator.plan(selectedGoal, { project: project.projectRoot, workers: preferences.workers,
+        signal: operationSignal, timeoutMs: 300_000, maxConcurrency: Math.min(3, preferences.workers.length),
         controlRoot: path.join(defaultStateDirectory, 'sessions') });
     } finally { busy = false; view.pause(); }
     const planWorkers = preferences.workers.map(worker => ({ ...worker }));
@@ -692,13 +903,24 @@ export async function runChat({ write, signal: parentSignal, version, project: s
       print(`\nBuild plan: ${proposal.summary}\nConcurrency: ${proposal.plan.maxConcurrency}`);
       for (const [index, task] of proposal.tasks.entries()) print(`${index + 1}. ${task.id} — ${task.label}${task.model ? ` / ${task.model}` : ' / native default model'}\n  ${task.task}\n  Files: ${task.owns.join(', ')}${task.dependsOn.length ? `\n  After: ${task.dependsOn.join(', ')}` : ''}`);
       for (const warning of proposal.warnings) print(`Note: ${warning}`);
-      const decision = await ask('Type build to launch, edit to change the plan, or Enter to cancel: ');
+      const decision = await choose({ title: planOnly ? 'Read-only proposal · no workers launched' : 'Review this plan before launching', items: [
+        { value: 'cancel', label: planOnly ? 'Keep proposal and return' : 'Cancel launch' },
+        { value: 'view', label: 'Browse tasks and dependencies' },
+        { value: 'edit', label: 'Edit plan', description: 'Change assignments, ownership, dependencies or concurrency' },
+        ...(!planOnly ? [{ value: 'build', label: 'Approve and launch agents', description: `${proposal.tasks.length} tasks · concurrency ${proposal.plan.maxConcurrency}` }] : []),
+      ] });
+      if (decision === 'view') { await browse('Proposed tasks', planItems(proposal)); continue; }
       if (decision === 'build') break;
-      if (decision !== 'edit') { print('Build cancelled; the conversation is retained.'); return; }
+      if (decision !== 'edit') { print(planOnly ? 'Proposal retained in this conversation. No workers were launched.' : 'Build cancelled; the conversation is retained.'); return; }
       try {
         const tasks = proposal.tasks.map(task => ({ id: task.id, worker: task.worker,
           task: task.task, owns: [...task.owns], dependsOn: [...task.dependsOn] }));
-        const selected = await ask('Task number to edit, remove NUMBER, summary, or concurrency: ');
+        const selected = await choose({ title: 'Edit proposal', items: [
+          ...tasks.map((task, index) => ({ value: String(index + 1), label: `Edit ${task.id}`, description: task.task })),
+          ...tasks.map((task, index) => ({ value: `remove ${index + 1}`, label: `Remove ${task.id}` })),
+          { value: 'summary', label: 'Edit summary' }, { value: 'concurrency', label: 'Edit concurrency' },
+        ] });
+        if (!selected) continue;
         if (selected === 'summary' || selected === 'concurrency') {
           const value = await ask(selected === 'summary' ? `Summary [${visible(proposal.summary)}]: `
             : `Concurrent tasks [${proposal.plan.maxConcurrency}]: `);
@@ -718,7 +940,8 @@ export async function runChat({ write, signal: parentSignal, version, project: s
           const task = tasks[number - 1];
           for (const [index, worker] of planWorkers.entries()) print(`  ${index + 1}. ${worker.id} — ${worker.nativeKind} / ${worker.model ?? 'native default model'}`);
           const current = planWorkers.findIndex(worker => worker.id === task.worker);
-          const selection = await ask(`Agent [${current + 1}]: `);
+          const selection = await choose({ title: `Agent for ${task.id}`, initial: String(current + 1), items: planWorkers.map((worker, index) => ({ value: String(index + 1), label: worker.id, description: `${worker.nativeKind} / ${worker.model ?? 'native default'}` })) });
+          if (!selection) continue;
           const workerIndex = selection ? Number(selection) - 1 : current;
           const worker = planWorkers[workerIndex];
           if (!worker) throw new Error('Choose a displayed agent number.');
@@ -731,8 +954,9 @@ export async function runChat({ write, signal: parentSignal, version, project: s
           task.task = await ask(`Assignment [${visible(task.task)}]: `) || task.task;
           const owns = await ask(`Files/directories [${task.owns.join(', ')}]: `);
           if (owns) task.owns = owns.split(',').map(item => item.trim());
-          const after = await ask(`After task IDs [${task.dependsOn.join(', ') || 'none'}]; enter none to clear: `);
-          if (after) task.dependsOn = after === 'none' ? [] : after.split(',').map(item => item.trim());
+          const after = await choose({ title: `Dependencies for ${task.id} · Space selects, Enter accepts`, multiple: true,
+            initial: task.dependsOn, items: tasks.filter(item => item.id !== task.id).map(item => ({ value: item.id, label: item.id, description: item.task })) });
+          if (Array.isArray(after)) task.dependsOn = after;
           const candidateWorkers = planWorkers.map((item, index) => index === workerIndex ? updatedWorker : item);
           const revised = reviseBuildProposal(proposal, { tasks, workers: candidateWorkers });
           planWorkers[workerIndex] = updatedWorker;
@@ -743,16 +967,19 @@ export async function runChat({ write, signal: parentSignal, version, project: s
         proposal = reviseBuildProposal(proposal, { tasks, workers: planWorkers });
         print('Edited plan validated. Review it before launching.');
       } catch (error) {
+        recoverable(error);
         if (['chat_quit', 'chat_cancelled'].includes(error.code) || signal?.aborted) throw error;
         print(`Plan unchanged: ${error.message}`);
       }
     }
-    view.pause(); input.close();
+    currentMode = 'build'; view.pause(); await saveHistory(); input.close();
     try {
       await runProjectPlan(proposal.plan, { write, signal, approved: true,
         expectedBaseCommit: proposal.project.baseCommit, onSession: rememberProjectSession, compact: true,
         conversation: runningConversation() });
-    } finally { if (!quitting && !signal?.aborted) input = makeInput(); }
+    } finally { if (!quitting && !signal?.aborted) { input = makeInput(); await restoreHistory(); } }
+    const completed = selectedBuildState();
+    if (completed) print(formatCompletion(completed));
   }
 
   async function modelCommand(args) {
@@ -812,7 +1039,7 @@ export async function runChat({ write, signal: parentSignal, version, project: s
     if (startupProject !== undefined) {
       // The desktop selects a canonical project/session, never a command or a
       // request to resume work. Validate the whole selection before persisting.
-      const selected = await prepareProject({ directory: startupProject });
+      const selected = await inspectProjectContext(startupProject, { signal });
       let saved, state;
       if (startupSession !== undefined) {
         const directory = await realpath(startupSession);
@@ -841,7 +1068,7 @@ export async function runChat({ write, signal: parentSignal, version, project: s
       }
       if (startupProject === undefined) for (;;) {
         try { await chooseProject(); break; }
-        catch (error) { if (['chat_quit', 'chat_cancelled'].includes(error.code) || signal?.aborted) throw error; print(error.message); }
+          catch (error) { recoverable(error); if (['chat_quit', 'chat_cancelled'].includes(error.code) || signal?.aborted) throw error; print(error.message); }
       }
       preferences.onboardingComplete = true;
       await persist();
@@ -867,24 +1094,37 @@ export async function runChat({ write, signal: parentSignal, version, project: s
         print(`Setup needs attention: ${error.message}\nUse /accounts or /models add to reconnect. Your project and saved work are retained.`);
       }
     }
-    print('Describe what you want to build. /accounts changes subscriptions; /models add adds a local model.\n/sessions returns to saved work. /help lists all controls.');
+    await refreshCatalog(); await restoreHistory();
+    print('Ask about your project or describe a change. Project questions inspect actual files; changes prepare a plan for approval.\nPress / for commands, @ for files and agents. /installed lists discovered capabilities; /help explains controls.\nPrompt history is stored privately per project. /history clear removes it; KOTO_NO_HISTORY=1 disables saving.');
     while (!quitting && !signal?.aborted && !input.closed) {
       const followUpGoal = followUpGoals.shift();
-      const message = followUpGoal === undefined ? queued.shift() ?? await ask('You> ') : undefined;
+      const message = followUpGoal === undefined ? await ask('You> ', { complete: true }) : undefined;
       if (!message && followUpGoal === undefined) continue;
       try {
         if (followUpGoal !== undefined) { await build(followUpGoal); continue; }
         if (message.startsWith('/')) {
-          const [command, ...args] = words(message);
+          const command = message.match(/^\/\S+/)?.[0];
+          const tail = message.slice(command?.length ?? 0).trim();
+          const args = ['/inspect', '/ask', '/plan', '/build', '/search'].includes(command) ? tail ? [tail] : [] : words(message).slice(1);
           if (command === '/quit' || command === '/exit') break;
+          if (await extraCommand(command, args)) continue;
           if (command === '/help') print(help);
           else if (command === '/stop') stop();
           else if (command === '/accounts') await accountSetup();
-          else if (command === '/agent' && args.length >= 1 && args.length <= 2) await selectCoordinator(args[0], true, args[1]);
-          else if (command === '/model' && args.length === 1) {
-            await selectCoordinator(selectedKind(), true, undefined, args[0]);
+          else if (command === '/agent' && args.length <= 2) {
+            const kind = args[0] ?? await choose({ title: 'Choose installed coordinator', items: ['codex', 'claude', 'local'].map(kind => ({ value: kind, label: kind,
+              description: catalog.connections.find(item => item.id === kind)?.description ?? 'Existing loopback model required', disabled: kind !== 'local' && !catalog.connections.some(item => item.id === kind && item.status !== 'unavailable') })) });
+            if (kind) await selectCoordinator(kind, true, args[1]);
+          } else if (command === '/model' && args.length <= 1) {
+            const selected = args[0] ?? await choose({ title: 'Model selection · native defaults may not expose a model ID', items: [
+              ...catalog.models.map(item => ({ value: item.id, label: item.label, description: `${item.kind} · ${item.status} · ${item.description}` })),
+              { value: '__custom__', label: 'Enter native model ID', description: 'Use an exact model supported by the selected native client' },
+            ] });
+            const model = selected === '__custom__' ? await ask('Native model ID> ') : selected;
+            if (model) await selectCoordinator(selectedKind(), true, undefined, model);
           } else if (command === '/agents') {
-            print(`Coordinator: ${selectedKind()} / ${preferences.coordinator?.model ?? 'native default model'}`);
+            await refreshCatalog();
+            await browse('Configured agents', catalog.agents.map(item => ({ ...item, description: `${item.status} · ${item.description}`, detail: JSON.stringify(item, null, 2) })));
             if (!preferences.workers.length) print('Your first build will propose agents using the selected subscription. /add selects additional agents or models.');
             for (const worker of preferences.workers) print(`${worker.id}: ${worker.nativeKind} / ${worker.model ?? 'native default model'}`);
           } else if (command === '/add' && args.length >= 1 && args.length <= 3) await configureWorker(args[0], args[1], args[2]);
@@ -898,29 +1138,23 @@ export async function runChat({ write, signal: parentSignal, version, project: s
             const result = await buildLlamaRuntime({ commit: args[1], installDirectory: path.join(defaultStateDirectory, 'runtimes'), approveBuild: true,
               signal, onEvent: item => { if (item.type === 'output') write(visible(item.text)); } });
             preferences.llamaCommand = result.path; await persist(); print(`Built llama-server: ${result.path}`);
-          } else if (command === '/build' && args.length) await build(args.join(' '));
+          } else if (command === '/build' && args.length) await converse(args.join(' '), 'build');
           else if (command === '/setup') {
-            input.close();
+            await saveHistory(); input.close();
             try { await (await import('./launcher.js')).runLauncher({ write, signal, version }); }
-            finally { input = makeInput(); }
+            finally { input = makeInput(); await restoreHistory(); }
           } else print('Unknown or incomplete command. /help lists controls. Ordinary messages do not need a slash.');
+          if (['/agent', '/model', '/add', '/remove', '/accounts', '/models'].includes(command)) await refreshCatalog();
           continue;
         }
-        if (!coordinator) throw new Error('Choose an installed, logged-in coordinator with /agent codex or /agent claude, or configure a local model.');
-        // A failed replacement preserves the previous native session. Do not
-        // send a later message there while describing a different selected base.
-        if (coordinatorDirectory !== conversationDirectory()) await selectCoordinator(selectedKind());
-        busy = true; view.resume();
-        let result;
-        try {
-          result = await coordinator.routeMessage(message, { signal,
-            context: `Current project: ${preferences.project ?? 'none selected; project selection is only needed for coding'}. Reviewed build base: ${reviewedBuildBase?.projectRoot ?? 'not selected'}. Configured coding agents: ${preferences.workers.map(worker => `${worker.id} (${worker.nativeKind}/${worker.model})`).join(', ') || 'none; can default to two instances of the coordinator'}.` });
-        } finally { busy = false; view.pause(); }
-        print(`\nKoto> ${result.message}\n`);
-        if (result.action === 'build') await build(result.goal);
+        transcript.push({ at: new Date().toISOString(), text: `You> ${message.slice(0, 32_768)}` });
+        transcriptBytes += Buffer.byteLength(transcript.at(-1).text);
+        while (transcript.length > 200 || transcriptBytes > 256 * 1024) transcriptBytes -= Buffer.byteLength(transcript.shift().text);
+        await converse(message);
       } catch (error) {
+        recoverable(error);
         if (['chat_quit', 'chat_cancelled'].includes(error.code) || signal?.aborted || blocksFurtherWork(error)) throw error;
-        view.pause(); print(`Koto: ${error.message}`);
+        view.pause(); print(formatError(error));
       }
     }
     if (serverFailure) throw serverFailure;
@@ -939,7 +1173,7 @@ export async function runChat({ write, signal: parentSignal, version, project: s
     throw error;
   } finally {
     let cleanupFailure;
-    for (const cleanup of [() => controller.abort(), stop, () => input.close(), () => view.dispose(), closeCoordinator, stopServer]) {
+    for (const cleanup of [saveHistory, () => controller.abort(), stop, () => input.close(), () => view.dispose(), closeCoordinator, stopServer]) {
       try { await cleanup(); }
       catch (error) {
         if (!cleanupFailure || cleanupUnconfirmed({ error: error.code }) && !cleanupUnconfirmed({ error: cleanupFailure.code })) cleanupFailure = error;

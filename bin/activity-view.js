@@ -1,8 +1,10 @@
 import { stripVTControlCharacters } from 'node:util';
 
-const FRAMES = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+const ASCII = process.env.KOTO_ASCII === '1';
+const FRAMES = ASCII ? ['|', '/', '-', '\\'] : ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
 const WORKING = new Set(['starting', 'running', 'working']);
-const GLYPHS = { codex: '◇', claude: '✳', local: '◈', opencode: '◒', agent: '○' };
+const GLYPHS = ASCII ? { codex: 'C', claude: 'A', local: 'L', opencode: 'O', agent: '*' }
+  : { codex: '◇', claude: '✳', local: '◈', opencode: '◒', agent: '○' };
 const PHASES = { working: 'working', request: 'awaiting response', responding: 'responding',
   command: 'running command', tool: 'using tool', file_change: 'editing files',
   delegation: 'coordinating agents', thinking: 'thinking' };
@@ -108,10 +110,10 @@ export function createActivityView({ write, stream = process.stdout,
   }
   function row(agent, plain = false) {
     const state = presentation(agent);
-    const icon = agent.warning ? '!' : state.busy ? motion ? FRAMES[frame % FRAMES.length] : '●'
-      : agent.status === 'succeeded' ? '✓' : agent.status === 'failed' ? '×'
+    const icon = agent.warning ? '!' : state.busy ? motion ? FRAMES[frame % FRAMES.length] : ASCII ? '*' : '●'
+      : agent.status === 'succeeded' ? ASCII ? '+' : '✓' : agent.status === 'failed' ? ASCII ? 'x' : '×'
         : agent.status === 'waiting_for_approval' || agent.status === 'blocked' ? '!'
-          : agent.status === 'cancelled' ? '■' : '·';
+          : agent.status === 'cancelled' ? ASCII ? '#' : '■' : ASCII ? '.' : '·';
     const name = agent.name === agent.id ? agent.id : `${agent.id} / ${agent.name}`;
     const identity = plain ? name : `  ${GLYPHS[agent.provider] ?? GLYPHS.agent} ${name}`;
     return `${identity}  ${plain ? '' : `${icon} `}${state.label}${agent.model ? ` · ${agent.model}` : ''}${agent.activity || agent.task ? ` — ${agent.activity || agent.task}` : ''}`;

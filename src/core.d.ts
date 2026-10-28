@@ -788,11 +788,53 @@ export function reviseBuildProposal(proposal: BuildProposal, options: {
     dependsOn?: readonly string[] | undefined; label?: string | undefined; model?: string | undefined }[];
   workers: readonly (Partial<ProjectAgentPlan> & { id: string; command: string; args: readonly string[]; label?: string | undefined })[];
 }): BuildProposal;
+export interface ProjectInspectionContext {
+  readonly schemaVersion: 1;
+  readonly projectRoot: string;
+  readonly git: { readonly status: 'available' | 'unavailable'; readonly head?: string | undefined;
+    readonly branch?: string | undefined; readonly dirty: boolean | null };
+  readonly inventory: { readonly paths: readonly string[]; readonly truncated: boolean };
+  readonly warnings: readonly string[];
+}
+export interface InspectionFileRequest {
+  readonly path: string; readonly startLine?: number | undefined; readonly endLine?: number | undefined;
+}
+export interface ProjectFileExcerpt {
+  readonly path: string; readonly startLine: number; readonly endLine: number;
+  readonly totalLines: number; readonly content: string; readonly sha256: string; readonly truncated: boolean;
+}
+export interface ProjectInspectionFiles {
+  readonly files: readonly ProjectFileExcerpt[];
+  readonly rejected: readonly { readonly path: string; readonly reason: string }[];
+  readonly truncated: boolean;
+}
+export interface ProjectInspectionEvidence extends ProjectInspectionFiles {
+  readonly projectRoot: string; readonly git: ProjectInspectionContext['git'];
+  readonly inventory: ProjectInspectionContext['inventory'];
+  readonly citations: readonly { readonly path: string; readonly startLine: number; readonly endLine: number }[];
+  /** Confirms citation membership and line bounds, not semantic correctness. */
+  readonly citationsVerified: boolean;
+}
+export interface ProjectInspectionResult {
+  readonly message: string; readonly evidence: ProjectInspectionEvidence; readonly warnings: readonly string[];
+  readonly sessionId?: string | undefined; readonly usage?: Record<string, unknown> | undefined;
+  readonly selectionUsage?: Record<string, unknown> | undefined;
+}
+export function inspectProjectContext(project: string, options?: {
+  signal?: AbortSignal | undefined; nativeHelperDirectory?: string | undefined;
+}): Promise<ProjectInspectionContext>;
+/** The context must be the actual object returned by inspectProjectContext. */
+export function readProjectContextFiles(context: ProjectInspectionContext, requests: readonly InspectionFileRequest[], options?: {
+  signal?: AbortSignal | undefined;
+}): Promise<ProjectInspectionFiles>;
 export function createCoordinator(options: { session: AgentSession }): {
   readonly sessionId?: string | undefined; stop(): void;
-  routeMessage(text: string, options?: { signal?: AbortSignal | undefined; context?: string | undefined }): Promise<{
-    action: 'chat' | 'build'; message: string; goal?: string | undefined; sessionId?: string | undefined;
+  routeMessage(text: string, options?: { signal?: AbortSignal | undefined; context?: string | undefined; intent?: 'chat' | undefined }): Promise<{
+    action: 'chat' | 'inspect' | 'build'; message: string; goal?: string | undefined; sessionId?: string | undefined;
+    usage?: Record<string, unknown> | undefined;
   }>;
+  inspect(question: string, options: { project: string; signal?: AbortSignal | undefined;
+    context?: string | undefined; nativeHelperDirectory?: string | undefined }): Promise<ProjectInspectionResult>;
   plan(goal: string, options: { project: string; workers: readonly (Partial<ProjectAgentPlan> & {
     id: string; command: string; args: readonly string[]; label?: string | undefined })[];
     signal?: AbortSignal | undefined; timeoutMs?: number | undefined; maxConcurrency?: number | undefined;
