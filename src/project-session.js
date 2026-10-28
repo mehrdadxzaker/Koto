@@ -7,6 +7,7 @@ import { startCommand } from './command-session.js';
 import { startTerminalCommand } from './terminal-session.js';
 import { resolveTerminalHelper } from './terminal-helper.js';
 import { createProjectWorkspaces } from './project-workspaces.js';
+import { inspectLaunchProject } from './launch-preflight.js';
 import { persist, readState, agentRecord, requireSettled, lease, assertNoContributionAttempt } from './project-session-store.js';
 import { inspectContribution as inspect, integrateApprovedContribution, finalizeApprovedContribution,
   inspectProjectContributionAttempt, reconcileProjectContributionAttempt } from './approved-contribution.js';
@@ -125,6 +126,28 @@ export async function inspectProjectSession(sessionRoot, agentId) {
 
 /** Read retained state without launching or resuming a native process. */
 export function readProjectSession(sessionRoot) { return structuredClone(readState(sessionRoot)); }
+
+/** Select the next build's clean base without applying any unreviewed worker edits.
+ * The shared lease excludes integration/resume during inspection; launch still
+ * checks the returned commit again. An unresolved attempt never falls back to
+ * the original project, and an integration HEAD must be a recorded receipt.
+ */
+export async function prepareProjectFollowUp(sessionRoot) {
+  const release = lease(sessionRoot, { purpose: 'follow-up' });
+  try {
+    const state = readState(sessionRoot);
+    requireSettled(state);
+    const integrated = state.agents.filter(agent => (agent.lastSuccessfulIntegration ?? agent.integration)?.status === 'integrated');
+    for (const agent of integrated) await inspect(state, agent.id); // validates owned worktrees and retained receipts/history
+    const project = await inspectLaunchProject(integrated.length ? state.integration.path : state.projectRoot);
+    if (integrated.length && (project.projectRoot !== state.integration.path || project.branch !== state.integration.branch
+      || !integrated.some(agent => (agent.lastSuccessfulIntegration ?? agent.integration).integrationCommit === project.baseCommit))) {
+      fail('project_follow_up_integration_changed');
+    }
+    return { ...project, sessionRoot: state.sessionRoot, sourceProjectRoot: state.projectRoot,
+      fromIntegration: integrated.length > 0 };
+  } finally { release(); }
+}
 
 /** Explicitly integrate an inspected contribution into the session branch, never main. */
 export function integrateProjectSession(sessionRoot, agentId, options = {}) {
@@ -436,6 +459,7 @@ function sessionRunner(plan, state, { onEvent, signal, ptyHelper, resume, onAppr
         delete record.commandOutcome;
         delete record.setupError;
         delete record.pid;
+        delete record.activity;
         try {
         persist(state);
         emit({ type: 'agent_status', agentId: agent.id, status: 'running', workspace: record.workspace.path });
@@ -444,6 +468,17 @@ function sessionRunner(plan, state, { onEvent, signal, ptyHelper, resume, onAppr
           const environment = Object.fromEntries(Object.entries(process.env).filter(([key]) => !/^GIT_/i.test(key)
             && !agent.unsetEnv.some(name => process.platform === 'win32' ? name.toUpperCase() === key.toUpperCase() : name === key)));
           const receive = event => {
+            if (['activity', 'tool_started', 'tool_completed', 'command_started', 'approval_required',
+              'permission_required', 'request'].includes(event.type)) {
+              // This is a bounded last observation, not inferred progress or a
+              // completion verdict. The normal outcome persist retains it.
+              const activity = { type: event.type, observedAt: new Date().toISOString() };
+              for (const key of ['activity', 'description', 'command', 'tool', 'status']) {
+                if (typeof event[key] === 'string') activity[key] = event[key].slice(0, 256);
+              }
+              if (Array.isArray(event.files)) activity.files = event.files.filter(file => typeof file === 'string').slice(0, 8).map(file => file.slice(0, 128));
+              record.activity = activity;
+            }
             if (event.type === 'assistant_message' && typeof event.text === 'string') {
               outputTails.set(agent.id, Buffer.from(event.text).subarray(-65_536));
               tail = api.outputTail(agent.id);

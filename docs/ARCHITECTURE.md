@@ -177,6 +177,22 @@ automatically derives success from a changed ref. Git and session persistence
 remain separate stores, so interrupted work can still require manual inspection.
 See [reconciliation](PROJECT_SESSIONS.md#reconcile-an-interrupted-integration).
 
+`prepareProjectFollowUp()` uses the same session lease and settled-state guards
+to choose a clean base for another build. A prior integration must validate its
+owned worktree and retained receipt/history, and the current target HEAD must
+match a successful integration record. It does not integrate partial work or
+recover an interrupted attempt. The caller still reviews the new proposal and
+pins its base commit at launch.
+
+The conversational CLI can send bounded coordinator turns while a project runs.
+Its separate message queue avoids coupling native approvals to the control queue;
+closing the terminal cancels and drains its active coordinator turn before the
+outer conversation reopens. The activity view buffers replies during native
+attachment. `ProjectAgentState.activity` retains the last bounded native event
+with its observation time, not a progress estimate or correctness verdict.
+`reviseBuildProposal()` validates summary and concurrency edits alongside task
+assignments, using only caller-configured execution settings.
+
 Project sessions retain private state and output logs, but do not automatically
 retry commands or recover/replay interrupted agent runs. Custom Git drivers,
 hidden index entries and changed symlinks have explicit refusal boundaries.

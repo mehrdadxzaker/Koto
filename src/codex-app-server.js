@@ -11,6 +11,8 @@ const RPC_LIMIT = 256 * 1024;
 const LINE_LIMIT = 1024 * 1024;
 const TEXT_LIMIT = 512 * 1024;
 const APPROVAL_METHODS = new Set(['item/commandExecution/requestApproval', 'item/fileChange/requestApproval']);
+const NATIVE_WORK = new Set(['commandExecution', 'fileChange', 'collabAgentToolCall', 'mcpToolCall', 'dynamicToolCall']);
+const FINISHED_AGENT = new Set(['completed', 'errored', 'shutdown']);
 const API_ENV = new Set(['OPENAI_API_KEY', 'CODEX_API_KEY', 'CODEX_ACCESS_TOKEN', 'OPENAI_BASE_URL', 'OPENAI_API_BASE',
   'AZURE_OPENAI_API_KEY', 'AZURE_OPENAI_ENDPOINT']);
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -81,6 +83,7 @@ export function createCodexAppServerSession({ id = 'codex', command, cwd, model,
       if (active && !active.connection) finishTurn(active, { error: code });
       return;
     }
+    if (current.parentCompleted) current.observationLost = true;
     current.error ??= code;
     current.broken = true;
     current.launchController.abort();
@@ -206,12 +209,121 @@ export function createCodexAppServerSession({ id = 'codex', command, cwd, model,
     turn.turnId = value;
     turn.resolveReady(true);
     const early = turn.earlyEvents.splice(0);
-    for (const event of early) notification(current, event.method, event.params);
+    for (const event of early) notification(current, event.method, event.params, false);
     return true;
   }
 
-  function notification(current, method, params) {
-    if (!object(params)) return;
+  function rememberDelegate(current, receiver) {
+    if (!validId(receiver)) { current.unknownWork = true; return false; }
+    if (!current.delegates.has(receiver)) {
+      if (current.delegates.size >= 256) {
+        current.unknownWork = true; breakConnection(current, 'cleanup_unconfirmed'); return false;
+      }
+      current.delegates.set(receiver, 'unknown');
+    }
+    return true;
+  }
+
+  function rememberWork(current, owner, turnId, item, method) {
+    if (!NATIVE_WORK.has(item.type)) return;
+    if (!validId(owner) || !validId(turnId) || !validId(item.id)) { current.unknownWork = true; return; }
+    const key = `${owner}/${turnId}/${item.id}`;
+    const previousReceivers = current.work.get(key);
+    // A tool notification can end while a unified-exec command remains
+    // inProgress. Require its native terminal status, not the event name alone.
+    const terminal = item.type === 'collabAgentToolCall'
+      ? ['completed', 'failed', 'interrupted'].includes(item.status)
+      : ['commandExecution', 'fileChange'].includes(item.type)
+        ? ['completed', 'failed', 'declined'].includes(item.status) : ['completed', 'failed'].includes(item.status);
+    if (method === 'item/completed' && terminal) current.work.delete(key);
+    else {
+      if (current.work.size >= 256 && !current.work.has(key)) {
+        current.unknownWork = true; breakConnection(current, 'cleanup_unconfirmed'); return;
+      }
+      current.work.set(key, undefined);
+    }
+    if (item.type !== 'collabAgentToolCall') return;
+    if (item.senderThreadId !== owner || !Array.isArray(item.receiverThreadIds) || !object(item.agentsStates)) {
+      current.unknownWork = true; return;
+    }
+    const receivers = new Set([...item.receiverThreadIds, ...Object.keys(item.agentsStates)]);
+    if (receivers.size > 256) { current.unknownWork = true; breakConnection(current, 'cleanup_unconfirmed'); return; }
+    if (method !== 'item/completed' || !terminal) current.work.set(key, receivers);
+    for (const receiver of receivers) {
+      if (receiver === threadId) continue;
+      if (!rememberDelegate(current, receiver)) return;
+      const state = item.agentsStates[receiver];
+      // Starting a new operation invalidates a previous completed state. A
+      // missing completion snapshot supplies no proof, but must not erase a
+      // child completion observed after this same operation started.
+      if (method === 'item/completed' && terminal && object(state) && FINISHED_AGENT.has(state.status)) {
+        current.delegates.set(receiver, state.status);
+      } else if (method !== 'item/completed' || !terminal || object(state) || !previousReceivers?.has(receiver)) {
+        current.delegates.set(receiver, 'unknown');
+      }
+    }
+    if (item.status === 'completed' && ['spawnAgent', 'resumeAgent', 'followupTask', 'sendInput'].includes(item.tool)
+      && receivers.size === 0) current.unknownWork = true;
+  }
+
+  function unresolvedWork(current) {
+    return Boolean(current && (current.unknownWork || current.observationLost || current.turns.size > 0 || current.work.size > 0
+      || [...current.delegates.values()].some(status => !FINISHED_AGENT.has(status))));
+  }
+
+  function rememberTurn(current, owner, method, turn) {
+    if (!validId(owner) || !validId(turn?.id)) { current.unknownWork = true; return; }
+    const key = `${owner}/${turn.id}`;
+    if (method === 'turn/completed' && ['completed', 'interrupted', 'failed'].includes(turn.status)) {
+      current.turns.delete(key);
+    } else if (method === 'turn/started') {
+      if (current.turns.size >= 256 && !current.turns.has(key)) {
+        current.unknownWork = true; breakConnection(current, 'cleanup_unconfirmed'); return;
+      }
+      current.turns.add(key);
+    } else current.unknownWork = true;
+  }
+
+  function notification(current, method, params, observeWork = true) {
+    const workNotification = ['thread/started', 'turn/started', 'turn/completed', 'item/started', 'item/completed'].includes(method);
+    if (!object(params) || method === 'thread/started' && !object(params.thread)) {
+      if (observeWork && workNotification && (active?.connection === current && active.startRequested
+        || current.parentCompleted || unresolvedWork(current))) {
+        current.unknownWork = true;
+        breakConnection(current, 'cleanup_unconfirmed');
+      }
+      return;
+    }
+    if (observeWork && method === 'thread/started' && object(params.thread)) {
+      const child = params.thread;
+      const parent = child.parentThreadId ?? child.source?.subAgent?.thread_spawn?.parent_thread_id;
+      if (validId(parent) && child.id !== threadId && (parent === threadId || current.delegates.has(parent))) {
+        rememberDelegate(current, child.id);
+      }
+    }
+    const attributed = validId(params.threadId) && (params.threadId === threadId || current.delegates.has(params.threadId));
+    if (observeWork && attributed && ['turn/started', 'turn/completed'].includes(method)) {
+      rememberTurn(current, params.threadId, method, params.turn);
+    }
+    if (observeWork && attributed && ['item/started', 'item/completed'].includes(method)) {
+      if (!object(params.item) || !text(params.item.type, 128) || !validId(params.item.id)) {
+        current.unknownWork = true; breakConnection(current, 'cleanup_unconfirmed'); return;
+      }
+      rememberWork(current, params.threadId, params.turnId, params.item, method);
+    }
+    // Descendants must first be attributed by native thread/collaboration
+    // events. Their activity cannot complete the parent's turn or clear its
+    // commands. Idle/unloaded/missing thread notifications supply no proof.
+    if (params.threadId !== threadId && current.delegates.has(params.threadId)) {
+      if (method === 'turn/completed') {
+        current.delegates.set(params.threadId, params.turn?.status === 'completed' ? 'completed'
+          : params.turn?.status === 'failed' ? 'errored' : 'unknown');
+      } else if (method === 'turn/started'
+        || method === 'thread/status/changed' && ['active', 'systemError'].includes(params.status?.type)) {
+        current.delegates.set(params.threadId, 'unknown');
+      }
+      return;
+    }
     if (method === 'serverRequest/resolved') {
       if (params.threadId !== threadId) return;
       const entry = current.approvals.get(params.requestId);
@@ -235,7 +347,12 @@ export function createCodexAppServerSession({ id = 'codex', command, cwd, model,
       for (const [key, entry] of current.approvals) if (entry.turn === turn) {
         entry.cancelled = true; entry.controller.abort(); current.approvals.delete(key);
       }
-      finishTurn(turn, { nativeStatus: params.turn.status });
+      current.parentCompleted = true;
+      const nativeWorkPending = unresolvedWork(current);
+      if (nativeWorkPending) emit({ type: 'activity', activity: 'native_work', status: 'unknown', description: 'Native work completion unconfirmed' });
+      // Drain the owned transport before assessing any final native evidence.
+      // Process exit alone cannot clear outstanding commands or delegates.
+      finishTurn(turn, { nativeStatus: params.turn.status, nativeWorkPending });
       return;
     }
     if (!turn.turnId && turn.startRequested && validId(params.turnId)
@@ -260,7 +377,9 @@ export function createCodexAppServerSession({ id = 'codex', command, cwd, model,
         current.items.set(item.id, item.type === 'fileChange' ? { type: item.type, changes: item.changes }
           : { type: item.type, command: item.command, cwd: item.cwd });
       }
-      const status = method === 'item/completed' ? (['failed', 'declined'].includes(item.status) ? item.status : 'completed') : 'started';
+      const status = typeof item.status === 'string' ? item.status === 'inProgress' ? 'running'
+        : ['completed', 'failed', 'declined', 'interrupted'].includes(item.status) ? item.status : 'unknown'
+        : NATIVE_WORK.has(item.type) ? 'unknown' : method === 'item/completed' ? 'completed' : 'started';
       if (item.type === 'agentMessage' && method === 'item/completed' && typeof item.text === 'string') {
         if (Buffer.byteLength(item.text) > TEXT_LIMIT) { breakConnection(current, 'native_text_limit'); return; }
         turn.text = item.text;
@@ -270,7 +389,9 @@ export function createCodexAppServerSession({ id = 'codex', command, cwd, model,
       } else if (item.type === 'fileChange') {
         emit({ type: 'activity', activity: 'file_change', description: 'Native file changes', status,
           files: Array.isArray(item.changes) ? item.changes.slice(0, 64).map(change => detail(change.path)).filter(Boolean) : [] });
-      } else if (item.type === 'mcpToolCall') {
+      } else if (item.type === 'collabAgentToolCall') {
+        emit({ type: 'activity', activity: 'delegation', description: 'Native agent operation', status, tool: detail(item.tool, 128) });
+      } else if (['mcpToolCall', 'dynamicToolCall'].includes(item.type)) {
         emit({ type: 'activity', activity: 'tool', description: 'Native tool call', status, tool: detail(item.tool, 128) });
       }
     } else if (method === 'error') {
@@ -317,7 +438,8 @@ export function createCodexAppServerSession({ id = 'codex', command, cwd, model,
     if (connection && !connection.closed && !connection.broken) { turn.connection = connection; return connection; }
     if (connection?.handle && !connection.closed) await shutdownConnection(connection);
     if (blocked) throw failure('native_session_unresolved');
-    const current = { pending: new Map(), approvals: new Map(), items: new Map(), buffer: '', diagnostics: '',
+    const current = { pending: new Map(), approvals: new Map(), items: new Map(), work: new Map(), delegates: new Map(), turns: new Set(),
+      unknownWork: false, observationLost: false, parentCompleted: false, buffer: '', diagnostics: '',
       launchController: new AbortController(), starting: undefined,
       closed: false, broken: false, error: undefined, outcome: undefined, initialized: false, closePromise: undefined };
     connection = current;
@@ -347,7 +469,8 @@ export function createCodexAppServerSession({ id = 'codex', command, cwd, model,
     catch (error) { current.closed = true; throw error; }
     current.handle.completion.then(outcome => {
       current.closed = true; current.outcome = outcome;
-      if (['cleanup_unconfirmed', 'process_socket_exhausted'].includes(outcome.error)) blocked = true;
+      if (current.parentCompleted && (outcome.error || current.buffer.trim())) current.observationLost = true;
+      if (['cleanup_unconfirmed', 'process_socket_exhausted'].includes(outcome.error) || unresolvedWork(current)) blocked = true;
       const error = startupError(current, outcome.error ?? 'native_transport_closed');
       for (const pending of current.pending.values()) { clearTimeout(pending.timer); pending.reject(failure(error)); }
       current.pending.clear();
@@ -411,12 +534,23 @@ export function createCodexAppServerSession({ id = 'codex', command, cwd, model,
     async close() {
       closedByCaller = true;
       api.stop();
-      return shutdownConnection(connection);
+      const current = connection;
+      const outcome = await shutdownConnection(current);
+      if (unresolvedWork(current)) {
+        blocked = true;
+        return { ...outcome, status: 'failed', exitCode: outcome?.exitCode ?? null, error: 'cleanup_unconfirmed' };
+      }
+      return outcome;
     },
     async send(prompt, { signal } = {}) {
       const simple = error => ({ status: 'failed', text: '', error, ...(threadId ? { sessionId: threadId } : {}), exitCode: null });
       if (active) return simple('native_agent_busy');
       if (closedByCaller || blocked) return simple(blocked ? 'native_session_unresolved' : 'native_session_closed');
+      if (unresolvedWork(connection)) {
+        blocked = true;
+        await shutdownConnection(connection);
+        return simple('cleanup_unconfirmed');
+      }
       if (!text(prompt, 64 * 1024) || signal !== undefined && !(signal instanceof AbortSignal)) return simple('native_prompt_invalid');
       if (signal?.aborted) return { ...simple('native_cancelled'), status: 'cancelled' };
       let resolve;
@@ -462,6 +596,9 @@ export function createCodexAppServerSession({ id = 'codex', command, cwd, model,
           sandboxPolicy: mode === 'coding' ? { type: 'workspaceWrite', writableRoots: [cwd], networkAccess: false }
             : { type: 'readOnly', networkAccess: false } });
         if (!bindTurn(current, turn, started?.turn?.id)) throw failure('native_turn_mismatch');
+        // The RPC acknowledgement is also evidence that native work began,
+        // even if its turn/started notification was not observed.
+        if (!turn.settled) rememberTurn(current, threadId, 'turn/started', started.turn);
         final = await terminal;
       } catch (error) {
         let fatalCode;
@@ -473,10 +610,12 @@ export function createCodexAppServerSession({ id = 'codex', command, cwd, model,
       } finally {
         clearTimeout(turn.timer); clearTimeout(turn.interruptTimer);
         signal?.removeEventListener('abort', abort);
-        if (mode === 'coding' || final?.error || turn.cancelled) processOutcome = await shutdownConnection(turn.connection);
+        if (mode === 'coding' || final?.error || final?.nativeWorkPending || unresolvedWork(turn.connection) || turn.cancelled) {
+          processOutcome = await shutdownConnection(turn.connection);
+        }
         active = undefined;
       }
-      const error = processOutcome?.error === 'cleanup_unconfirmed' || final?.error === 'cleanup_unconfirmed' ? 'cleanup_unconfirmed'
+      const error = processOutcome?.error === 'cleanup_unconfirmed' || final?.error === 'cleanup_unconfirmed' || unresolvedWork(turn.connection) ? 'cleanup_unconfirmed'
         : processOutcome?.error === 'process_socket_exhausted' ? processOutcome.error
         : (final?.error ? startupError(turn.connection, final.error) : undefined) ?? processOutcome?.error ?? (turn.cancelled || final?.nativeStatus === 'interrupted' ? 'native_cancelled'
           : final?.nativeStatus !== 'completed' ? 'native_turn_failed'

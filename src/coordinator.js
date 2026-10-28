@@ -127,7 +127,7 @@ function ownershipWarnings(tasks) {
  * This is a pure plan operation: project freshness is checked again when the
  * revised proposal is prepared, and no model, process or workspace is started.
  */
-export function reviseBuildProposal(proposal, { tasks, workers } = {}) {
+export function reviseBuildProposal(proposal, { tasks, workers, summary, maxConcurrency } = {}) {
   if (!object(proposal) || proposal.kind !== 'koto-build-proposal' || proposal.schemaVersion !== 1
     || !object(proposal.project) || !object(proposal.plan) || !text(proposal.summary, 4_096)
     || !text(proposal.project.projectRoot, 4096) || !path.isAbsolute(proposal.project.projectRoot)
@@ -159,7 +159,12 @@ export function reviseBuildProposal(proposal, { tasks, workers } = {}) {
     return { id: task.id, worker: task.worker, task: task.task,
       owns: [...task.owns], dependsOn: [...(task.dependsOn ?? [])] };
   });
-  const maxConcurrency = Math.min(original.maxConcurrency, revisedTasks.length);
+  if (summary === undefined) summary = proposal.summary;
+  if (maxConcurrency === undefined) maxConcurrency = Math.min(original.maxConcurrency, revisedTasks.length);
+  if (!text(summary, 4_096) || !Number.isSafeInteger(maxConcurrency)
+    || maxConcurrency < 1 || maxConcurrency > revisedTasks.length) {
+    fail('coordinator_plan_invalid', 'Keep a nonempty summary of at most 4 KiB and concurrency between one and the number of tasks. No project agents were started.');
+  }
   let plan;
   try {
     validateWorkflow({ schemaVersion: 1, goal: original.goal,
@@ -187,7 +192,7 @@ export function reviseBuildProposal(proposal, { tasks, workers } = {}) {
     metadata = JSON.parse(encoded);
   } catch { fail('coordinator_proposal_invalid', 'The original proposal contains invalid source metadata. Prepare a new proposal before revising assignments.'); }
   return freeze({ schemaVersion: 1, kind: 'koto-build-proposal', id: randomUUID(),
-    createdAt: new Date().toISOString(), summary: proposal.summary, project, plan,
+    createdAt: new Date().toISOString(), summary, project, plan,
     fingerprint: fingerprint(plan, project),
     tasks: normalizedTasks.map(task => ({ ...task, label: templates.get(task.worker).label,
       ...(templates.get(task.worker).model ? { model: templates.get(task.worker).model } : {}) })),

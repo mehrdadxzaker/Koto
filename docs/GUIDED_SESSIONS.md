@@ -35,7 +35,8 @@ you to review. Use `/project PATH` or `/new PATH` to change the project later.
 When setup finishes, type a message or describe the work you want. Conversation
 does not require a project. A coding request produces a proposed plan with
 agents, models, tasks and contribution paths. Type `edit` to change an assignment,
-choose a configured agent/model, revise ownership/dependencies or remove a task.
+choose a configured agent/model, revise ownership/dependencies, edit the summary
+or concurrency, or remove a task.
 Koto validates the revised plan and displays it again. Type `build` to launch.
 The configured agents work through the shared core in isolated
 worktrees, with observed progress and native permission requests when needed.
@@ -53,6 +54,27 @@ During a build, `:stop AGENT` stops one agent, `:review AGENT` displays its
 contribution, and `:integrate AGENT` applies that displayed contribution after
 approval and confirmed cleanup. `:quit` returns to the conversation and retains
 the build. Integration writes to the separate integration worktree.
+
+You can keep talking to the coordinator at `Agents>` while workers run. Ordinary
+text or `:chat TEXT` sends a real coordinator turn with bounded, observed worker
+status and activity. `:chat-stop` cancels that turn and its queued messages while
+workers continue. Native permission requests still need explicit approval.
+Replies wait while an attached native terminal owns the screen. The coordinator
+has an eight-message queue; requests for another build enter a separate queue of
+at most eight goals. After `:quit`, each goal gets a new plan for review before
+any new workers start. These queues are for the current conversation and are not
+replayed after exit.
+
+The next build uses the selected saved build's clean, reviewed integration
+workspace when it has accepted contributions. Koto verifies the retained receipts,
+owned worktrees and recorded target commit before planning. Active agents,
+unconfirmed cleanup, conflicts or an unresolved integration attempt block this
+continuation. Unreviewed worker edits remain in their original worktrees; they
+are never carried forward automatically. The new base is checked again at launch.
+Your selected project remains the returning setup default, and its earlier saved
+builds remain in `/sessions`. The reviewed build base is used only for the current
+conversation and plan; each subsequent build revalidates its selected saved
+session, including any reviewed changes inherited in that session's original base.
 
 Saved work is available without copying session directories:
 

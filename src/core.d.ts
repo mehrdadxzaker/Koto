@@ -430,7 +430,15 @@ export interface ProjectAgentAttempt {
   nativeState?: NativeAgentState | undefined;
 }
 
+/** Last bounded event actually observed from this attempt; not a progress or correctness claim. */
+export interface ProjectAgentActivity {
+  readonly type: string; readonly observedAt: string;
+  readonly activity?: string | undefined; readonly description?: string | undefined;
+  readonly command?: string | undefined; readonly tool?: string | undefined;
+  readonly status?: string | undefined; readonly files?: readonly string[] | undefined;
+}
 export interface ProjectAgentState extends ProjectAgentPlan {
+  activity?: ProjectAgentActivity | undefined;
   workspace: ProjectWorkspace;
   status: 'pending' | 'running' | 'blocked' | CommandOutcome['status'];
   result?: CommandOutcome | undefined;
@@ -769,7 +777,13 @@ export interface BuildProposal {
     readonly owns: readonly string[]; readonly dependsOn: readonly string[]; readonly label: string; readonly model?: string | undefined }[];
   readonly warnings: readonly string[];
 }
+export function prepareProjectFollowUp(sessionRoot: string): Promise<{
+  projectRoot: string; baseCommit: string; branch?: string | undefined;
+  sessionRoot: string; sourceProjectRoot: string; fromIntegration: boolean;
+}>;
 export function reviseBuildProposal(proposal: BuildProposal, options: {
+  summary?: string | undefined;
+  maxConcurrency?: number | undefined;
   tasks: readonly { id: string; worker: string; task: string; owns: readonly string[];
     dependsOn?: readonly string[] | undefined; label?: string | undefined; model?: string | undefined }[];
   workers: readonly (Partial<ProjectAgentPlan> & { id: string; command: string; args: readonly string[]; label?: string | undefined })[];

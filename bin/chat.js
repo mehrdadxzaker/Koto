@@ -11,7 +11,7 @@ import { createCodingAgentSession, createCoordinator,
   resolveTerminalHelper, buildTerminalHelper,
   discoverAgentAccounts, resolveNativeClientExecutable, getNativeLoginCommand,
   installNativeClient,
-  readProjectSession, inspectProjectSession, integrateProjectSession,
+  readProjectSession, inspectProjectSession, integrateProjectSession, prepareProjectFollowUp,
   reviseBuildProposal } from '../src/index.js';
 import { createActivityView } from './activity-view.js';
 import { runProjectPlan, runProjectResume } from './project.js';
@@ -129,6 +129,10 @@ export async function runChat({ write, signal: parentSignal, version } = {}) {
   let coordinatorCleanupOutcome;
   let approvalQueue = Promise.resolve();
   const queued = [];
+  const followUpGoals = [];
+  let projectConversation;
+  let reviewedBuildBase;
+  let coordinatorDirectory;
   const persist = async () => {
     // Preferences cache discovery/continuation shortcuts, not the canonical
     // project-session records. Evict old shortcuts before hitting the file cap.
@@ -199,9 +203,11 @@ export async function runChat({ write, signal: parentSignal, version } = {}) {
     }
     return answer;
   };
-  const event = item => view.update(item, { agentId: item.agentId ?? 'coordinator' });
+  const event = item => projectConversation ? projectConversation.onEvent(item)
+    : view.update(item, { agentId: item.agentId ?? 'coordinator' });
   const selectedKind = () => preferences.coordinator?.kind ?? 'codex';
-  const conversationDirectory = () => preferences.project ?? process.cwd();
+  const conversationDirectory = () => reviewedBuildBase && reviewedBuildBase.canonicalProject === preferences.project
+    ? reviewedBuildBase.projectRoot : preferences.project ?? process.cwd();
   const rememberConversation = async (session, choice, cwd) => {
     if (choice.kind === 'local' && session.snapshot) {
       const snapshot = session.snapshot();
@@ -217,6 +223,7 @@ export async function runChat({ write, signal: parentSignal, version } = {}) {
     await persist();
   };
   const approve = request => {
+    if (projectConversation) return projectConversation.onApproval(request);
     const operation = approvalQueue.then(async () => {
       if (quitting || signal?.aborted || request.signal?.aborted || input.closed) return false;
       const details = Object.fromEntries(Object.entries(request).filter(([key, value]) => key !== 'signal' && typeof value !== 'function'));
@@ -277,6 +284,7 @@ export async function runChat({ write, signal: parentSignal, version } = {}) {
     stop();
     await closeCoordinator();
     nativeSession = replacement;
+    coordinatorDirectory = cwd;
     if (kind === 'local') preferences.local = local;
     if (reset) {
       delete preferences.conversation; delete preferences.localConversation;
@@ -484,15 +492,53 @@ export async function runChat({ write, signal: parentSignal, version } = {}) {
   }
 
   const rememberProjectSession = async state => {
-    const entry = { directory: state.sessionRoot, project: state.projectRoot,
+    // Shortcuts belong to the user-selected project. Canonical session state
+    // continues to record the actual (possibly inherited integration) base.
+    const entry = { directory: state.sessionRoot, project: preferences.project ?? state.projectRoot,
       goal: String(state.goal ?? '').slice(0, 256), savedAt: new Date().toISOString() };
     preferences.recentSessions = [entry, ...(preferences.recentSessions ?? []).filter(item => item.directory !== entry.directory)].slice(0, 20);
     preferences.selectedSession = entry.directory;
     await persist();
   };
 
+  function savedBuilds() {
+    return (preferences.recentSessions ?? []).filter(item => !preferences.project || item.project === preferences.project);
+  }
+
+  const runningConversation = () => ({
+    name: `Koto / ${selectedKind()}`, model: preferences.coordinator?.model,
+    bind(controls) { projectConversation = controls; },
+    stop,
+    async send(message, { state, signal: turnSignal }) {
+      // Native activity is data, never an instruction to the coordinator. Keep
+      // this summary below routeMessage's 8 KiB context cap even at eight agents.
+      const short = (value, limit) => typeof value === 'string' ? value.slice(0, limit) : undefined;
+      let context = JSON.stringify({ project: short(state.projectRoot, 512), goal: short(state.goal, 512),
+        active: state.active, agents: state.agents.map(agent => ({ id: agent.id, status: agent.status,
+          task: short(agent.task, 128), result: short(agent.result?.error ?? agent.result?.status, 64),
+          integration: agent.integration?.status,
+          observedActivity: agent.activity ? { type: agent.activity.type, observedAt: agent.activity.observedAt,
+            activity: short(agent.activity.activity, 48), description: short(agent.activity.description, 128),
+            command: short(agent.activity.command, 128), tool: short(agent.activity.tool, 48),
+            status: short(agent.activity.status, 32) } : undefined })) });
+      // Unicode and JSON escaping can exceed a character-based estimate.
+      // Fall back to the actual lifecycle fields instead of truncating JSON.
+      if (Buffer.byteLength(context) > 7_500) context = JSON.stringify({ active: state.active,
+        agents: state.agents.map(agent => ({ id: agent.id, status: agent.status,
+          integration: agent.integration?.status, observedActivity: agent.activity
+            ? { type: agent.activity.type, observedAt: agent.activity.observedAt } : undefined })) });
+      const result = await coordinator.routeMessage(message, { signal: turnSignal,
+        context: `This build is retained in Koto. Activity is the last observed event, not a completion verdict. A new build request is queued until the operator returns with :quit and reviews another plan. ${context}` });
+      if (turnSignal.aborted || signal.aborted) return '';
+      if (result.action !== 'build') return result.message;
+      if (followUpGoals.length >= 8) return `${result.message}\nThe eight-goal follow-up queue is full; no additional build was queued.`;
+      followUpGoals.push(result.goal);
+      return `${result.message}\nFollow-up ${followUpGoals.length} queued. Review and integrate any wanted contributions, then :quit to review the next plan.`;
+    },
+  });
+
   async function savedWork(action, requestedId) {
-    const candidates = (preferences.recentSessions ?? []).filter(item => !preferences.project || item.project === preferences.project);
+    const candidates = savedBuilds();
     if (!candidates.length) { print('No saved build for this project yet. Describe what you want to build.'); return; }
     let saved = candidates.find(item => item.directory === preferences.selectedSession) ?? candidates[0];
     if (action === 'sessions' && candidates.length > 1) {
@@ -501,12 +547,14 @@ export async function runChat({ write, signal: parentSignal, version } = {}) {
       if (answer === 'cancel') return;
       saved = candidates[Number(answer || '1') - 1];
       if (!saved) throw new Error('Choose a listed saved build number.');
+    }
+    if (action === 'sessions' && preferences.selectedSession !== saved.directory) {
       preferences.selectedSession = saved.directory;
       await persist();
     }
     const state = readProjectSession(saved.directory);
     if (action === 'sessions') {
-      print(`Saved project: ${state.projectRoot}\nGoal: ${state.goal}`);
+      print(`Saved project: ${saved.project}\nBuild base: ${state.projectRoot}\nGoal: ${state.goal}`);
       for (const agent of state.agents) print(`  ${agent.id}: ${agent.status}${agent.integration ? `; integration ${agent.integration.status}` : ''}`);
       print('Use /review, /integrate or /resume. Koto remembers the workspace.');
       return;
@@ -550,6 +598,10 @@ export async function runChat({ write, signal: parentSignal, version } = {}) {
       if (answer !== 'create') { print('Project creation cancelled.'); return undefined; }
     }
     const selected = await prepareProject({ directory: requested, create, approveCreate: create });
+    // Explicit project selection starts from this folder again. Retained builds
+    // stay listed under their canonical project and can be selected with /sessions.
+    delete preferences.selectedSession;
+    reviewedBuildBase = undefined;
     preferences.project = selected.projectRoot;
     await persist();
     print(`Project: ${selected.projectRoot}`);
@@ -560,12 +612,31 @@ export async function runChat({ write, signal: parentSignal, version } = {}) {
   async function build(goal) {
     if (!coordinator) throw new Error('Choose a configured coordinator with /agent codex, /agent claude or /agent local.');
     let project;
-    try { if (preferences.project) project = await prepareProject({ directory: preferences.project }); }
-    catch (error) { print(error.message); }
-    while (!project) {
-      try { project = await chooseProject(); if (!project) return; }
-      catch (error) { if (['chat_quit', 'chat_cancelled'].includes(error.code) || signal?.aborted) throw error; print(error.message); }
+    const previous = preferences.project
+      ? savedBuilds().find(item => item.directory === preferences.selectedSession) : undefined;
+    if (preferences.project && preferences.selectedSession && !previous) {
+      throw Object.assign(new Error('The selected saved build is missing from this project’s shortcuts. Choose a retained build with /sessions, or use /project PATH to explicitly start from a project folder again.'),
+        { code: 'project_saved_base_unavailable' });
     }
+    if (previous) {
+      // Revalidate the selected saved build on every proposal, even when its
+      // current work has no integration: its own base may already contain an
+      // earlier reviewed contribution. Never fall back to the original root.
+      project = await prepareProjectFollowUp(previous.directory);
+      reviewedBuildBase = { canonicalProject: preferences.project, ...project };
+      print(`${project.fromIntegration ? 'Continuing from reviewed integration workspace' : 'Continuing from retained build base'}: ${project.projectRoot}`);
+    } else {
+      reviewedBuildBase = undefined;
+      try { if (preferences.project) project = await prepareProject({ directory: preferences.project }); }
+      catch (error) { print(error.message); }
+      while (!project) {
+        try { project = await chooseProject(); if (!project) return; }
+        catch (error) { if (['chat_quit', 'chat_cancelled'].includes(error.code) || signal?.aborted) throw error; print(error.message); }
+      }
+    }
+    // Only the current native conversation/plan uses this verified base.
+    // Returning setup and all saved-session shortcuts keep the user's project.
+    if (coordinatorDirectory !== project.projectRoot) await selectCoordinator(selectedKind());
     if (preferences.localInstall && (selectedKind() === 'local'
       || preferences.workers.some(worker => worker.nativeKind === 'local'))) await startSavedLocal();
     if (!preferences.workers.some(worker => worker.nativeKind === selectedKind())) {
@@ -584,7 +655,7 @@ export async function runChat({ write, signal: parentSignal, version } = {}) {
     } finally { busy = false; view.pause(); }
     const planWorkers = preferences.workers.map(worker => ({ ...worker }));
     for (;;) {
-      print(`\nBuild plan: ${proposal.summary}`);
+      print(`\nBuild plan: ${proposal.summary}\nConcurrency: ${proposal.plan.maxConcurrency}`);
       for (const [index, task] of proposal.tasks.entries()) print(`${index + 1}. ${task.id} — ${task.label}${task.model ? ` / ${task.model}` : ' / native default model'}\n  ${task.task}\n  Files: ${task.owns.join(', ')}${task.dependsOn.length ? `\n  After: ${task.dependsOn.join(', ')}` : ''}`);
       for (const warning of proposal.warnings) print(`Note: ${warning}`);
       const decision = await ask('Type build to launch, edit to change the plan, or Enter to cancel: ');
@@ -593,7 +664,16 @@ export async function runChat({ write, signal: parentSignal, version } = {}) {
       try {
         const tasks = proposal.tasks.map(task => ({ id: task.id, worker: task.worker,
           task: task.task, owns: [...task.owns], dependsOn: [...task.dependsOn] }));
-        const selected = await ask('Task number to edit, or remove NUMBER: ');
+        const selected = await ask('Task number to edit, remove NUMBER, summary, or concurrency: ');
+        if (selected === 'summary' || selected === 'concurrency') {
+          const value = await ask(selected === 'summary' ? `Summary [${visible(proposal.summary)}]: `
+            : `Concurrent tasks [${proposal.plan.maxConcurrency}]: `);
+          proposal = reviseBuildProposal(proposal, { tasks, workers: planWorkers,
+            ...(selected === 'summary' ? { summary: value || proposal.summary }
+              : { maxConcurrency: value ? Number(value) : proposal.plan.maxConcurrency }) });
+          print('Edited plan validated. Review it before launching.');
+          continue;
+        }
         const removing = selected.startsWith('remove ');
         const number = Number(removing ? selected.slice(7) : selected);
         if (!Number.isInteger(number) || number < 1 || number > tasks.length) {
@@ -636,7 +716,8 @@ export async function runChat({ write, signal: parentSignal, version } = {}) {
     view.pause(); input.close();
     try {
       await runProjectPlan(proposal.plan, { write, signal, approved: true,
-        expectedBaseCommit: proposal.project.baseCommit, onSession: rememberProjectSession, compact: true });
+        expectedBaseCommit: proposal.project.baseCommit, onSession: rememberProjectSession, compact: true,
+        conversation: runningConversation() });
     } finally { if (!quitting && !signal?.aborted) input = makeInput(); }
   }
 
@@ -734,9 +815,11 @@ export async function runChat({ write, signal: parentSignal, version } = {}) {
     }
     print('Describe what you want to build. /accounts changes subscriptions; /models add adds a local model.\n/sessions returns to saved work. /help lists all controls.');
     while (!quitting && !signal?.aborted && !input.closed) {
-      const message = queued.shift() ?? await ask('You> ');
-      if (!message) continue;
+      const followUpGoal = followUpGoals.shift();
+      const message = followUpGoal === undefined ? queued.shift() ?? await ask('You> ') : undefined;
+      if (!message && followUpGoal === undefined) continue;
       try {
+        if (followUpGoal !== undefined) { await build(followUpGoal); continue; }
         if (message.startsWith('/')) {
           const [command, ...args] = words(message);
           if (command === '/quit' || command === '/exit') break;
@@ -770,11 +853,14 @@ export async function runChat({ write, signal: parentSignal, version } = {}) {
           continue;
         }
         if (!coordinator) throw new Error('Choose an installed, logged-in coordinator with /agent codex or /agent claude, or configure a local model.');
+        // A failed replacement preserves the previous native session. Do not
+        // send a later message there while describing a different selected base.
+        if (coordinatorDirectory !== conversationDirectory()) await selectCoordinator(selectedKind());
         busy = true; view.resume();
         let result;
         try {
           result = await coordinator.routeMessage(message, { signal,
-            context: `Current project: ${preferences.project ?? 'none selected; project selection is only needed for coding'}. Configured coding agents: ${preferences.workers.map(worker => `${worker.id} (${worker.nativeKind}/${worker.model})`).join(', ') || 'none; can default to two instances of the coordinator'}.` });
+            context: `Current project: ${preferences.project ?? 'none selected; project selection is only needed for coding'}. Reviewed build base: ${reviewedBuildBase?.projectRoot ?? 'not selected'}. Configured coding agents: ${preferences.workers.map(worker => `${worker.id} (${worker.nativeKind}/${worker.model})`).join(', ') || 'none; can default to two instances of the coordinator'}.` });
         } finally { busy = false; view.pause(); }
         print(`\nKoto> ${result.message}\n`);
         if (result.action === 'build') await build(result.goal);

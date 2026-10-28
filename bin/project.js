@@ -110,8 +110,8 @@ export async function runProjectCli(args, { write, signal } = {}) {
 
 /** Launchers and plan files use the same terminal/session implementation. */
 export async function runProjectPlan(source, { write, signal, headless = false, approved = false,
-  expectedBaseCommit, onEvent, onSession, compact = false } = {}) {
-  return runSessionTerminal(source, { write, signal, headless, approved, expectedBaseCommit, onEvent, onSession, compact });
+  expectedBaseCommit, onEvent, onSession, compact = false, conversation } = {}) {
+  return runSessionTerminal(source, { write, signal, headless, approved, expectedBaseCommit, onEvent, onSession, compact, conversation });
 }
 
 /** An explicit resume shares every terminal control with an initial launch. */
@@ -129,11 +129,15 @@ export async function runProjectResume(sessionRoot, agentId, { prompt, write, si
 }
 
 async function runSessionTerminal(source, { write, signal, headless, approved, prepared, observe,
-  bindApproval, expectedBaseCommit, onEvent, onSession, compact = false } = {}) {
+  bindApproval, expectedBaseCommit, onEvent, onSession, compact = false, conversation } = {}) {
   const plan = validateProjectPlan(source);
   if (expectedBaseCommit !== undefined && (typeof expectedBaseCommit !== 'string'
     || !/^[a-f0-9]{40,64}$/.test(expectedBaseCommit))) throw new TypeError('Use the exact reviewed project base commit.');
   if (onEvent !== undefined && typeof onEvent !== 'function') throw new TypeError('onEvent must be a function.');
+  if (conversation !== undefined && (!conversation || typeof conversation.send !== 'function'
+    || typeof conversation.stop !== 'function' || typeof conversation.bind !== 'function')) {
+    throw new TypeError('A conversation requires send, stop and bind functions.');
+  }
   const interactive = !headless && process.stdin.isTTY && process.stdout.isTTY;
   const initialRaw = process.stdin.isRaw === true;
   if (!interactive && !approved) throw new Error('project_explicit_start_required');
@@ -164,11 +168,31 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
   let approvalQueue = Promise.resolve();
   let commandQueue = Promise.resolve();
   let pendingControls = 0;
+  let conversationQueue = Promise.resolve();
+  let pendingMessages = 0;
+  let conversationEpoch = 0;
+  let conversationFailure;
+  let conversationTurn;
+  let conversationBound = false;
+  const conversationController = new AbortController();
+  const fatalConversation = error => typeof error?.code === 'string'
+    && /(?:cleanup_unconfirmed|socket_exhausted)$/.test(error.code);
+  const retainConversationFailure = error => {
+    if (!conversationFailure || /cleanup_unconfirmed$/.test(error?.code ?? '')) conversationFailure = error;
+  };
+  const stopConversation = () => {
+    conversationEpoch += 1;
+    conversationTurn?.abort();
+    try { conversation?.stop(); }
+    catch (error) { retainConversationFailure(error); }
+  };
   const reviewedTokens = new Map();
   let resolveClosed;
   const terminalClosed = new Promise(resolve => { resolveClosed = resolve; });
   const records = new Map(plan.agents.map(agent => [agent.id, agent]));
   const seenMessages = new Map();
+  let conversationId = 'kotoCoordinator';
+  while (records.has(conversationId)) conversationId += '_';
   const metadata = agent => ({ agentId: agent.id, name: agent.nativeKind ?? basename(agent.command),
     model: agent.model ?? (() => { const index = agent.args.findIndex(arg => ['--model', '-m'].includes(arg)); return index < 0 ? undefined : agent.args[index + 1]; })(),
     task: agent.task });
@@ -219,6 +243,8 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
     view?.pause();
     hidePrompt();
     closed = true;
+    conversationController.abort();
+    stopConversation();
     acceptingApprovals = false;
     cancelApproval?.();
     resolveInputIdle?.();
@@ -299,6 +325,30 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
     approvalQueue = operation.then(() => undefined, () => undefined);
     return operation.catch(() => false);
   };
+  // Conversation work is independent of commandQueue: an in-flight native
+  // turn may ask for approval, whose prompt itself waits for controls to settle.
+  const queueMessage = text => {
+    if (!conversation || !interactive || !text.trim() || text.includes('\0') || Buffer.byteLength(text) > 32_768) {
+      write('Enter a coordinator message of at most 32 KiB.\n'); return;
+    }
+    if (pendingMessages >= 8) { write('The eight-message coordinator queue is full.\n'); return; }
+    const epoch = conversationEpoch;
+    pendingMessages += 1;
+    write(`Coordinator message queued (${pendingMessages}); :chat-stop cancels its turn and queued messages.\n`);
+    conversationQueue = conversationQueue.then(async () => {
+      if (closed || conversationController.signal.aborted || epoch !== conversationEpoch) return;
+      view?.update({ type: 'agent_status', agentId: conversationId, status: 'running' });
+      conversationTurn = new AbortController();
+      const reply = await conversation.send(text, { state: session.status(),
+        signal: AbortSignal.any([conversationController.signal, conversationTurn.signal]) });
+      if (!closed && epoch === conversationEpoch && typeof reply === 'string') view?.message(conversationId, reply);
+      view?.update({ type: 'agent_status', agentId: conversationId, status: 'idle' });
+    }).catch(error => {
+      if (fatalConversation(error)) { retainConversationFailure(error); close(); }
+      else if (!closed) view?.message(conversationId, `Conversation failed: ${visible(error.message)}`);
+      view?.update({ type: 'agent_status', agentId: conversationId, status: 'failed' });
+    }).finally(() => { conversationTurn = undefined; pendingMessages -= 1; });
+  };
   try {
     if (signal?.aborted) close();
     if (!approved && !closed) {
@@ -361,7 +411,9 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
       throw Object.assign(new Error(`The project HEAD changed after planning. No agent was launched. Prepared worktrees are retained at ${session.sessionRoot}. Review a new plan from the current commit.`), { code: 'project_base_changed' });
     }
     write(`Session: ${session.sessionRoot}\nIntegration workspace: ${session.status().integration.path}\n`);
-    const controls = () => write('Controls: :status | :review AGENT | :integrate AGENT | :resolve AGENT COMMIT | :pending | :reconcile RESOLUTION TOKEN | :stop AGENT/all | :attach AGENT (Ctrl-] detaches) | :resize AGENT COLS ROWS | :send AGENT TEXT | :eof AGENT | :help | :quit\n');
+    const controls = () => { write('Controls: :status | :review AGENT | :integrate AGENT | :resolve AGENT COMMIT | :pending | :reconcile RESOLUTION TOKEN | :stop AGENT/all | :attach AGENT (Ctrl-] detaches) | :resize AGENT COLS ROWS | :send AGENT TEXT | :eof AGENT | :help | :quit\n');
+      if (conversation) write('Message the coordinator here, or use :chat TEXT. :chat-stop stops its turn; workers keep running. Follow-up builds still require plan review.\n');
+    };
     const showStatus = () => {
       write('\nAGENT             STATE        TRANSPORT PID       WORKSPACE\n');
       for (const agent of session.status().agents) {
@@ -388,7 +440,12 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
           view?.pause();
           hidePrompt();
           const [command, id, ...rest] = line.trim().split(/\s+/);
-          if (command === ':status') showStatus();
+          if (conversation && command === ':chat-stop') {
+            stopConversation();
+            if (conversationFailure) { close(); throw conversationFailure; }
+          } else if (conversation && command === ':chat') queueMessage(line.replace(/^\s*:chat\s*/, ''));
+          else if (conversation && command && !command.startsWith(':')) queueMessage(line.trim());
+          else if (command === ':status') showStatus();
           else if (command === ':help') controls();
           else if (command === ':send' && id) {
             const text = line.replace(/^\s*:send\s+\S+\s?/, '');
@@ -467,6 +524,15 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
       afterRender: () => { if (promptVisible && terminal && !terminal.closed && !controlTyping && !approvalActive && !attachment) terminal.prompt(true); },
       onError: close });
     for (const agent of plan.agents) view.register({ id: agent.id, ...metadata(agent) });
+    if (conversation) {
+      view.register({ id: conversationId, name: conversation.name ?? 'Koto', model: conversation.model,
+        task: 'Conversation and follow-up planning', status: 'idle' });
+      conversationBound = true;
+      conversation.bind({
+        onEvent: event => view?.update(event, { agentId: conversationId }),
+        onApproval: request => approveCommand({ ...request, agentId: conversationId }),
+      });
+    }
     if (terminal) {
       bindTerminal();
       process.stdin.prependListener('keypress', beginTyping);
@@ -498,11 +564,13 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
     }
     if (terminal && !closed) {
       write('Agents ended. Inspect and explicitly integrate contributions, or :quit to retain all worktrees.\n');
+      acceptingApprovals = Boolean(conversation);
       reporting = false;
       showPrompt();
       await terminalClosed;
     }
     await commandQueue;
+    if (conversationFailure) throw conversationFailure;
     return report.status === 'succeeded' ? 0 : 1;
   } finally {
     signal?.removeEventListener('abort', onAbort);
@@ -514,10 +582,19 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
     view?.pause();
     hidePrompt();
     closed = true;
+    conversationController.abort();
+    stopConversation();
     attachment?.detach('session ended');
     session?.stop();
     terminal?.close();
     view?.dispose({ clear: true });
     restoreRaw();
+    // Keep approval routing bound until the last owned coordinator turn settles.
+    // No queued message can launch after close, and the caller can safely reopen
+    // its own readline only after this await completes.
+    await conversationQueue;
+    await approvalQueue;
+    if (conversationBound) conversation.bind(undefined);
+    if (conversationFailure) throw conversationFailure;
   }
 }
