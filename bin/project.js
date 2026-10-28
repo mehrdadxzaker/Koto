@@ -206,7 +206,11 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
     if (!resolveInputIdle) inputIdle = new Promise(resolve => { resolveInputIdle = resolve; });
   };
   const restoreRaw = () => {
-    if (interactive && typeof process.stdin.setRawMode === 'function') {
+    if (!interactive) return;
+    // A constructor can fail before returning a readline owner to close.
+    // Stop its inherited flowing input as well as restoring the terminal mode.
+    try { process.stdin.pause(); } catch { /* The outer terminal may have disappeared. */ }
+    if (typeof process.stdin.setRawMode === 'function') {
       try { process.stdin.setRawMode(initialRaw); } catch { /* The outer terminal may have disappeared. */ }
     }
   };
@@ -398,12 +402,24 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
             switchingTerminal = false;
             const reopen = reason => {
               attachment = undefined;
-              if (closed || signal?.aborted) return;
+              if (reason === 'terminal input closed') { close(); return false; }
+              if (closed || signal?.aborted) return false;
               write(`\n[${id}] ${visible(reason)}. Returned to Koto controls.\n`);
-              terminal = createInterface({ input: process.stdin, output: process.stdout });
-              bindTerminal();
-              controls();
-              showPrompt();
+              if (closed || signal?.aborted) return false;
+              try {
+                terminal = createInterface({ input: process.stdin, output: process.stdout });
+                bindTerminal();
+                controls();
+                showPrompt();
+                return !closed && !signal?.aborted && !terminal.closed;
+              } catch (error) {
+                const failedTerminal = terminal;
+                terminal = undefined;
+                try { failedTerminal?.close(); }
+                catch { /* Preserve the handoff error; close still stops the session. */ }
+                finally { close(); }
+                throw error;
+              }
             };
             try { attachment = attachNativeTerminal({ session, agentId: id, write, onDetach: reopen }); }
             catch (error) { if (!terminal) reopen('attachment unavailable'); throw error; }

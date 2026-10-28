@@ -89,7 +89,7 @@ async function registryMetadata(npmPackage, signal) {
     return { version: metadata.version, integrity: metadata.dist.integrity };
   } catch (error) {
     throwOnResourceExhaustion(error, 'native_client_socket_exhausted');
-    if (error.code?.startsWith('native_client_')) throw error;
+    if (typeof error?.code === 'string' && error.code.startsWith('native_client_')) throw error;
     throw fail(bounded.aborted ? 'native_client_install_cancelled' : 'native_client_registry_unavailable',
       bounded.aborted ? 'Native-client setup was cancelled or the metadata request reached its deadline.' : 'The official npm registry is unavailable. Check connectivity before retrying; no automatic retry was made.');
   } finally { await response?.body?.cancel().catch(() => {}); }
@@ -218,7 +218,8 @@ export async function installNativeClient({ kind, directory, signal, onProgress 
     return { kind, command: await installedCommand(prefix, kind, metadata.version), version: metadata.version };
   } catch (error) {
     throwOnResourceExhaustion(error, 'native_client_socket_exhausted');
-    if (error.code?.startsWith('native_client_') || /^(?:windows_pty_|terminal_|setup_)/.test(error.code ?? '')) throw error;
+    const code = typeof error?.code === 'string' ? error.code : undefined;
+    if (code?.startsWith('native_client_') || /^(?:windows_pty_|terminal_|setup_)/.test(code ?? '')) throw error;
     throw fail(signal?.aborted ? 'native_client_install_cancelled' : 'native_client_install_failed',
       signal?.aborted ? 'Native-client setup was cancelled.' : 'Native-client installation could not finish. Existing clients and native accounts were preserved.');
   } finally {

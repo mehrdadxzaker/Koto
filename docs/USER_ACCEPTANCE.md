@@ -14,31 +14,162 @@ for the selected model. The advanced PTY slice also needs existing developer
 tools to build the host helper. Native interactive behavior on Linux and Windows
 must be observed on those actual hosts before claiming equivalent acceptance.
 
-## Current observation checkpoint — October 27, 2026
+## Current observation checkpoint — October 28, 2026
 
-Account discovery on this Mac found an existing Codex ChatGPT login. Claude Code
-was found outside PATH and reported that native sign-in was required. These are
-account-status observations. Later native Codex work and a fresh-install
-conversation used that subscription successfully; Claude inference remains
-unverified.
+These labels describe the named installed observations, not a blanket pass for
+all instructional or conditional branches below. Exact artifact bindings,
+digests, costs and earlier failures remain recorded in
+[core status](CORE_STATUS.md) and
+[#543](https://github.com/mehrdadxzaker/Koto/issues/543).
 
-The first guided local setup acquired and verified a model download, then
-refused startup because observed free RAM was approximately 0.95 GiB, below the
-1 GiB reserve. The verified assets were retained. That run used raw macOS free
-pages; the subsequent source uses the system memory-pressure estimate while
-retaining the same reserve and separate raw metric. Later installed runs loaded
-that model and remembered setup, but its native inspection request failed and
-produced no useful contribution. A larger Mac download was interrupted and
-cleaned up. A separate Linux native run stopped under its memory guard without
-changes; that result does not establish model quality. A fresh offline install
-of candidate `9b643fd8a234f22a94a42599c651acfce205c59a` also completed
-conversation before project selection, project/account recovery and normal exit.
-A separate two-Codex PTY run on that package completed native interaction,
-independent stop, confirmed cleanup and an explicitly reviewed/integrated note.
-Useful commercial/local cooperation and full Linux/Windows journeys remain
-pending. Exact candidates, failed outcomes and later diagnostic
-changes remain recorded in [core status](CORE_STATUS.md) and issue #543; earlier
-observations must not be attributed to a later candidate.
+- **Passed — Mac fresh CLI, `8291701`:** empty Koto application state, discovery
+  and use of the existing native ChatGPT/Codex subscription, actual pinned
+  runtime/Qwen3 4B acquisition, an edited/reviewed plan, useful local/native
+  project contributions, explicit review/integration, normal quit and confirmed
+  cleanup were observed. Fresh application state retained the host's existing
+  account and dependencies; it was not a clean-machine installation of every
+  native dependency.
+- **Passed — Mac returning use, `8291701`, within the observed scope:** actual
+  returning `npm exec` remembered the project, account, model, workers and saved
+  session. `/models add` verified the same retained model without another
+  download; this was not acquisition of a second asset. `/resume` performed a
+  useful follow-up in the existing local conversation and integrated only its
+  reviewed delta; this was not a new build. Normal quit, confirmed owned cleanup
+  and closed-listener observations were retained. The distinct new-build,
+  another-model acquisition/selection and conditional selector items below keep
+  their individual evidence status.
+- **Passed — Mac native interaction and structured continuation, `8291701`:**
+  two actual Codex terminals demonstrated native input, resize/detach,
+  independent peer stop, useful work, explicit review/integration and confirmed
+  cleanup. A separate structured native CLI observation preserved the captured
+  identity and original worktree through explicit continuation and follow-up
+  integration delta. These observations cover different declared protocols
+  within the overall acceptance run; terminal-only adapters are not thereby
+  claimed to expose captured identity or structured resume.
+- **Accepted — Linux native behavior, review and cleanup, `8291701`:** actual
+  OpenCode/Qwen terminals demonstrated native input and permission handling,
+  resize/detach, independent peer stop, useful corrected work, explicit
+  review/integration and confirmed terminal/server cleanup. The designated
+  acceptance owner accepted that slice with the writer's command result retained
+  separately as `failed`/`timeout`: its final native reply preceded the deadline,
+  while its TUI process remained open. The reader's intentional cancellation and
+  the aggregate failed result are also retained. Accepted behavior/review/cleanup
+  and the failed/timeout process result remain separate granular outcomes.
+- **Passed — Windows native startup and actual CLI controls, `05d1650`:**
+  independently reviewed idle and controls-only observations verified input,
+  redraw/resize, independent stop, actual `:attach`/Ctrl-] detach, ordinary
+  control/input return and confirmed owned cleanup. Intentional cancellation
+  remains inner `cancelled`/exit 1 and outer `failed`/exit 1; driver/first error
+  were absent. No useful task or integration was performed in these slices.
+  Native startup acquired `rg.exe`; no fully offline or pristine desktop-terminal
+  claim is made.
+- **Failed — first Windows useful task, `05d1650`:** a 600-second native request
+  timeout, zero tools, no edits/empty diffs and a later incorrect cleanup-versus-
+  correctness reply left no accepted contribution or integration. Model-stage
+  PTY/runtime cleanups were confirmed. Its original CLI complement sent no
+  controls because of a controller marker mismatch; outer cleanup was confirmed
+  but its inner outcome remained unknown. Later controls success does not erase
+  that record.
+- **Rejected — Windows useful-task retry, `05d1650`:**
+  [run 40611815027](https://github.com/mehrdadxzaker/Koto/actions/runs/40611815027)
+  completed three reads and two edits, but placed two notes inside an existing
+  sentence; the correction duplicated the note. The malformed change was
+  rejected. A stop-time memory-monitor `TypeError` occurred before contributor
+  and server final cleanup records. Reader cleanup was confirmed; their last
+  retained phases were `wait_job begin`. The session remained active/locked,
+  without a final review token or authorized integration; its CLI complement
+  was skipped. The original error-code value was not captured.
+- **Verified — package and source/helper CI, `0635143`:** all 53 committed-source,
+  worktree, tar and installed payloads matched bytes, sizes and modes. The exact
+  head passed all seven CI checks on attempt 1. These are artifact/source results,
+  not native task acceptance.
+- **Observed — installed client-setup cancellation, `0635143`:** on Node 25.2.1,
+  an actual public setup call handled numeric AbortError code 20 as
+  `native_client_install_cancelled` without creating an installation directory.
+  Completed installation/sign-in was not observed. The earlier failed Windows
+  run's raw error-code value remains uncaptured.
+- **Accepted — Windows native work and controlled cleanup, `0635143`:**
+  [run 40615660295](https://github.com/mehrdadxzaker/Koto/actions/runs/40615660295)
+  produced a useful correct 32-word operator note with a final newline; all 89
+  original files were unchanged. Native history verified same-conversation
+  read/write follow-up after independent reader stop. Both PTYs and llama had
+  confirmed final cleanup; the session was inactive without product locks.
+  Planned controlled stop remains canonical as `cancelled`/exit 1. The note was
+  accepted despite terse coverage of some prompt details; this is bounded task
+  evidence, not general coding qualification.
+- **Verified — explicit Windows integration, `0635143`:** a separate no-model
+  [run 40618740981](https://github.com/mehrdadxzaker/Koto/actions/runs/40618740981)
+  applied the approved contribution in its separate integration worktree.
+  Original files remained unchanged, no integration delta remained and the
+  session was inactive without pending locks. Public evidence rehydration
+  refused the bundle because a legitimate integration receipt was absent from
+  its sealing allowlist; authenticated private review accepted the complete
+  integration evidence. No repeat integration is needed.
+- **Failed — recorded Windows CLI Ctrl-] handoff, `0635143`:** the follow-on complement
+  in run 40615660295 lacked the exact detach-return marker. Inner stopping began
+  13 ms after Ctrl-] and CLI exit 1 followed within 126 ms, before any subsequent
+  status/stop/quit/recovery input. Cleanup was confirmed; functional return was
+  not. Instrumented no-model
+  [diagnosis 40619541347](https://github.com/mehrdadxzaker/Koto/actions/runs/40619541347)
+  completed on frozen `0635143`, localizing second readline/raw-mode setup to
+  stdin `EPIPE` with confirmed cleanup. It is diagnosis, not acceptance, and does
+  not establish the underlying Windows cause. This failed handoff remains
+  recorded; conditional checklist branches retain individual status.
+- **Verified — current CLI repair package/source CI, `caa5ca6`:** only the two
+  internal CLI files changed versus `0635143`; all native/runtime/core payloads
+  remain unchanged. All 53 payload identities and seven exact-head CI checks on
+  attempt 1 are verified. The explicit input-owner handoff and failed-control
+  cleanup changes have cleared source review.
+- **Accepted — final Windows idle CLI controls, `caa5ca6`:** independently reviewed
+  [run 40620884045](https://github.com/mehrdadxzaker/Koto/actions/runs/40620884045)
+  verified two distinct attach/resize/detach returns, three requested status
+  readbacks of the same native PID, explicit stop, settled controls and explicit
+  quit. Both helper protocols and owned cleanups were confirmed, with inactive
+  state, no locks or native conversations, and no fallback or deadline. Raw VT
+  redraw repetitions are not extra handoff cycles. Intentional cancellation
+  remains native `cancelled`/exit 1 and outer `failed`/exit 1/`exit_failed`.
+- **Accepted — final Linux idle CLI controls, `caa5ca6`:** two attach/resize/detach/
+  status cycles, explicit stop and quit completed in 47.1 seconds with confirmed
+  native/outer cleanup, no owned processes or native conversations, and no
+  deadline or forced CLI kill. The native result is `cancelled`/exit 0 and the
+  aggregate CLI exit 1 retains intentional stop. Owned-container removal was
+  verified through corrected absence metadata without rerunning the observation;
+  the original false parser result is preserved.
+- **Accepted — combined final Mac idle CLI controls, `caa5ca6`:** two handoffs,
+  status and stop were observed in a first run that reached its 60-second
+  controller deadline before quit; deadline SIGINT ended the idle controls with
+  exit 1. That partial record retains no quit claim.
+  A separate 13.404-second status/stop/settled-prompt/quit complement ended by
+  ordinary child exit 1 without controller signals or deadline, with native
+  `cancelled`/exit 0, confirmed native/outer cleanup, inactive state, zero owned
+  processes, no native conversations and clean worktrees. These two records
+  satisfy the observed scope together; they are not a single uninterrupted run.
+  Independent review checked the complement's 21 referenced hashes, 53 payloads
+  and all 89 original files' bytes/modes.
+
+The recorded CLI acceptance scope is complete within these named observations.
+The final controls observations used idle OpenCode without model tasks or
+integration. Earlier accepted model work retains its actual IDs; no model tasks
+were repeated. Functional return to controls is verified without a pristine
+screen-repaint or desktop-terminal claim.
+
+Earlier actual Mac/Linux records remain on `8291701`, Windows startup/controls
+on `05d1650`, and useful Windows work/cleanup/integration on `0635143`.
+Current `caa5ca6` changes only CLI ownership handling, while all native/runtime/core
+payloads remain byte-identical to `0635143`. The original IDs and limited branch
+statuses remain intact; new source equivalence is not fresh model execution.
+Exact package/inventory, source CI, final control receipts and prior failures are
+detailed in [core status](CORE_STATUS.md). Delivery-head, protected-merge,
+exact-main and issue-completion results remain in #543.
+
+Claude was found requiring native sign-in; live Claude inference remains
+unverified. Conditional native installation/sign-in, recovery, saved-build
+selection, model-selection and integration-conflict branches retain their
+individual evidence status. An unexercised branch remains unverified rather than
+being inferred from the observations above. Earlier low-memory refusals, interrupted downloads, model-output failures, Windows startup/cleanup failures and corrections remain
+linked from core status. The local tool-selection/read-scope and EOF-newline
+misses are preserved. These bounded documentation tasks do not establish general
+coding qualification, and actual provider dollar cost is unknown.
 
 ## 1. Complete fresh-user onboarding
 
