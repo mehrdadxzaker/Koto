@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process';
 import { constants } from 'node:fs';
 import { chmod, link, lstat, mkdir, mkdtemp, open, readdir, realpath, rm, unlink, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
-import { homedir } from 'node:os';
+import { defaultStateDirectory } from './preferences.js';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -271,7 +271,7 @@ function runTool(command, args, { env, timeoutMs = 10_000 } = {}) {
 }
 
 /** Resolve a previously built helper. This never compiles, downloads or installs. */
-export async function resolveLinuxPtyHelper({ directory = path.join(homedir(), '.koto', 'native') } = {}) {
+export async function resolveLinuxPtyHelper({ directory = path.join(defaultStateDirectory, 'native') } = {}) {
   requireLinux();
   const bytes = await sourceBytes();
   const location = await privateDirectory(directory, false);
@@ -281,7 +281,7 @@ export async function resolveLinuxPtyHelper({ directory = path.join(homedir(), '
 }
 
 /** Explicit opt-in compilation of the versioned Linux helper using existing tools. */
-export async function buildLinuxPtyHelper({ directory = path.join(homedir(), '.koto', 'native') } = {}) {
+export async function buildLinuxPtyHelper({ directory = path.join(defaultStateDirectory, 'native') } = {}) {
   requireLinux();
   const source = await sourceBytes();
   const sourceSha256 = digest(source);

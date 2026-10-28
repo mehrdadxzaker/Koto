@@ -2,7 +2,8 @@ import { spawn } from 'node:child_process';
 import { constants } from 'node:fs';
 import { access, link, lstat, mkdir, mkdtemp, open, readdir, realpath, rm, unlink, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
-import { homedir, release } from 'node:os';
+import { release } from 'node:os';
+import { defaultStateDirectory } from './preferences.js';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -285,7 +286,7 @@ async function compilerSetup() {
   throw failure('windows_pty_compiler_required', 'The existing Visual Studio installation must include matching C++ tools and a Windows 10 SDK. Nothing was downloaded.');
 }
 
-export async function resolveWindowsPtyHelper({ directory = path.join(homedir(), '.koto', 'native') } = {}) {
+export async function resolveWindowsPtyHelper({ directory = path.join(defaultStateDirectory, 'native') } = {}) {
   requireWindows();
   const source = await checkedBytes(SOURCE, SOURCE_LIMIT);
   const location = await privateDirectory(directory, false);
@@ -295,7 +296,7 @@ export async function resolveWindowsPtyHelper({ directory = path.join(homedir(),
 }
 
 /** Explicit local build using an already installed MSVC toolchain and SDK. */
-export async function buildWindowsPtyHelper({ directory = path.join(homedir(), '.koto', 'native') } = {}) {
+export async function buildWindowsPtyHelper({ directory = path.join(defaultStateDirectory, 'native') } = {}) {
   requireWindows();
   const source = await checkedBytes(SOURCE, SOURCE_LIMIT);
   const sourceSha256 = digest(source);

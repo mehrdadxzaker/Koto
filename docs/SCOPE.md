@@ -1,6 +1,6 @@
 # Koto product scope
 
-Owner decision: October 26, 2026.
+Owner decision: October 26, clarified October 27, 2026.
 
 Koto has one shared core that lets commercial and open-source agents work
 together. Users install it through npm or run it through npx. They can then use
@@ -15,8 +15,9 @@ source tooling needed to develop and deliver them:
 3. IDE plugins consuming the core.
 4. Koto's own UI consuming the core.
 
-The core and npm installation come first. Additional delivery integrations and
-the UI follow. A host such as Codex or Claude Code can be an agent runtime,
+The core, npm installation and a smooth CLI onboarding/everyday journey come
+first. Validate fresh and returning users on a real project before building UIs
+and IDE plugins. A host such as Codex or Claude Code can be an agent runtime,
 a delivery surface, or both through explicitly implemented adapters.
 The scope guard reserves `plugins/` and `ui/` for those later deliveries without
 adding placeholder implementations.
@@ -28,8 +29,11 @@ earlier source; do not add an archive directory or a second product runtime.
 
 Node.js is the installed runtime. Installing Koto must not require a separate
 Python setup, compiler, shell-specific bootstrap or mandatory local-model
-download. Agent runtimes and their accounts or model assets remain separately
-configured dependencies.
+download. The CLI discovers supported native agents and subscription logins,
+offers their native installation/sign-in, remembers choices, and optionally
+acquires verified local models and a pinned runtime. Native credentials remain
+with their clients. Provider API keys are not required for subscription use.
+Advanced scripted workflows can retain separately configured dependencies.
 
 See [architecture](ARCHITECTURE.md), [installation](INSTALLATION.md),
 [roadmap](ROADMAP.md) and [migration](MIGRATION.md).

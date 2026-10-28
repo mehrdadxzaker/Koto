@@ -1,4 +1,4 @@
-import { startOwnedPipe } from './owned-worker-lifetime.js';
+import { ownedProcessErrorCode, startOwnedPipe } from './owned-worker-lifetime.js';
 import { StringDecoder } from 'node:string_decoder';
 
 const MAX_OUTPUT_BYTES = 8 * 1024 * 1024;
@@ -85,18 +85,18 @@ export function startCommand({ id, command, args = [], cwd, env, timeoutMs = 900
         pendingControls += 1;
         owner.child.stdin.write(text, error => {
           pendingControls -= 1;
-          if (error) owner.lifetime.fail('stdin_failed');
+          if (error) owner.lifetime.fail(ownedProcessErrorCode(error, 'stdin_failed'));
         });
         return true;
-      } catch { pendingControls -= 1; owner.lifetime.fail('stdin_failed'); return false; }
+      } catch (error) { pendingControls -= 1; owner.lifetime.fail(ownedProcessErrorCode(error, 'stdin_failed')); return false; }
     },
     endInput() {
       if (!writable()) return false;
       inputEnded = true;
       try {
-        owner.child.stdin.end(error => { if (error) owner.lifetime.fail('stdin_failed'); });
+        owner.child.stdin.end(error => { if (error) owner.lifetime.fail(ownedProcessErrorCode(error, 'stdin_failed')); });
         return true;
-      } catch { owner.lifetime.fail('stdin_failed'); return false; }
+      } catch (error) { owner.lifetime.fail(ownedProcessErrorCode(error, 'stdin_failed')); return false; }
     },
     stop: () => owner.lifetime.cancel(),
   };

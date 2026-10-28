@@ -5,6 +5,7 @@ import path from 'node:path';
 import { validateProjectPlan } from './project-session.js';
 import { resolveTerminalHelper } from './terminal-helper.js';
 import { inspectLaunchProject, resolveAgentExecutable } from './launch-preflight.js';
+import { throwOnResourceExhaustion } from './bounded-fetch.js';
 
 const MODEL = /^[A-Za-z0-9][A-Za-z0-9._:/+-]{0,255}$/;
 const API_ENV = ['OPENAI_API_KEY', 'CODEX_API_KEY', 'AZURE_OPENAI_API_KEY', 'OPENAI_BASE_URL', 'OPENAI_API_BASE'];
@@ -108,15 +109,22 @@ async function readConfig(filename) {
 
 async function endpointListening(endpoint) {
   const url = new URL(endpoint);
-  return new Promise(resolve => {
+  return new Promise((resolve, reject) => {
     // Resolve localhost ourselves so this read-only probe cannot contact an external host.
-    const socket = connect({ host: url.hostname === '[::1]' ? '::1' : '127.0.0.1',
-      port: Number(url.port || (url.protocol === 'https:' ? 443 : 80)) });
+    let socket;
+    try {
+      socket = connect({ host: url.hostname === '[::1]' ? '::1' : '127.0.0.1',
+        port: Number(url.port || (url.protocol === 'https:' ? 443 : 80)) });
+    } catch (error) { throwOnResourceExhaustion(error); throw error; }
     let complete = false;
-    const finish = result => { if (!complete) { complete = true; socket.destroy(); resolve(result); } };
+    const finish = (result, error) => { if (!complete) { complete = true; socket.destroy(); if (error) reject(error); else resolve(result); } };
     socket.setTimeout(1000, () => finish(false));
     socket.once('connect', () => finish(true));
-    socket.once('error', () => finish(false));
+    socket.once('error', error => {
+      try { throwOnResourceExhaustion(error); }
+      catch (fatal) { finish(false, fatal); return; }
+      finish(false);
+    });
   });
 }
 

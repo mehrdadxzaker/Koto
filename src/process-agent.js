@@ -1,4 +1,4 @@
-import { startOwnedPipe } from './owned-worker-lifetime.js';
+import { ownedProcessErrorCode, startOwnedPipe } from './owned-worker-lifetime.js';
 import { TextDecoder } from 'node:util';
 
 const INPUT_LIMIT = 512 * 1024;
@@ -23,6 +23,7 @@ const MESSAGES = {
   stdin_failed: 'The agent did not accept the assignment on standard input.',
   output_failed: 'The agent output stream failed before a complete result was received.',
   cleanup_unconfirmed: 'Owned-process cleanup could not be confirmed; inspect its process state.',
+  socket_exhausted: 'Socket or file-descriptor capacity is unavailable. Stop new requests and inspect system resources before retrying.',
 };
 
 function failure(code) {
@@ -91,11 +92,12 @@ export async function runProcessAgent(agent, assignment, { cwd, signal } = {}) {
     },
   });
   if (owner.child && !owner.lifetime.stopping) {
-    try { owner.child.stdin.end(input, error => { if (error) owner.lifetime.fail('stdin_failed'); }); }
-    catch { owner.lifetime.fail('stdin_failed'); }
+    try { owner.child.stdin.end(input, error => { if (error) owner.lifetime.fail(ownedProcessErrorCode(error, 'stdin_failed')); }); }
+    catch (error) { owner.lifetime.fail(ownedProcessErrorCode(error, 'stdin_failed')); }
   }
   const outcome = await owner.lifetime.completion;
   if (outcome.error === 'cleanup_unconfirmed') throw failure(outcome.error);
+  if (outcome.error === 'process_socket_exhausted') throw failure('socket_exhausted');
   if (outcome.status === 'cancelled') throw failure('aborted');
   if (outcome.error) throw failure(outcome.error);
   let output;
