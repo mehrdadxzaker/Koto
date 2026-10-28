@@ -182,13 +182,32 @@ retry commands or recover/replay interrupted agent runs. Custom Git drivers,
 hidden index entries and changed symlinks have explicit refusal boundaries.
 See [project sessions](PROJECT_SESSIONS.md) for the runnable interface and details.
 
-The [delivery tracker](https://github.com/mehrdadxzaker/Koto/issues/543) records
-real Mac Codex/OpenCode pipe cooperation and two reviewed integrations. Current
-Linux observations establish interactive terminal mechanics and Codex version
-launch; failed native model attempts remain recorded separately. Windows source
-cross-compilation does not establish native Windows operation. See
-[current evidence](CORE_STATUS.md) and the [acceptance run](USER_ACCEPTANCE.md)
-for the observed outcomes and remaining host verification.
+At the October 28, 2026 checkpoint, the
+[delivery tracker](https://github.com/mehrdadxzaker/Koto/issues/543) retains
+actual `8291701` Mac fresh/returning CLI, local/native cooperation, structured
+continuation and integration-delta results, plus accepted Linux behavior and
+review/cleanup with its writer timeout disclosed. `05d1650` Windows controls and
+`0635143` useful work/controlled cleanup and separate explicit integration retain
+their actual IDs, original-file preservation and rehydration limitation.
+The later `0635143` Ctrl-] failure was localized to second readline/raw-mode
+setup raising stdin `EPIPE`, not to a proven underlying Windows cause.
+Reviewed head `caa5ca6` changes only two internal CLI files: explicit successful
+replacement raw-input ownership is acknowledged, otherwise prior mode is
+restored; actual input loss and failed partial controls stop owned work, with
+final stdin cleanup covering constructor-before-return failure without private
+internals. Its 53-payload package identity and seven exact-head CI checks passed.
+All native/runtime/core payloads remain unchanged from `0635143`. Final actual
+uninstrumented idle CLI controls are accepted: Windows and Linux completed two
+attach/detach/status cycles then stop/quit; Mac combines a retained two-handoff
+controller-deadline partial with a separate ordinary stop/quit complement.
+Cleanup and inactive state were confirmed; intentional cancellation exits and
+the earlier failures remain recorded. No model tasks were repeated. These
+observations complete the recorded CLI acceptance scope; unexercised conditional
+branches retain individual status. See [current evidence](CORE_STATUS.md) and the
+[acceptance run](USER_ACCEPTANCE.md) for exact artifacts, original execution
+identities and limits. Delivery-head/main and issue completion are recorded
+separately in #543. Registry publication, live Claude inference and general
+coding qualification retain their stated limits.
 
 ## Later adapters and delivery
 
