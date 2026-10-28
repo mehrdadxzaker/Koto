@@ -12,6 +12,9 @@ printf 'connect-timeout = 10\nmax-time = 120\nretry = 0\n' > "$HOMEBREW_CURLRC"
 cleanup() {
   koto_status=$?
   trap - EXIT INT TERM
+  if [ "$koto_status" -ne 0 ] && [ -f "$koto_observe_root/payload-diff.txt" ]; then
+    head -c 16384 "$koto_observe_root/payload-diff.txt" >&2
+  fi
   if [ "$koto_package_owned" = 1 ]; then brew uninstall --force "$koto_formula" || koto_status=1; fi
   if [ "$koto_tap_owned" = 1 ]; then brew untap mehrdadxzaker/koto || koto_status=1; fi
   printf 'exitCode=%s\n' "$koto_status" > "$koto_observe_root/exit.txt"

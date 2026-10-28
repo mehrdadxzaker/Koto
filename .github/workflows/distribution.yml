@@ -60,3 +60,21 @@ jobs:
         env:
           KOTO_PUBLIC_TAP: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && '1' || '0' }}
         run: bash .github/scripts/observe-brew-install.sh
+      - name: Retain bounded installation evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        env:
+          ACTIONS_ARTIFACT_UPLOAD_CONCURRENCY: '1'
+          ACTIONS_ARTIFACT_UPLOAD_TIMEOUT_MS: '30000'
+        with:
+          name: install-${{ matrix.os }}-${{ github.sha }}
+          retention-days: 30
+          if-no-files-found: warn
+          path: |
+            ${{ runner.temp }}/koto-install-observation/*.json
+            ${{ runner.temp }}/koto-install-observation/*.txt
+            ${{ runner.temp }}/koto-install-observation/*.sha256
+            ${{ runner.temp }}/koto-install-observation/*.stdout
+            ${{ runner.temp }}/koto-install-observation/*.stderr
+            ${{ runner.temp }}/koto-brew-observation/*.json
+            ${{ runner.temp }}/koto-brew-observation/*.txt

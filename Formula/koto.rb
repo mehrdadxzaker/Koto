@@ -7,6 +7,8 @@ class Koto < Formula
   license "Apache-2.0"
 
   depends_on "node@24"
+  # The wrapper selects Node; preserve every byte of the pinned npm payload.
+  skip_clean "libexec"
 
   def install
     libexec.install Dir["*"]
