@@ -34,6 +34,11 @@ developer tools. See [installation prerequisites](INSTALLATION.md#build-the-host
 
 ## Interface
 
+Slash menus, mentions, plans and review controls run inside the shared terminal
+UI. See the [terminal UI documentation](TUI.md) for the terminal-controls
+reference. Sharing these controls does not establish native desktop or iTerm2
+acceptance beyond the recorded observations below.
+
 - Open a project with the native folder picker, then open its Koto CLI.
 - The sidebar lists actual known projects and saved session shortcuts. Selecting
   a retained session chooses it for the CLI's existing saved-work commands; it
