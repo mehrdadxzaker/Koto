@@ -11,9 +11,36 @@ separate from native-agent acceptance; observed results are recorded in
 Process cleanup is separate from sandboxing; see the
 [execution boundaries](ARCHITECTURE.md#lifecycle-and-execution-boundaries).
 
-## Local package
+## Alpha release installation
 
-The registry package is not published yet. From this checkout:
+The alpha release channel is `@mehrdadxzaker/koto@alpha`. Install it globally
+and open the guided CLI:
+
+```sh
+npm install --global @mehrdadxzaker/koto@alpha
+koto
+```
+
+Or open it without a global installation:
+
+```sh
+npx --yes @mehrdadxzaker/koto@alpha
+```
+
+To pin the first alpha version explicitly:
+
+```sh
+npm install --global @mehrdadxzaker/koto@3.0.0-alpha.0
+```
+
+Alpha releases can change. Source, native-platform and registry-installation
+acceptance are recorded separately in [current evidence](CORE_STATUS.md). A
+release command here does not establish that its registry publication or fresh
+installation has completed.
+
+## Package from source
+
+From a reviewed source checkout:
 
 ```sh
 npm pack
@@ -33,15 +60,25 @@ For execution without global installation:
 npx --yes --package ./mehrdadxzaker-koto-3.0.0-alpha.0.tgz koto --help
 ```
 
-Registry publication will enable installation by package name. The intended name
-in `package.json` is `@mehrdadxzaker/koto`; ownership/availability and the release
-must be verified before documenting a published command as working.
+Local packaging and installation do not publish to the npm registry.
 
 ## Agent and delivery dependencies
 
-Real workflows require separately configured agent runtimes. The generic process
+Run `koto` for normal setup. It discovers existing Codex/ChatGPT and Claude Code
+subscription logins, offers native installation/sign-in when needed, and remembers
+the selected client. Missing clients install into Koto's private versioned
+directory rather than a global npm location. No provider API key is required.
+
+Optional local-model choices show size, license and memory guidance. Koto checks
+storage, downloads immutable digest-verified weights, acquires a verified
+llama.cpp binary release and retains its libraries. Existing matching assets
+are reused. `/models add` repeats that guided selection; `/models use MODEL_ID`
+chooses among downloaded models. One managed local model server is active at a
+time and is stopped when Koto exits.
+
+Scripted workflows can use separately configured agent runtimes. The generic process
 worker expects Koto's JSON-stdin/text-stdout contract. Project sessions instead
-run installed native clients, with explicit Codex and OpenCode profiles. On
+run installed native clients. On
 Windows use an actual executable or `$node` with a script path; `.cmd` and `.bat`
 wrappers are not launched through a shell.
 
@@ -94,6 +131,7 @@ IDE plugins and Koto's UI will be separate ways to use the installed core. They
 are planned and no placeholder package is installed today.
 
 Use `npm uninstall --global @mehrdadxzaker/koto` to remove a global installation.
-Koto creates no startup hooks or model downloads. Project sessions retain private
+Koto creates no startup hooks; model downloads occur only after a selected guided
+installation or explicit advanced acquisition command. Project sessions retain private
 control/output files and Git branches/worktrees; uninstalling the package does
 not delete them. Inspect and preserve that work before any explicit cleanup.

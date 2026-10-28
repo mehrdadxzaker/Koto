@@ -1,60 +1,141 @@
-# Talk to Koto and build with agents
+# Open Koto and start working
 
-Running `koto` now opens a persistent **conversation**, backed by an installed,
-logged-in Codex or Claude CLI, or a configured local model. A greeting is sent
-to that real coordinator; it is not interpreted as a directory. Conversation
-does not require a Git project. Coding requests produce a plan for review,
-with project selection or explicit creation only when needed.
+Run the installed CLI:
 
 ```sh
-node bin/koto.js
+koto
 ```
 
-Type a message or describe what you want to build. `/help` lists controls.
-`/agent codex`, `/agent claude` and `/agent local` select the coordinator;
-`/model MODEL` selects its model. Codex uses its existing ChatGPT login and
-Claude uses its native subscription login. Koto does not copy credentials or
-substitute a paid API provider. Native permission requests require an explicit
-operator decision when the native CLI asks.
+`koto start` opens the same conversation. From a source checkout, use
+`node bin/koto.js`. Setup runs once; later launches remember your account
+selection, downloaded models, project and saved builds.
 
-Use `/new PATH` to create an empty project after confirmation, or `/project PATH`
-to select an existing clean Git repository. Existing folder contents are never
-automatically committed, stashed or discarded. The coding coordinator proposes
-tasks for configured agents; `/agents`, `/add codex`, `/add claude` and
-`/add local MODEL` manage those choices. Review the actual assignments and type
-`build` before execution. Each task receives an isolated worktree and live
-agent/model status, spinner and observed activity.
+## First launch
 
-You can keep talking to Koto while the workers run. The coordinator receives
-their actual retained states and observed activity; new coding requests queue
-until the current work is reviewed. After integration, subsequent coding uses
-that reviewed workspace so accepted changes carry into the next goal.
+Koto finds supported Codex and Claude Code installations and asks each native
+client for its login status. Choose a listed account to reuse your ChatGPT or
+Claude subscription. If sign-in is needed, Koto can open that client's native
+sign-in flow. If the client is missing, you can approve installing its official
+package into Koto's private directory. An existing native login is a discovery
+result; model access and remaining usage are established when you start work.
+No provider API key is required, and native credentials remain with the client.
+You can skip subscription setup and configure a local model instead.
 
-During execution, `:stop AGENT` stops one agent, `:review AGENT` displays its
-contribution and `:integrate AGENT` explicitly applies the displayed review.
-The equivalent `/status`, `/stop`, `/review` and `/integrate` controls also work.
-The integration branch remains separate from the original checkout. Native
-continuation retains the originating session and worktree; unresolved cleanup
-or conflicts remain explicit and block further application.
+Next, choose whether to add an open-source model. The optional list shows model
+sizes, licenses and memory guidance. After your confirmation, Koto acquires a
+pinned llama.cpp runtime and verifies the selected model download. Existing
+verified assets are reused. You can skip local setup and use your subscription.
 
-Local model controls are `/models` for discovery, `/models pull MODEL` for an
-explicit Ollama download, `/models get URL FILE SHA256` for verified GGUF
-weights, and `/models start GGUF` for an owned llama.cpp server. Compatible
-models need their actual weights and supported architecture. `/runtime build
-COMMIT` explicitly builds llama.cpp from an exact official source commit with
-already installed development tools. No compiler or model is downloaded just
-by opening Koto. The local coding agent has real workspace file tools and asks
-before executing commands; model responses are never simulated.
+Choose a project folder, or enter `new PATH` to create an empty project after
+confirmation. Enter `later` to keep chatting without a project. An existing
+project must be a clean, committed Git repository. If it needs attention, Koto
+explains the problem and lets you choose again; your files stay available for
+you to review. Use `/project PATH` or `/new PATH` to change the project later.
 
-Native sessions, local context and partial outcomes remain private product
-state. CLI choices live in `~/.koto/preferences.json`; `KOTO_STATE_DIR` can select
-another private absolute state directory. Unknown provider costs remain unknown.
-Source checks and helper compilation do not establish successful model execution;
-actual host observations are recorded separately in the delivery tracker.
+When setup finishes, type a message or describe the work you want. Conversation
+does not require a project. A coding request produces a proposed plan with
+agents, models, tasks and contribution paths. Type `edit` to change an assignment,
+choose a configured agent/model, revise ownership/dependencies, edit the summary
+or concurrency, or remove a task.
+Koto validates the revised plan and displays it again. Type `build` to launch.
+The configured agents work through the shared core in isolated
+worktrees, with observed progress and native permission requests when needed.
+
+## Everyday use
+
+Returning users enter the conversation with their saved setup. Koto checks the
+selected native login and reconnects a selected managed local model when needed.
+Use `/accounts` to rediscover subscriptions or open native sign-in. `/agents`
+shows the configured workers; `/add codex`, `/add claude` and `/add local MODEL`
+add choices. `/agent codex`, `/agent claude` and `/agent local` choose the
+coordinator, and `/model MODEL` changes its model. `/help` lists the controls.
+
+During a build, `:stop AGENT` stops one agent, `:review AGENT` displays its
+contribution, and `:integrate AGENT` applies that displayed contribution after
+approval and confirmed cleanup. `:quit` returns to the conversation and retains
+the build. Integration writes to the separate integration worktree.
+
+You can keep talking to the coordinator at `Agents>` while workers run. Ordinary
+text or `:chat TEXT` sends a real coordinator turn with bounded, observed worker
+status and activity. `:chat-stop` cancels that turn and its queued messages while
+workers continue. Native permission requests still need explicit approval.
+Replies wait while an attached native terminal owns the screen. The coordinator
+has an eight-message queue; requests for another build enter a separate queue of
+at most eight goals. After `:quit`, each goal gets a new plan for review before
+any new workers start. These queues are for the current conversation and are not
+replayed after exit.
+
+The next build uses the selected saved build's clean, reviewed integration
+workspace when it has accepted contributions. Koto verifies the retained receipts,
+owned worktrees and recorded target commit before planning. Active agents,
+unconfirmed cleanup, conflicts or an unresolved integration attempt block this
+continuation. Unreviewed worker edits remain in their original worktrees; they
+are never carried forward automatically. The new base is checked again at launch.
+Your selected project remains the returning setup default, and its earlier saved
+builds remain in `/sessions`. The reviewed build base is used only for the current
+conversation and plan; each subsequent build revalidates its selected saved
+session, including any reviewed changes inherited in that session's original base.
+
+Saved work is available without copying session directories:
+
+| Command | Action |
+| --- | --- |
+| `/sessions` | Show the current project's saved builds; choose one when several exist. |
+| `/review` | Choose a saved agent and inspect its contribution. |
+| `/integrate` | Choose an agent, inspect its current diff and type `integrate` to accept it. |
+| `/resume` | Choose a saved agent, describe its next task and approve the exact continuation. |
+
+You can supply the agent ID to `/review`, `/integrate` or `/resume` to skip the
+agent selector. Supported continuation keeps the originating native session,
+worktree, model and account. After integration, the next review covers only the
+agent's subsequent changes. Missing native identity, unresolved conflicts or
+unconfirmed cleanup require attention before continuation or integration.
+
+## Local models and recovery
+
+Use `/models` to list downloaded choices and reachable local runtimes.
+`/models add` opens the guided download choices again; `/models use MODEL_ID`
+selects a downloaded model for new local work. Koto retains multiple downloaded
+assets and runs one managed model server at a time. Selecting another managed
+model updates configured local workers; retained sessions keep their recorded
+model identity.
+
+Model suitability guidance uses system memory, while startup also checks current
+available memory and enforces a reserve. On macOS this uses the system's
+memory-pressure estimate; raw free pages are retained separately as diagnostics.
+If startup is refused, the verified download
+remains available. Free resources through your normal tools, then use
+`/models use MODEL_ID` to try the selected asset again. Subscription setup and
+saved work remain available. Koto reports unavailable accounts and interrupted
+setup with recovery actions; malformed preferences can be preserved as a backup
+before restarting onboarding.
+
+For an existing local setup, `/models pull MODEL` uses an installed Ollama
+runtime, `/models start GGUF` starts the configured llama.cpp binary with selected
+weights, and `/models get URL FILE SHA256` downloads an explicitly selected GGUF.
+`/runtime build COMMIT` is an advanced source-build option using installed
+development tools. The guided model path acquires a verified runtime binary.
+The local coding agent begins with a required native read-only inspection call,
+then uses its normal workspace tools and asks before commands. Tool-like text
+inside an ordinary reply is never executed. A missing native tool call or
+truncated response remains a visible failure.
+Managed startup waits for its first memory check, then makes one readiness probe
+and at most three retries with 5/10/20-second backoff plus jitter, respecting `Retry-After` and
+the startup deadline. The core's `startupMaxRetries` option is an explicit
+advanced budget; the CLI uses the bounded default. Socket exhaustion stops
+further requests immediately.
+If native startup fails, the CLI preserves its last 8 KiB of startup output in
+a private log and displays its path. Inference output is not added to that log.
+
+Private choices live in `~/.koto/preferences.json`; `KOTO_STATE_DIR` selects
+another private absolute state directory. Session state contains prompts,
+native output and workspace paths. Keep it local. Unknown usage and provider
+costs remain unknown. See the [acceptance guide](USER_ACCEPTANCE.md) and
+[current evidence](CORE_STATUS.md) for observed behavior and remaining gates.
 
 ## Advanced manual session setup
 
-Run `koto setup` in a terminal to open the explicit configuration wizard. From a
+Run `koto setup` in a terminal to open the separate explicit configuration wizard. From a
 source checkout, use `node bin/koto.js setup`. `koto --help` prints command help.
 
 Choose **Start an agent session**, then supply a clean, committed Git project,

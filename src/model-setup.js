@@ -1,210 +1,501 @@
-import { createHash, randomUUID } from 'node:crypto';
-import { constants } from 'node:fs';
-import { lstat, mkdir, open, realpath, rename, writeFile } from 'node:fs/promises';
-import { freemem, totalmem } from 'node:os';
+import { createHash } from 'node:crypto';
+import { constants, createReadStream } from 'node:fs';
+import { chmod, link, lstat, mkdir, mkdtemp, open, readdir, readlink, realpath, rename, rm, rmdir, statfs, symlink, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { defaultStateDirectory } from './preferences.js';
+import { finished } from 'node:stream/promises';
+import { createGunzip } from 'node:zlib';
+import { startSetupCommand } from './setup-command.js';
+import { downloadGguf } from './local-models.js';
 import { resolveAgentExecutable } from './launch-preflight.js';
-import { discoverLocalModels, downloadGguf, pullOllamaModel, startLlamaServer } from './local-models.js';
-import { buildLlamaRuntime } from './runtime-install.js';
-import { localModelCatalog, localStorageCapacity, listRetainedLocalModels } from './model-catalog.js';
+import { LOCAL_MODEL_CATALOG, LLAMA_RUNTIME_CATALOG } from './model-catalog.js';
+import { throwOnResourceExhaustion } from './bounded-fetch.js';
 
-const GIB = 1024 ** 3;
-export const guidedLlamaCommit = '14310190cd0a0c831fe949ac8cbedd8abdc90695';
+const MIB = 1024 ** 2;
+const MAX_FILES = 4096;
+const MAX_EXTRACTED = 512 * MIB;
+const RECEIPT = 'koto-llama-release';
 const fail = (code, message) => Object.assign(new Error(message), { code });
-const cancelled = () => fail('local_setup_cancelled', 'Local-model setup was skipped or cancelled. Existing native assets were preserved.');
+const owned = info => typeof process.getuid !== 'function' || info.uid === process.getuid();
+const cancelled = signal => signal?.throwIfAborted();
+let transferQueue = Promise.resolve();
 
-async function approveAction(approve, action, signal) {
-  signal?.throwIfAborted();
-  if (typeof approve !== 'function' || await approve(Object.freeze(action)) !== true) throw cancelled();
-  signal?.throwIfAborted();
+// All acquisitions in this process share a single transfer slot, including
+// model downloads and runtime installation. There are no automatic retries.
+async function serialized(operation, signal) {
+  const previous = transferQueue;
+  let release;
+  transferQueue = new Promise(resolve => { release = resolve; });
+  try { await previous; cancelled(signal); return await operation(); }
+  finally { release(); }
 }
 
-async function storageDirectory(selected) {
-  if (typeof selected !== 'string' || !path.isAbsolute(selected) || selected.includes('\0')) {
-    throw fail('local_setup_directory_invalid', 'Local-model storage needs an absolute private directory.');
+async function maybeStat(filename) {
+  try { return await lstat(filename); }
+  catch (error) { if (error.code === 'ENOENT') return null; throw error; }
+}
+
+async function privateDirectory(value) {
+  if (typeof value !== 'string' || !path.isAbsolute(value) || value.includes('\0') || value.length > 4096) {
+    throw fail('model_directory_invalid', 'Choose an absolute private directory for Koto model assets.');
   }
-  const directory = path.resolve(selected);
+  const directory = path.resolve(value);
   let current = path.parse(directory).root;
-  for (const piece of directory.split(path.sep).filter(Boolean)) {
-    current = path.join(current, piece);
-    try { await mkdir(current, { mode: 0o700 }); } catch (error) { if (error.code !== 'EEXIST') throw error; }
-    const info = await lstat(current);
-    const stickyAncestor = current !== directory && (info.mode & 0o1000) !== 0;
-    let gitEntry, gitHead;
-    try { gitEntry = await lstat(path.join(current, '.git')); }
-    catch (error) { if (error.code !== 'ENOENT') throw error; }
-    if (gitEntry?.isDirectory()) {
-      try { gitHead = await lstat(path.join(current, '.git', 'HEAD')); }
-      catch (error) { if (error.code !== 'ENOENT') throw error; }
+  const parts = path.relative(current, directory).split(path.sep).filter(Boolean);
+  for (let index = 0; index < parts.length; index += 1) {
+    current = path.join(current, parts[index]);
+    let info = await maybeStat(current);
+    if (!info) {
+      try { await mkdir(current, { mode: 0o700 }); } catch (error) { if (error.code !== 'EEXIST') throw error; }
+      info = await lstat(current);
     }
-    if (!info.isDirectory() || info.isSymbolicLink() || gitEntry && (!gitEntry.isDirectory() || gitHead)
-      || process.platform !== 'win32' && ((info.mode & 0o022) !== 0 && !stickyAncestor
-        || process.getuid && info.uid !== process.getuid() && info.uid !== 0)) {
-      throw fail('local_setup_directory_unsafe', 'Model storage must remain outside Git worktrees in real directories protected from other users writing them.');
+    const stickyParent = index < parts.length - 1 && (info.mode & 0o1000) !== 0;
+    const git = await maybeStat(path.join(current, '.git'));
+    // A directory aggregating checkouts may have a .git without a HEAD.
+    const worktree = git && (!git.isDirectory() || await maybeStat(path.join(current, '.git', 'HEAD')));
+    if (!info.isDirectory() || info.isSymbolicLink() || worktree || process.platform !== 'win32'
+      && (((info.mode & 0o022) !== 0 && !stickyParent) || !owned(info) && info.uid !== 0)) {
+      throw fail('model_directory_unsafe', 'Model assets need real directories outside Git worktrees, protected from other users writing them.');
     }
   }
   const info = await lstat(directory);
-  if (process.platform !== 'win32' && ((info.mode & 0o077) !== 0 || process.getuid && info.uid !== process.getuid())
-    || await realpath(directory) !== directory) {
-    throw fail('local_setup_directory_unsafe', 'Choose a private model directory owned by your account (mode 700).');
+  if (!owned(info) || process.platform !== 'win32' && (info.mode & 0o077) !== 0 || await realpath(directory) !== directory) {
+    throw fail('model_directory_unsafe', 'Choose a private model-assets directory owned by your account (mode 700).');
   }
   return directory;
 }
 
-async function requireSpace(directory, bytes) {
-  const available = await localStorageCapacity(directory);
-  if (available === undefined) throw fail('local_setup_space_unknown', 'Free storage could not be measured. Choose a local disk with readable capacity information.');
-  if (available < bytes + GIB) throw fail('local_setup_space_low', 'There is not enough free storage for this download and a 1 GiB reserve. Choose a smaller model or free disk space.');
+async function reserveDisk(directory, bytes) {
+  const info = await statfs(directory, { bigint: true });
+  if (info.bavail * info.bsize < BigInt(bytes)) {
+    throw fail('model_storage_insufficient', 'There is not enough free storage for this download and installation reserve. Choose a smaller model or free storage, then retry.');
+  }
 }
 
-/** Resolve one official publisher file to an immutable commit and its LFS SHA-256.
- * This is an explicit setup step; discovery never contacts the publisher.
- */
-export async function resolveCatalogGguf({ choiceId, signal } = {}) {
-  const choice = localModelCatalog.find(item => item.id === choiceId);
-  if (!choice) throw fail('local_setup_choice_invalid', 'Choose one of the displayed local models.');
-  const endpoint = `https://huggingface.co/api/models/${choice.publisher}/revision/main?blobs=true`;
-  const bounded = AbortSignal.any([AbortSignal.timeout(20_000), ...(signal ? [signal] : [])]);
-  let response;
+async function hashFile(filename, { signal, gguf = false, maxBytes = MAX_EXTRACTED, privateFile = true } = {}) {
+  const handle = await open(filename, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
   try {
-    response = await fetch(endpoint, { redirect: 'error', signal: bounded });
-    if (!response.ok || !response.body) throw fail('local_publisher_unavailable', `The official model metadata returned HTTP ${response.status}. No alternate source was tried.`);
-    const chunks = []; let metadataBytes = 0;
+    const before = await handle.stat();
+    if (!before.isFile() || before.size < (gguf ? 4 : 0) || before.size > maxBytes
+      || privateFile && (!owned(before) || process.platform !== 'win32' && (before.mode & 0o077) !== 0)) {
+      throw fail('model_existing_invalid', 'An existing asset is not a recognized private regular file. Preserve it and choose another assets directory.');
+    }
+    if (gguf) {
+      const header = Buffer.alloc(4);
+      if ((await handle.read(header, 0, 4, 0)).bytesRead !== 4 || header.toString('ascii') !== 'GGUF') {
+        throw fail('model_existing_invalid', 'The existing model has no GGUF header. It was preserved.');
+      }
+    }
+    const hash = createHash('sha256');
+    for await (const chunk of handle.createReadStream({ autoClose: false, signal })) {
+      cancelled(signal); hash.update(chunk);
+    }
+    const after = await handle.stat();
+    if (after.size !== before.size || after.mtimeMs !== before.mtimeMs || after.ino !== before.ino) {
+      throw fail('model_asset_changed', 'An asset changed during verification. No replacement was attempted.');
+    }
+    return { sha256: hash.digest('hex'), bytes: before.size, mode: before.mode & 0o777 };
+  } finally { await handle.close(); }
+}
+
+async function notify(callback, event, signal) {
+  cancelled(signal);
+  if (!callback) return;
+  let abort;
+  try {
+    await Promise.race([Promise.resolve().then(() => callback(event)), ...(signal ? [new Promise((resolve, reject) => {
+      abort = () => reject(signal.reason); signal.addEventListener('abort', abort, { once: true });
+      if (signal.aborted) abort();
+    })] : [])]);
+  } finally { if (abort) signal.removeEventListener('abort', abort); }
+}
+
+/** Acquire one selected immutable GGUF. Existing files are verified, never replaced. */
+export async function installLocalModel({ id, directory, signal, onProgress } = {}) {
+  const model = LOCAL_MODEL_CATALOG.find(item => item.id === id);
+  if (!model) throw fail('model_choice_invalid', 'Choose an available model from the Koto catalog.');
+  if (onProgress !== undefined && typeof onProgress !== 'function') throw new TypeError('onProgress must be a function.');
+  return serialized(async () => {
+    directory = await privateDirectory(directory);
+    const modelPath = path.join(directory, model.filename);
+    if (await maybeStat(modelPath)) {
+      await notify(onProgress, { type: 'verify', id, bytes: model.bytes }, signal);
+      const existing = await hashFile(modelPath, { signal, gguf: true, maxBytes: model.bytes });
+      if (existing.bytes !== model.bytes || existing.sha256 !== model.sha256) {
+        throw fail('model_existing_mismatch', 'The existing model does not match its catalog identity. It was preserved; choose another model directory.');
+      }
+      return { id, modelPath, path: modelPath, ...existing, reused: true, model: { ...model } };
+    }
+    await reserveDisk(directory, model.bytes + 256 * MIB);
+    const lockPath = `${modelPath}.lock`;
+    let lock;
+    try {
+      try { lock = await open(lockPath, 'wx', 0o600); }
+      catch (error) {
+        if (error.code === 'EEXIST') throw fail('model_install_busy', 'This model is being installed by another Koto process. Let it finish before retrying.');
+        throw error;
+      }
+      const result = await downloadGguf({ url: model.url, destination: modelPath, sha256: model.sha256,
+        maxBytes: model.bytes, signal, timeoutMs: 3_600_000,
+        onProgress: event => onProgress?.({ ...event, id, totalBytes: model.bytes }) });
+      if (result.bytes !== model.bytes) throw fail('model_download_size', 'The model did not match its pinned size.');
+      return { ...result, id, modelPath, reused: false, model: { ...model } };
+    } finally { if (lock) { await lock.close(); await unlink(lockPath); } }
+  }, signal);
+}
+
+async function downloadArchive(asset, filename, signal, onProgress) {
+  let response, file;
+  let source = new URL(asset.url), bytes = 0;
+  const hash = createHash('sha256');
+  try {
+    file = await open(filename, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW, 0o600);
+    for (let redirects = 0; ; redirects += 1) {
+      const headers = new AbortController();
+      const timer = setTimeout(() => headers.abort(), 30_000);
+      try { response = await fetch(source, { signal: AbortSignal.any([signal, headers.signal]), redirect: 'manual' }); }
+      finally { clearTimeout(timer); }
+      if (![301, 302, 303, 307, 308].includes(response.status)) break;
+      const location = response.headers.get('location');
+      await response.body?.cancel();
+      if (!location || redirects >= 5) throw fail('runtime_download_redirect', 'The runtime source exceeded its redirect limit.');
+      source = new URL(location, source);
+      if (source.protocol !== 'https:' || source.username || source.password) throw fail('runtime_download_redirect', 'Runtime redirects must use HTTPS without embedded credentials.');
+    }
+    if (!response.ok || !response.body) throw fail('runtime_download_failed', `The runtime source returned HTTP ${response.status}. Retry later${response.status === 429 ? ' after the provider rate limit resets' : ''}.`);
+    const announced = response.headers.get('content-length');
+    if (announced !== null && Number(announced) !== asset.bytes) throw fail('runtime_download_size', 'The runtime source announced a different archive size.');
     for await (const chunk of response.body) {
-      metadataBytes += chunk.length;
-      if (metadataBytes > 4 * 1024 ** 2) throw fail('local_publisher_metadata_invalid', 'Publisher model metadata exceeded its bounded size.');
-      chunks.push(chunk);
-    }
-    let data;
-    try { data = JSON.parse(Buffer.concat(chunks).toString('utf8')); }
-    catch { throw fail('local_publisher_metadata_invalid', 'The publisher did not return valid model metadata.'); }
-    if (data?.id !== choice.publisher || !/^[0-9a-f]{40}$/i.test(data.sha) || !Array.isArray(data.siblings)) {
-      throw fail('local_publisher_metadata_invalid', 'The model metadata did not identify the expected publisher and immutable source revision.');
-    }
-    const files = data.siblings.filter(item => typeof item?.rfilename === 'string'
-      && /^[A-Za-z0-9._-]+\.gguf$/i.test(item.rfilename) && /(?:^|[-_.])Q4_K_M\.gguf$/i.test(item.rfilename));
-    if (files.length !== 1) throw fail('local_publisher_model_unavailable', 'The official repository did not identify one complete Q4_K_M GGUF file. Split or ambiguous downloads need the advanced model command.');
-    const file = files[0], sha256 = file.lfs?.sha256, bytes = file.lfs?.size ?? file.size;
-    if (!/^[0-9a-f]{64}$/i.test(sha256 ?? '') || !Number.isSafeInteger(bytes) || bytes < 4 || bytes > 128 * GIB) {
-      throw fail('local_publisher_digest_unavailable', 'The publisher did not provide a SHA-256 digest and bounded file size. No unverified model was downloaded.');
-    }
-    return Object.freeze({ choiceId, publisher: choice.publisher, revision: data.sha.toLowerCase(),
-      filename: file.rfilename, sha256: sha256.toLowerCase(), bytes,
-      url: `https://huggingface.co/${choice.publisher}/resolve/${data.sha}/${encodeURIComponent(file.rfilename)}` });
-  } catch (error) {
-    if (error.code?.startsWith('local_')) throw error;
-    if (bounded.aborted) throw fail('local_publisher_cancelled', 'Model metadata retrieval was cancelled or timed out.');
-    throw fail('local_publisher_unavailable', 'Official model metadata is unavailable. No alternate source was tried; skip local setup or retry later.');
-  } finally { await response?.body?.cancel().catch(() => {}); }
-}
-
-async function reuseModel(filename, model, signal) {
-  let file;
-  try { file = await open(filename, constants.O_RDONLY | constants.O_NOFOLLOW); }
-  catch (error) { if (error.code === 'ENOENT') return false; throw error; }
-  try {
-    const before = await file.stat();
-    if (!before.isFile() || before.size !== model.bytes) throw fail('local_setup_existing_model_changed', 'An existing model occupies this versioned filename but has a different size. It was preserved.');
-    const hash = createHash('sha256'); let prefix = Buffer.alloc(0);
-    for await (const chunk of file.createReadStream({ autoClose: false, signal })) {
-      if (prefix.length < 4) prefix = Buffer.concat([prefix, chunk.subarray(0, 4 - prefix.length)]);
+      cancelled(signal); bytes += chunk.length;
+      if (bytes > asset.bytes) throw fail('runtime_download_size', 'The runtime archive exceeded its pinned byte limit.');
       hash.update(chunk);
+      let offset = 0;
+      while (offset < chunk.length) {
+        cancelled(signal);
+        const written = (await file.write(chunk, offset, chunk.length - offset)).bytesWritten;
+        if (!written) throw fail('runtime_download_write', 'The runtime archive could not be written completely.');
+        offset += written;
+      }
+      await notify(onProgress, { type: 'runtime-download', bytes, totalBytes: asset.bytes }, signal);
     }
-    const after = await file.stat();
-    if (prefix.toString('ascii') !== 'GGUF' || hash.digest('hex') !== model.sha256
-      || before.size !== after.size || before.mtimeMs !== after.mtimeMs) {
-      throw fail('local_setup_existing_model_changed', 'The retained model does not match its official digest. It was preserved; no overwrite or alternate model was attempted.');
-    }
-    return true;
-  } finally { await file.close(); }
+    if (bytes !== asset.bytes || hash.digest('hex') !== asset.sha256) throw fail('runtime_download_integrity', 'The runtime archive did not match its pinned size and SHA-256 digest.');
+    await file.sync();
+  } finally {
+    await response?.body?.cancel().catch(() => {});
+    await file?.close();
+  }
 }
 
-async function saveReceipt(directory, receipt) {
-  const filename = path.join(directory, `${receipt.sha256}.json`);
-  const temporary = path.join(directory, `.model-${randomUUID()}.json`);
-  await writeFile(temporary, `${JSON.stringify(receipt, null, 2)}\n`, { mode: 0o600, flag: 'wx' });
-  await rename(temporary, filename);
+function safeName(value) {
+  if (typeof value !== 'string' || value.length > 2048 || /[\0-\x1f\\:]/.test(value) || value.startsWith('/')
+    || value.split('/').some(part => part === '..')) throw fail('runtime_archive_path', 'The runtime archive contains an unsafe path.');
+  const name = path.posix.normalize(value).replace(/\/$/, '');
+  return name === '.' ? '' : name;
 }
 
-/** Guided, explicit asset acquisition. Caller owns a returned llama server and must stop it.
- * Every executable build, download and startup has its own concrete approval.
- * No model inference is requested here; ready means runtime health/model metadata only.
- */
-export async function setupLocalModel({ choiceId, route = 'ollama', directory = defaultStateDirectory,
-  ollamaCommand = 'ollama', llamaCommand = 'llama-server', approve, onProgress, signal,
-  start = true } = {}) {
-  const choice = localModelCatalog.find(item => item.id === choiceId);
-  if (!choice || !['ollama', 'llama'].includes(route)) throw fail('local_setup_choice_invalid', 'Choose one displayed model and Ollama or llama.cpp.');
-  if (totalmem() < choice.minimumMemoryBytes) throw fail('local_setup_memory_low', 'This machine is below the displayed minimum-memory estimate. Choose a smaller model.');
-  if (route === 'ollama') {
-    const runtimes = await discoverLocalModels({ ollamaCommand, llamaCommand, signal });
-    const runtime = runtimes.ollama;
-    if (!runtime.executable || !runtime.reachable) {
-      throw Object.assign(fail('local_setup_ollama_required', 'Install or open the official Ollama app at https://ollama.com/download, then retry. Setup did not start or install another service.'),
-        { installUrl: 'https://ollama.com/download' });
+function inside(directory, filename) {
+  const relative = path.relative(directory, filename);
+  return relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative);
+}
+
+function tarNumber(buffer) {
+  const text = buffer.toString('ascii').replace(/\0.*$/, '').trim();
+  if (!/^[0-7]+$/.test(text)) throw fail('runtime_archive_format', 'The runtime archive has an unsupported numeric header.');
+  const value = Number.parseInt(text, 8);
+  if (!Number.isSafeInteger(value) || value < 0) throw fail('runtime_archive_limit', 'The runtime archive has an invalid entry size.');
+  return value;
+}
+
+function tarText(buffer) { return buffer.toString('utf8').replace(/\0.*$/s, ''); }
+
+function paxValues(buffer) {
+  const result = {};
+  for (let offset = 0; offset < buffer.length;) {
+    const separator = buffer.indexOf(32, offset);
+    const count = Number(buffer.subarray(offset, separator).toString('ascii'));
+    if (separator < offset || !Number.isSafeInteger(count) || count < 4 || offset + count > buffer.length
+      || buffer[offset + count - 1] !== 10) throw fail('runtime_archive_format', 'The runtime archive has invalid extended metadata.');
+    const line = buffer.subarray(separator + 1, offset + count - 1).toString('utf8');
+    const equal = line.indexOf('=');
+    if (equal < 1) throw fail('runtime_archive_format', 'The runtime archive has invalid extended metadata.');
+    result[line.slice(0, equal)] = line.slice(equal + 1);
+    offset += count;
+  }
+  return result;
+}
+
+// Parse tar entries directly so no platform tool can extract a path before it
+// has been checked. Entry payloads stream to private files; symlinks wait until
+// all ordinary files/directories exist and may only point to internal files.
+async function extractTar(archive, directory, signal) {
+  const input = createReadStream(archive, { signal });
+  const gunzip = createGunzip();
+  const forwardError = error => gunzip.destroy(error);
+  input.on('error', forwardError); input.pipe(gunzip);
+  const iterator = gunzip[Symbol.asyncIterator]();
+  let pending = Buffer.alloc(0), decompressed = 0, count = 0, total = 0;
+  const read = async (size, allowEnd = false) => {
+    while (pending.length < size) {
+      cancelled(signal);
+      const next = await iterator.next();
+      if (next.done) {
+        if (allowEnd && pending.length === 0) return null;
+        throw fail('runtime_archive_truncated', 'The runtime archive ended before its entries were complete.');
+      }
+      decompressed += next.value.length;
+      if (decompressed > MAX_EXTRACTED) throw fail('runtime_archive_limit', 'The runtime archive exceeded its extraction byte cap.');
+      pending = pending.length ? Buffer.concat([pending, next.value]) : next.value;
     }
-    const existing = runtime.models.find(item => item.id === choice.ollamaModel);
-    if (existing) return { route, reused: true, model: existing.id, endpoint: runtime.apiBaseUrl,
-      command: runtime.executable, inferenceVerified: false };
-    await requireSpace(directory, choice.downloadEstimateBytes);
-    await approveAction(approve, { action: 'pull-model', runtime: 'ollama', model: choice.ollamaModel,
-      downloadEstimateBytes: choice.downloadEstimateBytes, source: 'https://ollama.com/library/qwen3',
-      message: 'Native Ollama downloads and retains the model layers. The displayed size is an estimate; native pull reports actual progress.' }, signal);
-    const installed = await pullOllamaModel({ model: choice.ollamaModel, command: runtime.executable,
-      signal, onProgress });
-    return { route, reused: false, model: installed.id, endpoint: installed.apiBaseUrl,
-      command: installed.executable, inferenceVerified: false };
+    const bytes = pending.subarray(0, size); pending = pending.subarray(size); return bytes;
+  };
+  const links = [], names = new Set();
+  let extended = {}, longName, longLink;
+  try {
+    for (;;) {
+      const header = await read(512, true);
+      if (!header || header.every(byte => byte === 0)) break;
+      const checksum = tarNumber(header.subarray(148, 156));
+      let sum = 0;
+      for (let index = 0; index < 512; index += 1) sum += index >= 148 && index < 156 ? 32 : header[index];
+      if (sum !== checksum) throw fail('runtime_archive_format', 'The runtime archive has an invalid header checksum.');
+      if (++count > MAX_FILES) throw fail('runtime_archive_limit', 'The runtime archive has too many entries.');
+      const size = tarNumber(header.subarray(124, 136));
+      const type = String.fromCharCode(header[156] || 48);
+      if (size > MAX_EXTRACTED || (total += size) > MAX_EXTRACTED) throw fail('runtime_archive_limit', 'The runtime archive exceeded its extraction byte cap.');
+      const pad = (512 - size % 512) % 512;
+      if (['x', 'g', 'L', 'K'].includes(type)) {
+        if (size > 16 * 1024 || type === 'g') throw fail('runtime_archive_format', 'The runtime archive has unsupported extended metadata.');
+        const content = await read(size);
+        if (type === 'x') extended = paxValues(content);
+        else if (type === 'L') longName = tarText(content).replace(/\n$/, '');
+        else longLink = tarText(content).replace(/\n$/, '');
+        await read(pad); continue;
+      }
+      const prefix = tarText(header.subarray(345, 500));
+      const name = safeName(extended.path ?? longName ?? `${prefix ? `${prefix}/` : ''}${tarText(header.subarray(0, 100))}`);
+      const linkName = extended.linkpath ?? longLink ?? tarText(header.subarray(157, 257));
+      if (extended.size !== undefined && Number(extended.size) !== size) throw fail('runtime_archive_format', 'The runtime archive has an unsupported extended entry size.');
+      extended = {}; longName = undefined; longLink = undefined;
+      if (!name) {
+        if (type !== '5' || size !== 0) throw fail('runtime_archive_path', 'The runtime archive has an invalid root entry.');
+        continue;
+      }
+      if (names.has(name)) throw fail('runtime_archive_path', 'The runtime archive repeats an entry path.');
+      names.add(name);
+      const target = path.join(directory, ...name.split('/'));
+      if (type === '5') {
+        if (size !== 0) throw fail('runtime_archive_format', 'The runtime archive directory contains unexpected data.');
+        await mkdir(target, { recursive: true, mode: 0o700 });
+      } else if (type === '0') {
+        await mkdir(path.dirname(target), { recursive: true, mode: 0o700 });
+        const output = await open(target, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW, 0o600);
+        try {
+          for (let remaining = size; remaining > 0;) {
+            const chunk = await read(Math.min(64 * 1024, remaining));
+            let offset = 0;
+            while (offset < chunk.length) {
+              cancelled(signal);
+              const written = (await output.write(chunk, offset, chunk.length - offset)).bytesWritten;
+              if (!written) throw fail('runtime_extract_write', 'The runtime could not be extracted completely.');
+              offset += written;
+            }
+            remaining -= chunk.length;
+          }
+        } finally { await output.close(); }
+        if ((tarNumber(header.subarray(100, 108)) & 0o111) !== 0) await chmod(target, 0o700);
+      } else if (type === '2' || type === '1') {
+        if (size !== 0 || !linkName || /[\0-\x1f\\:]/.test(linkName) || linkName.startsWith('/')) throw fail('runtime_archive_link', 'The runtime archive has an unsafe link.');
+        const destination = path.resolve(type === '1' ? directory : path.dirname(target), linkName);
+        if (!inside(directory, destination)) throw fail('runtime_archive_link', 'The runtime archive link leaves its installation directory.');
+        links.push({ target, linkName, destination, hard: type === '1' });
+      } else throw fail('runtime_archive_type', 'The runtime archive contains an unsupported file type.');
+      await read(pad);
+    }
+    for (const item of links) {
+      await mkdir(path.dirname(item.target), { recursive: true, mode: 0o700 });
+      if (item.hard) {
+        const info = await lstat(item.destination);
+        if (!info.isFile() || info.isSymbolicLink()) throw fail('runtime_archive_link', 'The runtime archive hard link does not identify an ordinary file.');
+        await link(item.destination, item.target);
+      } else await symlink(item.linkName, item.target);
+    }
+    for (const item of links) {
+      const resolved = await realpath(item.target);
+      if (!inside(directory, resolved) || !(await lstat(resolved)).isFile()) throw fail('runtime_archive_link', 'The runtime archive link does not resolve to an internal regular file.');
+    }
+  } finally {
+    const closed = Promise.allSettled([finished(input), finished(gunzip)]);
+    input.unpipe(gunzip); input.destroy(); gunzip.destroy();
+    await iterator.return?.().catch(() => {}); await closed;
+    input.removeListener('error', forwardError);
   }
-  if (!['darwin', 'linux'].includes(process.platform)) {
-    throw fail('local_setup_llama_platform_unsupported', 'Guided llama.cpp source acquisition currently supports macOS and Linux. Use an installed, running Ollama runtime on this platform.');
+}
+
+async function extractZip(archive, directory, signal) {
+  // .NET opens individual entries with CreateNew only after validating their
+  // paths, Unix file types and cumulative uncompressed sizes. No shell is used.
+  const script = String.raw`$ErrorActionPreference='Stop'
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+$zip=[IO.Compression.ZipFile]::OpenRead($env:KOTO_RUNTIME_ARCHIVE)
+$root=[IO.Path]::GetFullPath($env:KOTO_RUNTIME_STAGE)+[IO.Path]::DirectorySeparatorChar
+$total=[long]0
+try {
+ if($zip.Entries.Count -gt 4096){throw 'Too many archive entries'}
+ foreach($e in $zip.Entries){
+  $name=$e.FullName
+  if($name.Length -gt 2048 -or $name -match '[\\:\x00-\x1f]' -or $name.StartsWith('/') -or ($name.Split('/') -contains '..')){throw 'Unsafe archive path'}
+  $target=[IO.Path]::GetFullPath([IO.Path]::Combine($root,$name))
+  if(-not $target.StartsWith($root,[StringComparison]::OrdinalIgnoreCase)){throw 'Archive path leaves installation'}
+  $kind=($e.ExternalAttributes -shr 16) -band 61440
+  if($kind -ne 0 -and $kind -ne 32768 -and $kind -ne 16384){throw 'Unsupported archive file type'}
+  $total+=$e.Length
+  if($total -gt 536870912 -or $e.Length -gt 536870912){throw 'Archive byte limit'}
+  if($name.EndsWith('/')){[IO.Directory]::CreateDirectory($target)|Out-Null;continue}
+  [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($target))|Out-Null
+  $entryStream=$e.Open();$output=$null
+  try{
+   $output=[IO.File]::Open($target,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None)
+   $buffer=New-Object byte[] 65536;$written=[long]0
+   while(($n=$entryStream.Read($buffer,0,$buffer.Length)) -gt 0){$written+=$n;if($written -gt $e.Length){throw 'Archive size mismatch'};$output.Write($buffer,0,$n)}
+   if($written -ne $e.Length){throw 'Truncated archive entry'}
+  }finally{if($output){$output.Dispose()};$entryStream.Dispose()}
+ }
+}finally{$zip.Dispose()}`;
+  const command = await resolveAgentExecutable('powershell.exe');
+  const handle = await startSetupCommand({ id: 'runtimeExtract', command,
+    args: ['-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(script, 'utf16le').toString('base64')],
+    env: { ...process.env, KOTO_RUNTIME_ARCHIVE: archive, KOTO_RUNTIME_STAGE: directory },
+    timeoutMs: 120_000, signal });
+  handle.endInput();
+  const result = await handle.completion;
+  if (result.error === 'cleanup_unconfirmed') throw fail('runtime_cleanup_unconfirmed', 'The owned archive extractor did not confirm cleanup. Its staging files were retained.');
+  throwOnResourceExhaustion({ code: result.error }, 'runtime_socket_exhausted');
+  if (result.status !== 'succeeded') throw fail('runtime_extract_failed', 'The Windows runtime archive could not be extracted safely. Inspect native platform availability before retrying.');
+}
+
+async function inventory(directory, signal, prefix = '', result = []) {
+  const entries = await readdir(path.join(directory, prefix), { withFileTypes: true });
+  for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
+    cancelled(signal);
+    const name = prefix ? `${prefix}/${entry.name}` : entry.name;
+    if (name === 'koto-runtime.json') continue;
+    safeName(name);
+    const filename = path.join(directory, ...name.split('/'));
+    const info = await lstat(filename);
+    if (!owned(info) || process.platform !== 'win32' && (info.mode & 0o077) !== 0 && !info.isSymbolicLink()) throw fail('runtime_existing_invalid', 'Runtime files must remain private and owned by your account.');
+    if (entry.isDirectory()) {
+      result.push({ name, type: 'directory' });
+      if (result.length > MAX_FILES) throw fail('runtime_archive_limit', 'The runtime has too many entries.');
+      await inventory(directory, signal, name, result);
+    } else if (entry.isSymbolicLink()) {
+      const resolved = await realpath(filename);
+      if (!inside(directory, resolved) || !(await lstat(resolved)).isFile()) throw fail('runtime_existing_invalid', 'A runtime link does not resolve to an internal file.');
+      result.push({ name, type: 'symlink', target: await readlink(filename) });
+    } else if (entry.isFile()) {
+      if (result.reduce((sum, item) => sum + (item.bytes ?? 0), info.size) > MAX_EXTRACTED) throw fail('runtime_archive_limit', 'The runtime exceeds its installed byte limit.');
+      result.push({ name, type: 'file', ...(await hashFile(filename, { signal })) });
+    }
+    else throw fail('runtime_existing_invalid', 'The runtime contains an unsupported filesystem entry.');
+    if (result.length > MAX_FILES) throw fail('runtime_archive_limit', 'The runtime has too many entries.');
   }
-  const retained = (await listRetainedLocalModels(directory)).filter(item => item.choiceId === choiceId);
-  // Prefer the previously approved pinned revision; changing upstream tags do not
-  // silently replace retained weights or force a network check on returning users.
-  const model = retained.at(-1) ?? await resolveCatalogGguf({ choiceId, signal });
-  const modelDirectory = await storageDirectory(path.join(directory, 'models'));
-  const filename = path.join(modelDirectory, `${model.sha256.slice(0, 16)}-${model.filename}`);
-  let command, runtimeReceipt;
-  try { command = await resolveAgentExecutable(llamaCommand); }
-  catch {
-    await requireSpace(directory, 2 * GIB);
-    await approveAction(approve, { action: 'build-runtime', runtime: 'llama.cpp', commit: guidedLlamaCommit,
-      source: 'https://github.com/ggml-org/llama.cpp',
-      directory: path.join(directory, 'runtimes'),
-      message: 'Compile the official pinned source using your installed Git, CMake and C/C++ toolchain. This can take several minutes; Koto does not install compilers.' }, signal);
-    runtimeReceipt = await buildLlamaRuntime({ commit: guidedLlamaCommit, installDirectory: path.join(directory, 'runtimes'),
-      approveBuild: true, signal, onEvent: onProgress });
-    command = runtimeReceipt.path;
+  if (prefix === '' && result.reduce((sum, item) => sum + (item.bytes ?? 0), 0) > MAX_EXTRACTED) throw fail('runtime_archive_limit', 'The runtime exceeds its installed byte limit.');
+  return result;
+}
+
+async function readReceipt(payload, asset, signal) {
+  const payloadInfo = await maybeStat(payload);
+  if (!payloadInfo?.isDirectory() || payloadInfo.isSymbolicLink() || !owned(payloadInfo)
+    || process.platform !== 'win32' && (payloadInfo.mode & 0o077) !== 0) throw fail('runtime_existing_invalid', 'The installed runtime directory is not recognized. Its files were preserved.');
+  const filename = path.join(payload, 'koto-runtime.json');
+  const info = await maybeStat(filename);
+  if (!info?.isFile() || info.isSymbolicLink() || info.size > 2 * MIB || !owned(info)
+    || process.platform !== 'win32' && (info.mode & 0o077) !== 0) throw fail('runtime_existing_invalid', 'This runtime installation is incomplete or unrecognized. Preserve it and select another runtime directory.');
+  const file = await open(filename, constants.O_RDONLY | constants.O_NOFOLLOW);
+  let receipt;
+  try {
+    cancelled(signal);
+    const buffer = Buffer.alloc(2 * MIB + 1);
+    const { bytesRead } = await file.read(buffer, 0, buffer.length, 0);
+    if (bytesRead > 2 * MIB) throw new Error('receipt_size');
+    receipt = JSON.parse(buffer.subarray(0, bytesRead).toString('utf8'));
   }
-  const reused = await reuseModel(filename, model, signal);
-  if (!reused) {
-    await requireSpace(modelDirectory, model.bytes);
-    await approveAction(approve, { action: 'download-model', model: choice.name,
-      source: model.url, sha256: model.sha256, downloadBytes: model.bytes, destination: filename,
-      message: 'Download the official publisher file at its immutable revision and verify its SHA-256 before use.' }, signal);
-    await downloadGguf({ url: model.url, destination: filename, sha256: model.sha256,
-      maxBytes: model.bytes, signal, onProgress });
+  catch { throw fail('runtime_existing_invalid', 'The existing runtime receipt is invalid. Its files were preserved.'); }
+  finally { await file.close(); }
+  if (receipt.kind !== RECEIPT || receipt.version !== asset.version || receipt.platform !== process.platform
+    || receipt.arch !== process.arch || receipt.archiveSha256 !== asset.sha256 || receipt.archiveBytes !== asset.bytes
+    || receipt.source !== asset.url || !Array.isArray(receipt.files) || receipt.files.length > MAX_FILES
+    || JSON.stringify(receipt.files) !== JSON.stringify(await inventory(payload, signal))) {
+    throw fail('runtime_existing_mismatch', 'The installed runtime differs from its pinned receipt. It was preserved; choose another runtime directory.');
   }
-  await saveReceipt(modelDirectory, { schemaVersion: 1, kind: 'koto-publisher-gguf', ...model,
-    path: filename, acquiredAt: new Date().toISOString() });
-  const result = { route, reused, modelPath: filename, command, publisher: model.publisher,
-    sha256: model.sha256, ...(runtimeReceipt ? { runtimeReceipt } : {}), inferenceVerified: false };
-  if (!start) return result;
-  if (freemem() < choice.estimatedWorkingBytes + GIB) {
-    throw fail('local_setup_memory_busy', 'The assets are retained, but available memory is below the displayed working estimate plus reserve. Close other apps, then start the retained model.');
-  }
-  const modelId = `local-${choice.id}-q4_k_m`;
-  await approveAction(approve, { action: 'start-runtime', runtime: 'llama.cpp', model: choice.name,
-    modelPath: filename, command, endpoint: 'http://127.0.0.1:18089/v1', contextSize: 8192,
-    message: 'Start one owned CPU-only local server with a memory guard. Quit stops this owned server. This does not request model inference.' }, signal);
-  const server = await startLlamaServer({ command, modelPath: filename, modelId, signal, onEvent: onProgress });
-  const metadata = await server.ready;
-  // Verify the selected alias from actual metadata rather than assuming startup succeeded.
-  if (!metadata.models.some(item => item.id === modelId)) {
-    const stopped = await server.stop();
-    throw fail(stopped.error === 'cleanup_unconfirmed' ? 'local_setup_cleanup_unconfirmed' : 'local_setup_model_not_listed',
-      'The owned server did not list the selected model alias. Inspect its native output before retrying.');
-  }
-  return { ...result, model: modelId, endpoint: server.apiBaseUrl, server };
+  const binary = safeName(receipt.binary);
+  const executable = path.join(payload, ...binary.split('/'));
+  if (!binary || path.basename(binary) !== (process.platform === 'win32' ? 'llama-server.exe' : 'llama-server')
+    || !receipt.files.some(item => item.name === binary && item.type === 'file')
+    || process.platform !== 'win32' && ((await lstat(executable)).mode & 0o111) === 0) throw fail('runtime_existing_invalid', 'The runtime receipt does not identify its executable.');
+  return { ...receipt, path: executable, executable, directory: payload, receiptPath: filename, reused: true };
+}
+
+/** Acquire the pinned publisher runtime for this host without a compiler. */
+export async function acquireLlamaRuntime({ directory, signal, onProgress } = {}) {
+  const asset = LLAMA_RUNTIME_CATALOG[`${process.platform}-${process.arch}`];
+  if (!asset) throw fail('runtime_platform_unavailable', 'No bundled runtime choice is available for this host. Use an existing compatible llama-server.');
+  if (onProgress !== undefined && typeof onProgress !== 'function') throw new TypeError('onProgress must be a function.');
+  return serialized(async () => {
+    directory = await privateDirectory(directory);
+    const target = path.join(directory, `llama-${asset.version}-${process.platform}-${process.arch}`);
+    const payload = path.join(target, 'runtime');
+    if (await maybeStat(target)) {
+      const info = await lstat(target);
+      if (!info.isDirectory() || info.isSymbolicLink() || !owned(info)
+        || process.platform !== 'win32' && (info.mode & 0o077) !== 0) throw fail('runtime_existing_invalid', 'An unrecognized runtime already occupies the selected versioned path.');
+      if ((await readdir(target)).length === 0) await rmdir(target); // Only an empty interrupted publication.
+      else {
+        if (JSON.stringify(await readdir(target)) !== JSON.stringify(['runtime'])) throw fail('runtime_existing_invalid', 'The runtime directory contains unrecognized entries. They were preserved.');
+        return readReceipt(payload, asset, signal);
+      }
+    }
+    await reserveDisk(directory, asset.bytes + MAX_EXTRACTED + 64 * MIB);
+    const lockPath = `${target}.lock`;
+    let lock, stage, cleanupUnconfirmed = false, targetCreated = false;
+    const bounded = AbortSignal.any([AbortSignal.timeout(600_000), ...(signal ? [signal] : [])]);
+    try {
+      try { lock = await open(lockPath, 'wx', 0o600); }
+      catch (error) {
+        if (error.code === 'EEXIST') throw fail('runtime_install_busy', 'This runtime is being installed by another Koto process. Let it finish before retrying.');
+        throw error;
+      }
+      stage = await mkdtemp(path.join(directory, '.llama-download-'));
+      const archive = path.join(stage, asset.filename), extracted = path.join(stage, 'runtime');
+      await mkdir(extracted, { mode: 0o700 });
+      await downloadArchive(asset, archive, bounded, onProgress);
+      await notify(onProgress, { type: 'runtime-extract', version: asset.version }, bounded);
+      if (asset.filename.endsWith('.zip')) await extractZip(archive, extracted, bounded);
+      else await extractTar(archive, extracted, bounded);
+      const files = await inventory(extracted, bounded);
+      const binaries = files.filter(item => item.type === 'file' && path.posix.basename(item.name)
+        === (process.platform === 'win32' ? 'llama-server.exe' : 'llama-server'));
+      if (binaries.length !== 1) throw fail('runtime_binary_missing', 'The publisher archive did not contain one unambiguous llama-server executable.');
+      const binary = binaries[0].name;
+      if (process.platform !== 'win32' && (binaries[0].mode & 0o111) === 0) throw fail('runtime_binary_missing', 'The publisher runtime did not mark llama-server executable.');
+      const receipt = { kind: RECEIPT, version: asset.version, commit: asset.commit, platform: process.platform,
+        arch: process.arch, source: asset.url, archiveSha256: asset.sha256, archiveBytes: asset.bytes,
+        binary, files, installedAt: new Date().toISOString() };
+      await writeFile(path.join(extracted, 'koto-runtime.json'), `${JSON.stringify(receipt, null, 2)}\n`, { flag: 'wx', mode: 0o600 });
+      cancelled(bounded);
+      await mkdir(target, { mode: 0o700 }); targetCreated = true;
+      await rename(extracted, payload); // Target directory was created exclusively; no existing assets are replaced.
+      return { ...receipt, path: path.join(payload, ...binary.split('/')),
+        executable: path.join(payload, ...binary.split('/')), directory: payload,
+        receiptPath: path.join(payload, 'koto-runtime.json'), reused: false };
+    } catch (error) {
+      cleanupUnconfirmed = error.code === 'runtime_cleanup_unconfirmed';
+      if (cleanupUnconfirmed) throw error;
+      throwOnResourceExhaustion(error, 'runtime_socket_exhausted');
+      if (bounded.aborted) throw fail('runtime_install_cancelled', 'Runtime setup was interrupted or reached its deadline. Its incomplete download was removed; existing installations were preserved.');
+      throw error;
+    } finally {
+      if (stage && !cleanupUnconfirmed) await rm(stage, { recursive: true, force: true });
+      if (targetCreated) await rmdir(target).catch(error => { if (!['ENOENT', 'ENOTEMPTY', 'EEXIST'].includes(error.code)) throw error; });
+      if (lock) { await lock.close(); if (!cleanupUnconfirmed) await unlink(lockPath); }
+    }
+  }, signal);
 }

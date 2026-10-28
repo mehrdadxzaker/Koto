@@ -1,5 +1,6 @@
 /** Foreground native-terminal rendering is an explicit operator action.
  * Background output stays in the shared session's bounded logs and tails.
+ * onDetach returns true only after taking ownership of raw terminal input.
  */
 export function attachNativeTerminal({ session, agentId, write, onDetach }) {
   if (!process.stdin.isTTY || !process.stdout.isTTY || typeof process.stdin.setRawMode !== 'function') {
@@ -19,9 +20,15 @@ export function attachNativeTerminal({ session, agentId, write, onDetach }) {
     process.stdin.removeListener('error', ended);
     process.stdout.removeListener('resize', resize);
     let restorationFailed = false;
-    try { process.stdin.setRawMode(previousRaw); } catch { restorationFailed = true; }
+    let inputHandedOff = false;
     try { write(reset); } catch { restorationFailed = true; }
-    try { onDetach?.(reason); } catch { restorationFailed = true; }
+    try { inputHandedOff = onDetach?.(reason) === true; } catch { restorationFailed = true; }
+    // Readline also needs raw input. Keep it enabled across a successful
+    // ownership transfer rather than switching a flowing Windows console
+    // through cooked mode and immediately back to raw mode.
+    if (!inputHandedOff || restorationFailed) {
+      try { process.stdin.setRawMode(previousRaw); } catch { restorationFailed = true; }
+    }
     // Losing the operator's terminal must not leave unattended sessions running.
     if (restorationFailed) session.stop();
   };

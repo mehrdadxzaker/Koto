@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { createOwnedWorkerLifetime } from './owned-worker-lifetime.js';
+import { createOwnedWorkerLifetime, ownedProcessErrorCode } from './owned-worker-lifetime.js';
 import { isAbsolute } from 'node:path';
 import { StringDecoder } from 'node:string_decoder';
 import { TextDecoder } from 'node:util';
@@ -22,6 +22,26 @@ const HELPER_REASONS = new Set([
   'eof_unavailable', 'child_setup_failed', 'session_inspection_failed', 'cleanup_timeout',
 ]);
 const EXPECTED_STOP_REASONS = new Set(['stopped', 'host_signal']);
+const WINDOWS_PHASE_OPERATIONS = new Set(['resume_process', 'resize_console', 'stop_requested',
+  'terminate_job', 'wait_job', 'close_console', 'join_threads']);
+const WINDOWS_PHASE_FIELDS = ['type', 'pid', 'sessionId', 'sequence', 'operation', 'state', 'errorCode'];
+const CLEANUP_OPERATIONS = new Set(['none', 'waitid', 'child_state', 'leader_identity', 'leader_session',
+  'enumerate', 'member_identity', 'member_session', 'signal', 'reap', 'deadline', 'protocol']);
+const CLEANUP_FIELDS = ['structuralOperation', 'structuralErrno', 'observationOperation',
+  'observationErrno', 'observationIncomplete', 'observationResolved'];
+function validCleanupDiagnostic(value, cleanup) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)
+    || Object.keys(value).length !== CLEANUP_FIELDS.length
+    || Object.keys(value).some(key => !CLEANUP_FIELDS.includes(key))
+    || !CLEANUP_OPERATIONS.has(value.structuralOperation) || !CLEANUP_OPERATIONS.has(value.observationOperation)
+    || !Number.isInteger(value.structuralErrno) || value.structuralErrno < 0 || value.structuralErrno > 4095
+    || !Number.isInteger(value.observationErrno) || value.observationErrno < 0 || value.observationErrno > 4095
+    || value.structuralOperation === 'none' && value.structuralErrno !== 0
+    || value.observationOperation === 'none' && value.observationErrno !== 0
+    || typeof value.observationIncomplete !== 'boolean' || typeof value.observationResolved !== 'boolean'
+    || value.observationResolved === value.observationIncomplete) return false;
+  return cleanup !== 'confirmed' || value.structuralOperation === 'none' && !value.observationIncomplete;
+}
 
 /** Transport for the locally built, caller-approved platform helper.
  * POSIX fd 3 or Windows stderr carries helper lifecycle records; native terminal
@@ -64,21 +84,28 @@ export function startTerminalCommand({ id, command, args = [], cwd, env,
   let diagnosticAnnounced = false;
   let statusBytes = 0;
   let statusBuffer = Buffer.alloc(0);
+  let lastWindowsPhase;
   let pendingControls = 0;
   const outputDecoder = new StringDecoder('utf8');
   const stderrDecoder = new StringDecoder('utf8');
   const lifetime = createOwnedWorkerLifetime({
-    timeoutMs, signal, onEvent, cleanupMs: 4_500,
+    // Windows can spend 2.5s waiting for its Job Object, then perform bounded
+    // resize/console/I/O joins and drain the final record. Do not kill the
+    // helper before those native bounds expire. POSIX timings are unchanged.
+    timeoutMs, signal, onEvent, cleanupMs: windows ? 11_000 : 4_500,
     requestStop() {
       // Reserve one small frame even when the data queue is full. A final
       // workload record needs only bounded helper/stream draining, not a stop.
       if (!final) writeFrame(3, Buffer.alloc(0), true);
     },
     escalations: [
-      { afterMs: 2_000, run: () => signalHelper('SIGTERM') },
-      { afterMs: 4_000, run: () => signalHelper('SIGKILL') },
+      { afterMs: windows ? 9_000 : 2_000, run: () => signalHelper('SIGTERM') },
+      { afterMs: windows ? 10_000 : 4_000, run: () => signalHelper('SIGKILL') },
     ],
-    forceStop: () => signalHelper('SIGKILL'),
+    forceStop() {
+      if (windows) helperDiagnostic('cleanup_deadline');
+      signalHelper('SIGKILL');
+    },
     release(forced) {
       if (forced && child) {
         // Retain listeners for late errors after forced handle release.
@@ -89,6 +116,17 @@ export function startTerminalCommand({ id, command, args = [], cwd, env,
   });
   const fail = code => lifetime.fail(code);
   const emit = event => lifetime.emit(event);
+
+  function helperDiagnostic(trigger, exitCode = null, exitSignal = null) {
+    const diagnostic = Object.freeze({ trigger, helperPid: child?.pid ?? null,
+      exitCode, signal: exitSignal, readyReceived: Boolean(ready),
+      finalReceived: Boolean(final), protocolValid: !protocolInvalid,
+      lastPhase: lastWindowsPhase ?? null });
+    emit({ type: 'terminal_helper_diagnostic', agentId: id, platform: 'win32',
+      ...(ready ? { pid: ready.pid, terminalSessionId: ready.sessionId } : {}),
+      helperDiagnostic: diagnostic });
+    return diagnostic;
+  }
 
   const signalHelper = name => {
     if (!child?.pid || helperExited) return;
@@ -115,12 +153,16 @@ export function startTerminalCommand({ id, command, args = [], cwd, env,
     try {
       child.stdin.write(frame, error => {
         pendingControls -= 1;
-        if (error && !final) fail('control_failed');
+        if (error) {
+          const code = ownedProcessErrorCode(error, 'control_failed');
+          if (!final || code === 'process_socket_exhausted' || code === 'cleanup_unconfirmed') fail(code);
+        }
       });
       return true;
-    } catch {
+    } catch (error) {
       pendingControls -= 1;
-      if (!final) fail('control_failed');
+      const code = ownedProcessErrorCode(error, 'control_failed');
+      if (!final || code === 'process_socket_exhausted' || code === 'cleanup_unconfirmed') fail(code);
       return false;
     }
   };
@@ -164,16 +206,39 @@ export function startTerminalCommand({ id, command, args = [], cwd, env,
         platform: process.platform, transport, columns: ready.columns, rows: ready.rows });
       return;
     }
+    if (record.type === 'phase') {
+      const hasResumeCount = Object.hasOwn(record, 'resumeCount');
+      if (!windows || !ready || final
+        || Object.keys(record).length !== WINDOWS_PHASE_FIELDS.length + (hasResumeCount ? 1 : 0)
+        || Object.keys(record).some(key => !WINDOWS_PHASE_FIELDS.includes(key) && key !== 'resumeCount')
+        || record.pid !== ready.pid || record.sessionId !== ready.sessionId
+        || !Number.isInteger(record.sequence) || record.sequence !== (lastWindowsPhase?.sequence ?? 0) + 1
+        || record.sequence > 64 || !WINDOWS_PHASE_OPERATIONS.has(record.operation)
+        || !['begin', 'end'].includes(record.state)
+        || !Number.isInteger(record.errorCode) || record.errorCode < 0 || record.errorCode > 0xffffffff
+        || hasResumeCount && (record.operation !== 'resume_process' || record.state !== 'end'
+          || !Number.isInteger(record.resumeCount) || record.resumeCount < 0 || record.resumeCount > 0xffffffff)) {
+        badStatus(); return;
+      }
+      lastWindowsPhase = Object.freeze({ sequence: record.sequence, operation: record.operation,
+        state: record.state, errorCode: record.errorCode,
+        ...(hasResumeCount ? { resumeCount: record.resumeCount } : {}) });
+      emit({ type: 'terminal_phase', agentId: id, platform: 'win32', pid: ready.pid,
+        terminalSessionId: ready.sessionId, terminalPhase: lastWindowsPhase });
+      return;
+    }
     if (record.type !== 'complete' || final || !ready
-      || Object.keys(record).some(key => !['type', 'pid', 'sessionId', 'exitCode', 'signal', 'cleanup', 'reason'].includes(key))
+      || Object.keys(record).some(key => !['type', 'pid', 'sessionId', 'exitCode', 'signal', 'cleanup', 'reason', 'cleanupDiagnostic'].includes(key))
       || record.pid !== ready.pid || record.sessionId !== ready.sessionId
       || !(record.exitCode === null || (Number.isInteger(record.exitCode) && record.exitCode >= 0 && record.exitCode <= (windows ? 0xffffffff : 255)))
       || (record.signal !== undefined && record.signal !== null && !/^SIG[A-Z0-9]{1,16}$/.test(record.signal))
       || !['confirmed', 'unconfirmed'].includes(record.cleanup)
+      || record.cleanupDiagnostic !== undefined && !validCleanupDiagnostic(record.cleanupDiagnostic, record.cleanup)
       || (record.reason !== undefined && !HELPER_REASONS.has(record.reason))) { badStatus(); return; }
     if ((record.exitCode === null && !record.signal && !record.reason)
       || (record.exitCode !== null && record.signal)) { badStatus(); return; }
     final = record;
+    if (final.cleanupDiagnostic) Object.freeze(final.cleanupDiagnostic);
     const reason = final.reason && !(lifetime.cancelled && EXPECTED_STOP_REASONS.has(final.reason))
       ? final.reason : undefined;
     lifetime.endedWith(final.exitCode, final.signal, reason);
@@ -226,20 +291,23 @@ export function startTerminalCommand({ id, command, args = [], cwd, env,
       shell: false, detached: !windows, windowsHide: true,
       stdio: windows ? ['pipe', 'pipe', 'pipe'] : ['pipe', 'pipe', 'pipe', 'pipe'],
     });
-  } catch {
-    lifetime.notStarted('spawn_failed');
+  } catch (error) {
+    lifetime.notStarted(ownedProcessErrorCode(error, 'spawn_failed'));
     return handle;
   }
   child.once('spawn', () => { helperSpawned = true; });
-  child.on('error', () => {
+  child.on('error', error => {
     if (!child.pid && !helperSpawned) spawnFailed = true;
-    fail('spawn_failed');
+    fail(ownedProcessErrorCode(error, 'spawn_failed'));
   });
-  child.stdin.on('error', () => { if (!final) fail('control_failed'); });
-  child.stdout.on('error', () => fail('output_failed'));
+  child.stdin.on('error', error => {
+    const code = ownedProcessErrorCode(error, 'control_failed');
+    if (!final || code === 'process_socket_exhausted' || code === 'cleanup_unconfirmed') fail(code);
+  });
+  child.stdout.on('error', error => fail(ownedProcessErrorCode(error, 'output_failed')));
   const metadata = windows ? child.stderr : child.stdio[3];
-  if (!windows) child.stderr.on('error', () => fail('helper_diagnostic_failed'));
-  metadata.on('error', badStatus);
+  if (!windows) child.stderr.on('error', error => fail(ownedProcessErrorCode(error, 'helper_diagnostic_failed')));
+  metadata.on('error', error => { protocolInvalid = true; fail(ownedProcessErrorCode(error, 'helper_protocol_failed')); });
   child.stdout.on('data', chunk => {
     if (lifetime.finished || lifetime.failure || lifetime.cancelled) return;
     outputBytes += chunk.length;
@@ -288,13 +356,23 @@ export function startTerminalCommand({ id, command, args = [], cwd, env,
   });
   child.once('close', (code, name) => {
     if (spawnFailed && !helperSpawned) {
-      lifetime.notStarted('spawn_failed');
+      lifetime.notStarted(lifetime.failure ?? 'spawn_failed');
       return;
     }
+    const diagnostic = windows ? helperDiagnostic('close', code ?? null, name ?? null) : undefined;
     if (!lifetime.cancelled && (code !== 0 || name)) fail('helper_failed');
     if (!final) lifetime.endedWith(null);
-    lifetime.ownership(Boolean(ready && final && !protocolInvalid && final.cleanup === 'confirmed'
-      && final.pid === ready.pid && final.sessionId === ready.sessionId));
+    const confirmed = Boolean(ready && final && !protocolInvalid && final.cleanup === 'confirmed'
+      && final.pid === ready.pid && final.sessionId === ready.sessionId);
+    lifetime.ownership(confirmed);
+    // This event follows stream closure, so late malformed records cannot turn
+    // an early cleanup claim into misleading persisted evidence. It adds no
+    // authority and never clears a previously uncertain lifetime.
+    emit({ type: 'terminal_cleanup', agentId: id, cleanup: confirmed ? 'confirmed' : 'unconfirmed',
+      ...(ready ? { pid: ready.pid, sessionId: ready.sessionId } : {}),
+      ...(diagnostic ? { helperDiagnostic: diagnostic } : {}),
+      ...(!protocolInvalid && final ? { ...(final.reason ? { reason: final.reason } : {}),
+        ...(final.cleanupDiagnostic ? { cleanupDiagnostic: final.cleanupDiagnostic } : {}) } : {}) });
     lifetime.closed();
   });
   lifetime.arm();

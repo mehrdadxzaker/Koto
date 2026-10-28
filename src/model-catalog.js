@@ -1,106 +1,71 @@
-import { freemem, totalmem } from 'node:os';
-import { constants } from 'node:fs';
-import { lstat, open, readdir, statfs } from 'node:fs/promises';
-import path from 'node:path';
-import { defaultStateDirectory } from './preferences.js';
-import { discoverLocalModels } from './local-models.js';
+import { effectiveMemoryCapacity } from './host-memory.js';
 
 const GIB = 1024 ** 3;
 
-/** Curated compatible options, not quality, latency or memory guarantees.
- * Exact publisher download sizes/digests are resolved only after selection.
- */
-export const localModelCatalog = Object.freeze([
-  { id: 'qwen3-4b', name: 'Qwen3 4B', ggufQuantization: 'Q4_K_M', ollamaModel: 'qwen3:4b',
-    publisher: 'Qwen/Qwen3-4B-GGUF', parameters: '4B', downloadEstimateBytes: 3 * GIB,
-    minimumMemoryBytes: 8 * GIB, recommendedMemoryBytes: 16 * GIB, estimatedWorkingBytes: 5 * GIB },
-  { id: 'qwen3-8b', name: 'Qwen3 8B', ggufQuantization: 'Q4_K_M', ollamaModel: 'qwen3:8b',
-    publisher: 'Qwen/Qwen3-8B-GGUF', parameters: '8B', downloadEstimateBytes: 6 * GIB,
-    minimumMemoryBytes: 16 * GIB, recommendedMemoryBytes: 24 * GIB, estimatedWorkingBytes: 9 * GIB },
-  { id: 'qwen3-14b', name: 'Qwen3 14B', ggufQuantization: 'Q4_K_M', ollamaModel: 'qwen3:14b',
-    publisher: 'Qwen/Qwen3-14B-GGUF', parameters: '14B', downloadEstimateBytes: 10 * GIB,
-    minimumMemoryBytes: 24 * GIB, recommendedMemoryBytes: 32 * GIB, estimatedWorkingBytes: 14 * GIB },
-].map(record => Object.freeze(record)));
+// Publisher metadata, including LFS SHA-256 digests, verified October 27, 2026.
+// Revisions are immutable inputs; onboarding never follows a moving model tag.
+export const LOCAL_MODEL_CATALOG = Object.freeze([
+  {
+    id: 'qwen-coder-small', label: 'Qwen2.5 Coder 1.5B',
+    description: 'Small experimental model; did not complete the observed Koto coding task.',
+    repository: 'Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF',
+    revision: 'f86cb2c1fa58255f8052cc32aeede1b7482d4361',
+    filename: 'qwen2.5-coder-1.5b-instruct-q4_k_m.gguf',
+    bytes: 1117320768, sha256: 'cc324af070c2ecbfd324a30884d2f951a7ff756aba85cb811a6ec436933bb046',
+    minimumMemoryBytes: 8 * GIB, license: 'Apache-2.0', contextSize: 4096,
+  },
+  {
+    id: 'qwen-compact', label: 'Qwen3 4B',
+    description: 'Compact general assistant; Koto coding tool use has not been verified.',
+    repository: 'Qwen/Qwen3-4B-GGUF', revision: 'bc640142c66e1fdd12af0bd68f40445458f3869b',
+    filename: 'Qwen3-4B-Q4_K_M.gguf', bytes: 2497280256,
+    sha256: '7485fe6f11af29433bc51cab58009521f205840f5b4ae3a32fa7f92e8534fdf5',
+    minimumMemoryBytes: 12 * GIB, license: 'Apache-2.0', contextSize: 4096,
+  },
+  {
+    id: 'qwen-coder', label: 'Qwen2.5 Coder 7B',
+    description: 'Larger experimental coding model; memory fit does not establish task quality.',
+    repository: 'Qwen/Qwen2.5-Coder-7B-Instruct-GGUF', revision: '13fb94bfda8c8cf22497dc57b78f391a9acb426a',
+    filename: 'qwen2.5-coder-7b-instruct-q4_k_m.gguf', bytes: 4683073536,
+    sha256: '509287f78cb4d4cf6b3843734733b914b2c158e43e22a7f4bf5e963800894d3c',
+    minimumMemoryBytes: 16 * GIB, license: 'Apache-2.0', contextSize: 4096,
+  },
+].map(model => Object.freeze({ ...model,
+  url: `https://huggingface.co/${model.repository}/resolve/${model.revision}/${model.filename}`,
+  sourceUrl: `https://huggingface.co/${model.repository}/tree/${model.revision}`,
+  licenseUrl: 'https://www.apache.org/licenses/LICENSE-2.0',
+})));
 
-/** Inspect space at the nearest existing ancestor without creating directories. */
-export async function localStorageCapacity(directory = defaultStateDirectory) {
-  let current = path.resolve(directory);
-  for (;;) {
-    try {
-      const info = await statfs(current, { bigint: true });
-      const available = info.bavail * info.bsize;
-      return available <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(available) : Number.MAX_SAFE_INTEGER;
-    } catch (error) {
-      if (error.code !== 'ENOENT' && error.code !== 'ENOTDIR') return undefined;
-      const parent = path.dirname(current);
-      if (parent === current) return undefined;
-      current = parent;
+/** Memory recommendations are conservative selection guidance, not model qualification. */
+export function listLocalModelChoices({ memoryBytes = effectiveMemoryCapacity(), availableDiskBytes } = {}) {
+  if (!Number.isSafeInteger(memoryBytes) || memoryBytes < 0 || availableDiskBytes !== undefined
+    && (!Number.isSafeInteger(availableDiskBytes) || availableDiskBytes < 0)) {
+    throw new TypeError('Model choices need non-negative safe-integer memory and optional free-disk bytes.');
+  }
+  return LOCAL_MODEL_CATALOG.map(model => {
+    const reasons = [];
+    if (memoryBytes < model.minimumMemoryBytes) reasons.push(`Recommended system memory: ${model.minimumMemoryBytes / GIB} GiB.`);
+    if (availableDiskBytes !== undefined && availableDiskBytes < model.bytes + 256 * 1024 ** 2) {
+      reasons.push('Not enough free storage for the model and installation reserve.');
     }
-  }
+    return { ...model, suitable: reasons.length === 0, reasons };
+  });
 }
 
-/** Read only Koto's bounded receipts. Startup rehashes a retained GGUF before use. */
-export async function listRetainedLocalModels(directory = defaultStateDirectory) {
-  const modelsDirectory = path.join(path.resolve(directory), 'models');
-  let entries;
-  try { entries = await readdir(modelsDirectory); }
-  catch (error) { if (error.code === 'ENOENT') return []; throw error; }
-  if (entries.length > 10_000) throw new Error('The model directory contains too many entries to inspect.');
-  const records = [];
-  for (const entry of entries.filter(value => /^[0-9a-f]{64}\.json$/.test(value))) {
-    let file;
-    try {
-      file = await open(path.join(modelsDirectory, entry), constants.O_RDONLY | constants.O_NOFOLLOW);
-      const info = await file.stat();
-      if (!info.isFile() || info.size > 16 * 1024) continue;
-      const buffer = Buffer.alloc(16 * 1024 + 1);
-      const { bytesRead } = await file.read(buffer, 0, buffer.length, 0);
-      if (bytesRead > 16 * 1024) continue;
-      const item = JSON.parse(buffer.subarray(0, bytesRead).toString('utf8'));
-      const choice = localModelCatalog.find(model => model.id === item.choiceId);
-      if (!choice || item.kind !== 'koto-publisher-gguf' || item.schemaVersion !== 1
-        || item.publisher !== choice.publisher || !/^[0-9a-f]{40}$/.test(item.revision)
-        || !/^[0-9a-f]{64}$/.test(item.sha256) || entry !== `${item.sha256}.json`
-        || !/^[A-Za-z0-9._-]+\.gguf$/i.test(item.filename)
-        || !Number.isSafeInteger(item.bytes) || item.bytes < 4 || item.bytes > 128 * GIB) continue;
-      const filename = path.join(modelsDirectory, `${item.sha256.slice(0, 16)}-${item.filename}`);
-      const url = `https://huggingface.co/${choice.publisher}/resolve/${item.revision}/${encodeURIComponent(item.filename)}`;
-      if (item.path !== filename || item.url !== url) continue;
-      const modelInfo = await lstat(filename);
-      if (!modelInfo.isFile() || modelInfo.isSymbolicLink() || modelInfo.size !== item.bytes) continue;
-      records.push({ choiceId: choice.id, publisher: choice.publisher, revision: item.revision,
-        filename: item.filename, sha256: item.sha256, bytes: item.bytes, url, path: filename });
-    } catch (error) {
-      if (['EACCES', 'EPERM'].includes(error.code)) throw error;
-      // An incomplete, changed or unrelated receipt is not an installed asset.
-    } finally { await file?.close(); }
-  }
-  return records;
-}
+export const LLAMA_RELEASE = Object.freeze({
+  version: 'b11935', commit: '7ecb57f7adbea2928aa468ad2aecf05b10725ad4',
+  sourceUrl: 'https://github.com/ggml-org/llama.cpp/releases/tag/b11935',
+  license: 'MIT',
+});
 
-/** Metadata only: does not start a runtime, download weights or request inference. */
-export async function inspectLocalModelSetup({ directory = defaultStateDirectory,
-  ollamaCommand = 'ollama', llamaCommand = 'llama-server', signal } = {}) {
-  const [runtimes, diskAvailableBytes, retainedModels] = await Promise.all([
-    discoverLocalModels({ ollamaCommand, llamaCommand, signal }), localStorageCapacity(directory), listRetainedLocalModels(directory),
-  ]);
-  const memoryBytes = totalmem(), freeMemoryBytes = freemem();
-  const choices = localModelCatalog.map(model => ({ ...model,
-    retained: retainedModels.filter(item => item.choiceId === model.id),
-    suitability: memoryBytes < model.minimumMemoryBytes ? 'insufficient_memory'
-      : freeMemoryBytes < model.estimatedWorkingBytes + GIB ? 'close_other_apps'
-        : memoryBytes < model.recommendedMemoryBytes ? 'limited_headroom' : 'suggested',
-    storage: diskAvailableBytes === undefined ? 'unknown'
-      : diskAvailableBytes < model.downloadEstimateBytes + 2 * GIB ? 'insufficient_space' : 'available',
-    installed: Object.values(runtimes).flatMap(runtime => runtime.models
-      .filter(item => item.id === model.ollamaModel || item.id.toLowerCase().replace(/[^a-z0-9]/g, '').includes(model.id.replaceAll('-', '')))
-      .map(item => ({ ...item, kind: runtime.kind, endpoint: runtime.apiBaseUrl }))),
-  }));
-  return { machine: { platform: process.platform, arch: process.arch, memoryBytes, freeMemoryBytes,
-    ...(diskAvailableBytes === undefined ? {} : { diskAvailableBytes }) }, runtimes, choices, retainedModels,
-    estimates: 'Download and working-memory figures are approximate guidance for one 8K-context model. Other apps, runtime overhead and native model settings affect fit; no performance or quality guarantee.',
-    optional: true,
-    ollamaInstall: { url: 'https://ollama.com/download',
-      message: 'Install or open the official native Ollama app, then retry discovery. Koto does not run an unattended shell installer.' },
-  };
-}
+export const LLAMA_RUNTIME_CATALOG = Object.freeze(Object.fromEntries([
+  ['darwin-arm64', 'macos-arm64.tar.gz', 16331842, '091ff7288f405685d9f81548e0ca5c7e357b85c510c9deec799038bdb128172c'],
+  ['darwin-x64', 'macos-x64.tar.gz', 12066889, '0e4b8236c206b4d8b5c13cb470f6871fbc9d27912d89b4960043b1bdee458c0d'],
+  ['linux-arm64', 'ubuntu-arm64.tar.gz', 18253015, 'a1c7641fe04578f121d00836fdacea1f8ee58521560ec88f8d1c0b0cc25402b9'],
+  ['linux-x64', 'ubuntu-x64.tar.gz', 22510930, '292803ab33750b8fee028df2b988b146f1f96d75ee7570c86f2eff01479bff55'],
+  ['win32-arm64', 'win-cpu-arm64.zip', 12872705, 'fe9db0136dd8f7e39240c90cd1c1107ff59a8ef27c5517472e9d2c4c0dc9511f'],
+  ['win32-x64', 'win-cpu-x64.zip', 24255768, 'd13e3d617a724eef10a533b18d1178b5292f7f1395965adf4e83b1ab4e9fc4b6'],
+].map(([host, suffix, bytes, sha256]) => [host, Object.freeze({
+  ...LLAMA_RELEASE, filename: `llama-b11935-bin-${suffix}`, bytes, sha256,
+  url: `https://github.com/ggml-org/llama.cpp/releases/download/b11935/llama-b11935-bin-${suffix}`,
+})])));
