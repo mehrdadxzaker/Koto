@@ -101,7 +101,7 @@ button svg { display: block; }
 .stop-button { color: #c6b6b1; }
 .stop-button:not(:disabled):hover { background: #e9a19c0b; border-color: #83635d; }
 .terminal-area { position: relative; flex: 1; min-height: 0; min-width: 0; overflow: hidden; }
-.terminal-container { position: absolute; inset: 0; padding: 28px 30px 18px 32px; visibility: hidden; }
+.terminal-container { position: absolute; inset: 28px 30px 18px 32px; padding: 0; visibility: hidden; }
 .terminal-container.is-visible { visibility: visible; }
 .terminal-container .xterm { height: 100%; }
 .terminal-container .xterm-viewport { scrollbar-color: #3d4651 transparent; scrollbar-width: thin; }
@@ -160,7 +160,7 @@ button svg { display: block; }
   .terminal-toolbar { padding-left: 22px; padding-right: 20px; gap: 10px; }
   .terminal-meta { gap: 14px; }
   .active-project-name { max-width: 150px; }
-  .terminal-container { padding-left: 24px; padding-right: 20px; }
+  .terminal-container { left: 24px; right: 20px; }
   .terminal-empty { left: 26px; right: 26px; }
 }
 @media (max-width: 760px) {
@@ -178,7 +178,7 @@ button svg { display: block; }
   .terminal-meta { gap: 0; }
   .terminal-heading h1 { font-size: 12px; }
   .terminal-status { font-size: 10px; }
-  .terminal-container { padding: 22px 15px; }
+  .terminal-container { inset: 22px 15px; }
   .terminal-empty { left: 21px; right: 20px; top: 29px; }
   .empty-brand { gap: 11px; margin-bottom: 23px; }
   .empty-brand img { width: 39px; height: 39px; }
@@ -200,7 +200,7 @@ button svg { display: block; }
   .toolbar-actions { margin-left: auto; }
   .toolbar-button { width: 28px; padding: 0; }
   .toolbar-button > span { display: none; }
-  .terminal-container { padding: 18px 12px; }
+  .terminal-container { inset: 18px 12px; }
   .terminal-empty { left: 18px; right: 17px; }
   .empty-brand span { font-size: 20px; letter-spacing: 3px; }
   .empty-brand img { width: 32px; height: 32px; }

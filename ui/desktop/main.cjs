@@ -212,6 +212,7 @@ async function stopActive() {
   const owned = active;
   if (!owned || ['stopped', 'failed'].includes(owned.status)) return state();
   if (owned.status === 'cleanup_unconfirmed') throw new Error('Cleanup is unconfirmed. Inspect the retained CLI process before restarting Koto.');
+  owned.stopRequested = true;
   owned.status = 'stopping';
   announce();
   const identity = await owned.identity;
@@ -318,11 +319,14 @@ async function start(options = {}) {
     const ordinaryExit = Number.isInteger(outcome.exitCode) && !outcome.signal
       && !owned.forcedStop && (!outcome.error || outcome.error === 'exit_failed');
     const nestedCleanupUnconfirmed = outcome.exitCode === 74 || !ordinaryExit;
+    const requestedStopCompleted = owned.stopRequested && [0, 130].includes(outcome.exitCode)
+      && ordinaryExit && !owned.outputOverflow;
     owned.status = outcome.error === 'cleanup_unconfirmed' || nestedCleanupUnconfirmed ? 'cleanup_unconfirmed'
-      : owned.outputOverflow || outcome.status === 'failed' ? 'failed' : 'stopped';
+      : requestedStopCompleted ? 'stopped'
+        : owned.outputOverflow || outcome.status === 'failed' ? 'failed' : 'stopped';
     if (nestedCleanupUnconfirmed) owned.error = owned.error
       ?? 'The CLI did not confirm cleanup of its nested native work. Inspect its retained sessions before restarting.';
-    else if (outcome.error) owned.error = owned.error ?? outcome.error;
+    else if (outcome.error && !(requestedStopCompleted && outcome.error === 'exit_failed')) owned.error = owned.error ?? outcome.error;
     owned.pending.clear();
     owned.pendingBytes = 0;
     announce();
