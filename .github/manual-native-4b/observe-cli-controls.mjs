@@ -25,7 +25,7 @@ if(binding.approvedForExecution!==true)fail('cli_control_draft_not_approved');
 if(process.platform!=='win32'||process.arch!=='x64'||process.env.GITHUB_ACTIONS!=='true'
   ||process.env.OBS_EXECUTION!=='windows-actions'||process.env.OBS_OPERATION!=='observe'
   ||!/^[a-z][a-z0-9-]{7,47}$/.test(process.env.OBS_ID??'')
-  ||binding.candidate!==process.env.OBS_CANDIDATE||binding.candidate!=='82917014ba9af1f75617d9d32a3acf67f0d40879')fail('explicit_windows_cli_control_required');
+  ||binding.candidate!==process.env.OBS_CANDIDATE||binding.candidate!=='05d165003cd85888fa298e1b1e748234f47f558f')fail('explicit_windows_cli_control_required');
 const mainRoot=path.join(homedir(),'.koto-native-observations-4b',process.env.OBS_ID);
 // Existing sealing encrypts evidence recursively, while public rehydration
 // admits only evidence/*.json. Keep every complement file below this raw root.
@@ -53,7 +53,7 @@ for(const item of packageEvidence.payload??[]) {
 }
 if(!packageEvidence.payload?.length||packageEvidence.candidate!==binding.candidate)fail('package_evidence_missing');
 const settingsModule=path.join(driverDirectory,'reviewed-settings.mjs');
-if(hash(bytes(settingsModule))!=='0ea8a41887ec5eb01a6cea25548547a173c2138dd063c7fa878f29e20fe79121')fail('reviewed_validator_changed');
+if(hash(bytes(settingsModule))!=='ba156007f1f56accbf52f12a61c974e41ea60c8eefeab13a71bdc557f23e8db8')fail('reviewed_validator_changed');
 const {loadSettings}=await import(pathToFileURL(settingsModule));
 loadSettings(path.join(mainRoot,'reviewed-settings.json'),process.env.OBS_SETTINGS_SHA,{candidate:binding.candidate});
 

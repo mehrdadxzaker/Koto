@@ -202,6 +202,7 @@ def find_executable(root, name):
     return str(matches[0].resolve())
 
 def install_package():
+    if not isinstance(SETTINGS,dict): raise RuntimeError('reviewed_installation_settings_required')
     command(['npm','install','--ignore-scripts','--no-audit','--no-fund','--offline','--no-save','--package-lock=false',
              '--prefix',str(ROOT/'install'),str(ROOT/'assets'/'koto.tgz')], ROOT, 'npm-install')
     installed = ROOT/'install'/'node_modules'/'@mehrdadxzaker'/'koto'
@@ -216,7 +217,14 @@ def install_package():
             rows.append({'path':relative,'sha256':hashlib.sha256(expected).hexdigest(),'bytes':len(expected)})
     actual = sorted(p.relative_to(installed).as_posix() for p in installed.rglob('*') if p.is_file())
     if actual != sorted(r['path'] for r in rows): raise RuntimeError('installed_payload_extra')
-    save(ROOT/'evidence'/'package.json', {'candidate':SHA,'tarSha256':digest(ROOT/'assets'/'koto.tgz'),'payload':rows})
+    inventory=[[r['path'],r['bytes'],r['sha256']] for r in sorted(rows,key=lambda r:r['path'])]
+    inventory_sha=hashlib.sha256(json.dumps(inventory,separators=(',',':'),ensure_ascii=False).encode('utf-8')).hexdigest()
+    save(ROOT/'evidence'/'package.json', {'candidate':SHA,'tarSha256':digest(ROOT/'assets'/'koto.tgz'),
+         'payloadInventorySha256':inventory_sha,'payloadFiles':len(rows),'payload':rows})
+    equivalence=SETTINGS.get('priorPlatformEquivalence') if OP!='idle' else None
+    if equivalence is not None and (len(rows)!=equivalence['payloadFiles']
+        or inventory_sha!=equivalence['payloadInventorySha256']):
+        raise RuntimeError('reviewed_equivalence_payload_changed')
 
 def prepare():
     if OP not in ['observe','idle'] or ROOT.exists(): raise RuntimeError('fresh_observation_root_required')
@@ -442,6 +450,7 @@ def seal():
     save(ROOT/'out'/'receipt.json',public)
 
 def restore():
+    global SETTINGS
     if OP!='integrate' or ROOT.exists(): raise RuntimeError('fresh_restore_root_required')
     bundle=Path(os.environ['OBS_DOWNLOAD_DIRECTORY'])/'rehydration.zip'
     if not re.fullmatch(r'[a-f0-9]{64}',os.environ.get('OBS_BUNDLE_SHA','')) or digest(bundle)!=os.environ['OBS_BUNDLE_SHA']:
@@ -478,6 +487,12 @@ def restore():
     # New files are owned by the new runner, never a restored foreign SID/UID.
     # Koto independently checks private ownership, ACLs, paths and the old token.
     if digest(ROOT/'reviewed-settings.json')!=os.environ.get('OBS_SETTINGS_SHA'): raise RuntimeError('restored_settings_changed')
+    validation=subprocess.run(['node',str(Path(__file__).with_name('reviewed-settings.mjs')),'validate',
+        str(ROOT/'reviewed-settings.json'),os.environ['OBS_SETTINGS_SHA'],SHA],
+        stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=15)
+    if validation.returncode or len(validation.stdout)>65536:
+        raise RuntimeError('restored_settings_or_prior_platform_gates_not_satisfied')
+    SETTINGS=json.loads(validation.stdout)
     restored_env={k:v for k,v in os.environ.items() if not re.search('TOKEN|SECRET|PASSWORD|API_KEY|ACCESS_KEY|CREDENTIAL',k,re.I)
                   and k.upper() not in ['NODE_OPTIONS','NODE_PATH']}
     restored_env['KOTO_STATE_DIR']=str(ROOT/'state')

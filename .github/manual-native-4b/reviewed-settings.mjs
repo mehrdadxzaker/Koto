@@ -87,8 +87,25 @@ export function validateSettings(s, { candidate, platform = 'win32', requireGate
   }
   if (!afterStop || resized.size !== 2 || initial.size !== 2 || elapsed + 90_000 > b.projectTimeoutMs) fail('reviewed_operation_coverage_or_deadline');
   if (requireGates) {
+    let prerequisiteCandidate = candidate;
+    const equivalence = s.priorPlatformEquivalence;
+    if (equivalence !== undefined) {
+      const changedPayloadPaths = ['src/core.d.ts', 'src/native-conversation.js',
+        'src/native/windows-pty.c', 'src/terminal-session.js'];
+      if (platform !== 'win32' || !object(equivalence)
+        || equivalence.fromCandidate !== '82917014ba9af1f75617d9d32a3acf67f0d40879'
+        || equivalence.toCandidate !== candidate || equivalence.toCandidate === equivalence.fromCandidate
+        || canonical(equivalence.platforms) !== canonical(['darwin', 'linux'])
+        || canonical(equivalence.changedPayloadPaths) !== canonical(changedPayloadPaths)
+        || equivalence.payloadFiles !== 53 || equivalence.unchangedFiles !== 49
+        || !hex(equivalence.payloadInventorySha256) || !hex(equivalence.reviewReceiptSha256)
+        || equivalence.operatorReviewed !== true) fail('reviewed_prior_platform_equivalence_required');
+      // Historical receipts keep their actual candidate. This explicit source
+      // review is bound to the installed payload inventory during preparation.
+      prerequisiteCandidate = equivalence.fromCandidate;
+    }
     const mac = s.gates?.mac;
-    if (!object(mac) || mac.route !== 'normal-cli-commercial-plus-local-api' || mac.candidate !== candidate
+    if (!object(mac) || mac.route !== 'normal-cli-commercial-plus-local-api' || mac.candidate !== prerequisiteCandidate
       || mac.modelSha256 !== MODEL.sha256 || !hex(mac.evidenceReceiptSha256)
       || typeof mac.evidenceId !== 'string' || !/^[A-Za-z0-9._:-]{1,160}$/.test(mac.evidenceId)
       || mac.operatorReviewed !== true || mac.usefulCooperationReviewed !== true || mac.cleanupConfirmed !== true) fail('reviewed_mac_cooperation_evidence_required');
@@ -96,7 +113,7 @@ export function validateSettings(s, { candidate, platform = 'win32', requireGate
     // layer. It is NOT asserted to be an OpenCode native inference-equivalence run.
     if (platform === 'win32') {
       const linux = s.gates?.linux;
-      if (!object(linux) || linux.route !== 'linux-docker-opencode-native' || linux.candidate !== candidate
+      if (!object(linux) || linux.route !== 'linux-docker-opencode-native' || linux.candidate !== prerequisiteCandidate
         || linux.modelSha256 !== MODEL.sha256 || linux.inferenceSettingsSha256 !== inferenceHash(s)
         || !hex(linux.reviewedSettingsSha256) || !hex(linux.evidenceReceiptSha256) || !hex(linux.reviewToken)
         || typeof linux.evidenceId !== 'string' || !/^[A-Za-z0-9._:-]{1,160}$/.test(linux.evidenceId)

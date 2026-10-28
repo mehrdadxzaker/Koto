@@ -1,16 +1,16 @@
 {
   "schemaVersion": 1,
   "approvedForExecution": true,
-  "candidate": "82917014ba9af1f75617d9d32a3acf67f0d40879",
+  "candidate": "05d165003cd85888fa298e1b1e748234f47f558f",
   "sourceFileSha256": {
     "bin/koto.js": "493fe15bc15b8681094105c329b7d1e2ce3fc888a16089b2ded6163d34402bb8",
     "bin/project.js": "b69dd1cf6b4c57e18fb2698d3d99bc6f5b76842a23a9174dd4bc947e345f77c5",
     "bin/attach-terminal.js": "755da5bef0eec2a96379b305676f4338d012f5b3c884ecc2a3092df05a2698af",
-    "src/terminal-session.js": "9d71d2d46d9cc55999c271a98b32b53dd59a3d9878f688f766dd809234b39e02",
+    "src/terminal-session.js": "10eb8296df2540c261f0d68bb31bee2d7930378439f51f79552189f5c671d9b5",
     "src/setup-command.js": "2fa6f1a93f9932f36bbe805f63c78e40c91ec5ff69798059e2cff8820a7499e2",
     "src/terminal-helper.js": "eedac967739ec17ef1481bc4b5a22b4361b754165cece4fd6dbe5fd33f73c4da",
     "src/windows-native-helper.js": "5a2c900f6ddf6f5dc97af8c024c5b30ba99b782006a57df4be443e67de08ef00",
-    "src/native/windows-pty.c": "6b207ebd729379ed21b9bc35d685c39fd66839b4cc3626349819c023e97f0ac6"
+    "src/native/windows-pty.c": "59c34064bf608cff5830f0c2535ed3811bc7fe9b86ffe69aa9f6fe603b60962a"
   },
   "scope": "One idle Windows OpenCode terminal controlled through the actual installed Koto CLI after the independent model/API run has fully cleaned up.",
   "semanticReviewRequired": true

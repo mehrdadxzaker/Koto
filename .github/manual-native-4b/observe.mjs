@@ -52,7 +52,7 @@ const appendRaw = (name, value) => {
 const privateLog = (name, value) => {
   try { appendRaw(name, `${JSON.stringify(value)}\n`); } catch (error) { evidenceFailure(error); }
 };
-const hashes = new Map(), bytes = new Map(), ready = new Set(), operations = [];
+const hashes = new Map(), bytes = new Map(), screens = new Map(), ready = new Set(), operations = [];
 const projectState = () => {
   const git = args => execFileSync('git', ['-C', path.join(root, 'project'), '-c',
     `core.hooksPath=${path.join(root, 'disabled-hooks')}`, ...args],
@@ -102,6 +102,7 @@ const onEvent = event => {
   if (event.type === 'pty_ready') ready.add(event.agentId);
   if (event.type === 'output' && event.agentId) {
     const buffer = Buffer.from(event.text ?? '');
+    screens.set(event.agentId, ((screens.get(event.agentId) ?? '') + (event.text ?? '')).slice(-65536));
     if (!hashes.has(event.agentId)) hashes.set(event.agentId, createHash('sha256'));
     hashes.get(event.agentId).update(buffer);
     bytes.set(event.agentId, (bytes.get(event.agentId) ?? 0) + buffer.length);
@@ -227,6 +228,12 @@ try {
   });
   if (!await waitUntil(() => ready.size === 2, 90_000)) throw new Error('native_terminals_not_ready');
   note({ action: 'two_native_terminals_ready', state: session.status().agents.map(a => ({ id: a.id, status: a.status, pid: a.pid })) });
+  // The pinned native client's real prompt was observed in the accepted idle
+  // run. Do not submit tasks to a blank or still-initializing terminal. This
+  // routing guard does not establish semantic correctness or acceptance.
+  if (!await waitUntil(() => ['reader','contributor'].every(id => screens.get(id)?.includes('Ask anything')), 15000))
+    throw new Error('native_input_prompt_not_observed');
+  note({ action: 'native_input_prompts_observed', semanticInterpretation: 'readiness_only_requires_operator_review' });
   for (const operation of settings.operations) {
     controller.signal.throwIfAborted();
     if (operation.action === 'wait') {
