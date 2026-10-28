@@ -241,10 +241,28 @@ try {
   phase = 'console_readback';
   // One real host-Node console inspection, not a fake native client or task.
   // Do not import any extracted script or report these facts as acceptance.
-  const consoleSource = "const tty=require('node:tty');console.log(JSON.stringify({stdinIsTTY:process.stdin.isTTY===true,stdoutIsTTY:process.stdout.isTTY===true,stderrIsTTY:process.stderr.isTTY===true,isatty0:tty.isatty(0),isatty1:tty.isatty(1),isatty2:tty.isatty(2),platform:process.platform,arch:process.arch}));";
-  note('console_readback_requested', { sourceSha256: hash(consoleSource), timeoutMs: 10000, columns: 240, rows: 30 });
+  const consoleMarkerPath = path.join(root, 'console-stages.jsonl');
+  // Fixed owned path, exclusive creation, built-in modules only. Markers locate
+  // a real console readback stall; they do not simulate a native agent.
+  const consoleSource = `const fs=require('node:fs');
+const fd=fs.openSync(process.argv[1],'wx',0o600);
+const mark=(phase,key,value)=>fs.writeSync(fd,JSON.stringify({at:new Date().toISOString(),phase,key,...(value===undefined?{}:{value})})+'\\n');
+try {
+  mark('started','javascript'); mark('begin','require_tty');
+  const tty=require('node:tty'); mark('end','require_tty');
+  const facts={};
+  const observe=(key,read)=>{mark('begin',key);facts[key]=read();mark('end',key,facts[key]);};
+  observe('stdinIsTTY',()=>process.stdin.isTTY===true);
+  observe('stdoutIsTTY',()=>process.stdout.isTTY===true);
+  observe('stderrIsTTY',()=>process.stderr.isTTY===true);
+  observe('isatty0',()=>tty.isatty(0));observe('isatty1',()=>tty.isatty(1));observe('isatty2',()=>tty.isatty(2));
+  facts.platform=process.platform;facts.arch=process.arch;
+  mark('begin','console_output');console.log(JSON.stringify(facts));mark('end','console_output');
+} catch(error) {mark('error','readback',typeof error?.code==='string'?error.code:error?.name);throw error;}
+finally {fs.closeSync(fd);}`;
+  note('console_readback_requested', { sourceSha256: hash(consoleSource), markerPath: consoleMarkerPath, timeoutMs: 10000, columns: 240, rows: 30 });
   consoleReadback.handle = startTerminalCommand({ id: consoleReadback.id, command: process.execPath,
-    args: ['-e', consoleSource], cwd: root, env: { ...baseEnv, KOTO_STATE_DIR: path.join(mainRoot, 'state'), TERM: 'xterm-256color' },
+    args: ['-e', consoleSource, consoleMarkerPath], cwd: root, env: { ...baseEnv, KOTO_STATE_DIR: path.join(mainRoot, 'state'), TERM: 'xterm-256color' },
     transport: 'pty', timeoutMs: 10000, columns: 240, rows: 30, helperPath,
     signal: controller.signal, onEvent: event => capture(consoleReadback, event) });
   consoleReadback.watch = consoleReadback.handle.completion.then(outcome => {
