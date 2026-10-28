@@ -6,9 +6,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const directories = new Set(['bin', 'src', 'plugins', 'ui', 'tools', 'docs', '.github', 'assets', 'skills']);
+const directories = new Set(['bin', 'src', 'plugins', 'ui', 'tools', 'docs', '.github', 'assets', 'skills', 'Formula', 'install']);
+const distributionFiles = new Set(['Formula/koto.rb', 'install/manifest.json']);
 const skillFiles = new Set(['skills/koto/SKILL.md', 'skills/koto/agents/openai.yaml', 'skills/koto/references/cli-workflow.md']);
-const rootFiles = new Set(['package.json', 'package-lock.json', '.gitignore', '.editorconfig', 'LICENSE', 'NOTICE']);
+const rootFiles = new Set(['package.json', 'package-lock.json', '.gitignore', '.editorconfig', 'LICENSE', 'NOTICE', 'install.sh']);
 const ignoredDirectories = /^(?:\.git|node_modules|dist|build|coverage|\.scratch|\.cache|\.pytest_cache|__pycache__|\.venv.*|.*\.egg-info)$/;
 const ignoredFiles = /^(?:\.env(?:\..*)?|\.coverage|.*\.runtime\.env|(?:hormuz|koto)\.json|.*\.(?:py[co]|sqlite3(?:-(?:shm|wal))?))$/;
 const retiredRoots = /^(?:hormuz|koto|tests|\.agents|\.claude-plugin|apps|clients|deploy|website|marketing|experiments|finance|portfolio|billing|enterprise|hosted)$/i;
@@ -50,6 +51,9 @@ function checkPath(name) {
   }
   if (parts[0] === 'skills' && !skillFiles.has(name)) {
     fail(`Only the optional CLI-backed Koto skill belongs in skills/: ${name}`);
+  }
+  if (['Formula', 'install'].includes(parts[0]) && !distributionFiles.has(name)) {
+    fail(`Unexpected CLI distribution source: ${name}`);
   }
 }
 
@@ -112,6 +116,43 @@ function packageTarget(target, label) {
     } else if (target.endsWith('/') ? !entry.isDirectory() : !entry.isFile()) {
       fail(`${label} has the wrong file type: ${target}`);
     }
+  }
+}
+
+function checkDistribution() {
+  try {
+    const manifest = JSON.parse(readFileSync(localPath('install/manifest.json'), 'utf8'));
+    const cli = manifest.cli;
+    const node = manifest.node;
+    if (manifest.schemaVersion !== 1 || cli.package !== '@mehrdadz/koto'
+        || !/^\d+\.\d+\.\d+(?:-[a-zA-Z0-9.-]+)?$/.test(cli.version)
+        || cli.url !== `https://registry.npmjs.org/${cli.package}/-/koto-${cli.version}.tgz`
+        || !/^[a-f0-9]{64}$/.test(cli.sha256) || !/^[a-f0-9]{40}$/.test(cli.sourceCommit)
+        || !/^24\.\d+\.\d+$/.test(node.version) || node.homebrewDependency !== 'node@24'
+        || node.checksums !== `https://nodejs.org/dist/v${node.version}/SHASUMS256.txt`
+        || Object.keys(node.linux).sort().join(',') !== 'arm64,x64'
+        || Object.values(node.linux).some((digest) => !/^[a-f0-9]{64}$/.test(digest))) {
+      throw new Error('invalid pinned distribution metadata');
+    }
+    const shell = readFileSync(localPath('install.sh'), 'utf8');
+    const constants = Object.fromEntries([...shell.matchAll(/^(KOTO_VERSION|KOTO_URL|KOTO_SHA256|NODE_VERSION)=([^\r\n]+)$/gm)]
+      .map((match) => [match[1], match[2]]));
+    for (const [key, value] of Object.entries({ KOTO_VERSION: cli.version, KOTO_URL: cli.url,
+      KOTO_SHA256: cli.sha256, NODE_VERSION: `v${node.version}` })) {
+      if (constants[key] !== value) fail(`Linux installer ${key} differs from install/manifest.json`);
+    }
+    for (const digest of Object.values(node.linux)) {
+      if (!shell.includes(`node_sha=${digest}`)) fail('Linux runtime checksum differs from install/manifest.json');
+    }
+    const formula = readFileSync(localPath('Formula/koto.rb'), 'utf8');
+    for (const [key, value] of Object.entries({ url: cli.url, version: cli.version, sha256: cli.sha256,
+      depends_on: node.homebrewDependency })) {
+      if (!formula.split('\n').some((line) => line.trim() === `${key} "${value}"`)) {
+        fail(`Homebrew ${key} differs from install/manifest.json`);
+      }
+    }
+  } catch (error) {
+    fail(`CLI distribution metadata: ${error.message}`);
   }
 }
 
@@ -314,6 +355,7 @@ function checkMarkdown(name) {
 walk();
 checkTrackedPaths();
 checkPackage();
+checkDistribution();
 for (const name of [...files].sort()) {
   checkImports(name);
   checkWorkflowActions(name);

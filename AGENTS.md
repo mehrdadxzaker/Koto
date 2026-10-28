@@ -2,7 +2,8 @@
 
 Koto is a shared orchestration core for commercial and open-source agents.
 The only product components are the core and its worker adapters, npm/npx
-installation, CLI, an optional CLI-backed agent skill, IDE plugins and Koto's own UI. Assets,
+installation, CLI, Homebrew/Linux packaging of that CLI, an optional CLI-backed
+agent skill, IDE plugins and Koto's own UI. Assets,
 documentation and tooling must support those components.
 
 Build the core and npm installation first; additional delivery surfaces follow.
@@ -11,6 +12,11 @@ do not restore the former Python router, enterprise modules, skills-only
 distribution, model campaigns or archive trees. The optional `skills/koto`
 instructions call the published CLI; they must not implement a second runtime.
 Git history retains earlier products.
+
+Distribution recipes pin the published CLI archive; they must not replace the
+engine or modify an existing immutable release. Verify real fresh installation
+and owned uninstall on the target host. Package-manager health checks are
+product observations, not a reason to restore automated test suites.
 
 The owner removed automated suites, fixture demos and benchmark tooling from
 the active product. Do not add or run test suites. Run `npm run check` for source

@@ -11,8 +11,8 @@ The repository contains these components and the documentation, assets and
 source tooling needed to develop and deliver them:
 
 1. Shared orchestration core and worker adapters.
-2. Cross-platform npm/npx installation and CLI, with an optional agent skill
-   that invokes that same CLI.
+2. Cross-platform npm/npx installation and CLI, Homebrew/Linux packaging of the
+   same published CLI, and an optional agent skill that invokes it.
 3. IDE plugins consuming the core.
 4. Koto's own UI consuming the core.
 
@@ -34,6 +34,13 @@ The previous Python router, finance/portfolio/enterprise modules, hosted-service
 products, model-specific experiments, historical campaigns, skills-only packages
 and operational cleanup work are outside the active tree. Git history retains
 earlier source; do not add an archive directory or a second product runtime.
+
+Homebrew acquires its Node dependency; the Linux installer acquires a pinned,
+digest-verified official Node runtime. Both install the exact published CLI
+archive recorded in `install/manifest.json`. They manage delivery and executable
+discovery, not orchestration or user credentials. The Linux installer owns only
+its selected installation directory and command link; account/model/project
+state remains separate and survives uninstall.
 
 Node.js is the installed runtime. Installing Koto must not require a separate
 Python setup, compiler, shell-specific bootstrap or mandatory local-model

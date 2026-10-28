@@ -1,0 +1,63 @@
+name: CLI distribution
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: distribution-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  install:
+    name: install (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 18
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            delivery: linux
+          - os: ubuntu-24.04-arm
+            delivery: linux
+          - os: macos-15
+            delivery: brew
+          - os: macos-15-intel
+            delivery: brew
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: '1'
+      HOMEBREW_NO_INSTALL_CLEANUP: '1'
+      HOMEBREW_NO_INSTALL_UPGRADE: '1'
+      HOMEBREW_NO_ANALYTICS: '1'
+      HOMEBREW_DOWNLOAD_CONCURRENCY: '1'
+      HOMEBREW_CURL_RETRIES: '0'
+      HOMEBREW_CURLRC: ${{ runner.temp }}/koto-brew-curlrc
+      GIT_CONFIG_COUNT: '2'
+      GIT_CONFIG_KEY_0: http.lowSpeedLimit
+      GIT_CONFIG_VALUE_0: '1'
+      GIT_CONFIG_KEY_1: http.lowSpeedTime
+      GIT_CONFIG_VALUE_1: '30'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Observe real Linux installation and owned uninstall
+        if: matrix.delivery == 'linux'
+        shell: bash
+        run: |
+          bash .github/scripts/observe-linux-install.sh "$GITHUB_WORKSPACE/install.sh" "$GITHUB_WORKSPACE" "$RUNNER_TEMP/koto-install-observation"
+          cat "$RUNNER_TEMP/koto-install-observation/RESULT.txt" >> "$GITHUB_STEP_SUMMARY"
+          cat "$RUNNER_TEMP/koto-install-observation/managed-runtime.json" >> "$GITHUB_STEP_SUMMARY"
+      - name: Observe Homebrew installation and owned uninstall
+        if: matrix.delivery == 'brew'
+        shell: bash
+        env:
+          KOTO_PUBLIC_TAP: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && '1' || '0' }}
+        run: bash .github/scripts/observe-brew-install.sh
