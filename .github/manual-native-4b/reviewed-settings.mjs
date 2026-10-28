@@ -90,7 +90,7 @@ export function validateSettings(s, { candidate, platform = 'win32', requireGate
     let prerequisiteCandidate = candidate;
     const equivalence = s.priorPlatformEquivalence;
     if (equivalence !== undefined) {
-      const changedPayloadPaths = ['src/core.d.ts', 'src/local-models.js',
+      const changedPayloadPaths = ['bin/attach-terminal.js', 'bin/project.js', 'src/core.d.ts', 'src/local-models.js',
         'src/native-client-install.js', 'src/native-conversation.js',
         'src/native/windows-pty.c', 'src/terminal-session.js'];
       if (platform !== 'win32' || !object(equivalence)
@@ -98,14 +98,15 @@ export function validateSettings(s, { candidate, platform = 'win32', requireGate
         || equivalence.toCandidate !== candidate || equivalence.toCandidate === equivalence.fromCandidate
         || canonical(equivalence.platforms) !== canonical(['darwin', 'linux'])
         || canonical(equivalence.changedPayloadPaths) !== canonical(changedPayloadPaths)
-        || equivalence.payloadFiles !== 53 || equivalence.unchangedFiles !== 47
-        || equivalence.kind !== 'reviewed-windows-and-shared-error-path-changes'
+        || equivalence.payloadFiles !== 53 || equivalence.unchangedFiles !== 45
+        || equivalence.kind !== 'reviewed-windows-shared-error-and-cli-handoff-changes'
         || !hex(equivalence.payloadInventorySha256) || !hex(equivalence.reviewReceiptSha256)
         || equivalence.operatorReviewed !== true) fail('reviewed_prior_platform_equivalence_required');
       // Historical receipts keep their actual candidate. This explicit source
       // review is bound to the installed payload inventory during preparation.
-      // Shared cancellation/error handling changed too; this is not a claim
-      // that all changes are Windows-only or that the repaired path was run.
+      // Shared cancellation/error handling and CLI handoff changed too. Prior
+      // model records keep their actual revision; fresh CLI controls are a
+      // separate gate on every platform, not established by source equivalence.
       prerequisiteCandidate = equivalence.fromCandidate;
     }
     const mac = s.gates?.mac;

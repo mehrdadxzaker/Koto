@@ -27,7 +27,7 @@ function errorFields(error) {
       codeType: typeof code,
       ...(typeof code === 'number' && Number.isFinite(code) ? { code } : {}),
       ...(typeof code === 'string' && /^[A-Za-z0-9_-]{1,80}$/.test(code) ? { code } : {}),
-      frames: typeof error?.stack === 'string' ? error.stack.split('\n').slice(1, 7).map(line => line.slice(-240)) : [] };
+      frames: typeof error?.stack === 'string' ? error.stack.split('\n').filter(line => /^\s*at\s/.test(line)).slice(0, 6).map(line => line.slice(-240)) : [] };
   } catch { return { opaque: true }; }
 }
 function state() {
@@ -129,7 +129,7 @@ syncBuiltinESMExports();
 const abort = AbortController.prototype.abort;
 AbortController.prototype.abort = function (...args) {
   try {
-    const frames = new Error().stack?.split('\n').slice(1, 10).map(line => line.slice(-240)) ?? [];
+    const frames = new Error().stack?.split('\n').filter(line => /^\s*at\s/.test(line)).slice(0, 9).map(line => line.slice(-240)) ?? [];
     if (frames.some(line => /\/bin\/(?:koto|project|activity-view)\.js:/.test(line.replaceAll('\\', '/')))) {
       record('terminal_abort', { alreadyAborted: this.signal.aborted, frames, ...state() });
     }

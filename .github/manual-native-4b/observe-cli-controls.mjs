@@ -24,15 +24,10 @@ if(!bindingFile||!driverDirectory)fail('explicit_bindings_and_driver_required');
 const bindingBytes=bytes(bindingFile,65536), binding=JSON.parse(bindingBytes);
 const standalone=process.env.OBS_OPERATION==='controls';
 if(binding.approvedForExecution!==true)fail('cli_control_draft_not_approved');
-const diagnosis=binding.diagnosis;
-if(!standalone||diagnosis?.enabled!==true||diagnosis?.acceptanceClaim!==false
-  ||!/^[a-f0-9]{64}$/.test(diagnosis?.traceSha256??''))fail('explicit_trace_diagnosis_required');
-const traceModule=path.join(driverDirectory,'terminal-trace.mjs');
-if(hash(bytes(traceModule,65536))!==diagnosis.traceSha256)fail('terminal_trace_source_changed');
 if(process.platform!=='win32'||process.arch!=='x64'||process.env.GITHUB_ACTIONS!=='true'
   ||process.env.OBS_EXECUTION!=='windows-actions'||!['observe','controls'].includes(process.env.OBS_OPERATION)
   ||!/^[a-z][a-z0-9-]{7,47}$/.test(process.env.OBS_ID??'')
-  ||binding.candidate!==process.env.OBS_CANDIDATE||binding.candidate!=='0635143c400649422d3d0092a93585c365f0656e')fail('explicit_windows_cli_control_required');
+  ||binding.candidate!==process.env.OBS_CANDIDATE||binding.candidate!=='caa5ca62142a1c0f9de7921f8ee10aa6f6155814')fail('explicit_windows_cli_control_required');
 const mainRoot=path.join(homedir(),'.koto-native-observations-4b',process.env.OBS_ID);
 // Existing sealing encrypts evidence recursively, while public rehydration
 // admits only evidence/*.json. Keep every complement file below this raw root.
@@ -67,7 +62,7 @@ for(const item of packageEvidence.payload??[]) {
 if(packageEvidence.payload?.length!==53||new Set(packageEvidence.payload.map(item=>item.path)).size!==53
   ||packageEvidence.candidate!==binding.candidate)fail('package_evidence_missing');
 const settingsModule=path.join(driverDirectory,'reviewed-settings.mjs');
-if(hash(bytes(settingsModule))!=='07df5c4132dab5e5c672d4df380f35a10496b01904171ece8c16d216b745485b')fail('reviewed_validator_changed');
+if(hash(bytes(settingsModule))!=='0accb7aa7d0cc515dd6483ec11d40cf780ab6a16744d9cfac448d88bb71cfc6a')fail('reviewed_validator_changed');
 const {loadSettings}=await import(pathToFileURL(settingsModule));
 loadSettings(path.join(mainRoot,'reviewed-settings.json'),process.env.OBS_SETTINGS_SHA,{candidate:binding.candidate});
 
@@ -281,22 +276,28 @@ try {
   await endpointAbsent();
   clearTimeout(deadline);
   deadline=setTimeout(()=>{remember('cli_control_observation_deadline');deadlineExpired=true;},60000);
-  const terminalEnv={...env,OBS_TERMINAL_TRACE:'1',
-    KOTO_TERMINAL_TRACE_FILE:path.join(root,'evidence','terminal-trace.jsonl')};
-  handle=startTerminalCommand({id:'cli',command:process.execPath,args:['--import',pathToFileURL(traceModule).href,path.join(installed,'bin/koto.js'),'project','start',path.join(root,'plan.json'),'--start'],
-    cwd:project,env:terminalEnv,timeoutMs:90000,columns:100,rows:30,helperPath,signal:controller.signal,onEvent:event=>capture(event,'outer')});
+  handle=startTerminalCommand({id:'cli',command:process.execPath,args:[path.join(installed,'bin/koto.js'),'project','start',path.join(root,'plan.json'),'--start'],
+    cwd:project,env,timeoutMs:90000,columns:100,rows:30,helperPath,signal:controller.signal,onEvent:event=>capture(event,'outer')});
   handle.completion.then(result=>{outcome=result;ended=true;}).catch(e=>{ended=true;remember(e);stop();});
   await gate('Agents>',20000,'initial_koto_controls_missing');
   await waitInnerReady(15000);
   send(':status\r','status_before_attach');await gate('Agents>',3000,'status_controls_missing');
   await pause(1000);
-  send(':attach idle\r','attach_requested');await gate('Ask anything',8000,'foreground_native_ui_missing');
-  const accepted=handle.resize(132,36);actions.push({at:new Date().toISOString(),action:'outer_console_resize',columns:132,rows:36,accepted});
-  if(!accepted)fail('outer_console_resize_rejected');
-  await pause(3000);send('\x1d','detach_requested');
-  await gate('[idle] detached. Returned to Koto controls.',5000,'exact_koto_detach_marker_missing');
-  await gate('Agents>',2000,'detached_koto_prompt_missing');
-  send(':status\r','status_after_detach');await gate('Agents>',3000,'returned_status_controls_missing');
+  // Two explicit ownership handoffs in the same idle native session. This is
+  // bounded product acceptance, with no prompt/model and unchanged deadlines.
+  for(const [cycle,columns,rows] of [[1,132,36],[2,100,30]]) {
+    const prefix=cycle===1?'':'second_';
+    send(':attach idle\r',`${prefix}attach_requested`);
+    await gate('Ask anything',8000,`${prefix}foreground_native_ui_missing`);
+    const accepted=handle.resize(columns,rows);
+    actions.push({at:new Date().toISOString(),action:`${prefix}outer_console_resize`,columns,rows,accepted});
+    if(!accepted)fail('outer_console_resize_rejected');
+    await pause(3000);send('\x1d',`${prefix}detach_requested`);
+    await gate('[idle] detached. Returned to Koto controls.',5000,`${prefix}exact_koto_detach_marker_missing`);
+    await gate('Agents>',2000,`${prefix}detached_koto_prompt_missing`);
+    send(':status\r',`${prefix}status_after_detach`);
+    await gate('Agents>',3000,`${prefix}returned_status_controls_missing`);
+  }
   send(':stop idle\r','inner_stop_requested');
   await gate('Agents ended. Inspect and explicitly integrate contributions, or :quit to retain all worktrees.',15000,'inner_stop_controls_missing');
   await gate('Agents>',2000,'settled_koto_controls_missing');
@@ -336,8 +337,6 @@ try {
 }catch(e){remember(e);}
 const receipt={schemaVersion:1,kind:'koto-windows-cli-control-observation',candidate:binding.candidate,
   observationId:process.env.OBS_ID,root,mainRoot,bindingsSha256:hash(bindingBytes),
-  diagnosisOnly:true,acceptanceClaim:false,traceModuleSha256:diagnosis.traceSha256,
-  traceFile:path.join(root,'evidence','terminal-trace.jsonl'),
   route:standalone?'standalone-idle-controls':'post-model-controls',
   priorObservationSha256:observationBytes?hash(observationBytes):null,priorRuntimeCompletionSha256:runtimeBytes?hash(runtimeBytes):null,
   nativeExecutableSha256:hash(bytes(prepared.opencode,256*1024**2)),nativeConfigSha256:hash(configBytes),
@@ -345,7 +344,7 @@ const receipt={schemaVersion:1,kind:'koto-windows-cli-control-observation',candi
   firstError:firstError??null,errors,cleanupErrors,
   noTaskPromptSubmitted:true,noModelStarted:true,cliControlsSemanticallyVerified:false,
   nativeRedrawVerified:false,humanTerminalRestorationVerified:false,
-  interpretation:'Instrumented diagnosis only, not an acceptance pass. Requires human inspection of actual CLI/native output, trace and retained cleanup.'};
+  interpretation:'Requires human inspection of actual CLI/native output and retained cleanup. Sending controls is not a pass.'};
 try{writeFileSync(path.join(root,'evidence','observation.json'),JSON.stringify(receipt,null,2)+'\n',{flag:'wx',mode:0o600});}
 catch(e){remember(e,'cli_control_receipt_write_failed');}
 process.stdout.write(JSON.stringify({root,error:errorCode??null,semanticReviewRequired:true})+'\n');

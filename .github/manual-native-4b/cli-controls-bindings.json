@@ -1,23 +1,17 @@
 {
   "schemaVersion": 1,
   "approvedForExecution": true,
-  "candidate": "0635143c400649422d3d0092a93585c365f0656e",
+  "candidate": "caa5ca62142a1c0f9de7921f8ee10aa6f6155814",
   "sourceFileSha256": {
     "bin/koto.js": "493fe15bc15b8681094105c329b7d1e2ce3fc888a16089b2ded6163d34402bb8",
-    "bin/project.js": "b69dd1cf6b4c57e18fb2698d3d99bc6f5b76842a23a9174dd4bc947e345f77c5",
-    "bin/attach-terminal.js": "755da5bef0eec2a96379b305676f4338d012f5b3c884ecc2a3092df05a2698af",
+    "bin/project.js": "796e04a4b3dcca4395bcd0c1fa07349de2aadbe831e70fd1d236ebe82e165eb4",
+    "bin/attach-terminal.js": "e9d08168f7afb1ee2930daae2e1b187ff1d5f787aa74210dd337d05a587563e0",
     "src/terminal-session.js": "10eb8296df2540c261f0d68bb31bee2d7930378439f51f79552189f5c671d9b5",
     "src/setup-command.js": "2fa6f1a93f9932f36bbe805f63c78e40c91ec5ff69798059e2cff8820a7499e2",
     "src/terminal-helper.js": "eedac967739ec17ef1481bc4b5a22b4361b754165cece4fd6dbe5fd33f73c4da",
     "src/windows-native-helper.js": "5a2c900f6ddf6f5dc97af8c024c5b30ba99b782006a57df4be443e67de08ef00",
     "src/native/windows-pty.c": "59c34064bf608cff5830f0c2535ed3811bc7fe9b86ffe69aa9f6fe603b60962a"
   },
-  "scope": "One idle Windows OpenCode terminal controlled through the actual installed Koto CLI, either standalone or after the independent model/API run has fully cleaned up. No model or task is started by this control observation.",
-  "semanticReviewRequired": true,
-  "diagnosis": {
-    "enabled": true,
-    "acceptanceClaim": false,
-    "traceSha256": "8a68bc63f1a80a9c627db014369251cf2f7e712696aaf5c7de6e9b1db378128a",
-    "reason": "One bounded controls-only diagnosis of premature Ctrl-] exit observed in run40615660295; all product payloads remain063."
-  }
+  "scope": "Two explicit attach, resize, detach and status cycles in the same idle native Windows OpenCode terminal, then stop and quit through the actual installed Koto CLI. No trace preload, model or submitted task. Requires manual semantic and cleanup review.",
+  "semanticReviewRequired": true
 }
