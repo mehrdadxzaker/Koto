@@ -11,6 +11,8 @@
 
 <p align="center"><strong>English</strong> · <a href="README.fa.md" lang="fa">فارسی</a></p>
 
+<p align="center"><a href="https://skills.sh/mehrdadxzaker/koto/koto"><img src="https://skills.sh/b/mehrdadxzaker/Koto" alt="Koto on skills.sh" /></a></p>
+
 <p align="center"><strong>Run multiple coding agents together, in one coordinated workspace.</strong></p>
 <p align="center">Give each agent an isolated Git worktree, follow its output, review its changes, and bring the results together.</p>
 
@@ -93,6 +95,29 @@ These commands name the alpha distribution; publication and registry-install
 verification are separate release steps recorded in the
 [installation notes](docs/INSTALLATION.md). The Node core has no runtime
 dependencies, required build step or install hooks.
+
+### Use Koto inside Codex or Claude Code
+
+Install the optional **Koto** skill for your coding agents:
+
+```sh
+npx skills add mehrdadxzaker/Koto -g
+```
+
+Choose Codex, Claude Code, or both in the installer. Omit `-g` to install only
+in the current project. Start a new agent conversation, then use:
+
+| Agent | Example |
+| --- | --- |
+| Codex | `$koto plan the work for this project` |
+| Claude Code | `/koto plan the work for this project` |
+
+The skill runs the published CLI and keeps Koto's editable plans, isolated
+worktrees and reviewed integration. A CLI installation is optional: the skill
+uses a pinned `npx` command. The installed skill is simply **Koto**; the GitHub
+address in the install command identifies its source. See
+[skill installation](docs/INSTALLATION.md#koto-skill-for-codex-and-claude-code)
+for agent selection, updates and troubleshooting.
 
 <details>
 <summary>Run from source or install a local tarball</summary>

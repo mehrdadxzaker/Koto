@@ -1,0 +1,4 @@
+interface:
+  display_name: "Koto"
+  short_description: "Plan and coordinate coding agents with Koto"
+  default_prompt: "Use $koto to prepare and check a project plan for the requested work."
