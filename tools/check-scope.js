@@ -6,11 +6,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const directories = new Set(['bin', 'src', 'plugins', 'ui', 'tools', 'docs', '.github', 'assets']);
+const directories = new Set(['bin', 'src', 'plugins', 'ui', 'tools', 'docs', '.github', 'assets', 'skills']);
+const skillFiles = new Set(['skills/koto/SKILL.md', 'skills/koto/agents/openai.yaml', 'skills/koto/references/cli-workflow.md']);
 const rootFiles = new Set(['package.json', 'package-lock.json', '.gitignore', '.editorconfig', 'LICENSE', 'NOTICE']);
 const ignoredDirectories = /^(?:\.git|node_modules|dist|build|coverage|\.scratch|\.cache|\.pytest_cache|__pycache__|\.venv.*|.*\.egg-info)$/;
 const ignoredFiles = /^(?:\.env(?:\..*)?|\.coverage|.*\.runtime\.env|(?:hormuz|koto)\.json|.*\.(?:py[co]|sqlite3(?:-(?:shm|wal))?))$/;
-const retiredRoots = /^(?:hormuz|koto|tests|skills|\.agents|\.claude-plugin|apps|clients|deploy|website|marketing|experiments|finance|portfolio|billing|enterprise|hosted)$/i;
+const retiredRoots = /^(?:hormuz|koto|tests|\.agents|\.claude-plugin|apps|clients|deploy|website|marketing|experiments|finance|portfolio|billing|enterprise|hosted)$/i;
 const retiredRootFiles = /^(?:pyproject\.toml|setup\.(?:py|cfg)|MANIFEST\.in|requirements(?:[-.].*)?\.txt|(?:uv|poetry)\.lock|tox\.ini|plugin\.json|gemini-extension\.json|mcp\.json|\.mcp\.json|\.app\.json|GEMINI\.md|binding\.gyp)$/i;
 const retiredArchives = ['docs/campaigns', 'docs/diagnostics', 'docs/local-harness', 'docs/qualifications'];
 const errors = new Set();
@@ -46,6 +47,9 @@ function checkPath(name) {
   }
   if (!allowedRoot(parts[0], parts.length > 1)) {
     fail(`Unexpected repository path: ${name}`);
+  }
+  if (parts[0] === 'skills' && !skillFiles.has(name)) {
+    fail(`Only the optional CLI-backed Koto skill belongs in skills/: ${name}`);
   }
 }
 
@@ -260,7 +264,7 @@ function withoutCode(source) {
 }
 
 function checkMarkdown(name) {
-  if (!name.endsWith('.md') || (name.includes('/') && !name.startsWith('docs/'))) return;
+  if (!name.endsWith('.md') || (name.includes('/') && !name.startsWith('docs/') && !name.startsWith('skills/'))) return;
   const source = withoutCode(readFileSync(localPath(name), 'utf8'));
   const destinations = [...source.matchAll(/^ {0,3}\[[^\]\n]+\]:\s*(<[^>\n]+>|\S+)/gm)]
     .map((match) => match[1]);
