@@ -13,24 +13,24 @@ Process cleanup is separate from sandboxing; see the
 
 ## Alpha release installation
 
-The alpha release channel is `@mehrdadxzaker/koto@alpha`. Install it globally
+The alpha release channel is `@mehrdadz/koto@alpha`. Install it globally
 and open the guided CLI:
 
 ```sh
-npm install --global @mehrdadxzaker/koto@alpha
+npm install --global @mehrdadz/koto@alpha
 koto
 ```
 
 Or open it without a global installation:
 
 ```sh
-npx --yes @mehrdadxzaker/koto@alpha
+npx --yes @mehrdadz/koto@alpha
 ```
 
 To pin the first alpha version explicitly:
 
 ```sh
-npm install --global @mehrdadxzaker/koto@3.0.0-alpha.0
+npm install --global @mehrdadz/koto@3.0.0-alpha.0
 ```
 
 Alpha releases can change. Source, native-platform and registry-installation
@@ -46,18 +46,18 @@ From a reviewed source checkout:
 npm pack
 ```
 
-Copy the resulting `mehrdadxzaker-koto-3.0.0-alpha.0.tgz` to another machine with
+Copy the resulting `mehrdadz-koto-3.0.0-alpha.0.tgz` to another machine with
 Node.js and npm, then install or run it:
 
 ```sh
-npm install --global ./mehrdadxzaker-koto-3.0.0-alpha.0.tgz
+npm install --global ./mehrdadz-koto-3.0.0-alpha.0.tgz
 koto --version
 ```
 
 For execution without global installation:
 
 ```sh
-npx --yes --package ./mehrdadxzaker-koto-3.0.0-alpha.0.tgz koto --help
+npx --yes --package ./mehrdadz-koto-3.0.0-alpha.0.tgz koto --help
 ```
 
 Local packaging and installation do not publish to the npm registry.
@@ -130,7 +130,7 @@ platform. Follow the [acceptance run](USER_ACCEPTANCE.md) for actual host eviden
 IDE plugins and Koto's UI will be separate ways to use the installed core. They
 are planned and no placeholder package is installed today.
 
-Use `npm uninstall --global @mehrdadxzaker/koto` to remove a global installation.
+Use `npm uninstall --global @mehrdadz/koto` to remove a global installation.
 Koto creates no startup hooks; model downloads occur only after a selected guided
 installation or explicit advanced acquisition command. Project sessions retain private
 control/output files and Git branches/worktrees; uninstalling the package does
