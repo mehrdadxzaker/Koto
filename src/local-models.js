@@ -65,7 +65,7 @@ async function jsonRequest(url, { signal, timeoutMs = 3000 } = {}) {
     return JSON.parse(Buffer.concat(chunks).toString('utf8'));
   } catch (error) {
     throwOnResourceExhaustion(error);
-    if (error.code?.startsWith('local_')) throw error;
+    if (typeof error?.code === 'string' && error.code.startsWith('local_')) throw error;
     throw failure('local_endpoint_metadata_invalid', 'The local server did not return bounded, valid JSON metadata.');
   }
 }
@@ -293,12 +293,32 @@ export async function startLlamaServer({ modelPath, command = 'llama-server', po
   const completion = handle.completion.then(async result => {
     finished = true;
     controller.abort();
-    await memory;
+    try { await memory; }
+    catch (error) {
+      // Join the owned process first, then report the original monitor failure
+      // unless cleanup or socket exhaustion has the stronger failure evidence.
+      let fatalError;
+      for (const candidate of [result.error ? failure(result.error,
+        'The owned local server failed while memory monitoring was ending.') : undefined, guardError, error]) {
+        try { throwOnResourceExhaustion(candidate); }
+        catch (fatal) {
+          const cleanup = typeof fatal?.code === 'string' && fatal.code.endsWith('cleanup_unconfirmed');
+          const priorCleanup = typeof fatalError?.code === 'string' && fatalError.code.endsWith('cleanup_unconfirmed');
+          if (!fatalError || cleanup && !priorCleanup) fatalError = fatal;
+        }
+      }
+      const primary = fatalError ?? guardError ?? error;
+      try { if (memoryDiagnostic && primary instanceof Error) primary.memoryDiagnostic ??= memoryDiagnostic; }
+      catch { /* An opaque error must not replace the primary failure. */ }
+      throw primary;
+    }
     return guardError ? { ...result, status: 'failed',
-      error: result.error === 'cleanup_unconfirmed' || guardError.code === 'local_memory_cleanup_unconfirmed'
+      error: result.error === 'cleanup_unconfirmed'
+        || typeof guardError.code === 'string' && guardError.code.endsWith('cleanup_unconfirmed')
         ? 'cleanup_unconfirmed' : result.error?.endsWith('_socket_exhausted') ? result.error : guardError.code,
       ...(memoryDiagnostic ? { memoryDiagnostic } : {}) } : result;
   });
+  completion.catch(() => {}); // An owner may await readiness before completion.
   memory = (async () => {
     while (!finished && !joinedSignal.aborted) {
       try {
@@ -328,14 +348,15 @@ export async function startLlamaServer({ modelPath, command = 'llama-server', po
       } catch (error) {
         try { throwOnResourceExhaustion(error); }
         catch (fatal) { error = fatal; }
-        if (error.code === 'local_memory_cleanup_unconfirmed') {
+        const code = typeof error?.code === 'string' ? error.code : undefined;
+        if (code?.endsWith('cleanup_unconfirmed')) {
           guardError = error; controller.abort(); break;
         }
-        if (error.code?.endsWith('_socket_exhausted')) {
+        if (code?.endsWith('_socket_exhausted')) {
           guardError = error; controller.abort(); break;
         }
         if (finished || joinedSignal.aborted) break;
-        guardError = error.code?.startsWith('local_') || error.code?.endsWith('_socket_exhausted')
+        guardError = code?.startsWith('local_') || code?.endsWith('_socket_exhausted')
           ? error : failure('local_memory_metrics_unavailable', 'Memory monitoring failed; the owned server was stopped.');
         controller.abort();
         break;
@@ -343,6 +364,12 @@ export async function startLlamaServer({ modelPath, command = 'llama-server', po
     }
     confirmInitialMemory(false);
   })();
+  // Observe immediately without replacing the promise or hiding its rejection.
+  // The completion above still awaits it after owned-process cleanup settles.
+  memory.catch(() => {
+    confirmInitialMemory(false);
+    controller.abort();
+  });
   const ready = (async () => {
     const deadline = startupDeadline;
     // Do not poll a healthy endpoint while the first asynchronous RSS/host
