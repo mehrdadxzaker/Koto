@@ -375,6 +375,12 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
       if (!detail || Buffer.byteLength(detail) > 65_536) return false;
       detail = detail.replace(/[\u202a-\u202e\u2066-\u2069]/g,
         character => `\\u${character.charCodeAt(0).toString(16).padStart(4, '0')}`);
+      const expiresAt = typeof request.approvalExpiresAt === 'string' && Number.isFinite(Date.parse(request.approvalExpiresAt))
+        ? new Date(request.approvalExpiresAt).toISOString() : undefined;
+      const timeoutMs = Number.isSafeInteger(request.approvalTimeoutMs) && request.approvalTimeoutMs > 0
+        ? request.approvalTimeoutMs : undefined;
+      const deadline = expiresAt ? `Expires at ${expiresAt}`
+        : timeoutMs ? `Decision window: ${timeoutMs / 1000} seconds` : '';
       rememberActivity({ type: 'approval_request', agentId: request.agentId, tool: request.tool,
         command: request.command, status: 'waiting', text: detail });
       view?.pause();
@@ -384,24 +390,28 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
       controlTyping = false;
       finishInput();
       approvalActive = true;
-      write(`\n[${visible(request.agentId ?? request.kind ?? (codexRequest ? 'codex' : 'local'))}] requests permission\n${detail}\n`);
+      write(`\n[${visible(request.agentId ?? request.kind ?? (codexRequest ? 'codex' : 'local'))}] requests permission\n${deadline ? `${deadline}\n` : ''}${detail}\n`);
       try {
         return await new Promise(resolve => {
           const questionController = new AbortController();
           let settled = false;
-          const denyCancelledRequest = () => finish(false);
-          const finish = answer => {
+          const denyCancelledRequest = () => finish(false, true);
+          const finish = (answer, requestCancelled = false) => {
             if (settled) return;
             settled = true;
             cancelApproval = undefined;
             requestSignal?.removeEventListener('abort', denyCancelledRequest);
             questionController.abort();
+            if (requestCancelled && !closed) {
+              terminal?.clear();
+              write('Permission request expired or was cancelled; no action approved.\n');
+            }
             resolve(answer === true);
           };
           cancelApproval = () => finish(false);
           requestSignal?.addEventListener('abort', denyCancelledRequest, { once: true });
           const combined = AbortSignal.any([questionController.signal, ...(requestSignal ? [requestSignal] : []), ...(signal ? [signal] : [])]);
-          terminal.choose({ title: 'Permission for this exact displayed action', initial: 'deny', signal: combined,
+          terminal.choose({ title: `Permission for this exact displayed action${deadline ? `\n${deadline}` : ''}`, initial: 'deny', signal: combined,
             items: [{ value: 'deny', label: 'Deny', description: 'Do not permit this requested action' },
               { value: 'approve', label: 'Approve once', description: 'Permit only this displayed native request' },
               { value: 'stop', label: 'Stop this work', description: 'Deny the request and stop its owned agent or coordinator turn' }],
@@ -531,6 +541,7 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
       terminal.on('line', line => {
         if (approvalActive) return;
         controlTyping = false;
+        if (!line.trim()) { finishInput(); showPrompt(); return; }
         if (line.length > 65_536 || pendingControls >= 32) {
           write('Control input exceeds the bounded queue.\n');
           finishInput(); showPrompt(); return;

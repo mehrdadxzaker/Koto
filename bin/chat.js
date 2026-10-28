@@ -459,7 +459,9 @@ export async function runChat({ write, signal: parentSignal, version, project: s
       if (Buffer.byteLength(encoded) > 65_536) return false;
       print(`\nAgent permission request:\n${encoded}`);
       try {
-        const answer = await choose({ title: 'Native permission request · this action only', signal: request.signal, items: [
+        const expiry = Date.parse(request.approvalExpiresAt ?? '');
+        const title = `Native permission request · this action only${Number.isFinite(expiry) ? ` · expires ${new Date(expiry).toLocaleTimeString()}` : ''}`;
+        const answer = await choose({ title, signal: request.signal, items: [
           { value: 'deny', label: 'Deny', description: 'Keep this action blocked' },
           { value: 'approve', label: 'Approve once', description: 'Allow only the exact displayed native request' },
           { value: '/stop', label: 'Stop this turn' },
@@ -467,7 +469,10 @@ export async function runChat({ write, signal: parentSignal, version, project: s
         if (answer === '/stop') stop();
         if (answer === '/quit') { quitting = true; stop(); }
         return answer === 'approve' && !request.signal?.aborted && !signal?.aborted;
-      } catch { return false; }
+      } catch {
+        if (request.signal?.aborted && !quitting && !signal.aborted) print('Permission request expired or was cancelled. No action was approved.');
+        return false;
+      }
       finally { if (busy && !quitting && !signal?.aborted) view.resume(); }
     });
     approvalQueue = operation.then(() => undefined, () => undefined);

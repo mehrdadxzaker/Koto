@@ -166,8 +166,12 @@ export function createCodexAppServerSession({ id = 'codex', command, cwd, model,
     emit({ type: 'agent_status', status: 'waiting_permission' });
     emit({ type: 'activity', activity: 'permission_request', status: 'waiting', description: 'Native approval requested',
       requestId: message.id, threadId, turnId: turn.turnId, itemId: params.itemId });
+    // This is the host's actual decision window, not a native/model-supplied
+    // timeout. Queued prompts must display the remaining time, not restart it.
+    const approvalTimeoutMs = Math.max(1, Math.min(60_000, Math.floor(turn.deadline - performance.now())));
+    const approvalExpiresAt = new Date(Date.now() + approvalTimeoutMs).toISOString();
     const payload = { requestId: message.id, method: message.method, threadId, turnId: turn.turnId,
-      itemId: params.itemId, signal: entry.controller.signal,
+      itemId: params.itemId, signal: entry.controller.signal, approvalExpiresAt, approvalTimeoutMs,
       ...(typeof commandPreview === 'string' ? { command: commandPreview } : {}),
       ...(typeof commandCwd === 'string' ? { cwd: commandCwd } : {}),
       ...(typeof params.reason === 'string' ? { reason: params.reason } : {}),
@@ -181,7 +185,7 @@ export function createCodexAppServerSession({ id = 'codex', command, cwd, model,
         decision = await Promise.race([
           Promise.resolve().then(() => entry.cancelled ? 'deny' : onApproval(Object.freeze(payload))),
           cancelled,
-          new Promise(resolve => { timer = setTimeout(() => resolve('deny'), Math.max(1, Math.min(60_000, turn.deadline - performance.now()))); }),
+          new Promise(resolve => { timer = setTimeout(() => resolve('deny'), approvalTimeoutMs); }),
         ]);
       }
     } catch { decision = 'deny'; }

@@ -599,10 +599,17 @@ export interface ProjectSession {
   reconcileContributionAttempt(options: Omit<ProjectContributionReconciliationOptions, 'onEvent'>): Promise<ProjectContributionReconciliation>;
 }
 
+export interface AgentApprovalRequest extends Readonly<Record<string, unknown>> {
+  readonly signal?: AbortSignal | undefined;
+  /** Host-owned ISO deadline; present when this adapter exposes a decision window. */
+  readonly approvalExpiresAt?: string | undefined;
+  /** Host-owned original decision window, at most 60000 ms for Codex. Queuing does not restart it. */
+  readonly approvalTimeoutMs?: number | undefined;
+}
 export interface ProjectSessionOptions {
   onEvent?: ((event: ProjectEvent) => unknown) | undefined;
   signal?: AbortSignal | undefined;
-  onApproval?: ((request: Record<string, unknown>) => Promise<boolean>) | undefined;
+  onApproval?: ((request: AgentApprovalRequest) => Promise<boolean>) | undefined;
 }
 
 export function validateProjectPlan(input: unknown): ProjectPlan;
@@ -751,18 +758,18 @@ export interface LocalAgentOptions {
   mode?: 'conversation' | 'coding' | undefined; timeoutMs?: number | undefined;
   maxTurns?: number | undefined; maxOutputTokens?: number | undefined;
   onEvent?: ((event: Readonly<Record<string, unknown>>) => unknown) | undefined;
-  onApproval?: ((request: Readonly<Record<string, unknown>>) => boolean | Promise<boolean>) | undefined;
+  onApproval?: ((request: AgentApprovalRequest) => boolean | Promise<boolean>) | undefined;
   resumeState?: LocalConversationState | undefined;
   unsetEnv?: readonly string[] | undefined;
 }
 export function createLocalAgentSession(options: LocalAgentOptions): AgentSession;
 export type CodingAgentOptions = (Omit<NativeAgentOptions, 'account'> & {
   account?: 'chatgpt' | 'subscription' | undefined;
-  onApproval?: ((request: Readonly<Record<string, unknown>>) => boolean | Promise<boolean>) | undefined;
+  onApproval?: ((request: AgentApprovalRequest) => boolean | Promise<boolean>) | undefined;
 }) | (LocalAgentOptions & { kind: 'local' });
 export function createCodingAgentSession(options: CodingAgentOptions): AgentSession;
 export type NativeControlAgentOptions = Omit<NativeAgentOptions, 'kind' | 'account'> & {
-  onApproval?: ((request: Readonly<Record<string, unknown>>) => 'approve' | 'deny' | Promise<'approve' | 'deny'>) | undefined;
+  onApproval?: ((request: AgentApprovalRequest) => 'approve' | 'deny' | Promise<'approve' | 'deny'>) | undefined;
 };
 export function createCodexAppServerSession(options: NativeControlAgentOptions & { account?: 'chatgpt' | undefined }): AgentSession;
 export function createClaudeAgentSession(options: NativeControlAgentOptions & { account?: 'subscription' | undefined }): AgentSession;
