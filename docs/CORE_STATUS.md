@@ -10,7 +10,7 @@ CLI controls on `caa5ca6` are accepted across Windows, macOS and Linux. The Mac
 record combines two handoffs and stop with a separate ordinary stop/quit
 complement; its first controller deadline remains a partial outcome.
 
-Current reviewed head `caa5ca6` repairs raw-input ownership in two internal CLI
+Recorded terminal-handoff head `caa5ca6` repairs raw-input ownership in two internal CLI
 files. Its 53-payload package identity and all seven exact-head CI checks are
 verified. Native/runtime/core payloads are unchanged from `0635143`. Actual
 model work and integration retain their `8291701`/`0635143` identities; no model
@@ -20,6 +20,52 @@ unexercised conditional branches remain disclosed below.
 [Issue #543](https://github.com/mehrdadxzaker/Koto/issues/543) maintains the
 delivery-head, protected-merge, exact-main and issue-completion ledger. Registry
 publication and later UI/IDE delivery remain separate.
+
+## Follow-on coordination — PR #617
+
+[PR #617](https://github.com/mehrdadxzaker/Koto/pull/617) reconciles live
+coordinator conversation, reviewed follow-up bases, summary/concurrency editing
+and attributed unfinished Codex work with the accepted core. Observed source
+`a7e6150f78302d9728ed2e4d9be333138a5cc894` has a fresh offline 54-payload
+source/archive/installation match: seven code/type payloads change from
+`599f9e6`; the other 47 are unchanged. Its package receipt SHA-256 is
+`346b21ae8270414decf05b178891462f343f73fd3e42af72342fcb8d8e132199`.
+
+Actual installed Mac observations, separate from #543's older records:
+
+- A read-only Codex 0.160.0 turn performed three native source-read commands and
+  two native delegation waits. The same native session and PID continued into
+  a real two-task proposal; the summary was revised and concurrency reduced from
+  two to one without preparing, approving or launching those workers. Both turns
+  succeeded; adapter close returned exit 0 and the observed PID/group was gone.
+  The 33.259-second outcome SHA-256 is
+  `f07be22a63018b2a88342e51354f4e9fc4f8a7416027a13615cee5e3f08d5adb`.
+  Projected events do not expose delegate identity/result. Unfinished-child,
+  malformed-event, observation-loss and capacity-limit refusal paths remain
+  unexercised; source review is separate from these actual observations.
+- One real coordinator reply correctly identified the still-running idle
+  OpenCode 1.19.4 PTY and separated process activity from correctness. Actual
+  native UI, resize to 132×36, Ctrl-] return, same-PID status, explicit stop and
+  ordinary quit completed in 54.457 seconds. Cleanup was confirmed, retained
+  state inactive/unlocked and the observed process groups absent. Intentional
+  worker cancellation retains native exit 0 and aggregate CLI exit 1. No
+  OpenCode prompt or model task was submitted; native session/message/part
+  counts were zero. Outcome SHA-256:
+  `dadb3a5b255a19a2dd72980e779c0a5805cfa500caab1f575368ee02caf8d00f`.
+  The reply arrived 130 ms before attachment, so pending-reply buffering was
+  not observed. A pre-product sandbox/setup failure remains retained; the later
+  SQLite inspection touched an SHM sidecar, so no all-sidecars-unchanged claim
+  is made. Normal Codex configuration and project contents remained unchanged.
+- The installed follow-up API selected the actual retained reviewed integration
+  `7fbbe9d5421c3f1ef83487bec7cc4637e699d6a7`, retaining identical session JSON and
+  releasing its lease. Receipt SHA-256:
+  `439a48dfd1652a3c330c08e1da2fa7e375d45681900fbe5cabd5dd963d5fb496`.
+
+These are bounded Mac observations, not a new cross-platform or general model
+qualification. Earlier Linux/Windows evidence retains its exact source and host
+identities below. The separate alpha registry candidate remains frozen at
+`599f9e6`; this follow-on source is not published by these observations. Final
+delivery-head, review, protected merge and main CI results are tracked in #617.
 
 ## Reviewed source, CI and package
 
@@ -108,7 +154,7 @@ is not fresh execution. The separate `0635143` Windows observation below now
 records useful work and confirmed actual runtime stop; it does not establish
 all conditional failure paths or resolve the later CLI handoff failure.
 
-### Current reviewed CLI handoff repair — `caa5ca6`
+### Recorded CLI handoff repair — `caa5ca6`
 
 Head `caa5ca62142a1c0f9de7921f8ee10aa6f6155814`, tree
 `89a782e70aec00057b4593811857c6dce5d6def8`, changes only

@@ -14,10 +14,16 @@ through the existing core. A standalone UI host follows the accepted editor
 slice. This is a proposal; implementation and installed-host acceptance are
 still required.
 
+Follow-on CLI coordination and reviewed-base improvements are recorded in
+[PR #617](https://github.com/mehrdadxzaker/Koto/pull/617) and
+[current evidence](CORE_STATUS.md#follow-on-coordination--pr-617). Their new Mac
+observations remain separate from the earlier platform records below and from
+the frozen alpha registry release candidate.
+
 | Stage | Outcome | Recorded status |
 | --- | --- | --- |
 | npm foundation | One Node.js package installs and executes through npm/npx | Implemented. Reviewed tarball installation, payload matching and actual returning `npm exec` use were observed. Registry publication remains separate. |
-| Core foundation | Task graphs, bounded concurrent workers, dependency handoffs, results and cancellation | Recorded package/CI, cancellation, native work and cleanup results remain intact. Current `caa5ca6` changes only internal CLI raw-input ownership handling; native/runtime/core payloads are unchanged from `0635143`. |
+| Core foundation | Task graphs, bounded concurrent workers, dependency handoffs, results and cancellation | Recorded package/CI, cancellation, native work and cleanup results remain intact. The recorded `caa5ca6` change affects only internal CLI raw-input ownership handling; native/runtime/core payloads are unchanged from `0635143`. |
 | Conversational CLI | Ordinary messages and coding goals, proposed agent/task/ownership plans and explicit build approval | Actual Mac first-run use completed goal entry, plan editing, build approval and useful local/native contributions on a real project. |
 | Subscription onboarding | Discover supported Codex/Claude installations and native logins; offer native sign-in and optional private client installation | Actual Mac discovery selected the existing ChatGPT/Codex account and later native work used it. Claude was found requiring sign-in; live Claude inference and unexercised sign-in/install branches remain unverified. |
 | Optional local setup | Machine-aware choices, pinned runtime/model acquisition, verified reuse and guided selection | Actual fresh Mac runtime/Qwen3 4B downloads, verification, model startup and useful structured-tool work were observed. Returning setup verified the retained model without another download. Earlier refusals and failures remain recorded. |
@@ -73,7 +79,7 @@ cleanup. Instrumented diagnosis localized second readline/raw-mode setup to
 stdin `EPIPE`, without establishing the underlying Windows failure code or
 independent console closure. The trace remains diagnosis rather than acceptance.
 
-Current reviewed head `caa5ca6` changes only `bin/attach-terminal.js` and
+Recorded terminal-handoff head `caa5ca6` changes only `bin/attach-terminal.js` and
 `bin/project.js`: explicit successful replacement-input ownership is acknowledged,
 otherwise prior raw mode is restored; real input loss or partial-control failure
 stops owned work, and final stdin cleanup handles constructor-before-return
@@ -111,7 +117,7 @@ failure fix affects all platforms. Reviewed normal command/resource/ownership
 paths remain equivalent, while changed error paths need execution evidence.
 Prior Mac/Linux/Windows observations retain their actual candidate IDs. The
 `0635143` native work, controlled cleanup and integration have their own accepted
-records. Current `caa5ca6` package/CI proof and the accepted actual control-return
+records. Recorded `caa5ca6` package/CI proof and the accepted actual control-return
 observations remain separate evidence layers. Exact control receipts, including
 the distinct Windows-created and Mac-created archive bindings, are in
 [core status](CORE_STATUS.md). Delivery-head/main and issue-completion results
