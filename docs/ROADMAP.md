@@ -7,6 +7,13 @@ same core**. The CLI covers onboarding, subscription discovery, optional local
 setup, useful project work and retained sessions. Additional interfaces follow
 the accepted journey and consume the same core operations and product state.
 
+**Proposed next milestone:** [Koto Session Workspace](UI_IDE_MILESTONE.md), a
+reusable workspace UI delivered first through a VS Code extension. It covers
+plan approval, owned native terminals, reviewed integration and returning work
+through the existing core. A standalone UI host follows the accepted editor
+slice. This is a proposal; implementation and installed-host acceptance are
+still required.
+
 | Stage | Outcome | Recorded status |
 | --- | --- | --- |
 | npm foundation | One Node.js package installs and executes through npm/npx | Implemented. Reviewed tarball installation, payload matching and actual returning `npm exec` use were observed. Registry publication remains separate. |

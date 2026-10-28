@@ -11,9 +11,36 @@ separate from native-agent acceptance; observed results are recorded in
 Process cleanup is separate from sandboxing; see the
 [execution boundaries](ARCHITECTURE.md#lifecycle-and-execution-boundaries).
 
-## Local package
+## Alpha release installation
 
-The registry package is not published yet. From this checkout:
+The alpha release channel is `@mehrdadxzaker/koto@alpha`. Install it globally
+and open the guided CLI:
+
+```sh
+npm install --global @mehrdadxzaker/koto@alpha
+koto
+```
+
+Or open it without a global installation:
+
+```sh
+npx --yes @mehrdadxzaker/koto@alpha
+```
+
+To pin the first alpha version explicitly:
+
+```sh
+npm install --global @mehrdadxzaker/koto@3.0.0-alpha.0
+```
+
+Alpha releases can change. Source, native-platform and registry-installation
+acceptance are recorded separately in [current evidence](CORE_STATUS.md). A
+release command here does not establish that its registry publication or fresh
+installation has completed.
+
+## Package from source
+
+From a reviewed source checkout:
 
 ```sh
 npm pack
@@ -33,9 +60,7 @@ For execution without global installation:
 npx --yes --package ./mehrdadxzaker-koto-3.0.0-alpha.0.tgz koto --help
 ```
 
-Registry publication will enable installation by package name. The intended name
-in `package.json` is `@mehrdadxzaker/koto`; ownership/availability and the release
-must be verified before documenting a published command as working.
+Local packaging and installation do not publish to the npm registry.
 
 ## Agent and delivery dependencies
 
