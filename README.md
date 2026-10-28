@@ -16,14 +16,18 @@
 
 <p align="center"><a href="#quick-start">Quick start</a> · <a href="#how-it-works">How it works</a> · <a href="#contributing">Contribute</a> · <a href="docs/PROJECT_SESSIONS.md">Session guide</a></p>
 
-Koto coordinates agents you already use. You choose the task, executable, model
-and permissions for each agent. Koto schedules their work, streams their output
-and keeps contributions separate until you review them. A shared JavaScript
-core powers the current CLI; future plugins and UIs will use the same API.
+Koto brings commercial and open-source coding agents into one workflow. Open the
+CLI, choose an existing subscription or an optional local model, describe your
+project, and review an editable plan before work starts. Agents work in isolated
+Git worktrees; you review their contributions before integrating them.
 
-**Available now:** concurrent project sessions, isolated Git worktrees, terminal
-controls and approval-based integration. The npm package is **not published to
-the registry yet**; run from source or install a locally packed tarball.
+**Available now:** guided setup, remembered choices and saved sessions, concurrent
+project work, native terminal controls, supported conversation continuation and
+approval-based integration. **Koto is alpha software.** The recorded CLI
+acceptance is tracked in [#543](https://github.com/mehrdadxzaker/Koto/issues/543);
+[installation and release notes](docs/INSTALLATION.md) track npm publication and
+registry verification separately. IDE plugins and Koto's own UI are the next
+delivery phase, using the same JavaScript core.
 
 ## How it works
 
@@ -31,180 +35,192 @@ the registry yet**; run from source or install a locally packed tarball.
 
 | You need to… | Koto provides |
 | --- | --- |
-| Use different agents at the same time | Concurrent execution through one scheduler; explicit task ownership and configurable limits |
-| Keep edits apart | One branch and worktree per agent, all starting from the same commit |
-| See and control work | Tagged stdout/stderr, process status, per-agent stop and optional pipe input |
-| Decide what to keep | Complete contribution diffs, approval tokens tied to current contents and serial integration |
-| Handle disagreement | Visible Git conflicts in a separate integration worktree; the original checkout is retained |
-| Add another interface later | Shared workflow/session APIs and TypeScript declarations, with a thin CLI consumer |
+| Start with your existing setup | Codex/ChatGPT and Claude Code discovery, native sign-in or private client installation, plus optional verified local model/runtime downloads |
+| Decide how agents work together | Editable plans with agents, models, tasks, contribution paths and dependencies; explicit launch approval |
+| Keep edits apart | One branch and worktree per agent, starting from the same commit |
+| See and control work | Live output, process/native status, per-agent stop, native terminal input, resize and detach |
+| Decide what to keep | Contribution diffs, approval bound to current contents, and integration into a separate worktree |
+| Return to earlier work | Remembered setup and saved builds; supported exact-conversation continuation and review of later integration deltas |
+| Use another interface later | Shared discovery, planning, session and integration APIs with TypeScript declarations |
 
 ### Observed with real agents
 
-A [recorded macOS demonstration](https://github.com/mehrdadxzaker/Koto/pull/613)
-used **Codex and OpenCode with local Qwen3-14B** to build a small task-board CLI.
-Codex wrote the summary module while OpenCode wrote the CLI in another worktree.
-Their native execution overlapped for **25.4 seconds**. Both diffs were inspected
-and approved with review tokens, integration completed without conflict, and the
-application ran manually with four tasks and 25% completion.
+The [recorded CLI acceptance](docs/CORE_STATUS.md) includes fresh and returning
+Mac use with Codex/ChatGPT and a downloaded local Qwen3 4B model, useful changes,
+reviewed integration and conversation continuation. Linux ARM64 Docker records
+native interaction, useful reviewed work, integration and cleanup, with a writer
+timeout retained. Windows records useful native work, same-conversation follow-up
+and separate explicit integration. Final CLI attach/detach/stop/quit controls
+were observed across all three hosts; the Mac record combines a retained
+handoff/deadline partial with a separate ordinary stop/quit observation.
 
-The record includes the initial local shell-quoting failure and its revision:
-**two Codex and two local CLI invocations**, with owned cleanup confirmed. This
-is evidence for one real pipe-based workflow on that Mac. Model-quality,
-speed and cost comparisons remain unmeasured.
+These are bounded task and lifecycle observations. Earlier failures remain in
+the evidence. Live Claude inference, unexercised conditional setup/recovery
+branches, general coding quality and actual provider cost are not established.
+See [current evidence](docs/CORE_STATUS.md) and the
+[acceptance guide](docs/USER_ACCEPTANCE.md) for the exact scope and limits.
 
 ## Quick start
 
-You need **Node.js 22+ and Git**, a clean committed project, and separately
-installed agent CLIs. Configure their accounts, native permissions and any local
-model server before launching work. Koto does not download models or provision
-provider access. npm is needed only for packaging and development commands.
-Git must be available through an absolute PATH entry. Use real executable
-launchers; Windows `.cmd`/`.bat` wrappers need a native entry point or `$node`
-with its script path, as described in the [session guide](docs/PROJECT_SESSIONS.md).
+You need **Node.js 22+ with npm**. Project work also needs Git on an absolute PATH
+entry and a clean, committed Git repository. Koto can discover existing native
+clients or offer their private installation and native sign-in. You can use a
+subscription, a local model, or both; a local-model download is optional.
 
-### 1. Get the core
+### 1. Open Koto
+
+The alpha release installation path is:
+
+```sh
+npm install --global @mehrdadxzaker/koto@alpha
+koto
+```
+
+Without a global installation:
+
+```sh
+npx --yes @mehrdadxzaker/koto@alpha
+```
+
+To select the exact prerelease version instead of following the `alpha` tag:
+
+```sh
+npm install --global @mehrdadxzaker/koto@3.0.0-alpha.0
+koto
+```
+
+These commands name the alpha distribution; publication and registry-install
+verification are separate release steps recorded in the
+[installation notes](docs/INSTALLATION.md). The Node core has no runtime
+dependencies, required build step or install hooks.
+
+<details>
+<summary>Run from source or install a local tarball</summary>
+
+Run directly from the checkout:
 
 ```sh
 git clone https://github.com/mehrdadxzaker/Koto.git
 cd Koto
-node bin/koto.js --help
-node bin/koto.js project --help
+node bin/koto.js
 ```
 
-There are no runtime dependencies or install hooks. You can run the CLI directly
-from this checkout.
-
-<details>
-<summary>Prefer an npm-installed command?</summary>
-
-Build and install the local package:
+Or build and install the local package from that checkout:
 
 ```sh
 npm pack --ignore-scripts
 npm install --global ./mehrdadxzaker-koto-3.0.0-alpha.0.tgz
-koto project --help
+koto
 ```
 
-The intended package name is `@mehrdadxzaker/koto`; registry publication remains
-pending. See [installation](docs/INSTALLATION.md) for local npm/npx usage and
+See [installation](docs/INSTALLATION.md) for local npm/npx usage and
 [the migration guide](docs/MIGRATION.md) if an older Python `koto` command is on
 your PATH.
 
 </details>
 
-### 2. Describe the real work
+### 2. Choose your setup and project
 
-Save a private `plan.json` **outside the target project**. Set an absolute project
-path and give each agent a clear task and declared file ownership. The project
-must have a clean working tree and a committed HEAD.
+The first-run conversation discovers supported Codex and Claude Code accounts.
+Choose an existing login, open the client's native sign-in flow, or approve a
+private client installation when needed. Native credentials remain with the
+client; subscription use does not require a provider API key. Login discovery
+does not establish access to every model or remaining provider usage.
 
-This example assigns two improvements to Koto itself. Point `project` at your
-clean checkout, or replace the tasks and paths for your own project. The local
-model identifier is the alias used in the Mac demonstration; configure or
-replace it with your own local OpenCode provider/model alias.
-The observed setup used Codex 0.164 and OpenCode 1.19.4. Match the arguments to
-your installed versions and keep execution in the foreground; external daemon
-jobs are outside Koto's owned process group.
+Optional local setup shows model size, license and memory guidance. After your
+confirmation, Koto acquires a pinned llama.cpp runtime and verifies the selected
+model download. Verified assets are reused on later launches. Koto runs one
+managed local model server at a time and stops it when it exits. Startup remains
+subject to current memory and storage checks.
 
-<details open>
-<summary>Example plan: Codex + OpenCode with local Qwen</summary>
+Choose a project folder, create one with `new PATH` after confirmation, or enter
+`later` to keep chatting. Existing project work requires a clean committed
+repository. Use `/project PATH` or `/new PATH` to change it later.
 
-```json
-{
-  "schemaVersion": 1,
-  "project": "/absolute/path/to/Koto",
-  "goal": "Improve terminal collaboration while keeping all interfaces on the shared core.",
-  "maxConcurrency": 2,
-  "timeoutMs": 300000,
-  "agents": [
-    {
-      "id": "codex",
-      "command": "codex",
-      "args": ["--no-daemon", "--disable", "apps", "exec", "--json", "--model", "gpt-6.1-sol", "--sandbox", "workspace-write", "{prompt}"],
-      "inputMode": "closed",
-      "task": "Add a read-only session.outputTail(agentId) API with a bounded 64 KiB output tail and update its public declarations. Keep output private. Do not change the terminal renderer or add or run automated tests.",
-      "owns": ["src/project-session.js", "src/core.d.ts"]
-    },
-    {
-      "id": "local",
-      "command": "opencode",
-      "args": ["run", "--format", "json", "--model", "local-llama/qwen3-14b-q4_k_m", "--dir", "{workspace}", "{prompt}"],
-      "inputMode": "closed",
-      "task": "Make :status display a concise table with agent id, process status, pid and worktree path. Preserve existing controls. Do not change core modules or add or run automated tests.",
-      "owns": ["bin/project.js"]
-    }
-  ]
-}
-```
+**Native helper prerequisites:** package installation never compiles a helper
+or downloads a compiler. The host helper is built explicitly with installed
+tools and verified before use:
 
-</details>
+| Host | Existing prerequisites | Helper use |
+| --- | --- | --- |
+| macOS | Apple command-line developer tools and SDK | PTY agents |
+| Linux | System C compiler, libc development headers, procfs and allowed pidfd syscalls | PTY agents |
+| Windows 10 1809 or newer | Visual Studio C++ tools and a matching Windows SDK | All project agents and repository preflight, including pipe mode |
 
-Arguments are an array, not a shell command. Koto substitutes `{prompt}` and
-`{workspace}`; it does not choose a provider or translate an agent protocol.
-The native CLI controls its account, model access and usage. Review those
-settings before launch; the [session guide](docs/PROJECT_SESSIONS.md) includes
-an explicit ChatGPT-account configuration and environment controls.
-
-`inputMode: "closed"` sends EOF after optional input, which matters for Codex
-exec's piped stdin. Opt into `"pipe"` only when the selected CLI supports
-ongoing stdin interaction.
-
-### 3. Launch, supervise and review
-
-From the Koto checkout:
+The guided launcher's **Set up terminal support** option performs this build.
+With the installed CLI, you can also use:
 
 ```sh
-node bin/koto.js project start /absolute/private/path/plan.json
+koto terminal build
+koto terminal info
 ```
 
-The terminal lists the plan and requires you to type `start` before launching.
-It prints the private session directory and integration-worktree path. Agent
-output streams with its agent name and stdout/stderr label.
+See [installation](docs/INSTALLATION.md#build-the-host-helper) for helper paths,
+version matching and platform requirements. These are process-ownership
+mechanisms; they do not grant an OS sandbox.
 
-| Terminal command | Action |
+### 3. Describe, edit and approve the work
+
+Type a message or describe what you want to build. A coding request produces a
+plan with agents, models, tasks and contribution paths. Type `edit` to change
+assignments, configured agent/model choices, ownership or dependencies, or remove
+a task. Koto validates the revised plan and displays it again. Type `build` to
+launch the reviewed plan through the shared core.
+
+| During a project session | Action |
 | --- | --- |
-| `:status` | Show process and worktree status |
+| `:status` | Show agent and worktree status |
+| `:attach AGENT` | Enter a native terminal; Ctrl-] returns to Koto |
+| `:resize AGENT 120 36` | Resize a native terminal; attached terminals also follow the outer terminal |
 | `:stop AGENT` / `:stop all` | Stop owned work and retain partial edits |
-| `:send AGENT TEXT` / `:eof AGENT` | Send pipe input or EOF when enabled and supported |
-| `:inspect AGENT` | Show the complete diff and its current review token |
-| `:integrate AGENT TOKEN` | Integrate that exact reviewed contribution after all session agent processes finish |
-| `:quit` | Stop remaining work and retain session worktrees |
+| `:review AGENT` | Display and remember the contribution the next integration would apply |
+| `:integrate AGENT` | Apply that displayed contribution after all agents finish and cleanup is confirmed |
+| `:quit` | Stop remaining work, retain the build and return to the conversation or launcher |
 
-You can also inspect and integrate after the terminal exits, without launching
-another agent:
-
-```sh
-node bin/koto.js project inspect /private/session/directory codex
-node bin/koto.js project integrate /private/session/directory codex --approve REVIEW_TOKEN
-```
-
-Integration writes to the **session's integration branch**, never directly to
-your original project branch. Changed contents need a new review token. Conflicts
-stay visible for ordinary Git resolution. Review the integrated result and run
+Answer native terminal permission prompts inside the intended agent's terminal.
+Koto adds no permission bypass. Integration writes to the **session's separate
+integration worktree**, never directly to your original project branch. Changed
+contributions must be reviewed again. Conflicts remain available for manual Git
+resolution and explicit acknowledgement. Review the integrated result and run
 your application before deciding how to bring it into your normal branch.
 
-For a previously inspected plan, `--start --headless` supplies launch approval
-and exits after execution. Use these flags when stdin/stdout are not a terminal.
-They do not approve generated edits.
+### 4. Return to saved work
+
+Open `koto` again to use remembered account, project, model and worker choices.
+`/sessions` selects a saved build; `/review`, `/integrate` and `/resume` select an
+agent and guide the next action without copied session-directory paths.
+Supported continuation keeps the original conversation and worktree. After an
+integration, the next review covers only subsequent changes. Missing native
+identity, unresolved conflicts or unconfirmed cleanup block continuation or
+integration.
+
+Use `/accounts`, `/agents`, `/models` and `/help` to inspect choices. `/models add`
+opens guided acquisition; `/models use MODEL_ID` selects a downloaded model.
+See [guided sessions](docs/GUIDED_SESSIONS.md) for the everyday journey and recovery.
+For explicit Codex/OpenCode profiles, pipe modes and scripted plans, use
+`koto setup` and the [project-session guide](docs/PROJECT_SESSIONS.md).
+No hand-written JSON plan is required for normal setup.
 
 ## Current boundaries
 
 | Area | Current behavior |
 | --- | --- |
-| Terminal transport | Ordinary pipes. Full-screen terminal apps, PTY sessions and TTY/password prompts are unsupported. |
-| Native agents | Raw executable/argv integration. Native completion records, structured permission states and continuation are not interpreted. |
-| Permissions | Native agents keep their host permissions. Worktrees separate edits; they are not an OS sandbox. |
-| Outcomes | A successful process exit records execution completion. Correctness still needs your review and actual application use. |
-| Cancellation | POSIX process-group cleanup; self-detached descendants are outside that boundary. Windows interruption is best effort and can remain unconfirmed. |
-| Recovery | No automatic agent retry, crash replay or worktree deletion. Native CLIs may perform their own retries. |
-| Platforms | A real macOS pipe-based run is recorded. CI checks source/scope on Windows, macOS and Linux with Node 22/24; it does not qualify runtime/model behavior. |
-| Delivery | CLI and shared API are implemented. IDE plugins, richer terminal interfaces and a GUI are later work, added one at a time. |
+| Terminal transport | Pipes, macOS/Linux PTYs and Windows ConPTY; helper prerequisites apply. Native terminal screens are not parsed as structured completion or identity. |
+| Native lifecycle | Supported structured Codex/OpenCode profiles capture native IDs and outcomes for explicit continuation. Capabilities depend on the selected adapter and mode. |
+| Permissions | Native clients retain their permission policy. Declared ownership is advisory during execution; worktrees are not an OS sandbox. |
+| Outcomes | Process exit, native completion and code correctness are separate. Changes still need review and actual application use. |
+| Cancellation | Owned process/session or Job Object cleanup must be confirmed. `cleanup_unconfirmed` blocks resume and integration. |
+| Recovery | No automatic task replay, conflict decision or worktree deletion. Pending integration outcomes require explicit reconciliation; native clients may perform their own retries. |
+| Evidence | Source/helper CI, package identity and actual task outcomes are separate. Observed platform/client limits are recorded in the acceptance documents. |
+| Delivery | CLI and shared API are implemented; IDE plugins and Koto's own UI remain planned. Alpha publication and registry-install verification are separate release steps. |
 
-Prompts, native output and paths are retained in private local session files.
-By default, controls live under `~/.koto/sessions` and worktrees under
-`~/.koto/sessions-worktrees`; explicit control storage must be outside project
-worktrees. These files survive uninstall. Keep credentials and private sessions
-out of commits and issue reports. Read [security](SECURITY.md) and
+Private choices normally live in `~/.koto/preferences.json`; `KOTO_STATE_DIR`
+selects another private absolute state directory for the guided journey. Session
+state retains prompts, native output and workspace paths. Default control files
+live under `~/.koto/sessions`, with worktrees under `~/.koto/sessions-worktrees`;
+explicit control storage must remain outside project worktrees. Uninstalling
+Koto does not delete this work. Keep credentials and private sessions out of
+commits and issue reports. Read [security](SECURITY.md) and
 [session boundaries](docs/PROJECT_SESSIONS.md#boundaries-and-retained-data).
 
 ## One core, multiple interfaces
@@ -218,15 +234,15 @@ const session = await createProjectSession(plan, {
 const result = await session.run();
 ```
 
-The package also exports `validateProjectPlan`, `inspectProjectSession`,
-`integrateProjectSession`, `validateWorkflow` and `runWorkflow`.
-Generic workflows use the JSON-stdin/text-stdout worker contract; project
-sessions launch the native commands declared in their plan.
+The shared API also includes discovery, plan building and revision, retained
+session inspection, explicit continuation, token-approved integration and
+reconciliation. Generic workflows use the JSON-stdin/text-stdout worker
+contract; project sessions launch the native commands declared in their plan.
 
-The order is **working core → delivery integrations → additional UIs**. Each
-plugin or UI consumes the same session operations and events instead of
-reimplementing scheduling, workspace ownership or integration. See the
-[architecture](docs/ARCHITECTURE.md), [roadmap](docs/ROADMAP.md) and
+The order is **accepted CLI journey → UIs and IDE plugins using the same core**.
+Each delivery consumes the same operations and product state. Scheduling,
+workspace ownership, native lifecycle and integration remain in the shared
+core. See the [architecture](docs/ARCHITECTURE.md), [roadmap](docs/ROADMAP.md) and
 [product scope](docs/SCOPE.md).
 
 ## Contributing
@@ -247,7 +263,7 @@ npm run check
 | [src/command-session.js](src/command-session.js) | Streamed executable lifecycle, input, bounds and cleanup |
 | [src/project-workspaces.js](src/project-workspaces.js) | Worktree ownership, diff capture, review tokens and integration |
 | [src/process-agent.js](src/process-agent.js) | Generic JSON worker protocol |
-| [bin/project.js](bin/project.js) | Thin terminal consumer of the session API |
+| [bin/chat.js](bin/chat.js) · [bin/project.js](bin/project.js) | Guided conversation and terminal delivery through the shared APIs |
 | [src/index.js](src/index.js) · [src/core.d.ts](src/core.d.ts) | Public exports and TypeScript declarations |
 
 Keep model credentials, permission enforcement and provider-specific behavior in

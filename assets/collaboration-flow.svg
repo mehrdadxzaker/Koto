@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" id="koto-collaboration-flow" width="1120" height="432" viewBox="0 0 1120 432" direction="ltr" role="img" aria-labelledby="flow-title flow-description">
   <title id="flow-title">Koto: parallel agent work with operator-reviewed integration</title>
-  <desc id="flow-description">A clean Git project supplies the same committed base to two parallel commands: Codex as a commercial CLI agent in worktree A, and OpenCode as a local CLI agent in worktree B. The operator inspects both diffs and approves the exact review token before contributions enter a separate integration branch. Conflicts stay visible, and the original checkout is retained. Commands use ordinary pipes.</desc>
+  <desc id="flow-description">A clean Git project supplies the same committed base to two parallel commands: Codex as a commercial CLI agent in worktree A, and OpenCode as a local CLI agent in worktree B. The operator inspects both diffs and approves the exact review token before contributions enter a separate integration branch. Conflicts stay visible, and the original checkout is retained. Supported clients use native terminals or structured streams.</desc>
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
       <path d="M 1 1 L 9 5 L 1 9 Z" fill="#986044"/>
@@ -82,6 +82,6 @@
   <text x="903" y="275" class="note">Conflicts stay visible</text>
 
   <path d="M32 382 H1088" stroke="#DFD3C6"/>
-  <text x="32" y="409" class="subheading">Live output · input and stop controls · ordinary pipes</text>
+  <text x="32" y="409" class="subheading">Live output · native terminals · input and stop controls</text>
   <text x="1088" y="409" text-anchor="end" class="subheading">Worktrees separate edits, not permissions.</text>
 </svg>

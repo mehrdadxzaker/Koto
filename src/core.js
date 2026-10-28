@@ -12,7 +12,7 @@ const PROCESS_ERRORS = new Set([
   'invalid_configuration', 'command_wrapper_unsupported', 'invalid_assignment',
   'input_too_large', 'aborted', 'timeout', 'output_too_large', 'stderr_too_large',
   'invalid_utf8', 'exit_failed', 'empty_output', 'spawn_failed', 'stdin_failed', 'output_failed',
-  'cleanup_failed',
+  'cleanup_failed', 'cleanup_unconfirmed', 'socket_exhausted',
 ].map((code) => `process_agent_${code}`));
 
 function fail(message) {
@@ -191,6 +191,7 @@ export async function runWorkflow(source, { cwd, signal, onEvent, adapters = {} 
   };
   const controller = new AbortController();
   let stopReason = 'run canceled';
+  let resourceExhausted = false;
   const stop = () => controller.abort();
   signal?.addEventListener('abort', stop, { once: true });
   if (signal?.aborted) stop();
@@ -256,10 +257,15 @@ export async function runWorkflow(source, { cwd, signal, onEvent, adapters = {} 
       record.output = result.output;
       terminal(record, 'succeeded');
     } catch (error) {
-      const unconfirmed = error instanceof CancellationUnconfirmed
-        || (!custom && error?.code === 'process_agent_cleanup_failed')
-        ? '; cancellation unconfirmed' : '';
-      if (controller.signal.aborted) terminal(record, 'canceled', stopReason + unconfirmed);
+      const unconfirmed = error instanceof CancellationUnconfirmed ? '; cancellation unconfirmed'
+        : !custom && ['process_agent_cleanup_failed', 'process_agent_cleanup_unconfirmed'].includes(error?.code)
+          ? '; cleanup unconfirmed' : '';
+      if (!custom && error?.code === 'process_agent_socket_exhausted') {
+        terminal(record, 'failed', 'process_agent_socket_exhausted');
+        resourceExhausted = true;
+        stopReason = 'process_agent_socket_exhausted';
+        controller.abort();
+      } else if (controller.signal.aborted) terminal(record, 'canceled', stopReason + unconfirmed);
       else if (timedOut) terminal(record, 'failed', 'agent timed out' + unconfirmed);
       else terminal(record, 'failed', !custom && PROCESS_ERRORS.has(error?.code) ? error.code : failure);
     } finally {
@@ -291,7 +297,7 @@ export async function runWorkflow(source, { cwd, signal, onEvent, adapters = {} 
       }
       if (active.size) await Promise.race(active.values());
     }
-    const status = controller.signal.aborted ? 'canceled'
+    const status = resourceExhausted ? 'failed' : controller.signal.aborted ? 'canceled'
       : [...records.values()].every((record) => record.status === 'succeeded') ? 'succeeded' : 'failed';
     const final = records.get(workflow.finalTask);
     const report = {

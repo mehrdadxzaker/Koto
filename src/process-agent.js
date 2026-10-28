@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process';
+import { ownedProcessErrorCode, startOwnedPipe } from './owned-worker-lifetime.js';
 import { TextDecoder } from 'node:util';
 
 const INPUT_LIMIT = 512 * 1024;
@@ -6,7 +6,6 @@ const OUTPUT_LIMIT = 512 * 1024;
 const STDERR_LIMIT = 64 * 1024;
 const DEFAULT_TIMEOUT = 120_000;
 const MAX_TIMEOUT = 3_600_000;
-const TERMINATION_GRACE = 250;
 
 const MESSAGES = {
   invalid_configuration: 'Use an executable command, string arguments and a timeout from 1 to 3600000 milliseconds.',
@@ -23,7 +22,8 @@ const MESSAGES = {
   spawn_failed: 'The agent executable could not be started; check its installation and working directory.',
   stdin_failed: 'The agent did not accept the assignment on standard input.',
   output_failed: 'The agent output stream failed before a complete result was received.',
-  cleanup_failed: 'The agent could not be stopped cleanly; inspect its process state.',
+  cleanup_unconfirmed: 'Owned-process cleanup could not be confirmed; inspect its process state.',
+  socket_exhausted: 'Socket or file-descriptor capacity is unavailable. Stop new requests and inspect system resources before retrying.',
 };
 
 function failure(code) {
@@ -69,209 +69,42 @@ export async function runProcessAgent(agent, assignment, { cwd, signal } = {}) {
   const input = assignmentInput(assignment);
   if (signal?.aborted) throw failure('aborted');
 
-  let child;
-  try {
-    child = spawn(agent.command === '$node' ? process.execPath : agent.command, agent.args ?? [], {
-      cwd,
-      shell: false,
-      detached: process.platform !== 'win32',
-      windowsHide: true,
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
-  } catch {
-    throw failure('spawn_failed');
-  }
-
-  return new Promise((resolve, reject) => {
-    const stdout = [];
-    const diagnosticDecoder = new TextDecoder('utf-8', { fatal: true });
-    let outputBytes = 0;
-    let diagnosticBytes = 0;
-    let terminalError;
-    let closed = false;
-    let exited = false;
-    let exitCode;
-    let cleanupComplete = true;
-    let cleanupStarted = false;
-    let deadlineTimer;
-    let terminationTimer;
-    let cleanupTimer;
-    let taskkill;
-    let taskkillTimer;
-    let finished = false;
-    let closeUnconfirmed = false;
-
-    const cleanupFailed = () => { terminalError = failure('cleanup_failed'); };
-
-    const signalProcess = (signalName) => {
-      if (!child.pid) return;
-      try {
-        if (process.platform !== 'win32') process.kill(-child.pid, signalName);
-        else if (!child.kill(signalName) && child.exitCode === null && child.signalCode === null) {
-          cleanupFailed();
-        }
-      } catch (error) {
-        if (error.code !== 'ESRCH') {
-          // Stopping only the direct child cannot confirm that its tree stopped.
-          cleanupFailed();
-          try { child.kill(signalName); } catch { /* Preserve the cleanup failure. */ }
-        }
-      }
-    };
-
-    const finish = () => {
-      if (finished || (!closed && !closeUnconfirmed) || !cleanupComplete) return;
-      finished = true;
-      clearTimeout(deadlineTimer);
-      clearTimeout(terminationTimer);
-      clearTimeout(cleanupTimer);
-      clearTimeout(taskkillTimer);
-      signal?.removeEventListener('abort', onAbort);
-      // Keep the error handler until an unconfirmed child eventually closes;
-      // a late OS error must not become an unhandled EventEmitter error.
-      if (closed) child.removeListener('error', onSpawnError);
-      child.stdin.removeListener('error', onStdinError);
-      child.stdout.removeListener('data', onOutput);
-      child.stderr.removeListener('data', onDiagnostic);
-      child.stdout.removeListener('error', onOutputError);
-      child.stderr.removeListener('error', onOutputError);
-      if (terminalError) return reject(terminalError);
-      if (exitCode !== 0) return reject(failure('exit_failed'));
-      try {
-        diagnosticDecoder.decode();
-        const output = new TextDecoder('utf-8', { fatal: true }).decode(Buffer.concat(stdout, outputBytes));
-        if (!output.trim()) return reject(failure('empty_output'));
-        resolve({ output });
-      } catch {
-        reject(failure('invalid_utf8'));
-      }
-    };
-
-    const finishTermination = () => {
-      if (cleanupComplete) return;
-      cleanupComplete = true;
-      clearTimeout(taskkillTimer);
-      finish();
-    };
-
-    const startCleanup = () => {
-      if (cleanupStarted || finished) return;
-      cleanupStarted = true;
-      clearTimeout(deadlineTimer);
-      cleanupComplete = false;
-      if (!child.pid) return finishTermination();
-      cleanupTimer = setTimeout(() => {
-        // An escaped descendant or denied termination must not keep this call
-        // pending forever. Report unconfirmed cleanup before releasing handles.
-        if (!closed) {
-          cleanupFailed();
-          closeUnconfirmed = true;
-        }
-        signalProcess('SIGKILL');
-        child.stdin.destroy();
-        child.stdout.destroy();
-        child.stderr.destroy();
-        child.unref();
-        if (taskkill && taskkill.exitCode === null && taskkill.signalCode === null) {
-          cleanupFailed();
-          try { taskkill.kill('SIGKILL'); } catch { /* Its state remains unconfirmed. */ }
-          taskkill.unref();
-        }
-        finishTermination();
-        finish();
-      }, 2_000);
-      if (process.platform === 'win32') {
-        // taskkill cannot reliably reconstruct a departed parent's tree. Keep
-        // ordinary exit results accurate, and bound any pipes still held open.
-        // Native Windows job ownership is outside this pure-Node adapter.
-        if (exited) return finishTermination();
-        try {
-          taskkill = spawn('taskkill.exe', ['/pid', String(child.pid), '/T', '/F'], {
-            shell: false, windowsHide: true, stdio: 'ignore',
-          });
-          const taskkillFailed = () => {
-            cleanupFailed();
-            signalProcess('SIGKILL');
-          };
-          taskkill.once('error', taskkillFailed);
-          taskkill.once('close', (code) => {
-            if (code !== 0) taskkillFailed();
-            finishTermination();
-          });
-          taskkillTimer = setTimeout(() => {
-            cleanupFailed();
-            try { taskkill.kill('SIGKILL'); } catch { /* Fall back to the owned child. */ }
-            signalProcess('SIGKILL');
-          }, 1_000);
-        } catch {
-          cleanupFailed();
-          signalProcess('SIGKILL');
-          finishTermination();
-        }
+  const stdout = [];
+  const diagnosticDecoder = new TextDecoder('utf-8', { fatal: true });
+  let outputBytes = 0;
+  let diagnosticBytes = 0;
+  const owner = startOwnedPipe({
+    command: agent.command, args: agent.args ?? [], cwd, timeoutMs, signal,
+    onOutput(stream, chunk) {
+      if (stream === 'stdout') {
+        outputBytes += chunk.length;
+        if (outputBytes > OUTPUT_LIMIT) { owner.lifetime.fail('output_too_large'); return; }
+        stdout.push(chunk);
       } else {
-        try { process.kill(-child.pid, 0); }
-        catch (error) {
-          if (error.code === 'ESRCH') return finishTermination();
-          cleanupFailed();
-        }
-        signalProcess('SIGTERM');
-        terminationTimer = setTimeout(() => {
-          signalProcess('SIGKILL');
-          finishTermination();
-        }, TERMINATION_GRACE);
+        diagnosticBytes += chunk.length;
+        if (diagnosticBytes > STDERR_LIMIT) { owner.lifetime.fail('stderr_too_large'); return; }
+        try { diagnosticDecoder.decode(chunk, { stream: true }); }
+        catch { owner.lifetime.fail('invalid_utf8'); }
       }
-    };
-
-    const fail = (code) => {
-      if (terminalError || finished) return;
-      terminalError = failure(code);
-      startCleanup();
-    };
-
-    const onAbort = () => fail('aborted');
-    const onSpawnError = () => {
-      if (terminalError && child.pid) cleanupFailed();
-      else fail('spawn_failed');
-    };
-    const onStdinError = () => fail('stdin_failed');
-    const onOutputError = () => fail('output_failed');
-    const onOutput = (chunk) => {
-      if (terminalError) return;
-      outputBytes += chunk.length;
-      if (outputBytes > OUTPUT_LIMIT) return fail('output_too_large');
-      stdout.push(chunk);
-    };
-    const onDiagnostic = (chunk) => {
-      if (terminalError) return;
-      diagnosticBytes += chunk.length;
-      if (diagnosticBytes > STDERR_LIMIT) return fail('stderr_too_large');
-      try { diagnosticDecoder.decode(chunk, { stream: true }); }
-      catch { fail('invalid_utf8'); }
-    };
-
-    child.on('error', onSpawnError);
-    child.stdin.on('error', onStdinError);
-    child.stdout.on('data', onOutput);
-    child.stderr.on('data', onDiagnostic);
-    child.stdout.on('error', onOutputError);
-    child.stderr.on('error', onOutputError);
-    child.once('exit', (code) => {
-      exited = true;
-      exitCode = code;
-      if (!terminalError && code !== 0) terminalError = failure('exit_failed');
-      // A worker owns its process group for this assignment. No background
-      // ownership transfer is supported, even when its own exit was successful.
-      startCleanup();
-    });
-    child.once('close', (code) => {
-      closed = true;
-      exitCode = code;
-      if (finished) child.removeListener('error', onSpawnError);
-      finish();
-    });
-    deadlineTimer = setTimeout(() => fail('timeout'), timeoutMs);
-    signal?.addEventListener('abort', onAbort, { once: true });
-    if (signal?.aborted) onAbort();
-    if (!terminalError) child.stdin.end(input, (error) => { if (error) onStdinError(); });
+    },
+    onExit(code) {
+      if (code !== 0 && !owner.lifetime.cancelled) owner.lifetime.fail('exit_failed');
+    },
   });
+  if (owner.child && !owner.lifetime.stopping) {
+    try { owner.child.stdin.end(input, error => { if (error) owner.lifetime.fail(ownedProcessErrorCode(error, 'stdin_failed')); }); }
+    catch (error) { owner.lifetime.fail(ownedProcessErrorCode(error, 'stdin_failed')); }
+  }
+  const outcome = await owner.lifetime.completion;
+  if (outcome.error === 'cleanup_unconfirmed') throw failure(outcome.error);
+  if (outcome.error === 'process_socket_exhausted') throw failure('socket_exhausted');
+  if (outcome.status === 'cancelled') throw failure('aborted');
+  if (outcome.error) throw failure(outcome.error);
+  let output;
+  try {
+    diagnosticDecoder.decode();
+    output = new TextDecoder('utf-8', { fatal: true }).decode(Buffer.concat(stdout, outputBytes));
+  } catch { throw failure('invalid_utf8'); }
+  if (!output.trim()) throw failure('empty_output');
+  return { output };
 }
