@@ -309,7 +309,7 @@ def prepare():
          'plugin':[],'mcp':{},'lsp':False,'formatter':False,'compaction':{'auto':False},
          'agent':{'build':{'steps':SETTINGS['native']['steps']},'title':{'disable':True}},
          'permission':{'*':'deny','read':'allow','list':'allow','glob':'allow','grep':'allow',
-             'edit':{'*':'deny','docs/INSTALLATION.md':'allow','*/docs/INSTALLATION.md':'allow'},'bash':'deny','question':'allow'},
+             'edit':{'*':'deny','docs/WINDOWS_TERMINAL_OPERATOR_NOTE.md':'allow','*/docs/WINDOWS_TERMINAL_OPERATOR_NOTE.md':'allow'},'bash':'deny','question':'allow'},
          'enabled_providers':['local'],'model':'local/koto-qwen3-4b','small_model':'local/koto-qwen3-4b',
          'provider':{'local':{'npm':'@ai-sdk/openai-compatible','name':'Owned loopback model',
              'options':{'baseURL':'http://127.0.0.1:18089/v1',**SETTINGS['native']['providerOptions']},
@@ -402,12 +402,46 @@ def seal():
         # Ignored native history is not a contribution and must not leak into
         # the public bundle merely because it was created inside a worktree.
         source_files=set(command(['git','ls-tree','-r','--name-only','-z',SHA],ROOT/'project','source-public-inventory').split('\0'))
+        # This explicitly assigned public documentation note is the only new
+        # path allowed. Bind it to the actual inspected contribution; never
+        # include arbitrary untracked files or ignored native history.
+        note='docs/WINDOWS_TERMINAL_OPERATOR_NOTE.md'
+        contributor=ROOT/'control-worktrees'/session.name/'agent-contributor'
+        integration_workspace=ROOT/'control-worktrees'/session.name/'integration'
+        allowed_new_files=set()
+        note_file=contributor/note
+        if note_file.exists():
+            review=data.get('inspections',{}).get('contributor',{})
+            if (note in source_files or Path(review.get('path',''))!=contributor
+                or review.get('owns')!=[note] or review.get('integrationChangedPaths')!=[note]
+                or review.get('outsideOwnership')!=[] or review.get('conflicts')!=[]
+                or not re.fullmatch(r'[a-f0-9]{64}',review.get('reviewToken',''))
+                or note_file.is_symlink() or not note_file.is_file()
+                or not 0<note_file.stat().st_size<=16384):
+                raise RuntimeError('new_operator_note_requires_exact_owned_review')
+            note_bytes=note_file.read_bytes()
+            if b'\0' in note_bytes: raise RuntimeError('new_operator_note_not_text')
+            note_bytes.decode('utf-8')
+            allowed_new_files.add(note_file)
+            if OP=='integrate':
+                integrated=json.loads((ROOT/'evidence'/'integration.json').read_text())
+                target=integration_workspace/note
+                if (integrated.get('error') or integrated.get('result',{}).get('status')!='integrated'
+                    or integrated.get('approvedReviewToken')!=review['reviewToken']
+                    or integrated.get('after',{}).get('integrationChangedPaths')!=[]
+                    or integrated.get('projectBefore')!={'head':SHA,'status':''}
+                    or integrated.get('projectAfter')!=integrated.get('projectBefore')
+                    or target.is_symlink() or not target.is_file()
+                    or target.stat().st_size!=len(note_bytes) or target.read_bytes()!=note_bytes):
+                    raise RuntimeError('integrated_operator_note_changed_or_unconfirmed')
+                allowed_new_files.add(target)
         worktree_roots=[ROOT/'project']+[p for p in (ROOT/'control-worktrees').glob('*/*') if p.is_dir()]
         for workspace in worktree_roots:
             for p in safe_files(workspace):
                 relative=p.relative_to(workspace).as_posix()
                 if relative=='.git' or relative.startswith('.git/'): continue
-                if relative not in source_files: raise RuntimeError('untracked_or_ignored_file_requires_private_review')
+                if relative not in source_files and p not in allowed_new_files:
+                    raise RuntimeError('untracked_or_ignored_file_requires_private_review')
         includes=[ROOT/'project',ROOT/'control-worktrees',ROOT/'state'/'native',ROOT/'disabled-hooks',ROOT/'assets'/'koto.tgz',ROOT/'prepared.json',ROOT/'reviewed-settings.json']
         # Only minimal control JSON and empty disabled-hooks; raw events stay encrypted.
         control_files=[p for p in safe_files(ROOT/'control') if p.name!='events.jsonl']

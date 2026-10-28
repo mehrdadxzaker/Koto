@@ -90,18 +90,22 @@ export function validateSettings(s, { candidate, platform = 'win32', requireGate
     let prerequisiteCandidate = candidate;
     const equivalence = s.priorPlatformEquivalence;
     if (equivalence !== undefined) {
-      const changedPayloadPaths = ['src/core.d.ts', 'src/native-conversation.js',
+      const changedPayloadPaths = ['src/core.d.ts', 'src/local-models.js',
+        'src/native-client-install.js', 'src/native-conversation.js',
         'src/native/windows-pty.c', 'src/terminal-session.js'];
       if (platform !== 'win32' || !object(equivalence)
         || equivalence.fromCandidate !== '82917014ba9af1f75617d9d32a3acf67f0d40879'
         || equivalence.toCandidate !== candidate || equivalence.toCandidate === equivalence.fromCandidate
         || canonical(equivalence.platforms) !== canonical(['darwin', 'linux'])
         || canonical(equivalence.changedPayloadPaths) !== canonical(changedPayloadPaths)
-        || equivalence.payloadFiles !== 53 || equivalence.unchangedFiles !== 49
+        || equivalence.payloadFiles !== 53 || equivalence.unchangedFiles !== 47
+        || equivalence.kind !== 'reviewed-windows-and-shared-error-path-changes'
         || !hex(equivalence.payloadInventorySha256) || !hex(equivalence.reviewReceiptSha256)
         || equivalence.operatorReviewed !== true) fail('reviewed_prior_platform_equivalence_required');
       // Historical receipts keep their actual candidate. This explicit source
       // review is bound to the installed payload inventory during preparation.
+      // Shared cancellation/error handling changed too; this is not a claim
+      // that all changes are Windows-only or that the repaired path was run.
       prerequisiteCandidate = equivalence.fromCandidate;
     }
     const mac = s.gates?.mac;

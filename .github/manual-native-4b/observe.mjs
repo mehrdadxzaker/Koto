@@ -207,7 +207,7 @@ try {
   const agents = ['reader','contributor'].map(id => {
     const agent = api.createAgentProfile({ kind: 'opencode', id, command: prepared.opencode,
       model: 'local/koto-qwen3-4b', transport: 'pty', timeoutMs: settings.bounds.agentTimeoutMs,
-      task: settings.tasks[id], owns: [id === 'reader' ? 'docs/NATIVE_SESSIONS.md' : 'docs/INSTALLATION.md'] });
+      task: settings.tasks[id], owns: [id === 'reader' ? 'docs/NATIVE_SESSIONS.md' : 'docs/WINDOWS_TERMINAL_OPERATOR_NOTE.md'] });
     // Two actual idle TUIs; tasks are sent only at explicitly reviewed times.
     // Native identity is retained; no prompt is submitted through argv.
     agent.args = ['--model', 'local/koto-qwen3-4b'];
