@@ -227,7 +227,7 @@ def install_package():
         raise RuntimeError('reviewed_equivalence_payload_changed')
 
 def prepare():
-    if OP not in ['observe','idle'] or ROOT.exists(): raise RuntimeError('fresh_observation_root_required')
+    if OP not in ['observe','idle','controls'] or ROOT.exists(): raise RuntimeError('fresh_observation_root_required')
     global SETTINGS, ACQUISITION_DEADLINE, PREPARE_BOOTSTRAPPED
     # Exact settings and both prior human reviews are checked before any asset request.
     settings_path=Path(os.environ.get('OBS_SETTINGS_FILE',''))
@@ -333,8 +333,8 @@ def prepare():
     save(ROOT/'evidence'/'host.json',{'system':platform.platform(),'architecture':platform.machine(),
          'node':command(['node','--version'],ROOT,'node-version').strip(),'opencode':opencode_version,
          'runnerImage':os.environ.get('ImageVersion'),'runnerImageOS':os.environ.get('ImageOS')})
-    save(ROOT/'prepared.json', {'schemaVersion':1,'variant':'idle-opencode' if OP=='idle' else VARIANT,'candidate':SHA,'root':str(ROOT),'platform':platform.system(),
-         'llama':llama,'opencode':opencode,'model':str(model) if model else None,'assets':{'opencode':ASSETS['opencode']} if OP=='idle' else ASSETS,'reviewedSettingsSha256':expected,'candidateApi':SETTINGS['candidateApi']})
+    save(ROOT/'prepared.json', {'schemaVersion':1,'variant':'idle-opencode' if OP in ['idle','controls'] else VARIANT,'candidate':SHA,'root':str(ROOT),'platform':platform.system(),
+         'llama':llama,'opencode':opencode,'model':str(model) if model else None,'assets':{'opencode':ASSETS['opencode']} if OP in ['idle','controls'] else ASSETS,'reviewedSettingsSha256':expected,'candidateApi':SETTINGS['candidateApi']})
     if OP=='idle':
         save(ROOT/'idle-bindings.json',{'schemaVersion':1,'kind':'koto-windows-idle-bindings','approvedForExecution':True,
              'candidate':SHA,'opencodeSha256':digest(Path(opencode)),'nativeConfigSha256':digest(ROOT/'host'/'opencode.json'),
@@ -374,8 +374,8 @@ def seal():
     public={'schemaVersion':1,'variant':VARIANT,'candidate':SHA,'root':str(ROOT),'operation':OP,'runner':os.environ['OBS_RUNNER'],
             'observationId':ID,'runId':os.environ.get('GITHUB_RUN_ID'),'driverRevision':os.environ.get('GITHUB_SHA'),
             'reviewedSettingsSha256':os.environ.get('OBS_SETTINGS_SHA')}
-    if OP=='idle':
-        public['rehydration']='unavailable_idle_diagnosis'
+    if OP in ['idle','controls']:
+        public['rehydration']='unavailable_idle_diagnosis' if OP=='idle' else 'unavailable_cli_controls_only'
         public['interpretation']='No model, task, contribution or integration; encrypted native controls require manual review.'
         save(ROOT/'out'/'receipt.json',public); return
     observation=ROOT/'evidence'/'observation.json'

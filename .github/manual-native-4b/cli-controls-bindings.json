@@ -12,6 +12,6 @@
     "src/windows-native-helper.js": "5a2c900f6ddf6f5dc97af8c024c5b30ba99b782006a57df4be443e67de08ef00",
     "src/native/windows-pty.c": "59c34064bf608cff5830f0c2535ed3811bc7fe9b86ffe69aa9f6fe603b60962a"
   },
-  "scope": "One idle Windows OpenCode terminal controlled through the actual installed Koto CLI after the independent model/API run has fully cleaned up.",
+  "scope": "One idle Windows OpenCode terminal controlled through the actual installed Koto CLI, either standalone or after the independent model/API run has fully cleaned up. No model or task is started by this control observation.",
   "semanticReviewRequired": true
 }

@@ -5,7 +5,7 @@ on:
     inputs:
       operation:
         type: choice
-        options: [idle, observe, integrate]
+        options: [idle, controls, observe, integrate]
         required: true
       runner:
         type: choice
@@ -152,8 +152,8 @@ jobs:
           with open(os.environ['GITHUB_ENV'],'a') as f: f.write('OBS_SETTINGS_FILE='+str(target)+'\n')
           PYSETTINGS
           node driver/.github/manual-native-4b/reviewed-settings.mjs validate "$RUNNER_TEMP/koto-4b-reviewed-settings.json" "$OBS_SETTINGS_SHA" "$OBS_CANDIDATE" > /dev/null
-      - name: Acquire pinned assets and install the exact package (idle acquires no model or runtime)
-        if: inputs.operation == 'observe' || inputs.operation == 'idle'
+      - name: Acquire pinned assets and install the exact package (idle/controls acquire no model or runtime)
+        if: inputs.operation == 'observe' || inputs.operation == 'idle' || inputs.operation == 'controls'
         run: python driver/.github/manual-native-4b/bundle.py prepare
       - name: One bounded native startup and controls diagnosis without a model
         if: inputs.operation == 'idle'
@@ -183,7 +183,7 @@ jobs:
         if: inputs.operation == 'integrate'
         run: node driver/.github/manual-native-4b/integrate.mjs
       - name: Observe actual Windows CLI controls with one idle native terminal
-        if: success() && inputs.operation == 'observe'
+        if: success() && (inputs.operation == 'observe' || inputs.operation == 'controls')
         run: |
           node driver/.github/manual-native-4b/observe-cli-controls.mjs \
             driver/.github/manual-native-4b/cli-controls-bindings.json \
