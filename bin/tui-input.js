@@ -40,6 +40,7 @@ export function createTerminalInput({ write, signal, onInterrupt, onBusyLine,
   let closed = false, active = false, pending, modal, draft = '', cursor = 0;
   let label = 'You>', completion = false, menu = [], menuIndex = 0;
   let dismissedAt, suggestionEpoch = 0, suggestionController, suggestionLoading = false, paste = false, pasteText = '';
+  let deferredEnter;
   let history = [], historyIndex = 0, historyDraft = '', historySearch;
   let rendered = [], renderedCursor = { row: 0, column: 0 }, renderedColumns = 0;
   let statusOverride, notice = '';
@@ -218,7 +219,10 @@ export function createTerminalInput({ write, signal, onInterrupt, onBusyLine,
     ({ draft, cursor, label, active, completion, menu, menuIndex, dismissedAt, historySearch } = saved);
     refreshSuggestions();
   }
-  function cancelSuggestions() { suggestionEpoch += 1; suggestionController?.abort(); suggestionController = undefined; suggestionLoading = false; }
+  function cancelSuggestions() {
+    suggestionEpoch += 1; suggestionController?.abort(); suggestionController = undefined;
+    suggestionLoading = false; deferredEnter = undefined;
+  }
   function refreshSuggestions() {
     cancelSuggestions();
     // A previous menu is never selectable for a newer draft while asynchronous
@@ -239,12 +243,23 @@ export function createTerminalInput({ write, signal, onInterrupt, onBusyLine,
       if (closed || modal || epoch !== suggestionEpoch || requestSignal.aborted) return;
       suggestionLoading = false;
       if (notice.startsWith('Loading choices;')) notice = '';
+      if (draft !== requestedLine || cursor !== requestedCursor || historySearch) { deferredEnter = undefined; return; }
       menu = validItems(items);
       menuIndex = 0;
+      const enter = deferredEnter;
+      deferredEnter = undefined;
+      if (enter && enter.epoch === epoch && enter.line === draft && enter.cursor === cursor && completion) {
+        // One Enter applies only to the exact input whose fresh choices were
+        // requested: insert a matching choice, or submit if there are none.
+        // Inserting never dispatches; the operator still presses Enter again.
+        if (menu.length) acceptSuggestion(); else submit();
+        return;
+      }
       redraw();
     }, error => {
       if (closed || epoch !== suggestionEpoch || requestSignal.aborted) return;
       suggestionLoading = false;
+      deferredEnter = undefined;
       menu = []; notice = `Suggestions unavailable: ${terminalText(error?.message ?? error, { multiline: false }).slice(0, 160)}`;
       redraw();
     });
@@ -281,7 +296,7 @@ export function createTerminalInput({ write, signal, onInterrupt, onBusyLine,
     if (historyIndex === history.length) historyDraft = draft;
     historyIndex = Math.max(0, Math.min(history.length, historyIndex + direction));
     draft = historyIndex === history.length ? historyDraft : history[historyIndex];
-    cursor = draft.length; menu = []; dismissedAt = draft; redraw();
+    cursor = draft.length; menu = []; dismissedAt = draft; cancelSuggestions(); redraw();
   }
   function acceptSuggestion() {
     const selected = menu[menuIndex];
@@ -338,7 +353,8 @@ export function createTerminalInput({ write, signal, onInterrupt, onBusyLine,
 
   function submit() {
     if (suggestionLoading && completion) {
-      notice = 'Loading choices; press Enter after the selection appears.';
+      deferredEnter = { epoch: suggestionEpoch, line: draft, cursor };
+      notice = 'Loading choices; Enter applies only to this unchanged draft.';
       redraw(); return;
     }
     if (menu.length) { acceptSuggestion(); return; }
@@ -378,7 +394,9 @@ export function createTerminalInput({ write, signal, onInterrupt, onBusyLine,
 
   function keypress(character, key = {}) {
     if (closed) return;
+    if (key.name !== 'return' || key.meta) deferredEnter = undefined;
     if (key.name === 'paste-start') {
+      cancelSuggestions(); menu = [];
       paste = true; pasteText = '';
       if (!pending && !modal) onBusyTyping?.();
       return;
@@ -428,7 +446,7 @@ export function createTerminalInput({ write, signal, onInterrupt, onBusyLine,
         if (key.name === 'up') { const previousEnd = Math.max(0, currentStart - 1); const previousStart = previousEnd ? draft.lastIndexOf('\n', previousEnd - 1) + 1 : 0; cursor = currentStart ? Math.min(previousEnd, previousStart + offset) : 0; }
         else { const nextStart = draft.indexOf('\n', cursor); if (nextStart >= 0) { const nextEnd = draft.indexOf('\n', nextStart + 1); cursor = Math.min(nextEnd === -1 ? draft.length : nextEnd, nextStart + 1 + offset); } else cursor = draft.length; }
         cursor = [...graphemes(draft).map(part => part.index), draft.length].find(position => position >= cursor) ?? draft.length;
-        redraw();
+        refreshSuggestions(); redraw();
       } else recall(key.name === 'up' ? -1 : 1);
       return;
     }
@@ -440,8 +458,8 @@ export function createTerminalInput({ write, signal, onInterrupt, onBusyLine,
       } else move(key.name === 'left' ? -1 : 1);
       return;
     }
-    if (key.name === 'home' || key.ctrl && key.name === 'a') { cursor = cursor ? draft.lastIndexOf('\n', cursor - 1) + 1 : 0; redraw(); return; }
-    if (key.name === 'end' || key.ctrl && key.name === 'e') { const end = draft.indexOf('\n', cursor); cursor = end === -1 ? draft.length : end; redraw(); return; }
+    if (key.name === 'home' || key.ctrl && key.name === 'a') { cursor = cursor ? draft.lastIndexOf('\n', cursor - 1) + 1 : 0; refreshSuggestions(); redraw(); return; }
+    if (key.name === 'end' || key.ctrl && key.name === 'e') { const end = draft.indexOf('\n', cursor); cursor = end === -1 ? draft.length : end; refreshSuggestions(); redraw(); return; }
     if (key.ctrl && key.name === 'u') { draft = draft.slice(cursor); cursor = 0; edited(); return; }
     if (key.ctrl && key.name === 'k') { draft = draft.slice(0, cursor); edited(); return; }
     if (key.ctrl && key.name === 'w') { const before = draft.slice(0, cursor), removed = before.match(/\S+\s*$/)?.[0] ?? before; draft = before.slice(0, before.length - removed.length) + draft.slice(cursor); cursor -= removed.length; edited(); return; }
@@ -462,6 +480,7 @@ export function createTerminalInput({ write, signal, onInterrupt, onBusyLine,
         if (!pending || pending.abort !== abort) return;
         const current = pending; pending = undefined;
         questionSignal?.removeEventListener('abort', abort);
+        cancelSuggestions();
         clear(); if (current.saved) restoreState(current.saved); redraw(); reject(cancelled());
       };
       pending = { resolve, reject, abort, signal: questionSignal, saved };

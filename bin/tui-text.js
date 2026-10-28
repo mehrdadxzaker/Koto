@@ -5,10 +5,10 @@ const segments = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
 /** Terminal text is data. Never let file names, model output or pasted text
  * inject terminal control sequences, directional overrides or OSC payloads. */
 export function terminalText(value, { multiline = true } = {}) {
-  return stripVTControlCharacters(String(value ?? ''))
+  const sanitized = stripVTControlCharacters(String(value ?? ''))
     .replace(/\r\n?/g, '\n').replace(/\t/g, '  ')
-    .replace(/[\x00-\x08\x0b-\x1f\x7f-\x9f\u202a-\u202e\u2066-\u2069]/g, '')
-    .replace(multiline ? /$^/ : /\n/g, ' ');
+    .replace(/[\x00-\x08\x0b-\x1f\x7f-\x9f\u202a-\u202e\u2066-\u2069]/g, '');
+  return multiline ? sanitized : sanitized.replace(/\n/g, ' ');
 }
 
 export function graphemes(text) {

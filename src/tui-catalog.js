@@ -228,11 +228,17 @@ export async function discoverTuiCatalog({ project, preferences = {}, signal, re
     context, agents, models, skills, files, branch, connections, warnings };
 }
 
-const fuzzy = (haystack, needle) => {
+const matchRank = (value, needle, trigger) => {
+  let source = String(value ?? '').toLowerCase();
+  if (trigger && source.startsWith(trigger)) source = source.slice(trigger.length);
+  if (trigger === '@' && source.startsWith('{') && source.endsWith('}')) source = source.slice(1, -1);
+  if (!needle) return 0;
+  if (source === needle) return 4;
+  if (source.startsWith(needle)) return 3;
+  if (source.includes(needle)) return 2;
   let at = 0;
-  const source = haystack.toLowerCase();
-  for (const character of needle.toLowerCase()) { at = source.indexOf(character, at); if (at < 0) return false; at += 1; }
-  return true;
+  for (const character of needle) { at = source.indexOf(character, at); if (at < 0) return -1; at += character.length; }
+  return 1;
 };
 const list = value => Array.isArray(value) ? value : [];
 const commandName = item => clean(typeof item === 'string' ? item.split(/\s/, 1)[0] : item.name ?? item.command ?? item.value, 96).replace(/^\//, '');
@@ -243,9 +249,10 @@ export function createTuiSuggestions({ getCatalog, getCommands, getSessions, get
     abort(signal);
     const catalog = await getCatalog?.() ?? {};
     const prefix = line.slice(0, cursor);
-    let replaceStart = cursor, query = '', entries = [];
+    let replaceStart = cursor, query = '', entries = [], trigger = '';
     const match = prefix.match(/(?:^|\s)(@(\{[^}]*|[^\s]*))$/);
     if (match) {
+      trigger = '@';
       replaceStart = cursor - match[1].length;
       query = match[2].replace(/^\{/, '').replace(/\}$/, '');
       const folders = new Set();
@@ -262,6 +269,7 @@ export function createTuiSuggestions({ getCatalog, getCommands, getSessions, get
     } else if (prefix.startsWith('/')) {
       const commandMatch = prefix.match(/^\/([^\s]*)$/);
       if (commandMatch) {
+        trigger = '/';
         replaceStart = 0; query = commandMatch[1];
         entries = list(await getCommands?.()).map(item => {
           const name = commandName(item);
@@ -307,7 +315,13 @@ export function createTuiSuggestions({ getCatalog, getCommands, getSessions, get
         }
       }
     }
-    return entries.filter(item => !query || fuzzy(`${item.value} ${item.label}`, query)).slice(0, 2000)
-      .map(item => ({ ...item, replaceStart, replaceEnd: cursor }));
+    const needle = query.toLowerCase();
+    // Match each field independently. Joining a duplicated value and label can
+    // make an unrelated filename appear to contain a cross-field subsequence.
+    // Preserve the original group/item ordering for equally ranked matches.
+    return entries.map((item, order) => ({ item, order,
+      rank: Math.max(...[item.value, item.label, item.description].map(field => matchRank(field, needle, trigger))) }))
+      .filter(entry => entry.rank >= 0).sort((left, right) => right.rank - left.rank || left.order - right.order)
+      .slice(0, 2000).map(({ item }) => ({ ...item, replaceStart, replaceEnd: cursor }));
   };
 }
