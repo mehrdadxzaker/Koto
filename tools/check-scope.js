@@ -156,6 +156,104 @@ function checkDistribution() {
   }
 }
 
+function checkIdeDelivery() {
+  const prefix = 'plugins/vscode/';
+  if (!existsSync(localPath(`${prefix}package.json`))) return;
+  try {
+    const plugin = JSON.parse(readFileSync(localPath(`${prefix}package.json`), 'utf8'));
+    const lock = JSON.parse(readFileSync(localPath(`${prefix}package-lock.json`), 'utf8'));
+    const integrity = JSON.parse(readFileSync(localPath(`${prefix}core-integrity.json`), 'utf8'));
+    const cli = JSON.parse(readFileSync(localPath('install/manifest.json'), 'utf8')).cli;
+    const entries = value => value && typeof value === 'object' && !Array.isArray(value) ? Object.entries(value) : [];
+    if (plugin.name !== 'koto' || plugin.displayName !== 'Koto'
+        || !/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(plugin.version ?? '')
+        || plugin.main !== './extension.cjs' || Object.hasOwn(plugin, 'browser')
+        || JSON.stringify(plugin.extensionKind) !== JSON.stringify(['ui'])) {
+      fail('The IDE delivery must be a versioned Koto extension in the local Node host');
+    }
+    if (entries(plugin.dependencies).length !== 1 || plugin.dependencies?.[cli.package] !== cli.version
+        || entries(plugin.devDependencies).length !== 1 || !/^\d+\.\d+\.\d+$/.test(plugin.devDependencies?.['@vscode/vsce'] ?? '')
+        || entries(plugin.optionalDependencies).length || entries(plugin.peerDependencies).length) {
+      fail('The IDE delivery must pin only the published core at runtime and an exact VSCE build dependency');
+    }
+    for (const hook of ['preinstall', 'install', 'postinstall', 'prepare', 'preprepare', 'postprepare']) {
+      if (Object.hasOwn(plugin.scripts ?? {}, hook)) fail(`IDE dependency installation must not run a ${hook} hook`);
+    }
+    const production = lock.packages?.[`node_modules/${cli.package}`];
+    const packager = lock.packages?.['node_modules/@vscode/vsce'];
+    if (lock.name !== plugin.name || lock.version !== plugin.version
+        || lock.packages?.['']?.name !== plugin.name
+        || lock.packages?.['']?.version !== plugin.version
+        || lock.packages?.['']?.dependencies?.[cli.package] !== cli.version
+        || lock.packages?.['']?.devDependencies?.['@vscode/vsce'] !== plugin.devDependencies?.['@vscode/vsce']
+        || production?.version !== cli.version || production?.resolved !== cli.url
+        || production?.integrity !== integrity.archive?.integrity
+        || packager?.version !== plugin.devDependencies?.['@vscode/vsce']) {
+      fail('The IDE lock must bind its own version, packager and exact published core integrity');
+    }
+    if (integrity.schemaVersion !== 1 || integrity.package !== cli.package || integrity.version !== cli.version
+        || integrity.archive?.url !== cli.url || integrity.archive?.sha256 !== cli.sha256
+        || !/^sha512-[A-Za-z0-9+/]{86}==$/.test(integrity.archive?.integrity ?? '')
+        || !/^[a-f0-9]{64}$/.test(integrity.releaseManifestSha256 ?? '')
+        || integrity.source?.commit !== cli.sourceCommit || !/^[a-f0-9]{40}$/.test(integrity.source?.tree ?? '')
+        || !/^[a-f0-9]{40}$/.test(integrity.source?.packedFromCommit ?? '')
+        || !Array.isArray(integrity.payloads) || integrity.payloads.length !== 54) {
+      fail('The IDE integrity manifest must bind the frozen distribution archive and source identity');
+    }
+    const payloadNames = new Set();
+    for (const payload of Array.isArray(integrity.payloads) ? integrity.payloads : []) {
+      const name = payload?.path;
+      if (typeof name !== 'string' || !name || name !== path.posix.normalize(name)
+          || path.posix.isAbsolute(name) || name.includes('\\') || name.includes('\0') || name.split('/').includes('..')
+          || payloadNames.has(name) || !Number.isSafeInteger(payload.bytes) || payload.bytes < 0 || payload.bytes > 2 * 1024 * 1024
+          || !/^[a-f0-9]{64}$/.test(payload.sha256 ?? '') || !/^0[0-7]{3}$/.test(payload.mode ?? '')) {
+        fail('The IDE integrity manifest must contain unique bounded package-local payloads, digests and modes');
+        continue;
+      }
+      payloadNames.add(name);
+    }
+    const sourcePayloads = new Set([...files].filter(name => /^(?:bin|src)\//.test(name))
+      .concat(['package.json', 'LICENSE', 'README.md', 'README.fa.md']));
+    if (sourcePayloads.size !== payloadNames.size || [...sourcePayloads].some(name => !payloadNames.has(name))) {
+      fail('The IDE integrity inventory must cover all core/CLI sources and published package metadata');
+    }
+    // These are delivery declarations, not a substitute for native host trust,
+    // activation, process cleanup or model-work observations.
+    if (plugin.capabilities?.untrustedWorkspaces?.supported !== false
+        || plugin.capabilities?.virtualWorkspaces?.supported !== false) {
+      fail('The IDE preview must declare trusted local workspaces only');
+    }
+    const commands = plugin.contributes?.commands;
+    const requiredTerms = ['isWorkspaceTrusted', '!virtualWorkspace', '!remoteName'];
+    if (!Array.isArray(commands) || !commands.length || commands.some(command => {
+      const terms = typeof command.enablement === 'string' ? command.enablement.split(/\s*&&\s*/) : [];
+      return terms.length !== requiredTerms.length || requiredTerms.some(term => !terms.includes(term));
+    })) fail('Every IDE command must require a trusted, local, non-virtual host');
+    const settings = entries(plugin.contributes?.configuration?.properties);
+    if (settings.length !== 2 || settings.some(([name, setting]) => !['koto.nodePath', 'koto.stateDirectory'].includes(name)
+        || setting?.type !== 'string' || setting.default !== '' || setting.scope !== 'application')) {
+      fail('IDE runtime and state-directory settings must remain User-level application settings');
+    }
+    if (Object.hasOwn(plugin, 'files') || !existsSync(localPath(`${prefix}.vscodeignore`))) {
+      fail('The IDE delivery must use one explicit VSIX allowlist without a conflicting files field');
+    } else {
+      const allowed = ['!package.json', '!extension.cjs', '!client.cjs', '!runner.mjs', '!core-integrity.json',
+        '!dist/core/**', '!media/**', '!README.md', '!CHANGELOG.md', '!LICENSE', '!package.nls.json'];
+      const patterns = readFileSync(localPath(`${prefix}.vscodeignore`), 'utf8').split(/\r?\n/)
+        .map(line => line.trim()).filter(line => line && !line.startsWith('#'));
+      if (patterns[0] !== '**' || patterns.length !== allowed.length + 1
+          || allowed.some(pattern => !patterns.slice(1).includes(pattern))) {
+        fail('The VSIX allowlist must include only host sources, assets, package metadata and the frozen core');
+      }
+    }
+    for (const name of ['extension.cjs', 'client.cjs', 'runner.mjs', 'build.mjs', 'README.md', 'CHANGELOG.md', 'LICENSE']) {
+      packageTarget(`${prefix}${name}`, `IDE delivery ${name}`);
+    }
+  } catch (error) {
+    fail(`IDE delivery metadata: ${error.message}`);
+  }
+}
+
 function checkPackage() {
   let pkg;
   try {
@@ -356,6 +454,7 @@ walk();
 checkTrackedPaths();
 checkPackage();
 checkDistribution();
+checkIdeDelivery();
 for (const name of [...files].sort()) {
   checkImports(name);
   checkWorkflowActions(name);

@@ -1,0 +1,199 @@
+{
+  "name": "koto",
+  "displayName": "Koto",
+  "description": "Your existing subscriptions, optional local models and saved Koto sessions in a native IDE terminal.",
+  "version": "0.1.0",
+  "publisher": "mehrdadz",
+  "license": "Apache-2.0",
+  "engines": {
+    "vscode": ">=1.100.0"
+  },
+  "extensionKind": [
+    "ui"
+  ],
+  "categories": [
+    "Machine Learning",
+    "Other"
+  ],
+  "keywords": [
+    "koto",
+    "codex",
+    "coding agents",
+    "local models"
+  ],
+  "icon": "media/koto.png",
+  "homepage": "https://github.com/mehrdadxzaker/Koto",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mehrdadxzaker/Koto.git",
+    "directory": "plugins/vscode"
+  },
+  "bugs": {
+    "url": "https://github.com/mehrdadxzaker/Koto/issues"
+  },
+  "main": "./extension.cjs",
+  "activationEvents": [
+    "onView:koto.workspace",
+    "onCommand:koto.openKoto",
+    "onCommand:koto.openProject",
+    "onCommand:koto.openSavedSession",
+    "onCommand:koto.refresh",
+    "onCommand:koto.setUpTerminal",
+    "onCommand:koto.stop"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false,
+      "description": "Koto starts local coding agents and requires a trusted project."
+    },
+    "virtualWorkspaces": {
+      "supported": false,
+      "description": "Koto requires a local Git project and local native clients."
+    }
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "koto.openKoto",
+        "title": "Open Koto",
+        "category": "Koto",
+        "icon": "$(terminal)",
+        "enablement": "isWorkspaceTrusted && !virtualWorkspace && !remoteName"
+      },
+      {
+        "command": "koto.openProject",
+        "title": "Open Project",
+        "category": "Koto",
+        "icon": "$(folder-opened)",
+        "enablement": "isWorkspaceTrusted && !virtualWorkspace && !remoteName"
+      },
+      {
+        "command": "koto.openSavedSession",
+        "title": "Open Saved Session",
+        "category": "Koto",
+        "icon": "$(history)",
+        "enablement": "isWorkspaceTrusted && !virtualWorkspace && !remoteName"
+      },
+      {
+        "command": "koto.refresh",
+        "title": "Refresh Projects and Sessions",
+        "category": "Koto",
+        "icon": "$(refresh)",
+        "enablement": "isWorkspaceTrusted && !virtualWorkspace && !remoteName"
+      },
+      {
+        "command": "koto.setUpTerminal",
+        "title": "Set Up Terminal Support",
+        "category": "Koto",
+        "icon": "$(tools)",
+        "enablement": "isWorkspaceTrusted && !virtualWorkspace && !remoteName"
+      },
+      {
+        "command": "koto.stop",
+        "title": "Stop Koto CLI",
+        "category": "Koto",
+        "icon": "$(debug-stop)",
+        "enablement": "isWorkspaceTrusted && !virtualWorkspace && !remoteName"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "koto",
+          "title": "Koto",
+          "icon": "media/koto-activity.svg"
+        }
+      ]
+    },
+    "views": {
+      "koto": [
+        {
+          "id": "koto.workspace",
+          "name": "Projects and Sessions",
+          "contextualTitle": "Koto"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "koto.workspace",
+        "contents": "[Open a project](command:koto.openProject)\n[Open Koto](command:koto.openKoto)\n\nAccount setup, models and agent actions stay in the Koto CLI."
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "koto.refresh",
+          "when": "view == koto.workspace",
+          "group": "navigation@1"
+        },
+        {
+          "command": "koto.openKoto",
+          "when": "view == koto.workspace",
+          "group": "navigation@2"
+        },
+        {
+          "command": "koto.openProject",
+          "when": "view == koto.workspace",
+          "group": "koto@1"
+        },
+        {
+          "command": "koto.openSavedSession",
+          "when": "view == koto.workspace",
+          "group": "koto@2"
+        },
+        {
+          "command": "koto.setUpTerminal",
+          "when": "view == koto.workspace",
+          "group": "koto@3"
+        },
+        {
+          "command": "koto.stop",
+          "when": "view == koto.workspace && koto.cliRunning",
+          "group": "navigation@3"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "koto.openKoto",
+          "when": "view == koto.workspace && viewItem == koto.project",
+          "group": "inline@1"
+        },
+        {
+          "command": "koto.openSavedSession",
+          "when": "view == koto.workspace && viewItem == koto.session",
+          "group": "inline@1"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Koto",
+      "properties": {
+        "koto.nodePath": {
+          "type": "string",
+          "default": "",
+          "scope": "application",
+          "description": "Optional absolute path to Node.js 22 or later. Leave empty for local discovery. Only User settings are read; workspace settings cannot choose a runtime."
+        },
+        "koto.stateDirectory": {
+          "type": "string",
+          "default": "",
+          "scope": "application",
+          "description": "Optional absolute private Koto state directory. Leave empty to reuse ~/.koto and its saved setup. Only User settings are read; native credentials remain with their clients."
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "@mehrdadz/koto": "3.0.0-alpha.1"
+  },
+  "devDependencies": {
+    "@vscode/vsce": "4.1.0"
+  },
+  "scripts": {
+    "check": "node --check extension.cjs && node --check client.cjs && node --check runner.mjs && node --check build.mjs",
+    "build": "node build.mjs",
+    "vscode:prepublish": "npm run check && npm run build",
+    "package": "vsce package --no-dependencies"
+  }
+}
