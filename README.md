@@ -108,7 +108,7 @@ npx --yes @mehrdadz/koto@alpha
 To select the exact prerelease version instead of following the `alpha` tag:
 
 ```sh
-npm install --global @mehrdadz/koto@3.0.0-alpha.0
+npm install --global @mehrdadz/koto@3.0.0-alpha.1
 koto
 ```
 
@@ -155,7 +155,7 @@ Or build and install the local package from that checkout:
 
 ```sh
 npm pack --ignore-scripts
-npm install --global ./mehrdadz-koto-3.0.0-alpha.0.tgz
+npm install --global ./mehrdadz-koto-3.0.0-alpha.1.tgz
 koto
 ```
 

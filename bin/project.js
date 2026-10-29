@@ -193,7 +193,8 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
   const seenMessages = new Map();
   let conversationId = 'kotoCoordinator';
   while (records.has(conversationId)) conversationId += '_';
-  const metadata = agent => ({ agentId: agent.id, name: agent.nativeKind ?? basename(agent.command),
+  const metadata = agent => ({ agentId: agent.id, name: agent.nativeKind ?? agent.native?.kind ?? basename(agent.command),
+    provider: agent.nativeKind ?? agent.native?.kind, transport: agent.transport,
     model: agent.model ?? (() => { const index = agent.args.findIndex(arg => ['--model', '-m'].includes(arg)); return index < 0 ? undefined : agent.args[index + 1]; })(),
     task: agent.task });
   const clearPrompt = () => {
@@ -364,16 +365,6 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
       const agent = records.get(event.agentId ?? event.agent);
       const details = agent ? metadata(agent) : undefined;
       view?.update(event, details);
-      if (event.type === 'agent_status' && event.status === 'waiting_permission') {
-        view?.update({ type: 'approval_required', agentId: event.agentId,
-          description: 'Native permission requested' }, details);
-      } else if (event.type === 'request' && agent?.nativeKind === 'local') {
-        view?.update({ type: 'activity', agentId: agent.id, status: 'started', description: 'Requesting local model response' }, details);
-      } else if (['tool_started', 'tool_completed', 'command_started'].includes(event.type)) {
-        const state = event.type === 'tool_completed' ? event.result?.status ?? (event.result?.error ? 'failed' : 'completed') : 'started';
-        view?.update({ type: 'activity', agentId: event.agentId, status: state,
-          description: event.command ? `Command: ${event.command}` : `Tool: ${event.tool ?? 'native tool'}${event.result?.error ? ` (${event.result.error})` : ''}` }, details);
-      }
       attachment?.output(event);
       if (event.type === 'assistant_message' && typeof event.text === 'string') {
         // Deltas are not printed by this terminal, so display the full native
@@ -525,7 +516,7 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
       onError: close });
     for (const agent of plan.agents) view.register({ id: agent.id, ...metadata(agent) });
     if (conversation) {
-      view.register({ id: conversationId, name: conversation.name ?? 'Koto', model: conversation.model,
+      view.register({ id: conversationId, name: conversation.name ?? 'Koto', provider: conversation.provider, model: conversation.model,
         task: 'Conversation and follow-up planning', status: 'idle' });
       conversationBound = true;
       conversation.bind({

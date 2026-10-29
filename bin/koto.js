@@ -31,7 +31,8 @@ const help = `Koto — a shared agent orchestration core
 
 Usage:
   koto                       Talk to Koto and build with real agents
-  koto start                 Open the coding conversation
+  koto start [--project PATH] [--session PATH]
+                             Open the coding conversation in a selected project
   koto setup                 Advanced manual session setup
   koto --help
   koto --version
@@ -43,10 +44,23 @@ Usage:
 
 run executes the commands explicitly declared in the selected workflow.
 Worker commands receive a JSON assignment on stdin and return text on stdout.
-IDE plugins and Koto's own UI will use this same core.
+The CLI and desktop preview use this core; IDE plugins can consume it too.
 First launch finds native subscription logins and offers optional local models.
 No provider API key is required. Returning launches remember your setup.
 `;
+
+function chatLaunchOptions(args) {
+  const options = {};
+  for (let index = 0; index < args.length; index += 2) {
+    const flag = args[index];
+    const value = args[index + 1];
+    if (!['--project', '--session'].includes(flag) || typeof value !== 'string'
+        || !value.trim() || /[\x00-\x1f\x7f]/.test(value) || Buffer.byteLength(value) > 4096
+        || Object.hasOwn(options, flag.slice(2))) return undefined;
+    options[flag.slice(2)] = value;
+  }
+  return options.session && !options.project ? undefined : options;
+}
 
 async function main(args) {
   if (args.length === 1 && ['--help', '-h'].includes(args[0])) {
@@ -58,11 +72,13 @@ async function main(args) {
     return;
   }
   const [command, path] = args;
+  const chatOptions = command === 'start' ? chatLaunchOptions(args.slice(1)) : undefined;
   if (command === 'plan') {
     process.exitCode = await runPlanCli(args.slice(1), { write: text => write(process.stdout, text) });
     return;
   }
-  if (!args.length || (['start', 'setup'].includes(command) && args.length === 1)) {
+  if (!args.length || command === 'start' && chatOptions
+      || command === 'setup' && args.length === 1) {
     const controller = new AbortController();
     activeController = controller;
     if (outputFailed) controller.abort();
@@ -71,7 +87,8 @@ async function main(args) {
     process.once('SIGTERM', interrupt);
     try {
       const launch = command === 'setup' ? runLauncher : runChat;
-      process.exitCode = await launch({ write: text => write(process.stdout, text), signal: controller.signal, version: metadata.version });
+      process.exitCode = await launch({ write: text => write(process.stdout, text), signal: controller.signal,
+        version: metadata.version, ...chatOptions });
     } finally {
       activeController = undefined;
       process.removeListener('SIGINT', interrupt);
@@ -165,5 +182,7 @@ try {
   const code = validation ? 'workflow_invalid' : typeof error?.code === 'string' && /^[a-z][a-z0-9_]+$/.test(error.code)
     ? error.code : /^[a-z][a-z0-9_]+$/.test(error?.message ?? '') ? error.message : 'koto_command_failed';
   write(process.stderr, `${JSON.stringify(validation ? { error: code, message: error.message } : { error: code })}\n`);
-  process.exitCode = 2;
+  // A desktop host must preserve uncertainty reported by Koto's inner agent
+  // owners even when its outer terminal helper has reaped the CLI itself.
+  process.exitCode = /(?:^|_)cleanup_unconfirmed$/.test(code) ? 74 : 2;
 }

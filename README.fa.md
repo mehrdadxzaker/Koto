@@ -97,7 +97,7 @@ npx --yes @mehrdadz/koto@alpha
 <div dir="ltr">
 
 ```sh
-npm install --global @mehrdadz/koto@3.0.0-alpha.0
+npm install --global @mehrdadz/koto@3.0.0-alpha.1
 koto
 ```
 
@@ -128,7 +128,7 @@ node bin/koto.js
 
 ```sh
 npm pack --ignore-scripts
-npm install --global ./mehrdadz-koto-3.0.0-alpha.0.tgz
+npm install --global ./mehrdadz-koto-3.0.0-alpha.1.tgz
 koto
 ```
 
