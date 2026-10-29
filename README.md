@@ -34,6 +34,10 @@ verification boundary.
 
 ## Latest
 
+- **Codex CLI first.** Koto's primary workflow is everyday CLI use with your
+  existing Codex/ChatGPT subscription. Smooth onboarding, remembered projects,
+  review and resuming the same conversation take priority. Desktop and IDE
+  integrations remain optional.
 - **October 29, 2026 — CLI `3.0.0-alpha.1` released.** Both npm `alpha` and
   `latest` select the [published release](https://github.com/mehrdadxzaker/Koto/releases/tag/v3.0.0-alpha.1).
   Fresh Homebrew onboarding, real Codex/local contributions, reviewed
