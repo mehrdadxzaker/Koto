@@ -1,0 +1,12 @@
+**
+!package.json
+!extension.cjs
+!client.cjs
+!runner.mjs
+!core-integrity.json
+!dist/core/**
+!media/**
+!README.md
+!CHANGELOG.md
+!LICENSE
+!package.nls.json

@@ -28,8 +28,30 @@ project work, native terminal controls, supported conversation continuation and
 approval-based integration. **Koto is alpha software.** The recorded CLI
 acceptance is tracked in [#543](https://github.com/mehrdadxzaker/Koto/issues/543);
 [installation and release notes](docs/INSTALLATION.md) track npm publication and
-registry verification separately. IDE plugins and Koto's own UI are the next
-delivery phase, using the same JavaScript core.
+registry verification separately. An unsigned macOS ARM64 desktop preview and
+the new IDE preview use the same JavaScript core; each interface has its own
+verification boundary.
+
+## Latest
+
+- **Codex CLI first.** Koto's primary workflow is everyday CLI use with your
+  existing Codex/ChatGPT subscription. Smooth onboarding, remembered projects,
+  review and resuming the same conversation take priority. Desktop and IDE
+  integrations remain optional.
+- **October 29, 2026 — CLI `3.0.0-alpha.1` released.** Both npm `alpha` and
+  `latest` select the [published release](https://github.com/mehrdadxzaker/Koto/releases/tag/v3.0.0-alpha.1).
+  Fresh Homebrew onboarding, real Codex/local contributions, reviewed
+  integration and same-conversation resume passed on macOS ARM64. The rebuilt
+  unsigned desktop preview reused that same state and passed its own workflow;
+  [#543](https://github.com/mehrdadxzaker/Koto/issues/543) preserves the evidence
+  and historical platform limits.
+- **Koto IDE preview `0.1.0`** bundles the published `3.0.0-alpha.1` core,
+  reusing subscriptions, optional local models, projects and sessions. Actual
+  onboarding, coding, review, exact-session resume, integration and lifecycle
+  controls were observed in VS Code `1.144.0` and Cursor `3.27.22` on macOS ARM64.
+  Saved-session refresh and Stop presentation fixes are included. See the
+  [installation and verification details](docs/IDE_PLUGINS.md), including earlier failures.
+  Other IDE/OS combinations, remote/web use and Marketplace publication are outside this verification.
 
 ## How it works
 
@@ -43,7 +65,7 @@ delivery phase, using the same JavaScript core.
 | See and control work | Live output, process/native status, per-agent stop, native terminal input, resize and detach |
 | Decide what to keep | Contribution diffs, approval bound to current contents, and integration into a separate worktree |
 | Return to earlier work | Remembered setup and saved builds; supported exact-conversation continuation and review of later integration deltas |
-| Use another interface later | Shared discovery, planning, session and integration APIs with TypeScript declarations |
+| Use another interface | Desktop and IDE previews consume shared discovery, planning, session and integration operations |
 
 ### Observed with real agents
 
@@ -258,7 +280,7 @@ No hand-written JSON plan is required for normal setup.
 | Cancellation | Owned process/session or Job Object cleanup must be confirmed. `cleanup_unconfirmed` blocks resume and integration. |
 | Recovery | No automatic task replay, conflict decision or worktree deletion. Pending integration outcomes require explicit reconciliation; native clients may perform their own retries. |
 | Evidence | Source/helper CI, package identity and actual task outcomes are separate. Observed platform/client limits are recorded in the acceptance documents. |
-| Delivery | CLI and shared API are implemented; IDE plugins and Koto's own UI remain planned. Alpha publication and registry-install verification are separate release steps. |
+| Delivery | CLI `3.0.0-alpha.1` is released; the desktop is an unsigned macOS ARM64 preview. IDE preview journeys were observed in VS Code `1.144.0` and Cursor `3.27.22` on macOS ARM64; other hosts and Marketplace delivery retain separate gates. |
 
 Private choices normally live in `~/.koto/preferences.json`; `KOTO_STATE_DIR`
 selects another private absolute state directory for the guided journey. Session
