@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "cli": {
+    "package": "@mehrdadz/koto",
+    "version": "3.0.0-alpha.0",
+    "url": "https://registry.npmjs.org/@mehrdadz/koto/-/koto-3.0.0-alpha.0.tgz",
+    "sha256": "f0ca6be082af7a95b75a753557db2fc9a7468fa4ac49f75eee236ce9f8d96dfe",
+    "sourceCommit": "94102bb4eb8c51441c57dfb0fa1c4c7b6e0a49aa"
+  },
+  "node": {
+    "version": "24.22.2",
+    "homebrewDependency": "node@24",
+    "checksums": "https://nodejs.org/dist/v24.22.2/SHASUMS256.txt",
+    "linux": {
+      "x64": "48cc0e21e048790e54c0cf5749c2725005313d652651c40b7a21feb9697aaf75",
+      "arm64": "eb187837a2230d4047161ac0be008584e16b46f726e9c9490ee35dc6b17d9ba8"
+    }
+  }
+}

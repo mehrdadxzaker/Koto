@@ -1,6 +1,78 @@
 # Install Koto
 
-Koto requires Node.js 22 or later with npm. The Node.js core has no runtime
+Choose Homebrew, the Linux installer, or npm/npx. All three install the same
+published alpha CLI; the optional agent skill also uses that CLI.
+
+## Homebrew
+
+Add Koto's current repository as a tap, then install its formula:
+
+```sh
+brew tap mehrdadxzaker/koto https://github.com/mehrdadxzaker/Koto.git
+brew install mehrdadxzaker/koto/koto
+koto
+```
+
+Homebrew installs its `node@24` dependency automatically. The qualified formula
+name selects Koto from this tap and trusts that formula rather than the entire
+repository. This is an upstream tap, not a Homebrew/core listing. The installed
+command and product name remain `koto` and Koto.
+
+Use `brew upgrade mehrdadxzaker/koto/koto` for updates and
+`brew uninstall mehrdadxzaker/koto/koto` to remove the formula. Account, model and
+project state under `~/.koto` is separate from the Homebrew installation.
+
+## Linux installer
+
+On supported x64 or ARM64 GNU/Linux, install without first setting up Node/npm:
+
+```sh
+curl -fsSL --connect-timeout 10 --max-time 30 \
+  https://raw.githubusercontent.com/mehrdadxzaker/Koto/main/install.sh | sh
+"$HOME/.local/bin/koto"
+```
+
+The [portable shell installer](../install.sh) downloads the pinned CLI archive
+and official Node.js runtime, verifies both SHA-256 checksums before extraction
+or execution, and installs for the current user without `sudo`. It uses one
+download at a time with finite deadlines and bounded retries. The default
+installation is `~/.local/share/koto`, with a command in `~/.local/bin`. If that
+bin directory is not on PATH, follow the printed PATH instruction; the installer
+does not edit shell profiles.
+
+Requirements are `curl`, GNU coreutils/findutils/tar, `xz`, GNU libc 2.28 or newer, and a
+Linux kernel supported by Node.js (4.18 or newer). Alpine/musl and other CPU
+architectures are not supported by these pinned runtime downloads. Git remains
+required for project work. Local models and native clients are selected through
+the normal Koto onboarding; installation does not acquire models or credentials.
+
+Repeat the installer to verify/reuse an owned installation. To select private
+locations or remove only the installed program and its owned command link:
+
+```sh
+sh install.sh --prefix /absolute/private/koto --bin-dir /absolute/private/bin
+sh install.sh --uninstall
+```
+
+Download the installer first when using those commands; repeat custom paths for
+custom-location removal. Uninstall preserves `~/.koto`, downloaded models,
+native-agent authentication and projects. Existing unrelated command files or
+installation directories are refused rather than overwritten.
+Custom locations also require ancestor directories controlled by your user or
+root and not writable by other users; root-owned sticky directories such as
+`/tmp` are allowed.
+
+The pinned CLI, Node version and artifact digests are recorded in
+[the distribution manifest](../install/manifest.json). These recipes package the
+existing `3.0.0-alpha.0` release; they do not retarget its immutable npm archive.
+
+## npm and npx prerequisites
+
+The npm/npx route requires Node.js 22 or later with npm.
+
+## Shared runtime and terminal support
+
+The Node.js core has no runtime
 dependencies, required build step or installation hook. Native process helpers
 ship as versioned C source for macOS, Linux and Windows. Build the host helper
 explicitly with an already installed toolchain; package installation never

@@ -64,14 +64,35 @@ See [current evidence](docs/CORE_STATUS.md) and the
 
 ## Quick start
 
-You need **Node.js 22+ with npm**. Project work also needs Git on an absolute PATH
+Choose Homebrew, the Linux installer, or npm/npx. Project work needs Git on an absolute PATH
 entry and a clean, committed Git repository. Koto can discover existing native
 clients or offer their private installation and native sign-in. You can use a
 subscription, a local model, or both; a local-model download is optional.
 
 ### 1. Open Koto
 
-The alpha release installation path is:
+With Homebrew:
+
+```sh
+brew tap mehrdadxzaker/koto https://github.com/mehrdadxzaker/Koto.git
+brew install mehrdadxzaker/koto/koto
+koto
+```
+
+On x64 or ARM64 GNU/Linux, the installer acquires its own verified Node runtime:
+
+```sh
+curl -fsSL --connect-timeout 10 --max-time 30 \
+  https://raw.githubusercontent.com/mehrdadxzaker/Koto/main/install.sh | sh
+"$HOME/.local/bin/koto"
+```
+
+The installer uses `~/.local/share/koto` and `~/.local/bin`, prints PATH guidance
+when needed, and preserves account/model/project state on uninstall. See
+[installation](docs/INSTALLATION.md) for Linux prerequisites, custom locations,
+updates and removal. Both routes package the published alpha CLI.
+
+With **Node.js 22+ and npm** already installed:
 
 ```sh
 npm install --global @mehrdadz/koto@alpha

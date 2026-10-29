@@ -1,0 +1,83 @@
+name: CLI distribution
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: distribution-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  install:
+    name: install (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 18
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            delivery: linux
+          - os: ubuntu-24.04-arm
+            delivery: linux
+          - os: macos-15
+            delivery: brew
+          - os: macos-15-intel
+            delivery: brew
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: '1'
+      HOMEBREW_NO_INSTALL_CLEANUP: '1'
+      HOMEBREW_NO_INSTALL_UPGRADE: '1'
+      HOMEBREW_NO_ANALYTICS: '1'
+      HOMEBREW_DOWNLOAD_CONCURRENCY: '1'
+      HOMEBREW_CURL_RETRIES: '0'
+      BUNDLE_JOBS: '1'
+      BUNDLE_RETRY: '0'
+      BUNDLE_TIMEOUT: '30'
+      GIT_CONFIG_COUNT: '2'
+      GIT_CONFIG_KEY_0: http.lowSpeedLimit
+      GIT_CONFIG_VALUE_0: '1'
+      GIT_CONFIG_KEY_1: http.lowSpeedTime
+      GIT_CONFIG_VALUE_1: '30'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Observe real Linux installation and owned uninstall
+        if: matrix.delivery == 'linux'
+        shell: bash
+        run: |
+          bash .github/scripts/observe-linux-install.sh "$GITHUB_WORKSPACE/install.sh" "$GITHUB_WORKSPACE" "$RUNNER_TEMP/koto-install-observation"
+          cat "$RUNNER_TEMP/koto-install-observation/RESULT.txt" >> "$GITHUB_STEP_SUMMARY"
+          cat "$RUNNER_TEMP/koto-install-observation/managed-runtime.json" >> "$GITHUB_STEP_SUMMARY"
+      - name: Observe Homebrew installation and owned uninstall
+        if: matrix.delivery == 'brew'
+        shell: bash
+        env:
+          KOTO_PUBLIC_TAP: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && '1' || '0' }}
+        run: bash .github/scripts/observe-brew-install.sh
+      - name: Retain bounded installation evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        env:
+          ACTIONS_ARTIFACT_UPLOAD_CONCURRENCY: '1'
+          ACTIONS_ARTIFACT_UPLOAD_TIMEOUT_MS: '30000'
+        with:
+          name: install-${{ matrix.os }}-${{ github.sha }}
+          retention-days: 30
+          if-no-files-found: warn
+          path: |
+            ${{ runner.temp }}/koto-install-observation/*.json
+            ${{ runner.temp }}/koto-install-observation/*.txt
+            ${{ runner.temp }}/koto-install-observation/*.sha256
+            ${{ runner.temp }}/koto-install-observation/*.stdout
+            ${{ runner.temp }}/koto-install-observation/*.stderr
+            ${{ runner.temp }}/koto-brew-observation/*.json
+            ${{ runner.temp }}/koto-brew-observation/*.txt
