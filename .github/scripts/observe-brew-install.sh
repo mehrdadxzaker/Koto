@@ -49,13 +49,13 @@ koto_keg=$(brew --prefix "$koto_formula")
 koto_node="$(brew --prefix node@24)/bin/node"
 koto_command="$koto_keg/bin/koto"
 "$koto_command" --version | tee "$koto_observe_root/version.txt"
-[ "$(cat "$koto_observe_root/version.txt")" = 3.0.0-alpha.0 ]
+[ "$(cat "$koto_observe_root/version.txt")" = 3.0.0-alpha.1 ]
 "$koto_command" --help > "$koto_observe_root/help.txt"
 brew test "$koto_formula"
 curl --disable --fail --silent --show-error --location --max-redirs 3 --proto '=https' --proto-redir '=https' \
   --connect-timeout 10 --max-time 60 --retry 0 --max-filesize 1048576 \
-  --output "$koto_observe_root/package.tgz" https://registry.npmjs.org/@mehrdadz/koto/-/koto-3.0.0-alpha.0.tgz
-printf '%s  %s\n' f0ca6be082af7a95b75a753557db2fc9a7468fa4ac49f75eee236ce9f8d96dfe "$koto_observe_root/package.tgz" | shasum -a 256 --check
+  --output "$koto_observe_root/package.tgz" https://registry.npmjs.org/@mehrdadz/koto/-/koto-3.0.0-alpha.1.tgz
+printf '%s  %s\n' 52673651a84c3daa9989e667a4e583403bd693f6e5d7b8c3772c5136d5c4b18c "$koto_observe_root/package.tgz" | shasum -a 256 --check
 mkdir "$koto_observe_root/reference"
 tar -xzf "$koto_observe_root/package.tgz" -C "$koto_observe_root/reference"
 diff --recursive --brief "$koto_observe_root/reference/package" "$koto_keg/libexec" > "$koto_observe_root/payload-diff.txt"
@@ -64,7 +64,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 const [project, root, installed] = process.argv.slice(2);
 const pkg = JSON.parse(fs.readFileSync(path.join(installed,'package.json'),'utf8'));
-if (pkg.name !== '@mehrdadz/koto' || pkg.version !== '3.0.0-alpha.0') throw new Error('Wrong installed package');
+if (pkg.name !== '@mehrdadz/koto' || pkg.version !== '3.0.0-alpha.1') throw new Error('Wrong installed package');
 if (!process.version.startsWith('v24.')) throw new Error('Wrong Homebrew Node dependency');
 const tasks = {schemaVersion:1, project, goal:'Inspect the real Koto entrypoint using its installed runtime.',
   controlRoot:path.join(root,'control'),timeoutMs:30000,maxConcurrency:1,

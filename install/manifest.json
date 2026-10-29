@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "cli": {
     "package": "@mehrdadz/koto",
-    "version": "3.0.0-alpha.0",
-    "url": "https://registry.npmjs.org/@mehrdadz/koto/-/koto-3.0.0-alpha.0.tgz",
-    "sha256": "f0ca6be082af7a95b75a753557db2fc9a7468fa4ac49f75eee236ce9f8d96dfe",
-    "sourceCommit": "94102bb4eb8c51441c57dfb0fa1c4c7b6e0a49aa"
+    "version": "3.0.0-alpha.1",
+    "url": "https://registry.npmjs.org/@mehrdadz/koto/-/koto-3.0.0-alpha.1.tgz",
+    "sha256": "52673651a84c3daa9989e667a4e583403bd693f6e5d7b8c3772c5136d5c4b18c",
+    "sourceCommit": "43eb2595c837bb1118961405245c291b22264d65"
   },
   "node": {
     "version": "24.22.2",

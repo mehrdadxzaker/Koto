@@ -1,6 +1,6 @@
 # Published CLI workflow
 
-These commands target `@mehrdadz/koto@3.0.0-alpha.0`. Use their full pinned prefix;
+These commands target `@mehrdadz/koto@3.0.0-alpha.1`. Use their full pinned prefix;
 repository `main` may describe newer behavior. Run actual CLI commands, not a
 substitute API callback or a hand-written claim of their result.
 Use the private empty invocation directory from SKILL.md as the command working
@@ -30,8 +30,8 @@ directory, with absolute paths back to the real project and private artifacts.
    below, replace `TASKS_JSON` and `PLAN_JSON` with those actual quoted paths:
 
 ```sh
-npx --yes --registry=https://registry.npmjs.org/ --package=@mehrdadz/koto@3.0.0-alpha.0 -- koto plan build "TASKS_JSON" "PLAN_JSON"
-npx --yes --registry=https://registry.npmjs.org/ --package=@mehrdadz/koto@3.0.0-alpha.0 -- koto plan check "PLAN_JSON"
+npx --yes --registry=https://registry.npmjs.org/ --package=@mehrdadz/koto@3.0.0-alpha.1 -- koto plan build "TASKS_JSON" "PLAN_JSON"
+npx --yes --registry=https://registry.npmjs.org/ --package=@mehrdadz/koto@3.0.0-alpha.1 -- koto plan check "PLAN_JSON"
 ```
 
 `plan build` creates a new private file and refuses an existing destination.
@@ -67,7 +67,7 @@ under their own user authorization; use a real terminal for interactive setup.
 For a user-authorized noninteractive run of the inspected pipe plan:
 
 ```sh
-npx --yes --registry=https://registry.npmjs.org/ --package=@mehrdadz/koto@3.0.0-alpha.0 -- koto project start "PLAN_JSON" --start --headless
+npx --yes --registry=https://registry.npmjs.org/ --package=@mehrdadz/koto@3.0.0-alpha.1 -- koto project start "PLAN_JSON" --start --headless
 ```
 
 `--start` supplies launch approval; it is not a dry run. `--headless` has no
@@ -87,8 +87,8 @@ Use actual printed session directories and agent IDs in place of `SESSION_DIR`
 and `AGENT`. These inspection commands launch no agent:
 
 ```sh
-npx --yes --registry=https://registry.npmjs.org/ --package=@mehrdadz/koto@3.0.0-alpha.0 -- koto project status "SESSION_DIR"
-npx --yes --registry=https://registry.npmjs.org/ --package=@mehrdadz/koto@3.0.0-alpha.0 -- koto project inspect "SESSION_DIR" "AGENT"
+npx --yes --registry=https://registry.npmjs.org/ --package=@mehrdadz/koto@3.0.0-alpha.1 -- koto project status "SESSION_DIR"
+npx --yes --registry=https://registry.npmjs.org/ --package=@mehrdadz/koto@3.0.0-alpha.1 -- koto project inspect "SESSION_DIR" "AGENT"
 ```
 
 Review the current contribution and verify its usefulness with the project's
@@ -96,7 +96,7 @@ permitted checks. After user-authorized integration, pass the exact fresh review
 token printed by `project inspect` in place of `REVIEW_TOKEN`:
 
 ```sh
-npx --yes --registry=https://registry.npmjs.org/ --package=@mehrdadz/koto@3.0.0-alpha.0 -- koto project integrate "SESSION_DIR" "AGENT" --approve "REVIEW_TOKEN"
+npx --yes --registry=https://registry.npmjs.org/ --package=@mehrdadz/koto@3.0.0-alpha.1 -- koto project integrate "SESSION_DIR" "AGENT" --approve "REVIEW_TOKEN"
 ```
 
 All agents must settle with confirmed cleanup. A changed contribution needs a
