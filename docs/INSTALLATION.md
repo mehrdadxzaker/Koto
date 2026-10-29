@@ -64,7 +64,7 @@ root and not writable by other users; root-owned sticky directories such as
 
 The pinned CLI, Node version and artifact digests are recorded in
 [the distribution manifest](../install/manifest.json). These recipes package the
-existing `3.0.0-alpha.0` release; they do not retarget its immutable npm archive.
+existing `3.0.0-alpha.1` release; they do not retarget its immutable npm archive.
 
 ## npm and npx prerequisites
 
@@ -99,10 +99,10 @@ Or open it without a global installation:
 npx --yes @mehrdadz/koto@alpha
 ```
 
-To pin the first alpha version explicitly:
+To pin the current alpha release explicitly:
 
 ```sh
-npm install --global @mehrdadz/koto@3.0.0-alpha.0
+npm install --global @mehrdadz/koto@3.0.0-alpha.1
 ```
 
 Alpha releases can change. Source, native-platform and registry-installation
@@ -144,7 +144,7 @@ the skill identifier and command are `koto`. If it is missing, check
 agent and installation scope, then restart the agent.
 
 The skill is an optional set of [instructions](../skills/koto/SKILL.md) over the
-existing CLI. It uses the exact published `@mehrdadz/koto@3.0.0-alpha.0` release
+existing CLI. It uses the exact published `@mehrdadz/koto@3.0.0-alpha.1` release
 through `npx`, so an old `koto` executable on your PATH cannot silently select a
 different runtime. It invokes the package from a private empty directory to
 avoid npm selecting a same-named source project. The first invocation needs
@@ -154,7 +154,7 @@ account or provider API key is required for subscription use. For guided account
 discovery or optional local-model setup, open Koto in a real terminal:
 
 ```sh
-npx --yes --registry=https://registry.npmjs.org/ --package=@mehrdadz/koto@3.0.0-alpha.0 -- koto
+npx --yes --registry=https://registry.npmjs.org/ --package=@mehrdadz/koto@3.0.0-alpha.1 -- koto
 ```
 
 Downloads and native sign-in follow the CLI's normal guided choices. In a host
@@ -192,18 +192,18 @@ From a reviewed source checkout:
 npm pack
 ```
 
-Copy the resulting `mehrdadz-koto-3.0.0-alpha.0.tgz` to another machine with
+Copy the resulting `mehrdadz-koto-3.0.0-alpha.1.tgz` to another machine with
 Node.js and npm, then install or run it:
 
 ```sh
-npm install --global ./mehrdadz-koto-3.0.0-alpha.0.tgz
+npm install --global ./mehrdadz-koto-3.0.0-alpha.1.tgz
 koto --version
 ```
 
 For execution without global installation:
 
 ```sh
-npx --yes --package ./mehrdadz-koto-3.0.0-alpha.0.tgz koto --help
+npx --yes --package ./mehrdadz-koto-3.0.0-alpha.1.tgz koto --help
 ```
 
 Local packaging and installation do not publish to the npm registry.
