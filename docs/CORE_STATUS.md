@@ -1,6 +1,45 @@
 # Current core delivery evidence
 
-Checkpoint: October 28, 2026.
+Checkpoint: October 29, 2026.
+
+## Fresh Homebrew, Codex and desktop handoff
+
+A fresh Mac ARM64 Homebrew installation of `@mehrdadz/koto@3.0.0-alpha.0`
+matched all 54 immutable npm payloads. Actual CLI onboarding discovered the
+existing ChatGPT login, selected a real Koto checkout, and completed two Codex
+coding tasks, review and explicit integration. After closing and reopening the
+installed CLI, a worker continued its original native conversation and worktree;
+the next review contained only its subsequent changes.
+
+This run also exposed a shared-core defect: with two configured workers, a valid
+one-task response inherited concurrency two and was rejected before launch.
+The corrected source at `540f4977092f7fb1e31c4ad9eb46b4b04f90bb7b`
+validates the requested budget before capping it to the generated task count.
+Fresh source onboarding with the real subscription then produced concurrency
+one, launched one Codex task, and completed coding, review and integration.
+The published alpha still contains the defect; these observations do not
+replace its frozen npm archive or update its Homebrew/Linux pins.
+
+The separately packaged Mac ARM64 desktop preview at
+`fb69a59a70cc29a6a1a4ac2b23082546a41c5d47` opened the CLI-created project and
+saved session through its sidebar, reused the ChatGPT subscription and loaded
+the same retained Qwen3 4B files without another download. A real Codex
+continuation made another code change in the original native conversation;
+desktop review showed the new delta and explicit integration accepted it.
+Stop CLI retained the session, and ordinary app quit left all seven recorded
+app/helper/CLI/model process identities absent. Desktop source and the published
+CLI are different revisions of this repository's shared core, not byte-identical
+release artifacts. No local-model coding-quality, Windows/Linux desktop or
+signed/notarized desktop-release claim follows from this observation.
+
+The first two host installs hit Homebrew's nested OpenSSL lock bug. A normal
+Homebrew update resolved it; required dependency upgrades also required a normal
+repair of the older default Node installation. The first UI automation call
+stalled; its bounded app owner timed out and the later explicit-state run above
+completed normally. These failed attempts remain separate from successful
+native observations. No automated suites, fixture agents or benchmarks ran.
+
+## Earlier CLI acceptance checkpoint
 
 The recorded CLI acceptance scope is complete: actual fresh/returning Mac use,
 local/native contributions, structured continuation and review/integration;
