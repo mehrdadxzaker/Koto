@@ -44,7 +44,15 @@ worktrees, with observed progress and native permission requests when needed.
 ## Everyday use
 
 Returning users enter the conversation with their saved setup. Koto checks the
-selected native login and reconnects a selected managed local model when needed.
+selected native login. On a returning launch, a managed local model starts only
+for a local coordinator. With Codex as coordinator, remembered downloads or local
+workers do not start a model while you enter the conversation or review a proposed
+plan. A build starts its matching managed model after you approve a local task.
+A local continuation can start its original model for readiness checks before
+the separate agent-launch confirmation. Koto preserves the task's exact model and
+endpoint; an unavailable original binding gets recovery guidance rather than a
+substitute model. Downloaded assets remain available while their model is stopped.
+
 Use `/accounts` to rediscover subscriptions or open native sign-in. `/agents`
 shows the configured workers; `/add codex`, `/add claude` and `/add local MODEL`
 add choices. `/agent codex`, `/agent claude` and `/agent local` choose the

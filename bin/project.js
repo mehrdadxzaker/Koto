@@ -1,7 +1,7 @@
 import { open } from 'node:fs/promises';
 import { constants } from 'node:fs';
 import { createInterface, clearLine, clearScreenDown, cursorTo, moveCursor } from 'node:readline';
-import { basename } from 'node:path';
+import { basename, resolve } from 'node:path';
 import { createProjectSession, resumeProjectSession, readProjectSession, validateProjectPlan, preflightProjectPlan,
   inspectProjectSession, integrateProjectSession, finalizeProjectSessionIntegration,
   inspectProjectContributionAttempt, reconcileProjectContributionAttempt } from '../src/index.js';
@@ -60,8 +60,23 @@ function showContributionAttempt(attempt, write) {
   else write(`Review these refs and the retained outcome before approving a resolution: ${attempt.possibleResolutions.join(', ')}.\n`);
 }
 
+/** Classify only the requested session metadata, never unrelated filesystem failures. */
+export async function runProjectCli(args, options = {}) {
+  try { return await runProjectCommand(args, options); }
+  catch (error) {
+    const sessionCommand = ['status', 'inspect', 'pending', 'integrate', 'resolve', 'reconcile', 'resume'].includes(args?.[0]);
+    if (sessionCommand && typeof args[1] === 'string' && error?.code === 'ENOENT'
+        && typeof error.path === 'string' && resolve(error.path) === resolve(args[1], 'project-session.json')) {
+      throw Object.assign(new Error('project_session_not_found'), {
+        code: 'project_session_not_found', sessionDirectory: resolve(args[1]),
+      });
+    }
+    throw error;
+  }
+}
+
 /** Terminal rendering is a thin consumer of core session operations/events. */
-export async function runProjectCli(args, { write, signal } = {}) {
+async function runProjectCommand(args, { write, signal } = {}) {
   if (!args.length || args[0] === '--help') { write(help); return 0; }
   if (args[0] === 'status' && args.length === 2) {
     const state = readProjectSession(args[1]);

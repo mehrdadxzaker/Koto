@@ -248,7 +248,7 @@ koto terminal build
 koto terminal info
 ```
 
-The guided launcher's **Set up terminal support** option performs the same
+The **Set up terminal support** option in `koto setup` performs the same
 explicit build or verifies an existing matching artifact. It never starts a
 model. The builders target x64 and arm64; native behavior still requires
 observation on the selected host:
@@ -273,8 +273,9 @@ process lifetime rather than limiting filesystem or network permissions.
 Retained `cleanup_unconfirmed` outcomes block resume and integration on every
 platform. Follow the [acceptance run](USER_ACCEPTANCE.md) for actual host evidence.
 
-IDE plugins and Koto's UI will be separate ways to use the installed core. They
-are planned and no placeholder package is installed today.
+Koto remains CLI-first. Its optional [desktop UI](DESKTOP_UI.md) and
+[IDE plugin preview](IDE_PLUGINS.md) reuse the shared core. Their own guides
+describe installation and host-specific qualification.
 
 Use `npm uninstall --global @mehrdadz/koto` to remove a global installation.
 Koto creates no startup hooks; model downloads occur only after a selected guided

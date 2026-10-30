@@ -288,6 +288,10 @@ export async function runChat({ write, signal: parentSignal, version, project: s
     let replacement, local = preferences.local;
     if (kind === 'local') {
       if (executable) throw new Error('Local agents use a loopback model; select its weights/runtime with /models.');
+      if (preferences.localInstall && (modelOverride ?? local?.model) === preferences.localInstall.id) {
+        await startSavedLocal();
+        local = preferences.local;
+      }
       if (modelOverride) {
         const found = await discoverLocalModels({ signal, llamaCommand: preferences.llamaCommand ?? 'llama-server' });
         const runtime = Object.values(found).find(item => item.reachable && item.models.some(model => model.id === modelOverride));
@@ -439,10 +443,6 @@ export async function runChat({ write, signal: parentSignal, version, project: s
     if (!saved) return;
     const adopt = async endpoint => {
       preferences.local = { endpoint, model: saved.id };
-      for (const worker of preferences.workers) if (worker.nativeKind === 'local') {
-        worker.model = saved.id;
-        worker.localEndpoint = endpoint;
-      }
       await persist();
     };
     // A running endpoint is reused only when it advertises the selected alias.
@@ -488,6 +488,25 @@ export async function runChat({ write, signal: parentSignal, version, project: s
     await adopt(ownedServer.apiBaseUrl);
     if (serverFailure) throw serverFailure;
     print(`Local model loaded: ${saved.label ?? saved.id}.`);
+  }
+
+  async function prepareLocalAgent(agent) {
+    const selected = preferences.localInstall;
+    if (!selected || agent.nativeKind !== 'local') return;
+    if (agent.model === selected.id && agent.localEndpoint === preferences.local?.endpoint
+      && agent.localEndpoint === 'http://127.0.0.1:18089/v1') {
+      await startSavedLocal();
+      return;
+    }
+    // Retained and approved agents keep their exact model/endpoint binding.
+    // An unrelated live runtime may serve it; never replace it with our choice.
+    try {
+      const ready = await checkLocalEndpoint({ kind: 'llama', endpoint: agent.localEndpoint, signal });
+      if (ready.models.some(item => item.id === agent.model)) return;
+    } catch (error) {
+      if (blocksFurtherWork(error) || signal.aborted) throw error;
+    }
+    throw new Error(`Local agent ${agent.id} needs its original model ${agent.model} at ${agent.localEndpoint}. Use /models use ${agent.model} for a downloaded model, or start that original endpoint, then retry. No substitute model was started.`);
   }
 
   async function localSetup() {
@@ -604,6 +623,7 @@ export async function runChat({ write, signal: parentSignal, version, project: s
     if (action === 'resume') {
       const prompt = await ask(`What should ${id} do next? `);
       if (!prompt) return;
+      await prepareLocalAgent(state.agents.find(agent => agent.id === id));
       input.close();
       try { await runProjectResume(saved.directory, id, { prompt, write, signal }); }
       finally { if (!quitting && !signal?.aborted) input = makeInput(); }
@@ -671,8 +691,7 @@ export async function runChat({ write, signal: parentSignal, version, project: s
     // Only the current native conversation/plan uses this verified base.
     // Returning setup and all saved-session shortcuts keep the user's project.
     if (coordinatorDirectory !== project.projectRoot) await selectCoordinator(selectedKind());
-    if (preferences.localInstall && (selectedKind() === 'local'
-      || preferences.workers.some(worker => worker.nativeKind === 'local'))) await startSavedLocal();
+    if (preferences.localInstall && selectedKind() === 'local') await startSavedLocal();
     if (!preferences.workers.some(worker => worker.nativeKind === selectedKind())) {
       await configureWorker(selectedKind(), preferences.coordinator.model);
     }
@@ -747,6 +766,9 @@ export async function runChat({ write, signal: parentSignal, version, project: s
         print(`Plan unchanged: ${error.message}`);
       }
     }
+    // Configured workers are choices, not a request to load every runtime.
+    // Wait until the operator approves actual local work before starting it.
+    for (const agent of proposal.plan.agents) await prepareLocalAgent(agent);
     view.pause(); input.close();
     try {
       await runProjectPlan(proposal.plan, { write, signal, approved: true,
@@ -847,13 +869,6 @@ export async function runChat({ write, signal: parentSignal, version, project: s
       await persist();
     } else {
       print(`Welcome back.${preferences.project ? ` Project: ${preferences.project}` : ''}`);
-      if (preferences.localInstall && (selectedKind() === 'local' || preferences.workers.some(worker => worker.nativeKind === 'local'))) {
-        try { await startSavedLocal(); }
-        catch (error) {
-          if (blocksFurtherWork(error)) throw error;
-          print(`Local model needs attention: ${error.message}\n/models add or /models use reconnects local work. Your subscription is still available.`);
-        }
-      }
       try {
         if (selectedKind() === 'local') await selectCoordinator('local');
         else {

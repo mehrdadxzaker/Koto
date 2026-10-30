@@ -42,7 +42,15 @@ Usage:
   koto terminal --help
   koto plan --help
 
-run executes the commands explicitly declared in the selected workflow.
+Everyday use: run koto, then type /help for all conversation controls.
+  /build GOAL                Propose coding work for review and explicit launch
+  /sessions                  Return to saved builds
+  /review [AGENT]            Inspect contributions before /integrate [AGENT]
+  /resume [AGENT]            Continue a saved agent in its original workspace
+  /accounts                  Change subscriptions
+  /models add                Choose an optional local model
+
+Advanced workflows: run executes commands declared in the selected workflow.
 Worker commands receive a JSON assignment on stdin and return text on stdout.
 The CLI and desktop preview use this core; IDE plugins can consume it too.
 First launch finds native subscription logins and offers optional local models.
@@ -181,7 +189,14 @@ try {
   const validation = typeof error?.message === 'string' && error.message.startsWith('Invalid workflow: ');
   const code = validation ? 'workflow_invalid' : typeof error?.code === 'string' && /^[a-z][a-z0-9_]+$/.test(error.code)
     ? error.code : /^[a-z][a-z0-9_]+$/.test(error?.message ?? '') ? error.message : 'koto_command_failed';
-  write(process.stderr, `${JSON.stringify(validation ? { error: code, message: error.message } : { error: code })}\n`);
+  const response = validation ? { error: code, message: error.message }
+    : code === 'project_session_not_found' ? {
+      error: code,
+      message: 'Saved project session metadata was not found.',
+      sessionDirectory: error.sessionDirectory,
+      hint: 'Run koto in your project, then use /sessions to select an existing saved build. Restore a moved session to its original directory before continuing.',
+    } : { error: code };
+  write(process.stderr, `${JSON.stringify(response)}\n`);
   // A desktop host must preserve uncertainty reported by Koto's inner agent
   // owners even when its outer terminal helper has reaped the CLI itself.
   process.exitCode = /(?:^|_)cleanup_unconfirmed$/.test(code) ? 74 : 2;
