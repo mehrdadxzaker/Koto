@@ -5,18 +5,20 @@ import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { stripVTControlCharacters } from 'node:util';
 import { createCodingAgentSession, createCoordinator,
-  prepareProject, loadPreferences, savePreferences, archivePreferences, defaultStateDirectory,
+  prepareProject, discoverProjectRoot, loadPreferences, savePreferences, archivePreferences, defaultStateDirectory,
   resolveAgentExecutable, discoverLocalModels, checkLocalEndpoint, pullOllamaModel,
   startLlamaServer, downloadGguf, buildLlamaRuntime,
   resolveTerminalHelper, buildTerminalHelper,
   discoverAgentAccounts, resolveNativeClientExecutable, getNativeLoginCommand,
   installNativeClient,
   readProjectSession, inspectProjectSession, integrateProjectSession, prepareProjectFollowUp,
+  inspectProjectMerge, mergeProjectSession,
   reviseBuildProposal } from '../src/index.js';
 import { createActivityView } from './activity-view.js';
 import { runProjectPlan, runProjectResume } from './project.js';
 import { configureAccounts, configureLocalModels } from './onboarding.js';
 import { startSetupCommand } from '../src/setup-command.js';
+import { listLocalEndpointModels } from '../src/local-models.js';
 import { throwOnResourceExhaustion } from '../src/bounded-fetch.js';
 
 const visible = value => stripVTControlCharacters(String(value)).replace(/[\x00-\x08\x0b-\x1f\x7f-\x9f]/g, '');
@@ -130,6 +132,8 @@ const help = `Talk to Koto normally. Coding requests become a reviewed multi-age
   /review [AGENT]                Review a saved contribution
   /integrate [AGENT]             Integrate a freshly reviewed contribution
   /resume [AGENT]                Continue a saved agent in its original workspace
+  /merge                         Review and merge approved changes into your project
+  /work                          Open guided review, merge and resume choices
   /setup                         Open advanced manual session setup
   /quit                          Stop owned work and exit
 `;
@@ -288,6 +292,10 @@ export async function runChat({ write, signal: parentSignal, version, project: s
     let replacement, local = preferences.local;
     if (kind === 'local') {
       if (executable) throw new Error('Local agents use a loopback model; select its weights/runtime with /models.');
+      if (preferences.localInstall && (modelOverride ?? local?.model) === preferences.localInstall.id) {
+        await startSavedLocal();
+        local = preferences.local;
+      }
       if (modelOverride) {
         const found = await discoverLocalModels({ signal, llamaCommand: preferences.llamaCommand ?? 'llama-server' });
         const runtime = Object.values(found).find(item => item.reachable && item.models.some(model => model.id === modelOverride));
@@ -420,8 +428,9 @@ export async function runChat({ write, signal: parentSignal, version, project: s
     }
   }
 
-  async function accountSetup() {
+  async function accountSetup({ initial = false } = {}) {
     const account = await configureAccounts({ ask, print, preferences, signal, login: openNativeLogin,
+      preferExistingCodex: initial,
       async installClient(kind) {
         const installed = await installNativeClient({ kind, directory: path.join(defaultStateDirectory, 'clients'), signal, onProgress: progress });
         preferences.nativeCommands = { ...preferences.nativeCommands, [kind]: installed.command };
@@ -439,10 +448,6 @@ export async function runChat({ write, signal: parentSignal, version, project: s
     if (!saved) return;
     const adopt = async endpoint => {
       preferences.local = { endpoint, model: saved.id };
-      for (const worker of preferences.workers) if (worker.nativeKind === 'local') {
-        worker.model = saved.id;
-        worker.localEndpoint = endpoint;
-      }
       await persist();
     };
     // A running endpoint is reused only when it advertises the selected alias.
@@ -488,6 +493,25 @@ export async function runChat({ write, signal: parentSignal, version, project: s
     await adopt(ownedServer.apiBaseUrl);
     if (serverFailure) throw serverFailure;
     print(`Local model loaded: ${saved.label ?? saved.id}.`);
+  }
+
+  async function prepareLocalAgent(agent) {
+    const selected = preferences.localInstall;
+    if (!selected || agent.nativeKind !== 'local') return;
+    if (agent.model === selected.id && agent.localEndpoint === preferences.local?.endpoint
+      && agent.localEndpoint === 'http://127.0.0.1:18089/v1') {
+      await startSavedLocal();
+      return;
+    }
+    // Retained and approved agents keep their exact model/endpoint binding.
+    // An unrelated live runtime may serve it; never replace it with our choice.
+    try {
+      const models = await listLocalEndpointModels({ endpoint: agent.localEndpoint, signal });
+      if (models.some(item => item.id === agent.model)) return;
+    } catch (error) {
+      if (blocksFurtherWork(error) || signal.aborted) throw error;
+    }
+    throw new Error(`Local agent ${agent.id} needs its original model ${agent.model} at ${agent.localEndpoint}. Use /models use ${agent.model} for a downloaded model, or start that original endpoint, then retry. No substitute model was started.`);
   }
 
   async function localSetup() {
@@ -571,44 +595,143 @@ export async function runChat({ write, signal: parentSignal, version, project: s
     },
   });
 
-  async function savedWork(action, requestedId) {
+  async function chooseSavedBuild({ choose = false } = {}) {
     const candidates = savedBuilds();
-    if (!candidates.length) { print('No saved build for this project yet. Describe what you want to build.'); return; }
+    if (!candidates.length) return undefined;
     let saved = candidates.find(item => item.directory === preferences.selectedSession) ?? candidates[0];
-    if (action === 'sessions' && candidates.length > 1) {
+    if (choose && candidates.length > 1) {
       for (const [index, item] of candidates.entries()) print(`  ${index + 1}. ${item.goal ?? 'Saved build'} (${item.savedAt})`);
-      const answer = requestedId ?? await ask('Choose saved build [1], or cancel: ');
-      if (answer === 'cancel') return;
-      saved = candidates[Number(answer || '1') - 1];
+      const current = candidates.indexOf(saved) + 1;
+      const answer = await ask(`Choose saved build [${current}], or later: `);
+      if (['later', 'cancel'].includes(answer)) return undefined;
+      saved = candidates[Number(answer || current) - 1];
       if (!saved) throw new Error('Choose a listed saved build number.');
     }
-    if (action === 'sessions' && preferences.selectedSession !== saved.directory) {
+    if (preferences.selectedSession !== saved.directory) {
       preferences.selectedSession = saved.directory;
       await persist();
     }
+    return saved;
+  }
+
+  async function chooseSavedAgent(state, requestedId) {
+    if (requestedId) {
+      if (!state.agents.some(agent => agent.id === requestedId)) throw new Error('Choose a listed saved agent.');
+      return requestedId;
+    }
+    if (state.agents.length === 1) return state.agents[0].id;
+    for (const [index, agent] of state.agents.entries()) print(`  ${index + 1}. ${agent.id} — ${agent.status}`);
+    const answer = await ask('Choose agent [1], or later: ');
+    if (['later', 'cancel'].includes(answer)) return undefined;
+    const id = state.agents[Number(answer || '1') - 1]?.id;
+    if (!id) throw new Error('Choose a listed saved agent.');
+    return id;
+  }
+
+  async function mergeSavedBuild(directory) {
+    try {
+      const preview = await inspectProjectMerge(directory);
+      if (preview.status === 'already-merged') { print('These approved changes are already in your project.'); return true; }
+      print(`Approved changes to merge into ${preview.projectRoot}\nBranch: ${preview.branch}\n${preview.diff}`);
+      if (preview.unmergedAgentIds?.length) print(`Other contributions stay retained: ${preview.unmergedAgentIds.join(', ')}`);
+      if (await ask(`Type merge to put these approved changes on ${preview.branch}, or Enter to keep for later: `) !== 'merge') {
+        print('Approved changes retained. Choose Merge later when you are ready.');
+        return false;
+      }
+      const result = await mergeProjectSession(directory, { approve: preview.reviewToken });
+      reviewedBuildBase = undefined;
+      print(`Approved changes merged into ${preview.branch}. Project: ${preview.projectRoot}`);
+      return result.status === 'merged' || result.status === 'already-merged';
+    } catch (error) {
+      if (['chat_quit', 'chat_cancelled'].includes(error.code) || signal.aborted || blocksFurtherWork(error)) throw error;
+      print(`Merge needs attention: ${error.message}\nYour saved work is retained. Review the project with git status, then choose Merge again.`);
+      return false;
+    }
+  }
+
+  async function resumeSavedBuild(saved, requestedId) {
     const state = readProjectSession(saved.directory);
-    if (action === 'sessions') {
-      print(`Saved project: ${saved.project}\nBuild base: ${state.projectRoot}\nGoal: ${state.goal}`);
-      for (const agent of state.agents) print(`  ${agent.id}: ${agent.status}${agent.integration ? `; integration ${agent.integration.status}` : ''}`);
-      print('Use /review, /integrate or /resume. Koto remembers the workspace.');
-      return;
+    const id = await chooseSavedAgent(state, requestedId);
+    if (!id) return false;
+    const prompt = await ask(`What should ${id} do next? `);
+    if (!prompt) return false;
+    await prepareLocalAgent(state.agents.find(agent => agent.id === id));
+    input.close();
+    let completed;
+    try { await runProjectResume(saved.directory, id, { prompt, write, signal, guided: true,
+      onComplete: report => { completed = report; } }); }
+    finally { if (!quitting && !signal.aborted) input = makeInput(); }
+    return Boolean(completed);
+  }
+
+  async function reviewSavedBuild(directory) {
+    const state = readProjectSession(directory);
+    for (const agent of state.agents) {
+      const review = await inspectProjectSession(directory, agent.id);
+      const diff = review.integrationDiff ?? review.diff;
+      print(`Review ${agent.id} (${review.agentStatus}):\n${diff}`);
+      if (review.untracked?.length) print(`Untracked files: ${review.untracked.join(', ')}`);
+      if (review.outsideOwnership.length) { print(`Outside planned ownership: ${review.outsideOwnership.join(', ')}. Resolve ownership before accepting.`); continue; }
+      if (!diff.trim() && !review.untracked?.length) { print('No new changes to accept from this agent.'); continue; }
+      if (await ask(`Type approve to accept this displayed contribution from ${agent.id}, or Enter to keep it for later: `) !== 'approve') {
+        print(`${agent.id}: retained without approval.`); continue;
+      }
+      const result = await integrateProjectSession(directory, agent.id, { approve: review.reviewToken });
+      print(`${agent.id}: ${result.status}. Reviewed result: ${result.integration.path}`);
+      if (result.status !== 'integrated') { print('Resolve the retained integration before merging or resuming.'); return; }
     }
-    let id = requestedId;
-    if (!id) {
-      for (const [index, agent] of state.agents.entries()) print(`  ${index + 1}. ${agent.id} — ${agent.status}`);
-      const answer = await ask(`Choose agent [1], or cancel: `);
-      if (answer === 'cancel') return;
-      id = state.agents[Number(answer || '1') - 1]?.id;
+    const updated = readProjectSession(directory);
+    if (updated.agents.some(agent => agent.integration?.status === 'integrated' || agent.lastSuccessfulIntegration)) {
+      await mergeSavedBuild(directory);
+    } else print('No approved file changes to merge. Your saved conversation is available to resume.');
+  }
+
+  async function guidedWork(saved, { reviewFirst = false } = {}) {
+    if (!saved) { print('No saved build for this project yet. Describe what you want to build.'); return; }
+    if (reviewFirst) {
+      try { await reviewSavedBuild(saved.directory); }
+      catch (error) {
+        if (['chat_quit', 'chat_cancelled'].includes(error.code) || signal.aborted || blocksFurtherWork(error)) throw error;
+        print(`Saved work needs attention: ${error.message}`);
+      }
     }
-    if (!state.agents.some(agent => agent.id === id)) throw new Error('Choose a listed saved agent.');
+    while (!quitting && !signal.aborted) {
+      const state = readProjectSession(saved.directory);
+      print(`\nSaved work: ${state.goal}\nProject: ${saved.project}\n  1. Review changes\n  2. Resume an agent\n  3. Merge approved changes into the project\n  4. Start a new task from the project\n  5. Choose another saved build`);
+      const choice = await ask('What next? [1-5, Enter keeps work for later]: ');
+      if (!choice || ['later', 'cancel'].includes(choice)) return;
+      try {
+        if (choice === '1') await reviewSavedBuild(saved.directory);
+        else if (choice === '2') {
+          if (await resumeSavedBuild(saved)) await reviewSavedBuild(saved.directory);
+        } else if (choice === '3') await mergeSavedBuild(saved.directory);
+        else if (choice === '4') {
+          delete preferences.selectedSession; reviewedBuildBase = undefined; await persist();
+          print('Describe the next task. Its plan will start from your project branch. Earlier work remains in saved builds.');
+          return;
+        } else if (choice === '5') {
+          const selected = await chooseSavedBuild({ choose: true });
+          if (selected) saved = selected;
+        } else print('Choose a displayed number, or press Enter to return to the conversation.');
+      } catch (error) {
+        if (['chat_quit', 'chat_cancelled'].includes(error.code) || signal.aborted || blocksFurtherWork(error)) throw error;
+        print(`Saved work needs attention: ${error.message}`);
+      }
+    }
+  }
+
+  async function savedWork(action, requestedId) {
+    const saved = await chooseSavedBuild({ choose: action === 'sessions' });
+    if (!saved) { print('No saved build selected. Describe what you want to build.'); return; }
+    if (['sessions', 'work'].includes(action)) { await guidedWork(saved); return; }
+    if (action === 'merge') { await mergeSavedBuild(saved.directory); return; }
     if (action === 'resume') {
-      const prompt = await ask(`What should ${id} do next? `);
-      if (!prompt) return;
-      input.close();
-      try { await runProjectResume(saved.directory, id, { prompt, write, signal }); }
-      finally { if (!quitting && !signal?.aborted) input = makeInput(); }
+      if (await resumeSavedBuild(saved, requestedId)) await guidedWork(saved, { reviewFirst: true });
       return;
     }
+    const state = readProjectSession(saved.directory);
+    const id = await chooseSavedAgent(state, requestedId);
+    if (!id) return;
     const review = await inspectProjectSession(saved.directory, id);
     print(`Changes from ${id}:\n${review.integrationDiff ?? review.diff}`);
     if (review.outsideOwnership.length) print(`Outside planned ownership: ${review.outsideOwnership.join(', ')}`);
@@ -616,6 +739,7 @@ export async function runChat({ write, signal: parentSignal, version, project: s
     if (await ask(`Type integrate to accept this displayed contribution from ${id}: `) !== 'integrate') return;
     const result = await integrateProjectSession(saved.directory, id, { approve: review.reviewToken });
     print(`${id}: ${result.status}. Reviewed result: ${result.integration.path}`);
+    if (result.status === 'integrated') await mergeSavedBuild(saved.directory);
   }
 
   async function chooseProject(requested, create = false) {
@@ -656,6 +780,11 @@ export async function runChat({ write, signal: parentSignal, version, project: s
       // Revalidate the selected saved build on every proposal, even when its
       // current work has no integration: its own base may already contain an
       // earlier reviewed contribution. Never fall back to the original root.
+      const previousState = readProjectSession(previous.directory);
+      if (previousState.agents.some(agent => agent.integration?.status === 'integrated' || agent.lastSuccessfulIntegration)) {
+        print('Before a new build, return the approved changes to your project. You can resume this saved conversation instead.');
+        if (!await mergeSavedBuild(previous.directory)) return;
+      }
       project = await prepareProjectFollowUp(previous.directory);
       reviewedBuildBase = { canonicalProject: preferences.project, ...project };
       print(`${project.fromIntegration ? 'Continuing from reviewed integration workspace' : 'Continuing from retained build base'}: ${project.projectRoot}`);
@@ -671,14 +800,9 @@ export async function runChat({ write, signal: parentSignal, version, project: s
     // Only the current native conversation/plan uses this verified base.
     // Returning setup and all saved-session shortcuts keep the user's project.
     if (coordinatorDirectory !== project.projectRoot) await selectCoordinator(selectedKind());
-    if (preferences.localInstall && (selectedKind() === 'local'
-      || preferences.workers.some(worker => worker.nativeKind === 'local'))) await startSavedLocal();
+    if (preferences.localInstall && selectedKind() === 'local') await startSavedLocal();
     if (!preferences.workers.some(worker => worker.nativeKind === selectedKind())) {
       await configureWorker(selectedKind(), preferences.coordinator.model);
-    }
-    if (preferences.workers.length === 1) {
-      const kind = selectedKind();
-      await configureWorker(kind, preferences.coordinator.model);
     }
     busy = true; view.resume();
     let proposal;
@@ -747,12 +871,21 @@ export async function runChat({ write, signal: parentSignal, version, project: s
         print(`Plan unchanged: ${error.message}`);
       }
     }
+    // Configured workers are choices, not a request to load every runtime.
+    // Wait until the operator approves actual local work before starting it.
+    for (const agent of proposal.plan.agents) await prepareLocalAgent(agent);
     view.pause(); input.close();
+    let completed;
     try {
       await runProjectPlan(proposal.plan, { write, signal, approved: true,
         expectedBaseCommit: proposal.project.baseCommit, onSession: rememberProjectSession, compact: true,
+        guided: true, onComplete: report => { completed = report; },
         conversation: runningConversation() });
     } finally { if (!quitting && !signal?.aborted) input = makeInput(); }
+    if (completed && !quitting && !signal.aborted) {
+      const saved = savedBuilds().find(item => item.directory === completed.sessionRoot);
+      await guidedWork(saved, { reviewFirst: true });
+    }
   }
 
   async function modelCommand(args) {
@@ -809,6 +942,27 @@ export async function runChat({ write, signal: parentSignal, version, project: s
       if (await ask('Type reset to preserve a backup and restart setup, or Enter to quit: ') !== 'reset') return 2;
       print(`Saved setup preserved at ${await archivePreferences()}.`);
     }
+    let discoveredProject;
+    if (startupProject === undefined) {
+      discoveredProject = await discoverProjectRoot(process.cwd(), {
+        ...(process.platform === 'win32' ? { nativeHelperDirectory: path.join(defaultStateDirectory, 'native') } : {}),
+      });
+      if (discoveredProject) {
+        // The invocation's Git project wins over the remembered default. Keep
+        // same-project shortcuts, including review/resume while it is dirty.
+        if (preferences.project !== discoveredProject) delete preferences.selectedSession;
+        preferences.project = discoveredProject;
+        reviewedBuildBase = undefined;
+        await persist();
+        print(`Project: ${discoveredProject} (current folder)`);
+      } else if (preferences.project) {
+        print(`No Git project in this folder. Remembered project: ${preferences.project}`);
+        if (!['y', 'yes'].includes((await ask('Open the remembered project? [y/N]: ')).toLowerCase())) {
+          delete preferences.project; delete preferences.selectedSession;
+          await persist();
+        }
+      }
+    }
     if (startupProject !== undefined) {
       // The desktop selects a canonical project/session, never a command or a
       // request to resume work. Validate the whole selection before persisting.
@@ -830,8 +984,8 @@ export async function runChat({ write, signal: parentSignal, version, project: s
       }
     }
     if (!preferences.onboardingComplete) {
-      print('Welcome. Bring your existing subscriptions, optionally add local models, then choose a project.');
-      await accountSetup();
+      print('Welcome. Use your existing subscriptions, with optional local models.');
+      await accountSetup({ initial: true });
       if (['y', 'yes'].includes((await ask('Add an optional open-source model on this computer? [y/N]: ')).toLowerCase())) {
         try { await localSetup(); }
         catch (error) {
@@ -839,7 +993,7 @@ export async function runChat({ write, signal: parentSignal, version, project: s
           print(`Local setup did not finish: ${error.message}\nUse /models add to retry. Your subscription setup is retained.`);
         }
       }
-      if (startupProject === undefined) for (;;) {
+      if (startupProject === undefined && !discoveredProject && !preferences.project) for (;;) {
         try { await chooseProject(); break; }
         catch (error) { if (['chat_quit', 'chat_cancelled'].includes(error.code) || signal?.aborted) throw error; print(error.message); }
       }
@@ -847,13 +1001,6 @@ export async function runChat({ write, signal: parentSignal, version, project: s
       await persist();
     } else {
       print(`Welcome back.${preferences.project ? ` Project: ${preferences.project}` : ''}`);
-      if (preferences.localInstall && (selectedKind() === 'local' || preferences.workers.some(worker => worker.nativeKind === 'local'))) {
-        try { await startSavedLocal(); }
-        catch (error) {
-          if (blocksFurtherWork(error)) throw error;
-          print(`Local model needs attention: ${error.message}\n/models add or /models use reconnects local work. Your subscription is still available.`);
-        }
-      }
       try {
         if (selectedKind() === 'local') await selectCoordinator('local');
         else {
@@ -867,7 +1014,14 @@ export async function runChat({ write, signal: parentSignal, version, project: s
         print(`Setup needs attention: ${error.message}\nUse /accounts or /models add to reconnect. Your project and saved work are retained.`);
       }
     }
-    print('Describe what you want to build. /accounts changes subscriptions; /models add adds a local model.\n/sessions returns to saved work. /help lists all controls.');
+    print('Describe what you want to build. Koto guides review, merging approved changes and resume.\n/accounts changes subscriptions; /models add adds a local model. /work opens saved work. /help lists all controls.');
+    if (preferences.project && savedBuilds().length && !signal.aborted) {
+      try { await guidedWork(await chooseSavedBuild()); }
+      catch (error) {
+        if (['chat_quit', 'chat_cancelled'].includes(error.code) || signal.aborted || blocksFurtherWork(error)) throw error;
+        print(`Saved work needs attention: ${error.message}\nUse /sessions to choose another build, or /project PATH to start from your project again.`);
+      }
+    }
     while (!quitting && !signal?.aborted && !input.closed) {
       const followUpGoal = followUpGoals.shift();
       const message = followUpGoal === undefined ? queued.shift() ?? await ask('You> ') : undefined;
@@ -893,7 +1047,7 @@ export async function runChat({ write, signal: parentSignal, version, project: s
           } else if (command === '/project') await chooseProject(args.join(' '));
           else if (command === '/new' && args.length) await chooseProject(args.join(' '), true);
           else if (command === '/models') await modelCommand(args);
-          else if (['/sessions', '/review', '/integrate', '/resume'].includes(command) && args.length <= 1) await savedWork(command.slice(1), args[0]);
+          else if (['/sessions', '/work', '/review', '/integrate', '/resume', '/merge'].includes(command) && args.length <= 1) await savedWork(command.slice(1), args[0]);
           else if (command === '/runtime' && args[0] === 'build' && args.length === 2) {
             const result = await buildLlamaRuntime({ commit: args[1], installDirectory: path.join(defaultStateDirectory, 'runtimes'), approveBuild: true,
               signal, onEvent: item => { if (item.type === 'output') write(visible(item.text)); } });
@@ -914,7 +1068,7 @@ export async function runChat({ write, signal: parentSignal, version, project: s
         let result;
         try {
           result = await coordinator.routeMessage(message, { signal,
-            context: `Current project: ${preferences.project ?? 'none selected; project selection is only needed for coding'}. Reviewed build base: ${reviewedBuildBase?.projectRoot ?? 'not selected'}. Configured coding agents: ${preferences.workers.map(worker => `${worker.id} (${worker.nativeKind}/${worker.model})`).join(', ') || 'none; can default to two instances of the coordinator'}.` });
+            context: `Current project: ${preferences.project ?? 'none selected; project selection is only needed for coding'}. Reviewed build base: ${reviewedBuildBase?.projectRoot ?? 'not selected'}. Configured coding agents: ${preferences.workers.map(worker => `${worker.id} (${worker.nativeKind}/${worker.model})`).join(', ') || 'none; can default to one instance of the coordinator'}.` });
         } finally { busy = false; view.pause(); }
         print(`\nKoto> ${result.message}\n`);
         if (result.action === 'build') await build(result.goal);

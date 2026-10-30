@@ -1,7 +1,8 @@
 # Install Koto
 
 Choose Homebrew, the Linux installer, or npm/npx. All three install the same
-published alpha CLI; the optional agent skill also uses that CLI.
+published alpha CLI. The optional agent skill uses an independently pinned
+release of that same CLI.
 
 ## Homebrew
 
@@ -64,7 +65,10 @@ root and not writable by other users; root-owned sticky directories such as
 
 The pinned CLI, Node version and artifact digests are recorded in
 [the distribution manifest](../install/manifest.json). These recipes package the
-existing `3.0.0-alpha.1` release; they do not retarget its immutable npm archive.
+published `3.0.0-alpha.3` release. Its archive SHA-256 is
+`3e0686a1578a3df30d65d55a8789715df00c84e2d878ccd8ed3e76251839ee39`.
+Older releases, the optional skill and IDE preview retain their own immutable
+pins until separately updated and verified. See the [alpha.3 release record](RELEASE_ALPHA3.md).
 
 ## npm and npx prerequisites
 
@@ -102,13 +106,13 @@ npx --yes @mehrdadz/koto@alpha
 To pin the current alpha release explicitly:
 
 ```sh
-npm install --global @mehrdadz/koto@3.0.0-alpha.1
+npm install --global @mehrdadz/koto@3.0.0-alpha.3
 ```
 
 Alpha releases can change. Source, native-platform and registry-installation
-acceptance are recorded separately in [current evidence](CORE_STATUS.md). A
-release command here does not establish that its registry publication or fresh
-installation has completed.
+acceptance are recorded separately in [current evidence](CORE_STATUS.md) and the
+[alpha.3 release record](RELEASE_ALPHA3.md). Publication, package-manager
+installation and a real native-agent workflow are separate observations.
 
 ## Koto skill for Codex and Claude Code
 
@@ -145,7 +149,8 @@ agent and installation scope, then restart the agent.
 
 The skill is an optional set of [instructions](../skills/koto/SKILL.md) over the
 existing CLI. It uses the exact published `@mehrdadz/koto@3.0.0-alpha.1` release
-through `npx`, so an old `koto` executable on your PATH cannot silently select a
+through `npx`. This skill pin remains separate from the alpha.3 Homebrew/CLI
+release; an old `koto` executable on your PATH cannot silently select a
 different runtime. It invokes the package from a private empty directory to
 avoid npm selecting a same-named source project. The first invocation needs
 registry access and may prompt
@@ -192,18 +197,18 @@ From a reviewed source checkout:
 npm pack
 ```
 
-Copy the resulting `mehrdadz-koto-3.0.0-alpha.1.tgz` to another machine with
+Copy the resulting `mehrdadz-koto-3.0.0-alpha.3.tgz` to another machine with
 Node.js and npm, then install or run it:
 
 ```sh
-npm install --global ./mehrdadz-koto-3.0.0-alpha.1.tgz
+npm install --global ./mehrdadz-koto-3.0.0-alpha.3.tgz
 koto --version
 ```
 
 For execution without global installation:
 
 ```sh
-npx --yes --package ./mehrdadz-koto-3.0.0-alpha.1.tgz koto --help
+npx --yes --package ./mehrdadz-koto-3.0.0-alpha.3.tgz koto --help
 ```
 
 Local packaging and installation do not publish to the npm registry.
@@ -248,7 +253,7 @@ koto terminal build
 koto terminal info
 ```
 
-The guided launcher's **Set up terminal support** option performs the same
+The **Set up terminal support** option in `koto setup` performs the same
 explicit build or verifies an existing matching artifact. It never starts a
 model. The builders target x64 and arm64; native behavior still requires
 observation on the selected host:
@@ -273,8 +278,9 @@ process lifetime rather than limiting filesystem or network permissions.
 Retained `cleanup_unconfirmed` outcomes block resume and integration on every
 platform. Follow the [acceptance run](USER_ACCEPTANCE.md) for actual host evidence.
 
-IDE plugins and Koto's UI will be separate ways to use the installed core. They
-are planned and no placeholder package is installed today.
+Koto remains CLI-first. Its optional [desktop UI](DESKTOP_UI.md) and
+[IDE plugin preview](IDE_PLUGINS.md) reuse the shared core. Their own guides
+describe installation and host-specific qualification.
 
 Use `npm uninstall --global @mehrdadz/koto` to remove a global installation.
 Koto creates no startup hooks; model downloads occur only after a selected guided

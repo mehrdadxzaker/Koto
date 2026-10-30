@@ -70,6 +70,26 @@ async function jsonRequest(url, { signal, timeoutMs = 3000 } = {}) {
   }
 }
 
+function modelMetadata(records, nameKey) {
+  if (!Array.isArray(records) || records.length > 10_000) {
+    throw failure('local_endpoint_metadata_invalid', 'The selected runtime returned an invalid model list.');
+  }
+  const models = records.map(record => ({ id: record[nameKey],
+    ...(Number.isSafeInteger(record.size) ? { bytes: record.size } : {}),
+    ...(typeof record.digest === 'string' ? { digest: record.digest } : {}) }));
+  if (models.some(model => typeof model.id !== 'string' || !model.id || model.id.length > 4096)) {
+    throw failure('local_endpoint_metadata_invalid', 'The selected runtime returned an invalid model identifier.');
+  }
+  return models;
+}
+
+/** Metadata for an existing OpenAI-compatible loopback server, without a runtime-specific health route. */
+export async function listLocalEndpointModels({ endpoint, signal } = {}) {
+  endpoint = localEndpoint(endpoint);
+  const data = await jsonRequest(`${endpoint}/v1/models`, { signal });
+  return modelMetadata(data.data, 'id');
+}
+
 /** Read local metadata only. Health/model listing does not request inference. */
 export async function checkLocalEndpoint({ kind = 'ollama', endpoint = ENDPOINTS[kind], signal } = {}) {
   kindOf(kind);
@@ -79,16 +99,7 @@ export async function checkLocalEndpoint({ kind = 'ollama', endpoint = ENDPOINTS
     if (health.status !== 'ok') throw failure('local_model_loading', 'The llama.cpp server has not reported ready.');
   }
   const data = await jsonRequest(`${endpoint}${kind === 'ollama' ? '/api/tags' : '/v1/models'}`, { signal });
-  const records = kind === 'ollama' ? data.models : data.data;
-  if (!Array.isArray(records) || records.length > 10_000) {
-    throw failure('local_endpoint_metadata_invalid', 'The selected runtime returned an invalid model list.');
-  }
-  const models = records.map(record => ({ id: kind === 'ollama' ? record.name : record.id,
-    ...(Number.isSafeInteger(record.size) ? { bytes: record.size } : {}),
-    ...(typeof record.digest === 'string' ? { digest: record.digest } : {}) }));
-  if (models.some(model => typeof model.id !== 'string' || !model.id || model.id.length > 4096)) {
-    throw failure('local_endpoint_metadata_invalid', 'The selected runtime returned an invalid model identifier.');
-  }
+  const models = modelMetadata(kind === 'ollama' ? data.models : data.data, kind === 'ollama' ? 'name' : 'id');
   return { kind, endpoint, apiBaseUrl: `${endpoint}/v1`, status: 'ready', models };
 }
 

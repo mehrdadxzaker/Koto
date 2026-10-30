@@ -163,7 +163,8 @@ function checkIdeDelivery() {
     const plugin = JSON.parse(readFileSync(localPath(`${prefix}package.json`), 'utf8'));
     const lock = JSON.parse(readFileSync(localPath(`${prefix}package-lock.json`), 'utf8'));
     const integrity = JSON.parse(readFileSync(localPath(`${prefix}core-integrity.json`), 'utf8'));
-    const cli = JSON.parse(readFileSync(localPath('install/manifest.json'), 'utf8')).cli;
+    // Each IDE release keeps its independently verified core archive frozen.
+    const corePackage = '@mehrdadz/koto';
     const entries = value => value && typeof value === 'object' && !Array.isArray(value) ? Object.entries(value) : [];
     if (plugin.name !== 'koto' || plugin.displayName !== 'Koto'
         || !/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(plugin.version ?? '')
@@ -171,7 +172,7 @@ function checkIdeDelivery() {
         || JSON.stringify(plugin.extensionKind) !== JSON.stringify(['ui'])) {
       fail('The IDE delivery must be a versioned Koto extension in the local Node host');
     }
-    if (entries(plugin.dependencies).length !== 1 || plugin.dependencies?.[cli.package] !== cli.version
+    if (entries(plugin.dependencies).length !== 1 || plugin.dependencies?.[corePackage] !== integrity.version
         || entries(plugin.devDependencies).length !== 1 || !/^\d+\.\d+\.\d+$/.test(plugin.devDependencies?.['@vscode/vsce'] ?? '')
         || entries(plugin.optionalDependencies).length || entries(plugin.peerDependencies).length) {
       fail('The IDE delivery must pin only the published core at runtime and an exact VSCE build dependency');
@@ -179,23 +180,25 @@ function checkIdeDelivery() {
     for (const hook of ['preinstall', 'install', 'postinstall', 'prepare', 'preprepare', 'postprepare']) {
       if (Object.hasOwn(plugin.scripts ?? {}, hook)) fail(`IDE dependency installation must not run a ${hook} hook`);
     }
-    const production = lock.packages?.[`node_modules/${cli.package}`];
+    const production = lock.packages?.[`node_modules/${corePackage}`];
     const packager = lock.packages?.['node_modules/@vscode/vsce'];
     if (lock.name !== plugin.name || lock.version !== plugin.version
         || lock.packages?.['']?.name !== plugin.name
         || lock.packages?.['']?.version !== plugin.version
-        || lock.packages?.['']?.dependencies?.[cli.package] !== cli.version
+        || lock.packages?.['']?.dependencies?.[corePackage] !== integrity.version
         || lock.packages?.['']?.devDependencies?.['@vscode/vsce'] !== plugin.devDependencies?.['@vscode/vsce']
-        || production?.version !== cli.version || production?.resolved !== cli.url
+        || production?.version !== integrity.version || production?.resolved !== integrity.archive?.url
         || production?.integrity !== integrity.archive?.integrity
         || packager?.version !== plugin.devDependencies?.['@vscode/vsce']) {
       fail('The IDE lock must bind its own version, packager and exact published core integrity');
     }
-    if (integrity.schemaVersion !== 1 || integrity.package !== cli.package || integrity.version !== cli.version
-        || integrity.archive?.url !== cli.url || integrity.archive?.sha256 !== cli.sha256
+    if (integrity.schemaVersion !== 1 || integrity.package !== corePackage
+        || !/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(integrity.version ?? '')
+        || integrity.archive?.url !== `https://registry.npmjs.org/${corePackage}/-/koto-${integrity.version}.tgz`
+        || !/^[a-f0-9]{64}$/.test(integrity.archive?.sha256 ?? '')
         || !/^sha512-[A-Za-z0-9+/]{86}==$/.test(integrity.archive?.integrity ?? '')
         || !/^[a-f0-9]{64}$/.test(integrity.releaseManifestSha256 ?? '')
-        || integrity.source?.commit !== cli.sourceCommit || !/^[a-f0-9]{40}$/.test(integrity.source?.tree ?? '')
+        || !/^[a-f0-9]{40}$/.test(integrity.source?.commit ?? '') || !/^[a-f0-9]{40}$/.test(integrity.source?.tree ?? '')
         || !/^[a-f0-9]{40}$/.test(integrity.source?.packedFromCommit ?? '')
         || !Array.isArray(integrity.payloads) || integrity.payloads.length !== 54) {
       fail('The IDE integrity manifest must bind the frozen distribution archive and source identity');

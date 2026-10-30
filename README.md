@@ -34,12 +34,38 @@ verification boundary.
 
 ## Latest
 
+- **October 30, 2026 — #543 CLI completion confirmed; GitHub check inconsistency resolved.**
+  One exact-job rerun produced consistent successful checks on the same merge
+  commit, preserving the original contradictory attempt. The
+  [CLI acceptance matrix](docs/CORE_STATUS.md#current-codex-cli-closure) ties the
+  completed contract to actual onboarding, local/Codex cooperation, review,
+  merge-back and resume evidence. Everyday Codex CLI use remains the priority.
+- **October 30, 2026 — CLI `3.0.0-alpha.3` released and verified through Homebrew.**
+  Run `koto` in your Git project, including a subdirectory. It reuses your existing
+  Codex subscription and guides review, explicit approval, merge-back to the
+  original branch and resume. A fresh public Homebrew install on macOS ARM64
+  passed project/subscription discovery, two real Codex coding turns, both
+  reviewed original-branch merges, restart and same-conversation continuation.
+  The resumed review showed only the new change. npm's `latest` and `alpha` tags,
+  Homebrew and Linux select the same frozen archive. See the
+  [release and fresh-workflow record](docs/RELEASE_ALPHA3.md), with the separate
+  [candidate observations](docs/GUIDED_WORKFLOW_VERIFICATION.md) and limits.
+- **CLI `3.0.0-alpha.2` released and verified through Homebrew.** Saved local
+  workers no longer load a model when returning to a Codex conversation. Local
+  work retains its approved model and endpoint; existing Ollama workers remain
+  usable alongside saved managed models. Help exposes everyday controls, and
+  missing-session errors explain recovery. A fresh public Homebrew install on
+  macOS ARM64 passed automatic ChatGPT subscription discovery, real Codex coding,
+  explicit review/integration, restart and same-conversation resume. The resumed
+  review showed only the new change. See the historical
+  [release and workflow record](docs/RELEASE_ALPHA2.md) and
+  [earlier candidate observations](docs/CODEX_CLI_VERIFICATION.md).
 - **Codex CLI first.** Koto's primary workflow is everyday CLI use with your
   existing Codex/ChatGPT subscription. Smooth onboarding, remembered projects,
   review and resuming the same conversation take priority. Desktop and IDE
   integrations remain optional.
-- **October 29, 2026 — CLI `3.0.0-alpha.1` released.** Both npm `alpha` and
-  `latest` select the [published release](https://github.com/mehrdadxzaker/Koto/releases/tag/v3.0.0-alpha.1).
+- **October 29, 2026 — CLI `3.0.0-alpha.1` released.**
+  [Release notes](https://github.com/mehrdadxzaker/Koto/releases/tag/v3.0.0-alpha.1).
   Fresh Homebrew onboarding, real Codex/local contributions, reviewed
   integration and same-conversation resume passed on macOS ARM64. The rebuilt
   unsigned desktop preview reused that same state and passed its own workflow;
@@ -130,7 +156,7 @@ npx --yes @mehrdadz/koto@alpha
 To select the exact prerelease version instead of following the `alpha` tag:
 
 ```sh
-npm install --global @mehrdadz/koto@3.0.0-alpha.1
+npm install --global @mehrdadz/koto@3.0.0-alpha.3
 koto
 ```
 
