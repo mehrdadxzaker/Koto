@@ -1104,10 +1104,6 @@ export async function runChat({ write, signal: parentSignal, version, project: s
     if (!preferences.workers.some(worker => worker.nativeKind === selectedKind())) {
       await configureWorker(selectedKind(), preferences.coordinator.model);
     }
-    if (preferences.workers.length === 1) {
-      const kind = selectedKind();
-      await configureWorker(kind, preferences.coordinator.model);
-    }
     currentMode = 'plan'; busy = true; view.resume();
     let proposal;
     try {
