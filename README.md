@@ -48,8 +48,8 @@ verification boundary.
   existing Codex/ChatGPT subscription. Smooth onboarding, remembered projects,
   review and resuming the same conversation take priority. Desktop and IDE
   integrations remain optional.
-- **October 29, 2026 — CLI `3.0.0-alpha.1` released.** The
-  [release](https://github.com/mehrdadxzaker/Koto/releases/tag/v3.0.0-alpha.1) introduced
+- **October 29, 2026 — CLI `3.0.0-alpha.1` released.**
+  [Release notes](https://github.com/mehrdadxzaker/Koto/releases/tag/v3.0.0-alpha.1).
   Fresh Homebrew onboarding, real Codex/local contributions, reviewed
   integration and same-conversation resume passed on macOS ARM64. The rebuilt
   unsigned desktop preview reused that same state and passed its own workflow;
