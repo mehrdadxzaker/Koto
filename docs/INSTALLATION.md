@@ -65,10 +65,10 @@ root and not writable by other users; root-owned sticky directories such as
 
 The pinned CLI, Node version and artifact digests are recorded in
 [the distribution manifest](../install/manifest.json). These recipes package the
-published `3.0.0-alpha.2` release. Its archive SHA-256 is
-`db2dc6769f0e4a27ed3a4baaee42a03201eb341b10aeccf067d2bac4bdd76afc`.
+published `3.0.0-alpha.3` release. Its archive SHA-256 is
+`3e0686a1578a3df30d65d55a8789715df00c84e2d878ccd8ed3e76251839ee39`.
 Older releases, the optional skill and IDE preview retain their own immutable
-pins until separately updated and verified. See the [alpha.2 release record](RELEASE_ALPHA2.md).
+pins until separately updated and verified. See the [alpha.3 release record](RELEASE_ALPHA3.md).
 
 ## npm and npx prerequisites
 
@@ -106,12 +106,12 @@ npx --yes @mehrdadz/koto@alpha
 To pin the current alpha release explicitly:
 
 ```sh
-npm install --global @mehrdadz/koto@3.0.0-alpha.2
+npm install --global @mehrdadz/koto@3.0.0-alpha.3
 ```
 
 Alpha releases can change. Source, native-platform and registry-installation
 acceptance are recorded separately in [current evidence](CORE_STATUS.md) and the
-[alpha.2 release record](RELEASE_ALPHA2.md). Publication, package-manager
+[alpha.3 release record](RELEASE_ALPHA3.md). Publication, package-manager
 installation and a real native-agent workflow are separate observations.
 
 ## Koto skill for Codex and Claude Code
@@ -149,7 +149,7 @@ agent and installation scope, then restart the agent.
 
 The skill is an optional set of [instructions](../skills/koto/SKILL.md) over the
 existing CLI. It uses the exact published `@mehrdadz/koto@3.0.0-alpha.1` release
-through `npx`. This skill pin remains separate from the alpha.2 Homebrew/CLI
+through `npx`. This skill pin remains separate from the alpha.3 Homebrew/CLI
 release; an old `koto` executable on your PATH cannot silently select a
 different runtime. It invokes the package from a private empty directory to
 avoid npm selecting a same-named source project. The first invocation needs
@@ -197,18 +197,18 @@ From a reviewed source checkout:
 npm pack
 ```
 
-Copy the resulting `mehrdadz-koto-3.0.0-alpha.2.tgz` to another machine with
+Copy the resulting `mehrdadz-koto-3.0.0-alpha.3.tgz` to another machine with
 Node.js and npm, then install or run it:
 
 ```sh
-npm install --global ./mehrdadz-koto-3.0.0-alpha.2.tgz
+npm install --global ./mehrdadz-koto-3.0.0-alpha.3.tgz
 koto --version
 ```
 
 For execution without global installation:
 
 ```sh
-npx --yes --package ./mehrdadz-koto-3.0.0-alpha.2.tgz koto --help
+npx --yes --package ./mehrdadz-koto-3.0.0-alpha.3.tgz koto --help
 ```
 
 Local packaging and installation do not publish to the npm registry.
