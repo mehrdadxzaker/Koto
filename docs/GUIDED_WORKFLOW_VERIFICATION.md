@@ -23,7 +23,8 @@ candidate. The branch deliberately exercised a valid `=` name, and retained
 local `merge.autoStash=true` and `branch.my=project.mergeOptions=--squash --no-commit`.
 Per-command settings preserved the explicitly approved fast-forward behavior.
 The private Koto profile was empty. Native authorization used the real account
-home; credentials were neither read nor copied, and no API key was supplied.
+home. Credentials stayed with the native client; the observation controller did
+not inspect or copy credential files, and no API key was supplied.
 
 ## Actual guided journey
 

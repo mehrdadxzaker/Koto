@@ -33,8 +33,9 @@ verified assets are reused. You can skip local setup and use your subscription.
 
 When launched inside a Git project, its canonical root is selected automatically.
 Otherwise, choose a project folder, or enter `new PATH` to create an empty project
-after confirmation. Enter `later` to keep chatting without a project. An existing
-project must be a clean, committed Git repository. If it needs attention, Koto
+after confirmation. Enter `later` to keep chatting without a project. New coding builds and merge-back require a clean, committed Git project.
+Automatic project selection can still open saved work in a dirty or uncommitted
+repository; it does not clean or stash the project. If a build needs attention, Koto
 explains the problem and lets you choose again; your files stay available for
 you to review. Use `/project PATH` or `/new PATH` to change the project later.
 
