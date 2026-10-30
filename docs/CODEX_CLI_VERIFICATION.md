@@ -1,8 +1,9 @@
 # Everyday Codex CLI verification
 
 Observed on October 29, 2026 on macOS ARM64 with Node 24.22.2. This record
-qualifies the unreleased `3.0.0-alpha.2` CLI candidate. The public npm,
-Homebrew and Linux installations still select `3.0.0-alpha.1`.
+records acceptance of the `3.0.0-alpha.2` CLI candidate before publication.
+Its frozen candidate identities remain below. Publication and subsequent
+Homebrew qualification are tracked in the [release record](RELEASE_ALPHA2.md).
 
 ## Reproduced friction and fixes
 

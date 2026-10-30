@@ -2,9 +2,9 @@
 # User-local Linux delivery of the frozen npm CLI; no second agent runtime.
 set -eu
 umask 077
-KOTO_VERSION=3.0.0-alpha.1
-KOTO_URL=https://registry.npmjs.org/@mehrdadz/koto/-/koto-3.0.0-alpha.1.tgz
-KOTO_SHA256=52673651a84c3daa9989e667a4e583403bd693f6e5d7b8c3772c5136d5c4b18c
+KOTO_VERSION=3.0.0-alpha.2
+KOTO_URL=https://registry.npmjs.org/@mehrdadz/koto/-/koto-3.0.0-alpha.2.tgz
+KOTO_SHA256=db2dc6769f0e4a27ed3a4baaee42a03201eb341b10aeccf067d2bac4bdd76afc
 NODE_VERSION=v24.22.2
 prefix=${HOME:?HOME must be set}/.local/share/koto
 bin_dir=$HOME/.local/bin

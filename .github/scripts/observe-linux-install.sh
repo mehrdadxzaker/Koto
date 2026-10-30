@@ -58,7 +58,7 @@ timeout --signal=TERM --kill-after=15s 360s sh "$koto_observe_installer" \
 [ -x "$koto_observe_node" ]
 [ -f "$koto_observe_package/package.json" ]
 timeout --signal=TERM --kill-after=10s 30s "$koto_observe_cli" --version > "$koto_observe_root/version.txt"
-[ "$(cat "$koto_observe_root/version.txt")" = 3.0.0-alpha.1 ]
+[ "$(cat "$koto_observe_root/version.txt")" = 3.0.0-alpha.2 ]
 timeout --signal=TERM --kill-after=10s 30s "$koto_observe_cli" --help > "$koto_observe_root/help.txt"
 timeout --signal=TERM --kill-after=10s 30s "$koto_observe_node" --version > "$koto_observe_root/node-version.txt"
 [ "$(cat "$koto_observe_root/node-version.txt")" = v24.22.2 ]
@@ -67,8 +67,8 @@ timeout --signal=TERM --kill-after=10s 100s curl --fail --silent --show-error \
   --proto '=https' --tlsv1.2 --location --max-redirs 3 --connect-timeout 10 \
   --max-time 60 --retry 0 --max-filesize 1048576 \
   --output "$koto_observe_root/published-cli.tgz" \
-  https://registry.npmjs.org/@mehrdadz/koto/-/koto-3.0.0-alpha.1.tgz
-printf '%s  %s\n' 52673651a84c3daa9989e667a4e583403bd693f6e5d7b8c3772c5136d5c4b18c "$koto_observe_root/published-cli.tgz" \
+  https://registry.npmjs.org/@mehrdadz/koto/-/koto-3.0.0-alpha.2.tgz
+printf '%s  %s\n' db2dc6769f0e4a27ed3a4baaee42a03201eb341b10aeccf067d2bac4bdd76afc "$koto_observe_root/published-cli.tgz" \
   | sha256sum --check > "$koto_observe_root/archive-checksum.txt"
 mkdir -m 700 "$koto_observe_root/reference"
 tar -xzf "$koto_observe_root/published-cli.tgz" --no-same-owner --no-same-permissions -C "$koto_observe_root/reference"
@@ -93,7 +93,7 @@ function visit(directory, prefix = '') {
 visit(installed);
 if (files.length !== 54) throw new Error('Expected exactly 54 published CLI payloads.');
 const pkg = JSON.parse(fs.readFileSync(path.join(installed,'package.json'),'utf8'));
-if (pkg.name !== '@mehrdadz/koto' || pkg.version !== '3.0.0-alpha.1') throw new Error('Wrong installed package.');
+if (pkg.name !== '@mehrdadz/koto' || pkg.version !== '3.0.0-alpha.2') throw new Error('Wrong installed package.');
 fs.writeFileSync(path.join(root,'payloads.json'),JSON.stringify({package:pkg.name, version:pkg.version,files},null,2) + '\n',{flag:'wx',mode:0o600});
 const tasks = {schemaVersion:1,project,goal:'Check the real Koto CLI entrypoint syntax with the installed managed Node runtime.',
   controlRoot:path.join(root,'session-control'),timeoutMs:30000,maxConcurrency:1,

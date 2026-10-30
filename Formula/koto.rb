@@ -1,9 +1,9 @@
 class Koto < Formula
   desc "Coordinate commercial and open-source coding agents"
   homepage "https://github.com/mehrdadxzaker/Koto"
-  url "https://registry.npmjs.org/@mehrdadz/koto/-/koto-3.0.0-alpha.1.tgz"
-  version "3.0.0-alpha.1"
-  sha256 "52673651a84c3daa9989e667a4e583403bd693f6e5d7b8c3772c5136d5c4b18c"
+  url "https://registry.npmjs.org/@mehrdadz/koto/-/koto-3.0.0-alpha.2.tgz"
+  version "3.0.0-alpha.2"
+  sha256 "db2dc6769f0e4a27ed3a4baaee42a03201eb341b10aeccf067d2bac4bdd76afc"
   license "Apache-2.0"
 
   depends_on "node@24"

@@ -42,8 +42,10 @@ verification boundary.
   Existing Ollama workers remain usable alongside saved managed models.
   Fresh packed installation, subscription discovery, real Codex coding, reviewed
   integration and same-conversation resume passed on macOS ARM64; see the
-  [verification record](docs/CODEX_CLI_VERIFICATION.md). Publication and
-  package-manager qualification are tracked in the [installation notes](docs/INSTALLATION.md).
+  [verification record](docs/CODEX_CLI_VERIFICATION.md). The exact npm release
+  is now published and independently verified. Homebrew and Linux recipes pin
+  that same archive; fresh Homebrew qualification is
+  tracked separately in the [alpha.2 release record](docs/RELEASE_ALPHA2.md).
 - **Codex CLI first.** Koto's primary workflow is everyday CLI use with your
   existing Codex/ChatGPT subscription. Smooth onboarding, remembered projects,
   review and resuming the same conversation take priority. Desktop and IDE
