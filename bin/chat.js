@@ -198,9 +198,18 @@ export async function runChat({ write, signal: parentSignal, version, project: s
     await owner.cancelContext();
     owner.close();
   };
+  const withInputOwner = async (operation, operationSignal = signal) => {
+    const owner = input;
+    // A busy draft preview can outlive the turn that opened it. Retire that
+    // owner before admitting an unrelated prompt or panel. Context's nested
+    // panels use the captured editor directly, so they never join themselves.
+    await owner.cancelContext();
+    if (quitting || signal.aborted || operationSignal?.aborted || owner !== input || owner.closed) throw cancelError();
+    return operation(owner);
+  };
   const ask = async (text, options) => {
     view.pause();
-    const answer = await input.ask(text, { complete: false, ...options });
+    const answer = await withInputOwner(owner => owner.ask(text, { complete: false, ...options }), options?.signal);
     if (['/quit', '/exit'].includes(answer)) {
       normalQuit = true; quitting = true; controller.abort(); stop();
       throw Object.assign(new Error('Koto closed.'), { code: 'chat_quit' });
@@ -222,16 +231,25 @@ export async function runChat({ write, signal: parentSignal, version, project: s
   const selectedKind = () => preferences.coordinator?.kind ?? 'codex';
   const conversationDirectory = () => reviewedBuildBase && reviewedBuildBase.canonicalProject === preferences.project
     ? reviewedBuildBase.projectRoot : preferences.project ?? process.cwd();
-  const choose = async options => { view.pause(); return input.choose({ ...options, signal: options.signal ?? signal }); };
+  const choose = async options => {
+    view.pause();
+    return withInputOwner(owner => owner.choose({ ...options, signal: options.signal ?? signal }), options.signal);
+  };
   const browse = async (title, items) => {
     view.pause();
     if (!items?.length) { print(`${title}: none available.`); return null; }
-    return input.browse({ title, items, signal });
+    return withInputOwner(owner => owner.browse({ title, items, signal }));
   };
+  let catalogGeneration = 0;
   async function refreshCatalog(refreshModels = false, operationSignal = signal) {
-    catalog = await discoverTuiCatalog({ project: conversationDirectory(), preferences, signal: operationSignal, refreshModels });
-    input.redraw();
-    return catalog;
+    const generation = ++catalogGeneration, project = conversationDirectory();
+    const discovered = await discoverTuiCatalog({ project, preferences, signal: operationSignal, refreshModels });
+    operationSignal?.throwIfAborted();
+    if (generation === catalogGeneration && project === conversationDirectory()) {
+      catalog = discovered;
+      input.redraw();
+    }
+    return discovered;
   }
   async function saveHistory() {
     // Startup project selection precedes the first history read. Never replace
@@ -293,30 +311,48 @@ export async function runChat({ write, signal: parentSignal, version, project: s
       items: [{ value: 'keep', label: 'Keep' }, { value: 'remove', label: 'Remove attachment' }] }) === 'remove') attachments.delete(selected);
   }
   async function messageContext(message, operationSignal = signal, { previewOnly = false, agents = [], show = print, onSelected } = {}) {
-    if (!catalog || catalog.projectRoot !== conversationDirectory()) await refreshCatalog(false, operationSignal);
-    const candidate = new Map(attachments);
+    // Sending pins the chosen items before discovery or file reads can yield to
+    // an unsent draft preview. Editor selection remains independently mutable.
+    const project = conversationDirectory(), original = new Map(attachments);
+    const candidate = new Map([...original].map(([key, item]) => [key, { ...item }]));
+    const selectedAgents = agents.map(item => ({ ...item }));
+    const selectedCatalog = catalog?.projectRoot === project ? catalog : await refreshCatalog(false, operationSignal);
+    const active = () => {
+      operationSignal?.throwIfAborted();
+      if (project !== conversationDirectory()) throw new Error('The selected project changed while preparing context. Preview and send it again.');
+    };
+    active();
     for (const match of message.matchAll(/(?:^|\s)@(?:\{([^}]+)\}|([^\s]+))/g)) {
       const name = match[1] ?? match[2];
       if (name.startsWith('agent:')) {
-        const agent = [...catalog.agents, ...agents].find(item => item.id === name.slice(6));
+        const agent = [...selectedCatalog.agents, ...selectedAgents].find(item => item.id === name.slice(6));
         if (!agent) throw new Error(`That configured agent is unavailable: ${name}. Use @ to choose an actual agent.`);
         candidate.set(name, { kind: 'agent', id: agent.id, name: agent.label ?? agent.id, content: JSON.stringify({ id: agent.id, label: agent.label, status: agent.status, task: agent.task }) });
       } else {
-        const matching = catalog.files.filter(item => item.path === name || name.endsWith('/') && item.path.startsWith(name));
+        const matching = selectedCatalog.files.filter(item => item.path === name || name.endsWith('/') && item.path.startsWith(name));
         if (!matching.length) throw new Error(`Project reference was not found or is excluded: ${name}. Use @ to select an available path.`);
         if (matching.length > 8) throw new Error(`That folder contains ${matching.length} available files. Choose a narrower folder or individual files with @ (at most eight).`);
         for (const file of matching) candidate.set(file.path, { kind: 'file', path: file.path });
       }
       if (candidate.size > 8) throw new Error('Select at most eight context items. Existing attachments were preserved.');
     }
-    operationSignal?.throwIfAborted();
-    attachments.clear(); for (const [key, item] of candidate) attachments.set(key, item);
-    onSelected?.();
+    active();
+    const published = new Map();
+    if (attachments.size === original.size && [...original].every(([key, item]) => attachments.get(key) === item)) {
+      attachments.clear();
+      for (const [key, item] of candidate) {
+        const selected = { ...item };
+        attachments.set(key, selected); published.set(key, selected);
+      }
+      onSelected?.(selectedCatalog);
+    }
     const source = [];
-    const fileItems = [...attachments.values()].filter(item => item.kind === 'file');
+    const fileItems = [...candidate.values()].filter(item => item.kind === 'file');
     if (fileItems.length) {
-      const snapshot = await inspectProjectContext(conversationDirectory(), { signal: operationSignal });
+      const snapshot = await inspectProjectContext(project, { signal: operationSignal });
+      active();
       const collected = await readProjectContextFiles(snapshot, fileItems.map(item => ({ path: item.path, startLine: 1, endLine: 36 })), { signal: operationSignal });
+      active();
       for (const file of collected.files) {
         const budget = Math.max(160, Math.floor(2200 / fileItems.length));
         const lines = file.content.replace(/\n$/, '').split('\n'), selected = [];
@@ -324,13 +360,13 @@ export async function runChat({ write, signal: parentSignal, version, project: s
         const text = selected.length ? selected.join('\n') : lines[0].slice(0, budget);
         const endLine = Math.min(file.endLine, file.startLine + Math.max(1, selected.length) - 1);
         const truncated = file.truncated || text.length < file.content.trimEnd().length;
-        const attached = attachments.get(file.path);
-        if (attached?.kind === 'file') attached.preview = `${file.path}:${file.startLine}-${endLine}${truncated ? ' (bounded excerpt)' : ''}\n${text}`;
+        const attached = published.get(file.path);
+        if (attached && attachments.get(file.path) === attached) attached.preview = `${file.path}:${file.startLine}-${endLine}${truncated ? ' (bounded excerpt)' : ''}\n${text}`;
         source.push({ kind: 'file', path: file.path, startLine: file.startLine, endLine, excerpt: text, truncated });
       }
       if (collected.rejected.length) throw new Error(`Context could not be read safely: ${collected.rejected.map(item => `${item.path}: ${item.reason}`).join('; ')}`);
     }
-    for (const item of attachments.values()) if (item.kind !== 'file') source.push({ kind: item.kind, name: item.name, id: item.id,
+    for (const item of candidate.values()) if (item.kind !== 'file') source.push({ kind: item.kind, name: item.name, id: item.id,
       content: item.content?.slice(0, item.kind === 'skill' ? 1800 : 600), truncated: Boolean(item.truncated || item.content?.length > 1800) });
     // Reference text is data from explicit selections. Never splice it into the host command parser.
     if (Buffer.byteLength(JSON.stringify(source)) > 3600) {
@@ -346,9 +382,9 @@ export async function runChat({ write, signal: parentSignal, version, project: s
     const show = editor === input ? print : text => {
       editor.clear(); write(`${renderMarkdown(visible(text), { columns: process.stdout.columns ?? 80, plain })}\n`); editor.redraw();
     };
-    let selectionAccepted = false;
+    let selectionAccepted = false, selectionCatalog;
     try { await messageContext(draft, operationSignal, { previewOnly: true, agents: state?.agents ?? [], show,
-      onSelected: () => { selectionAccepted = true; } }); }
+      onSelected: selected => { selectionAccepted = true; selectionCatalog = selected; } }); }
     catch (error) {
       if (operationSignal.aborted || editor.closed) return;
       try { recoverable(error); }
@@ -359,7 +395,7 @@ export async function runChat({ write, signal: parentSignal, version, project: s
     const references = new Map();
     for (const match of draft.matchAll(/(?:^|\s)@(?:\{([^}]+)\}|([^\s]+))/g)) {
       const name = match[1] ?? match[2];
-      references.set(name, name.startsWith('agent:') ? [name] : (catalog?.files ?? [])
+      references.set(name, name.startsWith('agent:') ? [name] : (selectionCatalog?.files ?? [])
         .filter(item => item.path === name || name.endsWith('/') && item.path.startsWith(name)).map(item => item.path));
     }
     await contextMenu([], editor, show, operationSignal);
