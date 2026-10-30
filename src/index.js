@@ -11,6 +11,7 @@ export { createCodexAppServerSession } from './codex-app-server.js';
 export { createClaudeAgentSession } from './claude-agent-session.js';
 export { createLocalAgentSession } from './local-agent.js';
 export { createCoordinator, reviseBuildProposal } from './coordinator.js';
+export { inspectProjectContext, readProjectContextFiles } from './project-inspection.js';
 export { loadPreferences, savePreferences, archivePreferences, defaultStateDirectory } from './preferences.js';
 export { discoverLocalModels, checkLocalEndpoint, pullOllamaModel, startLlamaServer, downloadGguf } from './local-models.js';
 export { buildLlamaRuntime } from './runtime-install.js';

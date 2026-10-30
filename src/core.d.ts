@@ -634,10 +634,19 @@ export interface ProjectSession {
   reconcileContributionAttempt(options: Omit<ProjectContributionReconciliationOptions, 'onEvent'>): Promise<ProjectContributionReconciliation>;
 }
 
+export interface AgentApprovalRequest extends Readonly<Record<string, unknown>> {
+  /** Identity supplied by the host-selected coding session, not model text. */
+  readonly agentId?: string | undefined;
+  readonly signal?: AbortSignal | undefined;
+  /** Host-owned ISO deadline; present when this adapter exposes a decision window. */
+  readonly approvalExpiresAt?: string | undefined;
+  /** Host-owned original decision window, at most 60000 ms for Codex. Queuing does not restart it. */
+  readonly approvalTimeoutMs?: number | undefined;
+}
 export interface ProjectSessionOptions {
   onEvent?: ((event: ProjectEvent) => unknown) | undefined;
   signal?: AbortSignal | undefined;
-  onApproval?: ((request: Record<string, unknown>) => Promise<boolean>) | undefined;
+  onApproval?: ((request: AgentApprovalRequest) => Promise<boolean>) | undefined;
 }
 
 export function validateProjectPlan(input: unknown): ProjectPlan;
@@ -763,6 +772,8 @@ export interface AgentSessionResult {
 export interface AgentSession {
   readonly sessionId?: string | undefined;
   readonly pid?: number | null | undefined;
+  /** Optional read-only capacity check, including retained context and output reserve. */
+  canSendPrompt?(text: string): boolean;
   send(text: string, options?: { signal?: AbortSignal | undefined }): Promise<AgentSessionResult>;
   stop(): void;
   close?(): Promise<CommandOutcome | undefined>;
@@ -793,18 +804,18 @@ export interface LocalAgentOptions {
   mode?: 'conversation' | 'coding' | undefined; timeoutMs?: number | undefined;
   maxTurns?: number | undefined; maxOutputTokens?: number | undefined;
   onEvent?: ((event: Readonly<Record<string, unknown>>) => unknown) | undefined;
-  onApproval?: ((request: Readonly<Record<string, unknown>>) => boolean | Promise<boolean>) | undefined;
+  onApproval?: ((request: AgentApprovalRequest) => boolean | Promise<boolean>) | undefined;
   resumeState?: LocalConversationState | undefined;
   unsetEnv?: readonly string[] | undefined;
 }
 export function createLocalAgentSession(options: LocalAgentOptions): AgentSession;
 export type CodingAgentOptions = (Omit<NativeAgentOptions, 'account'> & {
   account?: 'chatgpt' | 'subscription' | undefined;
-  onApproval?: ((request: Readonly<Record<string, unknown>>) => boolean | Promise<boolean>) | undefined;
+  onApproval?: ((request: AgentApprovalRequest) => boolean | Promise<boolean>) | undefined;
 }) | (LocalAgentOptions & { kind: 'local' });
 export function createCodingAgentSession(options: CodingAgentOptions): AgentSession;
 export type NativeControlAgentOptions = Omit<NativeAgentOptions, 'kind' | 'account'> & {
-  onApproval?: ((request: Readonly<Record<string, unknown>>) => 'approve' | 'deny' | Promise<'approve' | 'deny'>) | undefined;
+  onApproval?: ((request: AgentApprovalRequest) => 'approve' | 'deny' | Promise<'approve' | 'deny'>) | undefined;
 };
 export function createCodexAppServerSession(options: NativeControlAgentOptions & { account?: 'chatgpt' | undefined }): AgentSession;
 export function createClaudeAgentSession(options: NativeControlAgentOptions & { account?: 'subscription' | undefined }): AgentSession;
@@ -830,11 +841,53 @@ export function reviseBuildProposal(proposal: BuildProposal, options: {
     dependsOn?: readonly string[] | undefined; label?: string | undefined; model?: string | undefined }[];
   workers: readonly (Partial<ProjectAgentPlan> & { id: string; command: string; args: readonly string[]; label?: string | undefined })[];
 }): BuildProposal;
+export interface ProjectInspectionContext {
+  readonly schemaVersion: 1;
+  readonly projectRoot: string;
+  readonly git: { readonly status: 'available' | 'unavailable'; readonly head?: string | undefined;
+    readonly branch?: string | undefined; readonly dirty: boolean | null };
+  readonly inventory: { readonly paths: readonly string[]; readonly truncated: boolean };
+  readonly warnings: readonly string[];
+}
+export interface InspectionFileRequest {
+  readonly path: string; readonly startLine?: number | undefined; readonly endLine?: number | undefined;
+}
+export interface ProjectFileExcerpt {
+  readonly path: string; readonly startLine: number; readonly endLine: number;
+  readonly totalLines: number; readonly content: string; readonly sha256: string; readonly truncated: boolean;
+}
+export interface ProjectInspectionFiles {
+  readonly files: readonly ProjectFileExcerpt[];
+  readonly rejected: readonly { readonly path: string; readonly reason: string }[];
+  readonly truncated: boolean;
+}
+export interface ProjectInspectionEvidence extends ProjectInspectionFiles {
+  readonly projectRoot: string; readonly git: ProjectInspectionContext['git'];
+  readonly inventory: ProjectInspectionContext['inventory'];
+  readonly citations: readonly { readonly path: string; readonly startLine: number; readonly endLine: number }[];
+  /** Confirms citation membership and line bounds, not semantic correctness. */
+  readonly citationsVerified: boolean;
+}
+export interface ProjectInspectionResult {
+  readonly message: string; readonly evidence: ProjectInspectionEvidence; readonly warnings: readonly string[];
+  readonly sessionId?: string | undefined; readonly usage?: Record<string, unknown> | undefined;
+  readonly selectionUsage?: Record<string, unknown> | undefined;
+}
+export function inspectProjectContext(project: string, options?: {
+  signal?: AbortSignal | undefined; nativeHelperDirectory?: string | undefined;
+}): Promise<ProjectInspectionContext>;
+/** The context must be the actual object returned by inspectProjectContext. */
+export function readProjectContextFiles(context: ProjectInspectionContext, requests: readonly InspectionFileRequest[], options?: {
+  signal?: AbortSignal | undefined;
+}): Promise<ProjectInspectionFiles>;
 export function createCoordinator(options: { session: AgentSession }): {
   readonly sessionId?: string | undefined; stop(): void;
-  routeMessage(text: string, options?: { signal?: AbortSignal | undefined; context?: string | undefined }): Promise<{
-    action: 'chat' | 'build'; message: string; goal?: string | undefined; sessionId?: string | undefined;
+  routeMessage(text: string, options?: { signal?: AbortSignal | undefined; context?: string | undefined; intent?: 'chat' | undefined }): Promise<{
+    action: 'chat' | 'inspect' | 'build'; message: string; goal?: string | undefined; sessionId?: string | undefined;
+    usage?: Record<string, unknown> | undefined;
   }>;
+  inspect(question: string, options: { project: string; signal?: AbortSignal | undefined;
+    context?: string | undefined; nativeHelperDirectory?: string | undefined }): Promise<ProjectInspectionResult>;
   plan(goal: string, options: { project: string; workers: readonly (Partial<ProjectAgentPlan> & {
     id: string; command: string; args: readonly string[]; label?: string | undefined })[];
     signal?: AbortSignal | undefined; timeoutMs?: number | undefined; maxConcurrency?: number | undefined;

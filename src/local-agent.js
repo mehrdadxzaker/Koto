@@ -344,8 +344,8 @@ export function createLocalAgentSession({ id = 'local', endpoint, model, cwd, mo
     return { ...result, ...(exceeded ? { status: 'failed', error: 'output_limit' } : {}), ...output };
   }
 
-  function messagesFor(turn) {
-    const saved = [...history];
+  function fitMessages(turn, previous) {
+    const saved = [...previous];
     const budget = CONTEXT_BYTES - maxOutputTokens;
     const assemble = () => [system, ...saved.flat(), ...turn];
     const size = () => Buffer.byteLength(JSON.stringify({ messages: assemble(), tools, model }));
@@ -366,8 +366,13 @@ export function createLocalAgentSession({ id = 'local', endpoint, model, cwd, mo
       largest.content = bounded(largest.content, Math.max(256, Buffer.byteLength(largest.content) - (size() - budget) - 32));
     }
     if (size() > budget) throw failure('local_agent_context_limit', 'The current request exceeds the conservative 8K context budget. Use a shorter request or smaller tool output.');
-    history = saved;
-    return assemble();
+    return { saved, messages: assemble() };
+  }
+
+  function messagesFor(turn) {
+    const fitted = fitMessages(turn, history);
+    history = fitted.saved;
+    return fitted.messages;
   }
 
   async function request(messages, signal, inspectionRequired) {
@@ -394,6 +399,21 @@ export function createLocalAgentSession({ id = 'local', endpoint, model, cwd, mo
 
   return {
     sessionId,
+    // Capacity observation only: use copied pending exchanges so fitting cannot
+    // trim retained history/tool output, emit events or contact the runtime.
+    canSendPrompt(prompt) {
+      if (active || continuationUnavailableReason || !text(prompt) || !prompt.trim()
+        || Buffer.byteLength(prompt) > 8192) return false;
+      const pending = history.length && !completedTurn(history.at(-1)) ? history.at(-1) : [];
+      const previous = pending.length ? history.slice(0, -1) : history;
+      try {
+        fitMessages([...copied(pending), { role: 'user', content: prompt }], previous);
+        return true;
+      } catch (error) {
+        if (error.code === 'local_agent_context_limit') return false;
+        throw error;
+      }
+    },
     snapshot() {
       if (active) throw continuationFailure('send_in_progress');
       return captureContinuation();

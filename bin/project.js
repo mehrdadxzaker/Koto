@@ -7,6 +7,10 @@ import { createProjectSession, resumeProjectSession, readProjectSession, validat
   inspectProjectContributionAttempt, reconcileProjectContributionAttempt } from '../src/index.js';
 import { attachNativeTerminal } from './attach-terminal.js';
 import { createActivityView } from './activity-view.js';
+import { createTuiReadline } from './tui-readline.js';
+import { createTuiSuggestions, discoverTuiCatalog } from '../src/tui-catalog.js';
+import { diffItems, taskItems, formatCompletion, formatError, renderMarkdown } from './tui-views.js';
+import { clipText } from './tui-text.js';
 
 const help = `Project collaboration (native terminal or structured pipe sessions)
 
@@ -131,14 +135,14 @@ export async function runProjectPlan(source, { write, signal, headless = false, 
 
 /** An explicit resume shares every terminal control with an initial launch. */
 export async function runProjectResume(sessionRoot, agentId, { prompt, write, signal, headless = false,
-  approved = false, onEvent, onComplete, guided = false } = {}) {
+  approved = false, onEvent, onComplete, guided = false, conversation } = {}) {
   let observe;
   let approve;
   const prepared = await resumeProjectSession(sessionRoot, agentId, { prompt, signal,
     onEvent: event => observe?.(event), onApproval: request => approve?.(request) ?? false });
   try {
     return await runSessionTerminal(prepared.launchPlan, { write, signal, headless, approved,
-      prepared, onEvent, onComplete, guided, observe: callback => { observe = callback; },
+      prepared, onEvent, onComplete, guided, conversation, observe: callback => { observe = callback; },
       bindApproval: callback => { approve = callback; } });
   } finally { prepared.stop(); }
 }
@@ -156,6 +160,9 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
     throw new TypeError('A conversation requires send, stop and bind functions.');
   }
   const interactive = !headless && process.stdin.isTTY && process.stdout.isTTY;
+  const plain = conversation?.plain === true || process.env.KOTO_PLAIN === '1'
+    || process.env.KOTO_SCREEN_READER === '1' || process.env.TERM === 'dumb'
+    || !interactive || typeof process.stdin.setRawMode !== 'function';
   const initialRaw = process.stdin.isRaw === true;
   if (!interactive && !approved) throw new Error('project_explicit_start_required');
   write(`Project: ${visible(plan.project)}\nGoal: ${visible(plan.goal)}\nConcurrency: ${plan.maxConcurrency}\n`);
@@ -168,7 +175,7 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
     if (!readiness.ok) return 2;
   } else write('Continuing the recorded native conversation in its original worktree. Prior partial edits and attempt records are retained.\n');
   write('Commands retain your OS permissions; worktrees are not a security sandbox. No automatic retry.\n');
-  let terminal = interactive ? createInterface({ input: process.stdin, output: process.stdout }) : undefined;
+  let terminal;
   let session;
   let closed = false;
   let attachment;
@@ -187,6 +194,7 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
   let pendingControls = 0;
   let conversationQueue = Promise.resolve();
   let pendingMessages = 0;
+  const heldMessages = [];
   let conversationEpoch = 0;
   let conversationFailure;
   let conversationTurn;
@@ -194,20 +202,26 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
   const conversationController = new AbortController();
   const fatalConversation = error => typeof error?.code === 'string'
     && /(?:cleanup_unconfirmed|socket_exhausted)$/.test(error.code);
+  const fatalOperation = error => fatalConversation(error)
+    || /(?:cleanup_(?:unconfirmed|not_confirmed)|EADDRNOTAVAIL|EMFILE|ENFILE)/.test(`${error?.code ?? ''} ${error?.message ?? ''}`);
   const retainConversationFailure = error => {
     if (!conversationFailure || /cleanup_unconfirmed$/.test(error?.code ?? '')) conversationFailure = error;
   };
   const stopConversation = () => {
     conversationEpoch += 1;
+    heldMessages.length = 0;
     conversationTurn?.abort();
     try { conversation?.stop(); }
     catch (error) { retainConversationFailure(error); }
   };
   const reviewedTokens = new Map();
+  const partialReviews = new Set();
   let resolveClosed;
   const terminalClosed = new Promise(resolve => { resolveClosed = resolve; });
   const records = new Map(plan.agents.map(agent => [agent.id, agent]));
   const seenMessages = new Map();
+  const activityRecords = [];
+  let activityBytes = 0, inputHistory = [], catalogPromise;
   let conversationId = 'kotoCoordinator';
   while (records.has(conversationId)) conversationId += '_';
   const metadata = agent => ({ agentId: agent.id, name: agent.nativeKind ?? agent.native?.kind ?? basename(agent.command),
@@ -216,10 +230,7 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
     task: agent.task });
   const clearPrompt = () => {
     if (!interactive || !terminal || !promptVisible) return;
-    const position = terminal.getCursorPos();
-    if (position.rows) moveCursor(process.stdout, 0, -position.rows);
-    cursorTo(process.stdout, 0);
-    clearScreenDown(process.stdout);
+    terminal.clear();
   };
   const finishInput = () => {
     if (controlTyping || pendingControls) return;
@@ -229,6 +240,7 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
   };
   const hidePrompt = () => {
     clearPrompt();
+    terminal?.pausePrompt();
     promptVisible = false;
   };
   const showPrompt = () => {
@@ -258,29 +270,120 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
   };
   const close = () => {
     if (closed || switchingTerminal) return;
-    view?.pause();
-    hidePrompt();
     closed = true;
     conversationController.abort();
     stopConversation();
     acceptingApprovals = false;
-    cancelApproval?.();
     resolveInputIdle?.();
     resolveInputIdle = undefined;
-    attachment?.detach('session closing');
+    for (const cleanup of [() => view?.pause(), hidePrompt, () => cancelApproval?.(),
+      () => attachment?.detach('session closing'), () => session?.stop(), () => terminal?.close()]) {
+      try { cleanup(); } catch (error) { retainConversationFailure(error); }
+    }
     attachment = undefined;
-    session?.stop();
-    terminal?.close();
     restoreRaw();
     resolveClosed();
   };
   const onAbort = () => close();
   signal?.addEventListener('abort', onAbort, { once: true });
+  const controlCommands = [
+    ['tasks', '', 'Browse actual task ownership, dependencies and state'],
+    ['activity', '', 'Expand observed agent activity'], ['tools', '', 'Expand bounded command and tool output'],
+    ['diff', 'AGENT', 'Browse a contribution diff'], ['review', 'AGENT', 'Review current changes and retain its exact review token'],
+    ['integrate', 'AGENT', 'Explicitly integrate a freshly reviewed contribution'],
+    ['status', '', 'Show actual native and process state'],
+    ['attach', 'AGENT', 'Open a native terminal; Ctrl-] returns to Koto'],
+    ['stop', 'AGENT|all', 'Stop owned worker work'], ['resize', 'AGENT COLS ROWS', 'Resize a native terminal'],
+    ['send', 'AGENT TEXT', 'Send explicit input to one pipe agent'], ['eof', 'AGENT', 'Close one pipe input'],
+    ['pending', '', 'Inspect an unresolved integration attempt'],
+    ['resolve', 'AGENT COMMIT', 'Record reviewed conflict resolution'],
+    ['reconcile', 'RESOLUTION TOKEN', 'Resolve an explicitly reviewed integration attempt'],
+    ...(conversation ? [['chat', 'TEXT', 'Ask the coordinator without leaving this session'],
+      ['queue', '[edit|remove|send] NUMBER', 'Review held coordinator messages before sending'],
+      ['chat-stop', '', 'Stop the coordinator turn and queued messages']] : []),
+    ['help', '', 'Show current session controls'], ['quit', '', 'Stop owned work and retain worktrees'],
+  ].map(([name, args, description]) => ({ name, args, description }));
+  const catalog = async () => {
+    catalogPromise ??= discoverTuiCatalog({ project: plan.project, signal,
+      preferences: { workers: plan.agents,
+        ...(conversation?.provider ? { coordinator: { kind: conversation.provider, model: conversation.model } } : {}) },
+    }).catch(error => {
+      if (signal?.aborted || fatalOperation(error)) {
+        retainConversationFailure(error);
+        close();
+        throw error;
+      }
+      return { agents: [], models: [], files: [], skills: [], connections: [], warnings: [visible(error.message)] };
+    });
+    const found = await catalogPromise;
+    const state = session?.status();
+    return { ...found, agents: found.agents.map(agent => ({ ...agent,
+      status: state?.agents.find(item => item.id === agent.id)?.status ?? agent.status })) };
+  };
+  const suggestions = createTuiSuggestions({ getCatalog: catalog, getCommands: () => controlCommands,
+    getSessions: () => session ? [session.status()] : [], getQueue: () => heldMessages });
+  const makeTerminal = () => {
+    const next = createTuiReadline({ write, signal, suggest: suggestions, plain,
+      ...(typeof conversation?.previewContext === 'function' ? { onContext: async ({ draft, signal: contextSignal }) => {
+        if (pendingControls || attachment || approvalActive || reporting) throw new Error('Return to the Agents prompt before previewing draft context.');
+        view?.pause();
+        try { await conversation.previewContext({ draft, editor: next.getInput(), state: session?.status(), signal: contextSignal }); }
+        catch (error) {
+          if (fatalOperation(error)) { retainConversationFailure(error); close(); }
+          throw error;
+        } finally {
+          if (!closed && !attachment && !approvalActive && !reporting && !pendingControls) {
+            controlTyping = false;
+            finishInput();
+            promptVisible = true;
+            // The original main ask stays pending underneath the context
+            // modal. Resume its rendering, never create a second question.
+            view?.resume();
+            next.redraw();
+          }
+        }
+      } } : {}),
+      getStatus: () => {
+        const state = session?.status();
+        const running = state?.agents.filter(agent => agent.status === 'running').length ?? 0;
+        const pending = state?.agents.filter(agent => agent.status === 'pending').length ?? 0;
+        return `${basename(plan.project)} · Build · ${running} running · ${pending} pending${conversation ? ` · ${conversation.provider ?? 'coordinator'} / ${conversation.model ?? 'native default'}${conversation.contextCount ? ` · ${conversation.contextCount} ref` : ''}${heldMessages.length ? ` · ${heldMessages.length} queued` : ''}` : ''}`;
+      } });
+    next.getInput().setHistory(inputHistory);
+    next.on('inputError', error => { write(`${formatError(error)}\n`); close(); });
+    return next;
+  };
+  terminal = interactive ? makeTerminal() : undefined;
   terminal?.on('close', close);
   terminal?.on('SIGINT', close);
+  const rememberActivity = event => {
+    if (!interactive || !event || !['activity', 'native_status', 'tool_started', 'tool_completed',
+      'command_started', 'command_output', 'output', 'approval_request'].includes(event.type)) return false;
+    const last = activityRecords.at(-1);
+    if (['command_output', 'output'].includes(event.type) && last?.type === event.type
+      && last.agentId === event.agentId && last.stream === event.stream) {
+      const before = Buffer.byteLength(JSON.stringify(last));
+      const combined = (last.text ?? '') + visible(event.text ?? '');
+      last.text = combined.slice(-16_384);
+      last.truncated ||= combined.length > 16_384;
+      activityBytes += Buffer.byteLength(JSON.stringify(last)) - before;
+      return false;
+    }
+    const record = { at: new Date().toISOString(), type: event.type, agentId: event.agentId,
+      status: event.status ?? event.nativeStatus, stream: event.stream,
+      description: visible(event.description ?? event.activity ?? '').slice(0, 2048),
+      command: visible(event.command ?? '').slice(0, 4096), tool: visible(event.tool ?? '').slice(0, 256),
+      text: visible(event.text ?? '').slice(-16_384), truncated: String(event.text ?? '').length > 16_384
+        || String(event.command ?? '').length > 4096 || String(event.description ?? event.activity ?? '').length > 2048
+        || String(event.tool ?? '').length > 256 };
+    activityRecords.push(record); activityBytes += Buffer.byteLength(JSON.stringify(record));
+    while (activityRecords.length > 128 || activityBytes > 512 * 1024) {
+      activityBytes -= Buffer.byteLength(JSON.stringify(activityRecords.shift()));
+    }
+    return true;
+  };
   const approveCommand = request => {
     const operation = approvalQueue.then(async () => {
-      await inputIdle;
       await commandQueue;
       if (!interactive || closed || signal?.aborted || !acceptingApprovals || attachment
         || !terminal || terminal.closed || !request || typeof request !== 'object'
@@ -309,30 +412,65 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
       try {
         detail = JSON.stringify(Object.fromEntries(Object.entries(request).filter(([key]) => key !== 'signal')), null, 2);
       } catch { return false; }
-      if (!detail || Buffer.byteLength(detail) > 65_536) return false;
-      detail = detail.replace(/[\u202a-\u202e\u2066-\u2069]/g,
+      if (!detail) return false;
+      detail = detail.replace(/[\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g,
         character => `\\u${character.charCodeAt(0).toString(16).padStart(4, '0')}`);
+      if (Buffer.byteLength(detail) > 65_536) return false;
+      const expiresAt = typeof request.approvalExpiresAt === 'string' && Number.isFinite(Date.parse(request.approvalExpiresAt))
+        ? new Date(request.approvalExpiresAt).toISOString() : undefined;
+      const timeoutMs = Number.isSafeInteger(request.approvalTimeoutMs) && request.approvalTimeoutMs > 0
+        ? request.approvalTimeoutMs : undefined;
+      const deadline = expiresAt ? `Expires at ${expiresAt}`
+        : timeoutMs ? `Decision window: ${timeoutMs / 1000} seconds` : '';
+      const approvalInput = terminal;
+      await approvalInput.getInput().cancelContext();
+      if (closed || signal?.aborted || requestSignal?.aborted || !acceptingApprovals
+        || attachment || terminal !== approvalInput || approvalInput.closed) return false;
+      rememberActivity({ type: 'approval_request', agentId: request.agentId, tool: request.tool,
+        command: request.command, status: 'waiting', text: detail });
       view?.pause();
       hidePrompt();
+      // The input owner preserves a partial draft separately from approval
+      // answers, so an unfinished message cannot accidentally grant permission.
+      controlTyping = false;
+      finishInput();
       approvalActive = true;
-      write(`\n[${visible(request.agentId ?? request.kind ?? (codexRequest ? 'codex' : 'local'))}] requests permission\n${detail}\n`);
+      write(`\n[${visible(request.agentId ?? request.kind ?? (codexRequest ? 'codex' : 'local'))}] requests permission\n${deadline ? `${deadline}\n` : ''}${detail}\n`);
       try {
         return await new Promise(resolve => {
           const questionController = new AbortController();
           let settled = false;
-          const denyCancelledRequest = () => finish(false);
-          const finish = answer => {
+          const denyCancelledRequest = () => finish(false, true);
+          const finish = (answer, requestCancelled = false) => {
             if (settled) return;
             settled = true;
             cancelApproval = undefined;
             requestSignal?.removeEventListener('abort', denyCancelledRequest);
             questionController.abort();
+            if (requestCancelled && !closed) {
+              terminal?.clear();
+              write('Permission request expired or was cancelled; no action approved.\n');
+            }
             resolve(answer === true);
           };
           cancelApproval = () => finish(false);
           requestSignal?.addEventListener('abort', denyCancelledRequest, { once: true });
-          terminal.question('Type approve to allow this exact action; Enter denies: ',
-            { signal: questionController.signal }, answer => finish(answer.trim() === 'approve'));
+          const combined = AbortSignal.any([questionController.signal, ...(requestSignal ? [requestSignal] : []), ...(signal ? [signal] : [])]);
+          terminal.choose({ title: `Permission for this exact displayed action${deadline ? `\n${deadline}` : ''}`, initial: 'deny', signal: combined,
+            items: [{ value: 'deny', label: 'Deny', description: 'Do not permit this requested action' },
+              { value: 'approve', label: 'Approve once', description: 'Permit only this displayed native request' },
+              { value: 'stop', label: 'Stop this work', description: 'Deny the request and stop its owned agent or coordinator turn' }],
+          }).then(answer => {
+            if (answer === 'stop') {
+              if (request.agentId === conversationId) stopConversation();
+              else if (records.has(request.agentId)) session?.stop(request.agentId);
+              else session?.stop();
+            }
+            finish(answer === 'approve');
+          }).catch(error => {
+            if (fatalOperation(error)) { retainConversationFailure(error); close(); }
+            finish(false);
+          });
           if (closed || signal?.aborted || requestSignal?.aborted || !acceptingApprovals) finish(false);
         });
       } finally {
@@ -349,17 +487,22 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
     if (!conversation || !interactive || !text.trim() || text.includes('\0') || Buffer.byteLength(text) > 32_768) {
       write('Enter a coordinator message of at most 32 KiB.\n'); return;
     }
-    if (pendingMessages >= 8) { write('The eight-message coordinator queue is full.\n'); return; }
+    if (pendingMessages) {
+      if (heldMessages.length >= 8) { write('The eight-message coordinator queue is full; use /queue to edit or remove a held message.\n'); return; }
+      heldMessages.push(text);
+      write(`Follow-up ${heldMessages.length} held in /queue. It will not send automatically; review, edit or send it explicitly.\n`);
+      return;
+    }
     const epoch = conversationEpoch;
     pendingMessages += 1;
-    write(`Coordinator message queued (${pendingMessages}); :chat-stop cancels its turn and queued messages.\n`);
+    write('Sending coordinator message. /chat-stop cancels its turn; follow-ups are held for explicit review.\n');
     conversationQueue = conversationQueue.then(async () => {
       if (closed || conversationController.signal.aborted || epoch !== conversationEpoch) return;
       view?.update({ type: 'agent_status', agentId: conversationId, status: 'running' });
       conversationTurn = new AbortController();
       const reply = await conversation.send(text, { state: session.status(),
         signal: AbortSignal.any([conversationController.signal, conversationTurn.signal]) });
-      if (!closed && epoch === conversationEpoch && typeof reply === 'string') view?.message(conversationId, reply);
+      if (!closed && epoch === conversationEpoch && typeof reply === 'string') view?.message(conversationId, renderMarkdown(reply));
       view?.update({ type: 'agent_status', agentId: conversationId, status: 'idle' });
     }).catch(error => {
       if (fatalConversation(error)) { retainConversationFailure(error); close(); }
@@ -381,6 +524,7 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
     const receiveEvent = event => {
       const agent = records.get(event.agentId ?? event.agent);
       const details = agent ? metadata(agent) : undefined;
+      const newActivity = rememberActivity(event);
       view?.update(event, details);
       attachment?.output(event);
       if (event.type === 'assistant_message' && typeof event.text === 'string') {
@@ -390,14 +534,18 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
         if (!event.messageId || !seen.has(event.messageId)) {
           if (event.messageId) { seen.add(event.messageId); if (seen.size > 128) seen.delete(seen.values().next().value); }
           seenMessages.set(event.agentId, seen);
-          view?.message(event.agentId, event.text);
+          view?.message(event.agentId, renderMarkdown(event.text));
         }
       } else if (event.type === 'response' && agent?.nativeKind === 'local' && event.text) {
-        view?.message(event.agentId, event.text);
+        view?.message(event.agentId, renderMarkdown(event.text));
       } else if (event.type === 'command_output' && event.text) {
-        view?.message(`${event.agentId}:${event.stream ?? 'tool'}`, event.text);
+        if (!interactive) view?.message(`${event.agentId}:${event.stream ?? 'tool'}`, event.text);
+        else if (newActivity) view?.message(`${event.agentId}:${event.stream ?? 'tool'}`,
+          `${visible(event.text).split('\n')[0].slice(0, 160)}\nTool output retained in /tools (bounded; Right expands details).`);
       } else if (event.type === 'output' && agent?.transport !== 'pty') {
-        view?.message(`${event.agentId}:${event.stream}`, event.text);
+        if (!interactive) view?.message(`${event.agentId}:${event.stream}`, event.text);
+        else if (newActivity) view?.message(`${event.agentId}:${event.stream}`,
+          `${visible(event.text).split('\n')[0].slice(0, 160)}\nOutput retained in /tools (bounded; Right expands details).`);
       } else if (event.type === 'pty_ready') {
         view?.message(event.agentId, `PTY ready; :attach ${event.agentId} to view and interact.`);
       } else if (event.type === 'native_status') {
@@ -419,7 +567,7 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
       throw Object.assign(new Error(`The project HEAD changed after planning. No agent was launched. Prepared worktrees are retained at ${session.sessionRoot}. Review a new plan from the current commit.`), { code: 'project_base_changed' });
     }
     write(`Session: ${session.sessionRoot}\nIntegration workspace: ${session.status().integration.path}\n`);
-    const controls = () => { write('Controls: :status | :review AGENT | :integrate AGENT | :resolve AGENT COMMIT | :pending | :reconcile RESOLUTION TOKEN | :stop AGENT/all | :attach AGENT (Ctrl-] detaches) | :resize AGENT COLS ROWS | :send AGENT TEXT | :eof AGENT | :help | :quit\n');
+    const controls = () => { write('Controls: / opens the command menu; @ selects project or agent context. /tasks | /activity | /tools | /diff AGENT | /status | /review AGENT | /integrate AGENT | /stop AGENT/all | /attach AGENT (Ctrl-] detaches) | /help | /quit\nLegacy : controls remain available, including :resolve AGENT COMMIT, :pending, :reconcile RESOLUTION TOKEN, :resize AGENT COLS ROWS, :send AGENT TEXT and :eof AGENT.\n');
       if (conversation) write('Message the coordinator here, or use :chat TEXT. :chat-stop stops its turn; workers keep running. Follow-up builds still require plan review.\n');
     };
     const showStatus = () => {
@@ -438,6 +586,7 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
       terminal.on('line', line => {
         if (approvalActive) return;
         controlTyping = false;
+        if (!line.trim()) { finishInput(); showPrompt(); return; }
         if (line.length > 65_536 || pendingControls >= 32) {
           write('Control input exceeds the bounded queue.\n');
           finishInput(); showPrompt(); return;
@@ -447,21 +596,67 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
           if (closed || attachment) return;
           view?.pause();
           hidePrompt();
-          const [command, id, ...rest] = line.trim().split(/\s+/);
+          const [enteredCommand, id, ...rest] = line.trim().split(/\s+/);
+          const command = enteredCommand.startsWith('/') ? `:${enteredCommand.slice(1)}` : enteredCommand;
           if (conversation && command === ':chat-stop') {
             stopConversation();
             if (conversationFailure) { close(); throw conversationFailure; }
-          } else if (conversation && command === ':chat') queueMessage(line.replace(/^\s*:chat\s*/, ''));
+          } else if (conversation && command === ':chat') queueMessage(line.replace(/^\s*[:/]chat\s*/, ''));
           else if (conversation && command && !command.startsWith(':')) queueMessage(line.trim());
+          else if (conversation && command === ':queue') {
+            if (!heldMessages.length) { write('No held coordinator messages.\n'); return; }
+            let action = id;
+            let number = Number(rest[0]);
+            if (!action) {
+              const selected = await terminal.choose({ title: 'Held coordinator messages · nothing sends automatically', signal,
+                items: heldMessages.map((text, index) => ({ value: index + 1, label: `${index + 1}. ${visible(text).split('\n')[0].slice(0, 160)}`, description: 'Held until you explicitly choose Send', detail: text })) });
+              if (selected === null) return;
+              number = selected;
+              action = await terminal.choose({ title: `Message ${number}`, initial: 'edit', signal,
+                items: [{ value: 'edit', label: 'Edit in composer', description: 'Remove from queue and restore as an unsent draft' },
+                  { value: 'remove', label: 'Remove', description: 'Discard this held follow-up' },
+                  { value: 'send', label: 'Send now', description: pendingMessages ? 'Wait for or stop the current coordinator turn first' : 'Send this message to the coordinator', disabled: pendingMessages > 0 }] });
+              if (action === null) return;
+            }
+            if (!['edit', 'remove', 'send'].includes(action) || !Number.isInteger(number) || number < 1 || number > heldMessages.length) {
+              throw new Error('Use /queue, or /queue edit|remove|send NUMBER from the displayed held messages.');
+            }
+            if (action === 'send' && pendingMessages) throw new Error('The coordinator is still working. Wait for it to finish, or use /chat-stop.');
+            if (action === 'edit' && terminal.getInput().getDraft().trim()) {
+              throw new Error('The composer already contains an unsent draft. Send or clear it before restoring a queued message.');
+            }
+            const [text] = heldMessages.splice(number - 1, 1);
+            if (action === 'edit') terminal.getInput().setDraft(text);
+            else if (action === 'send') queueMessage(text);
+            write(action === 'edit' ? 'Restored as an unsent composer draft.\n' : action === 'remove' ? 'Held message removed.\n' : 'Selected held message sent.\n');
+          }
+          else if (command === ':tasks') {
+            await terminal.browse({ title: 'Project tasks · actual recorded state', items: taskItems(session.status()), signal });
+          }
+          else if (command === ':activity' || command === ':tools') {
+            const selected = command === ':tools' ? activityRecords.filter(item => /tool|command|output|approval/.test(item.type)
+              || item.command || item.tool) : activityRecords;
+            const items = selected.slice().reverse().map((item, index) => ({ value: String(index),
+              label: `${item.at.slice(11, 19)} · ${item.agentId ?? 'agent'} · ${item.type}${item.status ? ` · ${item.status}` : ''}`,
+              description: item.command || item.tool || item.description || item.text.split('\n')[0],
+              detail: `${JSON.stringify(item, null, 2)}${item.truncated ? '\n[Only the bounded output tail is retained.]' : ''}` }));
+            if (!items.length) write('No matching activity has been observed in this terminal yet.\n');
+            else await terminal.browse({ title: command === ':tools' ? 'Observed tool and command output · Right expands' : 'Observed agent activity · Right expands', items, signal });
+          }
           else if (command === ':status') showStatus();
           else if (command === ':help') controls();
           else if (command === ':send' && id) {
-            const text = line.replace(/^\s*:send\s+\S+\s?/, '');
+            const text = line.replace(/^\s*[:/]send\s+\S+\s?/, '');
             write(`Input ${session.send(id, `${text}\n`) ? 'sent' : 'unavailable'} for ${id}\n`);
           } else if (command === ':eof' && id) write(`EOF ${session.endInput(id) ? 'sent' : 'unavailable'} for ${id}\n`);
           else if (command === ':resize' && id && rest.length === 2) write(`Resize ${session.resize(id, Number(rest[0]), Number(rest[1])) ? 'sent' : 'unavailable'} for ${id}\n`);
           else if (command === ':attach' && id && !rest.length) {
+            const inputOwner = terminal;
+            await inputOwner.getInput().cancelContext();
+            if (closed || signal?.aborted || terminal !== inputOwner || inputOwner.closed) return;
             switchingTerminal = true;
+            inputHistory = terminal.getInput().history;
+            const handoffDraft = terminal.getInput().getDraft();
             terminal.close();
             terminal = undefined;
             switchingTerminal = false;
@@ -472,7 +667,11 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
               write(`\n[${id}] ${visible(reason)}. Returned to Koto controls.\n`);
               if (closed || signal?.aborted) return false;
               try {
-                terminal = createInterface({ input: process.stdin, output: process.stdout });
+                terminal = makeTerminal();
+                // Input entered while the attach command waited belongs to
+                // Koto's composer, not to the native terminal. Preserve it as
+                // an unsent draft and never replace newer restored input.
+                if (handoffDraft && !terminal.getInput().getDraft()) terminal.getInput().setDraft(handoffDraft);
                 bindTerminal();
                 controls();
                 showPrompt();
@@ -489,24 +688,43 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
             try { attachment = attachNativeTerminal({ session, agentId: id, write, onDetach: reopen }); }
             catch (error) { if (!terminal) reopen('attachment unavailable'); throw error; }
           } else if (command === ':stop' && id) session.stop(id);
-          else if ([':review', ':inspect'].includes(command) && id) {
-            const review = await session.inspect(id);
+          else if ([':review', ':inspect', ':diff'].includes(command)) {
+            let selectedId = id;
+            if (!selectedId) selectedId = await terminal.choose({ title: 'Choose a contribution to review', items: taskItems(session.status()), signal });
+            if (!selectedId) return;
+            const review = await session.inspect(selectedId);
+            const preview = diffItems(review);
+            await terminal.browse({ title: `Changes from ${selectedId} · Right expands each file`, items: preview, signal });
+            if (preview[0]?.truncated) {
+              reviewedTokens.delete(selectedId);
+              partialReviews.add(selectedId);
+              write(`This is a partial diff preview; integration is blocked in this TUI. Read the full retained contribution with koto project inspect ${session.sessionRoot} ${selectedId} before approving it through the core CLI.\n`);
+              return;
+            }
             showReview(review, write);
             // Remember only a review actually displayed to this operator. The
             // core checks the token against the current tree again on apply.
-            reviewedTokens.set(id, review.reviewToken);
-            write(`After reviewing this diff, type :integrate ${id} to apply this contribution.\n`);
+            reviewedTokens.set(selectedId, review.reviewToken);
+            partialReviews.delete(selectedId);
+            write(`After reviewing this diff, type /integrate ${selectedId} to apply this contribution.\n`);
           } else if (command === ':integrate' && id && rest.length <= 1) {
+            if (partialReviews.has(id)) throw new Error(`The preview for ${id} was partial. Integration through this TUI requires a complete fresh review; use the core CLI for a separately reviewed exact token.`);
             const token = rest[0] ?? reviewedTokens.get(id);
-            if (!token) throw new Error(`Review ${id} first with :review ${id}.`);
+            if (!token || token !== reviewedTokens.get(id)) throw new Error(`Review ${id} first with /review ${id} in this terminal. External tokens belong to the explicit core CLI integration command.`);
+            const confirmation = await terminal.choose({ title: `Integrate the exact reviewed contribution from ${id}?`, initial: 'cancel', signal,
+              items: [{ value: 'cancel', label: 'Cancel', description: 'Keep the worktree and return to controls' },
+                { value: 'integrate', label: 'Integrate reviewed changes once', description: `Core revalidates review token ${token} before applying` }] });
+            if (confirmation !== 'integrate') return;
             const result = await session.integrate(id, { approve: token });
             reviewedTokens.delete(id);
+            partialReviews.delete(id);
             write(`${id}: ${result.status}. Integration workspace: ${session.status().integration.path}\n`);
             if (result.conflicts?.length) write(`Conflicts: ${result.conflicts.map(visible).join(', ')}\n`);
           }
           else if (command === ':resolve' && id && rest.length === 1) {
             const result = await session.resolveIntegration(id, rest[0]);
             reviewedTokens.delete(id);
+            partialReviews.delete(id);
             write(`${id}: ${result.status}. Reviewed conflict resolution recorded.\n`);
           }
           else if (command === ':pending' && !id) {
@@ -515,11 +733,15 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
           else if (command === ':reconcile' && ['record-result', 'not-applied'].includes(id) && rest.length === 1) {
             const result = await session.reconcileContributionAttempt({ resolution: id, approve: rest[0] });
             reviewedTokens.clear();
+            partialReviews.clear();
             write(`Integration attempt ${result.attemptId}: ${result.status} (${result.resolution}).\n`);
           }
           else if (command === ':quit') close();
-          else write('Use a listed :control command. Native pipe input must name its agent with :send.\n');
-        }).catch(error => write(`Control failed: ${visible(error.message)}\n`)).finally(() => {
+          else write('Use / to choose a control. Native pipe input must name its agent with /send.\n');
+        }).catch(error => {
+          if (fatalOperation(error)) { retainConversationFailure(error); close(); }
+          write(`${formatError(error)}\n`);
+        }).finally(() => {
           pendingControls -= 1;
           finishInput();
           showPrompt();
@@ -527,9 +749,9 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
       });
     };
     if (terminal) controls();
-    view = createActivityView({ write, enabled: interactive,
+    view = createActivityView({ write, enabled: interactive && !plain,
       beforeRender: () => { if (promptVisible && !controlTyping && !approvalActive && !attachment) clearPrompt(); },
-      afterRender: () => { if (promptVisible && terminal && !terminal.closed && !controlTyping && !approvalActive && !attachment) terminal.prompt(true); },
+      afterRender: () => { if (promptVisible && terminal && !terminal.closed && !controlTyping && !approvalActive && !attachment) terminal.redraw(); },
       onError: close });
     for (const agent of plan.agents) view.register({ id: agent.id, ...metadata(agent) });
     if (conversation) {
@@ -551,13 +773,58 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
     acceptingApprovals = false;
     reporting = true;
     cancelApproval?.();
-    await inputIdle;
+    // Cursor ownership is explicit now: preserve a partial compose draft while
+    // reporting the settled run rather than waiting indefinitely for Enter.
+    controlTyping = false;
+    finishInput();
     await commandQueue;
     await approvalQueue;
     view.pause();
     hidePrompt();
     attachment?.detach('agent processes ended');
     write(`\nProcess result: ${report.status}. This is not a correctness verdict.\n`);
+    const changedFiles = new Set(), outsideOwnership = new Set(), fileWarnings = [];
+    let omittedPaths = 0;
+    const resourceFailure = report.agents.some(agent => /(?:socket_exhausted|cleanup_unconfirmed)$/.test(agent.result?.error ?? ''));
+    if (!resourceFailure) for (const agent of report.agents) {
+      try {
+        // This automatic inspection collects metadata only. It deliberately
+        // cannot grant a displayed-review token or authorize integration.
+        const review = await session.inspect(agent.id);
+        const paths = new Set([...(review.changedPaths ?? []), ...(review.integrationChangedPaths ?? []),
+          ...(review.untracked ?? []).map(item => typeof item === 'string' ? item : item.path)]);
+        for (const filename of paths) {
+          if (typeof filename !== 'string') continue;
+          const entry = `${agent.id}: ${filename}`;
+          if (changedFiles.size < 4096) changedFiles.add(entry); else omittedPaths += 1;
+        }
+        for (const filename of review.outsideOwnership ?? []) outsideOwnership.add(`${agent.id}: ${filename}`);
+      } catch (error) {
+        if (fatalOperation(error)) {
+          retainConversationFailure(error); close(); throw error;
+        }
+        fileWarnings.push(`${agent.id}: ${visible(error.message)}`);
+      }
+    }
+    else fileWarnings.push('Changed-file inspection was skipped because owned cleanup/resources remain unresolved.');
+    if (fileWarnings.length) write(`Changed-file list is incomplete; unavailable inspection:\n${fileWarnings.map(item => `  ${item}`).join('\n')}\n`);
+    if (omittedPaths) write(`Changed-file collection retained the first 4096 paths; ${omittedPaths} additional observed paths were omitted.\n`);
+    write(`${formatCompletion({ ...report, goal: plan.goal, changedFiles: [...changedFiles], outsideOwnership: [...outsideOwnership] })}\n`);
+    const latestCommands = new Map();
+    for (const item of activityRecords) {
+      if (!item.command) continue;
+      const key = `${item.agentId ?? 'agent'}\0${item.command}`;
+      latestCommands.delete(key);
+      latestCommands.set(key, item);
+    }
+    const allCommands = [...latestCommands.values()];
+    const commands = allCommands.slice(-6);
+    if (commands.length) {
+      write('Observed native command receipts (latest recorded status; not independent acceptance):\n');
+      const lineWidth = Math.max(20, Math.min(120, (process.stdout.columns ?? 80) - 1));
+      for (const item of commands) write(`${clipText(`  ${clipText(item.agentId ?? 'agent', 18)} · ${visible(item.status ?? 'outcome unreported')} · ${visible(item.command).replace(/\s+/g, ' ')}`, lineWidth)}\n`);
+      if (allCommands.length > commands.length) write(`  ${allCommands.length - commands.length} more retained commands in /tools.\n`);
+    }
     showStatus();
     for (const agent of report.agents) if (agent.result?.error) write(`${agent.id}: ${visible(agent.result.errorMessage ?? agent.result.error)}\n`);
     write(`Session: ${report.sessionRoot}\nIntegration workspace: ${report.integration.path}\n`);
@@ -602,6 +869,8 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
     attachment?.detach('session ended');
     session?.stop();
     terminal?.close();
+    try { await terminal?.getInput().cancelContext(); }
+    catch (error) { retainConversationFailure(error); }
     view?.dispose({ clear: true });
     restoreRaw();
     // Keep approval routing bound until the last owned coordinator turn settles.
