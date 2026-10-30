@@ -17,6 +17,7 @@ import { createActivityView } from './activity-view.js';
 import { runProjectPlan, runProjectResume } from './project.js';
 import { configureAccounts, configureLocalModels } from './onboarding.js';
 import { startSetupCommand } from '../src/setup-command.js';
+import { listLocalEndpointModels } from '../src/local-models.js';
 import { throwOnResourceExhaustion } from '../src/bounded-fetch.js';
 
 const visible = value => stripVTControlCharacters(String(value)).replace(/[\x00-\x08\x0b-\x1f\x7f-\x9f]/g, '');
@@ -501,8 +502,8 @@ export async function runChat({ write, signal: parentSignal, version, project: s
     // Retained and approved agents keep their exact model/endpoint binding.
     // An unrelated live runtime may serve it; never replace it with our choice.
     try {
-      const ready = await checkLocalEndpoint({ kind: 'llama', endpoint: agent.localEndpoint, signal });
-      if (ready.models.some(item => item.id === agent.model)) return;
+      const models = await listLocalEndpointModels({ endpoint: agent.localEndpoint, signal });
+      if (models.some(item => item.id === agent.model)) return;
     } catch (error) {
       if (blocksFurtherWork(error) || signal.aborted) throw error;
     }

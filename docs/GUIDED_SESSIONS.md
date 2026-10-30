@@ -52,6 +52,8 @@ A local continuation can start its original model for readiness checks before
 the separate agent-launch confirmation. Koto preserves the task's exact model and
 endpoint; an unavailable original binding gets recovery guidance rather than a
 substitute model. Downloaded assets remain available while their model is stopped.
+Already-running Ollama servers stay under your control; Koto reuses the chosen
+model without starting another runtime.
 
 Use `/accounts` to rediscover subscriptions or open native sign-in. `/agents`
 shows the configured workers; `/add codex`, `/add claude` and `/add local MODEL`

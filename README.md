@@ -39,6 +39,7 @@ verification boundary.
   starts the selected runtime for local coordination, an approved local task or
   a local continuation without substituting another model or endpoint. Top-level
   help exposes everyday controls, and missing-session errors explain recovery.
+  Existing Ollama workers remain usable alongside saved managed models.
   Fresh packed installation, subscription discovery, real Codex coding, reviewed
   integration and same-conversation resume passed on macOS ARM64; see the
   [verification record](docs/CODEX_CLI_VERIFICATION.md). npm, Homebrew and Linux
