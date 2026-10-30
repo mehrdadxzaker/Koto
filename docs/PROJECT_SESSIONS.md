@@ -1,9 +1,9 @@
 # Concurrent project sessions
 
 `koto project` runs installed agent executables in separate Git worktrees,
-using the shared scheduler and session core. The guided launcher, plan commands
-and future delivery surfaces consume that same core. Codex and OpenCode profiles
-observe their declared structured protocols; ordinary commands retain their own
+using the shared scheduler and session core. The guided conversation, manual setup,
+plan commands and other delivery adapters consume that same core. Codex and
+OpenCode profiles observe their declared structured protocols; ordinary commands retain their own
 input and output contract. A process exit, native turn completion and a correct
 code change are separate facts.
 
@@ -14,11 +14,16 @@ native-agent journey on every platform.
 
 ## Start actual agents
 
-Run `koto`, choose **Start an agent session**, and select a clean, committed Git
-project. Supply a goal, agent count, deadlines, exact installed clients and models,
-and a task with literal file/directory ownership for each agent. Existing account
+For normal onboarding and coding, run `koto` and describe the work in the
+conversation. See [guided sessions](GUIDED_SESSIONS.md) for subscription discovery,
+optional local models and the proposed-plan flow.
+
+For explicit manual setup, run `koto setup`, choose **Start an agent session**,
+and select a clean, committed Git project. Supply a goal, agent count, deadlines,
+exact installed clients and models, and a task with literal file/directory
+ownership for each agent. Existing account
 authorization, local model servers and native permissions must already be set up.
-The launcher does not install models or choose a fallback provider.
+This manual launcher does not install models or choose a fallback provider.
 
 Choose **Interactive terminal** for the native interface and its prompts, or
 **Structured pipe** for native JSON lifecycle and captured-session continuation.
@@ -160,7 +165,12 @@ the commands do not guess that a lease is stale or invent a successful result.
 
 ## Continue a captured native session
 
-Choose **Resume a native agent session** in the launcher, or use:
+For everyday continuation, use `/resume` in the conversation, optionally supplying
+an agent ID. `/sessions` lets you select saved work; see
+[guided sessions](GUIDED_SESSIONS.md#everyday-use).
+
+In the advanced `koto setup` launcher, choose **Resume a native agent session**,
+or use:
 
 ```sh
 koto project resume /private/session/directory codex1 --prompt "Make the improvement you proposed in our previous turn."
