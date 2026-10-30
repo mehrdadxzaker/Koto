@@ -1,8 +1,46 @@
 # Current core delivery evidence
 
-Checkpoint: October 29, 2026.
+Checkpoint: October 30, 2026.
 
-## Fresh Homebrew, Codex and desktop handoff
+## Current Codex CLI closure
+
+The owner-confirmed CLI delivery contract in
+[#543](https://github.com/mehrdadxzaker/Koto/issues/543) is complete; the issue is
+closed as completed. Its October 27 contract makes UI and IDE delivery subsequent
+phases. Everyday Codex CLI use remains the priority.
+
+The published `3.0.0-alpha.3` CLI passed a fresh public Homebrew installation and
+two real Codex coding turns on macOS ARM64. Bare `koto` selected the current Git
+project from a subdirectory, reused the existing ChatGPT subscription and let the
+operator skip local models. Guided review, explicit approval and a separate
+merge prompt put each accepted change on the original branch. An ordinary quit
+and restart resumed the same captured native conversation and worktree; the next
+review showed only the new contribution. Both runs exited normally, all three
+worktrees were clean, and independent inspection confirmed owned-process absence.
+The [alpha.3 release record](RELEASE_ALPHA3.md) binds the installed 54 payloads,
+archive, actual prompts, original-branch commits and six continuity checks.
+
+| CLI acceptance criterion | Accepted evidence | Scope |
+| --- | --- | --- |
+| Open Koto with sensible defaults | Fresh alpha.3 Homebrew use from a nested project folder, without session paths or JSON setup | Existing macOS ARM64 host with empty Koto application state |
+| Bring existing subscriptions | Discovery followed by useful native Codex work in the same alpha.3 journey | Existing ChatGPT login; credentials stay with Codex |
+| Optionally add local models | Actual pinned runtime/Qwen3 4B download and useful local work at `8291701`; alpha.3 also exercised skipping models | [Fresh and returning Mac CLI](#fresh-and-returning-mac-cli); no new alpha.3 model download |
+| Choose a project and describe work | Edited two-agent plan and useful Codex/local contributions at `8291701`; alpha.3 guided a real single-Codex task | Explicit ownership and launch approval; [recorded cooperation](#fresh-and-returning-mac-cli) |
+| Work, control, review and integrate | Actual two-Codex native terminals, independent stop and reviewed integration at `8291701`; alpha.3 added both guided original-branch merges | [Native controls](#mac-native-terminals-and-structured-native-continuation) and [guided recovery observations](GUIDED_WORKFLOW_VERIFICATION.md) retain their source identities |
+| Return with minimal friction | Remembered setup and same local-session continuation at `8291701`; alpha.3 restart and same-native-Codex conversation/worktree continuation | Incremental review, explicit second merge and confirmed cleanup |
+| Validate supported-platform claims | Accepted Mac, Linux ARM64/OpenCode and Windows/OpenCode observations below; alpha.3 installer observations on four architectures | [Historical native evidence](#recorded-platform-observations-and-rejected-windows-retries) retains its actual revisions, failures and timeout/cancellation outcomes |
+
+Fresh acquisition/cooperation receipt SHA-256:
+`3dc6d8516466b91f198110c5d111ed65a949c98fb80031dfb09d254cef741410`.
+The current fresh-Homebrew independent audit SHA-256 is
+`4cd0de92ade507a8421a8dd7cd8ea42e3876d8466bf9b1645901231231abdfb0`.
+The historical evidence below supplies the earlier acceptance slices; it is not
+relabeled as fresh alpha.3 native Linux/Windows or local-model execution.
+Unexercised conditional branches in the [manual acceptance guide](USER_ACCEPTANCE.md)
+retain their individual status. General model quality and live Claude inference
+remain outside this closure claim.
+
+## Earlier Homebrew, Codex and desktop checkpoint — October 29, 2026
 
 A fresh Mac ARM64 Homebrew installation of `@mehrdadz/koto@3.0.0-alpha.0`
 matched all 54 immutable npm payloads. Actual CLI onboarding discovered the
