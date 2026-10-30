@@ -1,5 +1,71 @@
 # Terminal UI acceptance record
 
+## October 30 PR completion checkpoint
+
+The installed private CLI candidate at
+`7d7e5013b41ea7299358cd9c8414781ad411cf43` completed a fresh macOS ARM64
+PTY journey using the existing ChatGPT subscription through the real Codex CLI.
+The archive SHA-256 is
+`a5f49c0aca64ba71518aa47e4afb5139f50ff19a26683eca5bfcbf903f91f5ad`;
+all 62 shipped files matched that Git revision, archive and installation in
+bytes and executable modes. This development archive retains the package's
+alpha.3 version string; it is not the published alpha.3 release.
+
+Starting with bare `koto` inside a project subdirectory discovered the project
+and subscription, offered optional local models and configured one Codex
+worker. After explicit plan approval, that worker made a one-line version-alias
+change in a real Koto checkout. Guided review displayed the exact diff,
+including JavaScript backticks; explicit contribution approval and merge
+approval put the reviewed commit on the original project branch. The CLI
+exited normally. A new bare `koto` process reopened saved work, continued the
+same native conversation in the same worktree, and made a one-line help update.
+The second review contained only that new change. Its approved merge reached
+the original branch; the project, worker and integration worktrees were clean.
+All three version aliases and the updated help were independently observed.
+
+Session `s-mvv9hvba-adbcd774` retained native Codex conversation
+`01a18de9-b0ea-7263-a3ed-61f760950322`. The native session ID, workspace,
+origin, executable, account and adapter kind matched across the two successful
+attempts. Approved original-branch commits were
+`faa19be6e02274a9b78f6a517d6c61f8f3584454` and
+`0de2463ded01340cfa70cd8aae39be280a91e12a`. Both CLI processes exited zero,
+without cleanup signals, and their owned process groups were absent afterward.
+Private raw transcripts, installed-file inventory, saved session snapshots and
+manual Git/CLI observations retain these bindings.
+
+Earlier observations remain separate: one candidate was cancelled before
+worker launch after exposing an unwanted second default worker; another PTY
+controller converted Enter into a draft newline until its outer terminal was
+put in raw mode. A later candidate completed its first merge but exposed
+Markdown parsing of literal diff backticks. Those records were preserved;
+the successful journey above used the corrected candidate and controller.
+
+The subsequent `0dd1b43` source change affects only native permission display
+in `bin/chat.js` and `bin/project.js`: JSON escapes invisible controls, chat
+prints the request literally, and an incomplete request cannot expose an
+approval choice. It received independent source review and source/scope checks;
+the installed journey above is not relabeled as runtime acceptance of this
+later permission-display change. The candidate used no native permission
+request. Earlier native approval observations below keep their original scope.
+
+The final source also repairs the five PR review findings: inspection rejects
+custom Git filters before status; model choices respect the coordinator
+provider; skill identities include their discovery root; plain mode disables
+animated build activity; local inspection prompts fit the adapter's actual
+input budget. The scope check fingerprints all 54 immutable IDE archive entries
+without requiring new source modules to exist in that older frozen archive.
+Published archives and their distribution pins remain unchanged.
+
+Repository instructions prohibit automated suites. Three subsequently added
+TUI suite files and their npm test script were removed from the active tree;
+their commits remain in Git history. No suite, fixture agent, benchmark or load
+test was run during this completion. `npm run check` and manual product
+observations are reported separately from exact-head and exact-main CI.
+Linux/Windows native TUI, screen-reader software and final desktop GUI
+acceptance have not been added by this checkpoint.
+
+## October 28 component observations
+
 October 28, 2026. The code snapshot for this record is
 `bf3754a3491cbbe98f51eec60325e975dcb0549b`. This document records implementation
 and particular observations; it is not itself a runtime test.
