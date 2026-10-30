@@ -34,15 +34,16 @@ verification boundary.
 
 ## Latest
 
-- **CLI `3.0.0-alpha.3` published — guided Codex workflow.** Run `koto` in
-  your Git project, including a subdirectory. It selects that project, reuses an
-  existing Codex subscription, and guides review, approval, merging back to the
-  original branch and same-conversation resume. Each merge requires explicit
-  approval of the displayed changes and a clean, unchanged branch; saved work
-  stays available when merging needs attention. See the
-  [workflow verification record](docs/GUIDED_WORKFLOW_VERIFICATION.md). The public
-  npm archive is independently verified; Homebrew/Linux pins and fresh Homebrew
-  qualification are tracked in the [release record](docs/RELEASE_ALPHA3.md).
+- **October 30, 2026 — CLI `3.0.0-alpha.3` released and verified through Homebrew.**
+  Run `koto` in your Git project, including a subdirectory. It reuses your existing
+  Codex subscription and guides review, explicit approval, merge-back to the
+  original branch and resume. A fresh public Homebrew install on macOS ARM64
+  passed project/subscription discovery, two real Codex coding turns, both
+  reviewed original-branch merges, restart and same-conversation continuation.
+  The resumed review showed only the new change. npm's `latest` and `alpha` tags,
+  Homebrew and Linux select the same frozen archive. See the
+  [release and fresh-workflow record](docs/RELEASE_ALPHA3.md), with the separate
+  [candidate observations](docs/GUIDED_WORKFLOW_VERIFICATION.md) and limits.
 - **CLI `3.0.0-alpha.2` released and verified through Homebrew.** Saved local
   workers no longer load a model when returning to a Codex conversation. Local
   work retains its approved model and endpoint; existing Ollama workers remain
