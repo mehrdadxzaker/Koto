@@ -21,6 +21,22 @@ const requestId = value => typeof value === 'string' && value.length <= 128 || N
 const text = (value, maximum) => typeof value === 'string' && value.trim() && !value.includes('\0') && Buffer.byteLength(value) <= maximum;
 const detail = (value, maximum = 2048) => typeof value === 'string' ? value.slice(0, maximum) : undefined;
 function failure(code) { return Object.assign(new Error(code), { code }); }
+function settleObserver(entry, failed) {
+  const capacity = entry.capacity;
+  if (!capacity) return;
+  entry.capacity = undefined;
+  capacity.pending -= 1;
+  const owner = entry.owner;
+  if (!owner) return;
+  entry.owner = undefined;
+  owner.pending.delete(entry);
+  if (failed) owner.fail('native_observer_failed');
+}
+function retireObservers(owner) {
+  owner.retired = true;
+  for (const entry of owner.pending) entry.owner = undefined;
+  owner.pending.clear();
+}
 
 /** Stateful native Codex JSON-RPC client. No tokens are read or copied. One
  * explicit operator decision answers one native request; policy amendments,
@@ -49,20 +65,29 @@ export function createCodexAppServerSession({ id = 'codex', command, cwd, model,
   let blocked = false;
   let closedByCaller = false;
   let nextRequest = 0;
-  let pendingObservers = 0;
-
-  const emit = event => {
+  const observerCapacity = { pending: 0 };
+  const emit = (turn, event) => {
     if (!onEvent) return;
-    if (pendingObservers >= 64) { breakConnection(connection, 'native_observer_overflow'); return; }
+    const owner = turn?.observers;
+    const live = owner && !owner.retired;
+    if (observerCapacity.pending >= 64) { if (live) owner.fail('native_observer_overflow'); return; }
+    // Reserve before invoking caller code, which can synchronously reenter.
+    // Retiring a turn detaches ownership without releasing unfinished callbacks.
+    observerCapacity.pending += 1;
+    let entry;
     try {
       const value = onEvent(Object.freeze({ ...event, agentId: id, kind: 'codex' }));
       if (value && typeof value.then === 'function') {
-        pendingObservers += 1;
-        Promise.resolve(value).then(() => { pendingObservers -= 1; }, () => {
-          pendingObservers -= 1; breakConnection(connection, 'native_observer_failed');
-        });
-      }
-    } catch { breakConnection(connection, 'native_observer_failed'); }
+        const observed = Promise.resolve(value);
+        entry = { capacity: observerCapacity, owner: live ? owner : undefined };
+        if (live) owner.pending.add(entry);
+        observed.then(settleObserver.bind(undefined, entry, false),
+          settleObserver.bind(undefined, entry, true));
+      } else observerCapacity.pending -= 1;
+    } catch {
+      if (entry) settleObserver(entry, false); else observerCapacity.pending -= 1;
+      if (live) owner.fail('native_observer_failed');
+    }
   };
   const environment = () => Object.fromEntries(Object.entries(process.env)
     .filter(([key]) => !/^GIT_/i.test(key) && !API_ENV.has(key.toUpperCase())
@@ -163,8 +188,8 @@ export function createCodexAppServerSession({ id = 'codex', command, cwd, model,
     // one-action approval. Unknown command/input approval kinds fail closed.
     const supported = visibleAction && !params.grantRoot && (params.kind === undefined || params.kind === 'command')
       && (!item?.changes || item.changes.length <= 64);
-    emit({ type: 'agent_status', status: 'waiting_permission' });
-    emit({ type: 'activity', activity: 'permission_request', status: 'waiting', description: 'Native approval requested',
+    emit(turn, { type: 'agent_status', status: 'waiting_permission' });
+    emit(turn, { type: 'activity', activity: 'permission_request', status: 'waiting', description: 'Native approval requested',
       requestId: message.id, threadId, turnId: turn.turnId, itemId: params.itemId });
     // This is the host's actual decision window, not a native/model-supplied
     // timeout. Queued prompts must display the remaining time, not restart it.
@@ -199,10 +224,10 @@ export function createCodexAppServerSession({ id = 'codex', command, cwd, model,
     current.approvals.delete(message.id);
     entry.cancelled = true; entry.controller.abort();
     respond(current, message.id, { decision: nativeDecision });
-    emit({ type: 'activity', activity: 'permission_decision', status: nativeDecision === 'accept' ? 'approved' : 'denied',
+    emit(turn, { type: 'activity', activity: 'permission_decision', status: nativeDecision === 'accept' ? 'approved' : 'denied',
       description: nativeDecision === 'accept' ? 'Operator approved native action' : 'Native action denied', requestId: message.id });
     if (active === turn && !turn.settled && !turn.cancelled && current.approvals.size === 0) {
-      emit({ type: 'agent_status', status: 'running' });
+      emit(turn, { type: 'agent_status', status: 'running' });
     }
   }
 
@@ -332,14 +357,14 @@ export function createCodexAppServerSession({ id = 'codex', command, cwd, model,
       if (params.threadId !== threadId) return;
       const entry = current.approvals.get(params.requestId);
       if (entry) { entry.cancelled = true; entry.controller.abort(); current.approvals.delete(params.requestId); }
-      if (active && current.approvals.size === 0) emit({ type: 'agent_status', status: 'running' });
+      if (active?.connection === current && current.approvals.size === 0) emit(active, { type: 'agent_status', status: 'running' });
       return;
     }
     const turn = active;
     if (!turn || turn.connection !== current || turn.settled || !turn.startRequested || params.threadId !== threadId) return;
     if (method === 'turn/started') {
       if (!bindTurn(current, turn, params.turn?.id)) return;
-      emit({ type: 'agent_status', status: 'running' });
+      emit(turn, { type: 'agent_status', status: 'running' });
       return;
     }
     if (method === 'turn/completed') {
@@ -353,7 +378,7 @@ export function createCodexAppServerSession({ id = 'codex', command, cwd, model,
       }
       current.parentCompleted = true;
       const nativeWorkPending = unresolvedWork(current);
-      if (nativeWorkPending) emit({ type: 'activity', activity: 'native_work', status: 'unknown', description: 'Native work completion unconfirmed' });
+      if (nativeWorkPending) emit(turn, { type: 'activity', activity: 'native_work', status: 'unknown', description: 'Native work completion unconfirmed' });
       // Drain the owned transport before assessing any final native evidence.
       // Process exit alone cannot clear outstanding commands or delegates.
       finishTurn(turn, { nativeStatus: params.turn.status, nativeWorkPending });
@@ -373,7 +398,7 @@ export function createCodexAppServerSession({ id = 'codex', command, cwd, model,
         if (turn.streamedItems.size >= 256 && !turn.streamedItems.has(params.itemId)) { breakConnection(current, 'native_activity_limit'); return; }
         turn.streamedItems.add(params.itemId);
       }
-      emit({ type: 'assistant_delta', text: params.delta });
+      emit(turn, { type: 'assistant_delta', text: params.delta });
     } else if (['item/started', 'item/completed'].includes(method) && object(params.item)) {
       const item = params.item;
       if (['fileChange', 'commandExecution'].includes(item.type) && validId(item.id)) {
@@ -387,19 +412,19 @@ export function createCodexAppServerSession({ id = 'codex', command, cwd, model,
       if (item.type === 'agentMessage' && method === 'item/completed' && typeof item.text === 'string') {
         if (Buffer.byteLength(item.text) > TEXT_LIMIT) { breakConnection(current, 'native_text_limit'); return; }
         turn.text = item.text;
-        emit({ type: 'assistant_message', text: item.text, messageId: item.id, streamed: turn.streamedItems.has(item.id) });
+        emit(turn, { type: 'assistant_message', text: item.text, messageId: item.id, streamed: turn.streamedItems.has(item.id) });
       } else if (item.type === 'commandExecution') {
-        emit({ type: 'activity', activity: 'command', description: 'Native command', status, command: detail(item.command) });
+        emit(turn, { type: 'activity', activity: 'command', description: 'Native command', status, command: detail(item.command) });
       } else if (item.type === 'fileChange') {
-        emit({ type: 'activity', activity: 'file_change', description: 'Native file changes', status,
+        emit(turn, { type: 'activity', activity: 'file_change', description: 'Native file changes', status,
           files: Array.isArray(item.changes) ? item.changes.slice(0, 64).map(change => detail(change.path)).filter(Boolean) : [] });
       } else if (item.type === 'collabAgentToolCall') {
-        emit({ type: 'activity', activity: 'delegation', description: 'Native agent operation', status, tool: detail(item.tool, 128) });
+        emit(turn, { type: 'activity', activity: 'delegation', description: 'Native agent operation', status, tool: detail(item.tool, 128) });
       } else if (['mcpToolCall', 'dynamicToolCall'].includes(item.type)) {
-        emit({ type: 'activity', activity: 'tool', description: 'Native tool call', status, tool: detail(item.tool, 128) });
+        emit(turn, { type: 'activity', activity: 'tool', description: 'Native tool call', status, tool: detail(item.tool, 128) });
       }
     } else if (method === 'error') {
-      emit({ type: 'activity', activity: 'native_turn', description: params.willRetry ? 'Native transport retry reported' : 'Native error reported', status: 'failed' });
+      emit(turn, { type: 'activity', activity: 'native_turn', description: params.willRetry ? 'Native transport retry reported' : 'Native error reported', status: 'failed' });
     } else if (method === 'thread/tokenUsage/updated' && object(params.tokenUsage?.last)) {
       const source = params.tokenUsage.last;
       const usage = { actualCostUsd: null, scope: 'turn' };
@@ -407,7 +432,7 @@ export function createCodexAppServerSession({ id = 'codex', command, cwd, model,
         if (Number.isSafeInteger(source[key]) && source[key] >= 0) usage[key] = source[key];
       }
       turn.usage = usage;
-      emit({ type: 'usage', usage });
+      emit(turn, { type: 'usage', usage });
     }
   }
 
@@ -452,8 +477,8 @@ export function createCodexAppServerSession({ id = 'codex', command, cwd, model,
       signal: current.launchController.signal,
       args: ['app-server', '--listen', 'stdio://', '-c', 'forced_login_method="chatgpt"', '-c', 'model_provider="openai"'],
       onEvent(event) {
-        if (event.type === 'terminal_cleanup') { emit(event); return; }
-        if (event.type === 'started') { emit({ type: 'started', pid: event.pid }); return; }
+        if (event.type === 'terminal_cleanup') { emit(active?.connection === current ? active : undefined, event); return; }
+        if (event.type === 'started') { emit(active?.connection === current ? active : undefined, { type: 'started', pid: event.pid }); return; }
         if (event.type !== 'output') return;
         if (event.stream === 'stderr') {
           current.diagnostics = Buffer.from(current.diagnostics + event.text).subarray(-16_380).toString('utf8'); return;
@@ -563,7 +588,11 @@ export function createCodexAppServerSession({ id = 'codex', command, cwd, model,
       const ready = new Promise(done => { resolveReady = done; });
       const turn = { resolve, terminal, settled: false, cancelled: false, turnId: undefined, connection: undefined,
         ready, resolveReady, earlyEvents: [], startRequested: false,
-        deadline: performance.now() + timeoutMs, text: '', deltaText: '', streamedItems: new Set(), usage: undefined, approved: 0, denied: 0 };
+        deadline: performance.now() + timeoutMs, text: '', deltaText: '', streamedItems: new Set(), usage: undefined, approved: 0, denied: 0,
+        observers: { pending: new Set(), retired: false } };
+      turn.observers.fail = code => {
+        if (active === turn) breakConnection(turn.connection, code);
+      };
       active = turn;
       const abort = () => api.stop();
       signal?.addEventListener('abort', abort, { once: true });
@@ -574,7 +603,7 @@ export function createCodexAppServerSession({ id = 'codex', command, cwd, model,
       let final;
       let processOutcome;
       try {
-        emit({ type: 'agent_status', status: 'starting' });
+        emit(turn, { type: 'agent_status', status: 'starting' });
         if (turn.settled) throw failure(turn.terminalOutcome?.error ?? 'native_observer_failed');
         const current = await ensureConnection(turn);
         turn.connection = current;
@@ -592,7 +621,7 @@ export function createCodexAppServerSession({ id = 'codex', command, cwd, model,
         threadId = opened.thread.id;
         rootSessionId = opened.thread.sessionId;
         current.items.clear();
-        emit({ type: 'session_started', sessionId: threadId, rootSessionId, resumed });
+        emit(turn, { type: 'session_started', sessionId: threadId, rootSessionId, resumed });
         if (turn.cancelled || turn.settled) throw failure(current.error ?? 'native_cancelled');
         turn.startRequested = true;
         const started = await rpc(current, 'turn/start', { threadId, cwd, input: [{ type: 'text', text: prompt }],
@@ -614,10 +643,17 @@ export function createCodexAppServerSession({ id = 'codex', command, cwd, model,
       } finally {
         clearTimeout(turn.timer); clearTimeout(turn.interruptTimer);
         signal?.removeEventListener('abort', abort);
-        if (mode === 'coding' || final?.error || final?.nativeWorkPending || unresolvedWork(turn.connection) || turn.cancelled) {
-          processOutcome = await shutdownConnection(turn.connection);
+        try {
+          if (mode === 'coding' || final?.error || final?.nativeWorkPending || unresolvedWork(turn.connection) || turn.cancelled) {
+            processOutcome = await shutdownConnection(turn.connection);
+          }
+        } finally {
+          // Observer code is caller-owned and may never settle. Detach its
+          // bounded tokens before admitting another turn; late failures cannot
+          // stop a newer turn or retain this turn's transport through a token.
+          retireObservers(turn.observers);
+          active = undefined;
         }
-        active = undefined;
       }
       const error = processOutcome?.error === 'cleanup_unconfirmed' || final?.error === 'cleanup_unconfirmed' || unresolvedWork(turn.connection) ? 'cleanup_unconfirmed'
         : processOutcome?.error === 'process_socket_exhausted' ? processOutcome.error
@@ -632,7 +668,7 @@ export function createCodexAppServerSession({ id = 'codex', command, cwd, model,
         ...(error === 'native_state_not_writable' ? { errorMessage: 'Codex requires a writable native runtime home. Use its supported account-owned environment without moving managed credentials.' }
           : error === 'setup_terminal_helper_required' ? { errorMessage: 'Prepare Windows process support with `koto terminal build` using installed developer tools, then reopen Koto.' } : {}),
         exitCode: processOutcome?.exitCode ?? null, ...(processOutcome?.signal ? { signal: processOutcome.signal } : {}) };
-      emit({ type: 'agent_status', status, ...(error ? { error } : {}) });
+      emit(turn, { type: 'agent_status', status, ...(error ? { error } : {}) });
       return result;
     },
   };
