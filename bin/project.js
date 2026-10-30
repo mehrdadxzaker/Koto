@@ -1,6 +1,7 @@
 import { open } from 'node:fs/promises';
 import { constants } from 'node:fs';
-import { basename } from 'node:path';
+import { createInterface, clearLine, clearScreenDown, cursorTo, moveCursor } from 'node:readline';
+import { basename, resolve } from 'node:path';
 import { createProjectSession, resumeProjectSession, readProjectSession, validateProjectPlan, preflightProjectPlan,
   inspectProjectSession, integrateProjectSession, finalizeProjectSessionIntegration,
   inspectProjectContributionAttempt, reconcileProjectContributionAttempt } from '../src/index.js';
@@ -63,8 +64,23 @@ function showContributionAttempt(attempt, write) {
   else write(`Review these refs and the retained outcome before approving a resolution: ${attempt.possibleResolutions.join(', ')}.\n`);
 }
 
+/** Classify only the requested session metadata, never unrelated filesystem failures. */
+export async function runProjectCli(args, options = {}) {
+  try { return await runProjectCommand(args, options); }
+  catch (error) {
+    const sessionCommand = ['status', 'inspect', 'pending', 'integrate', 'resolve', 'reconcile', 'resume'].includes(args?.[0]);
+    if (sessionCommand && typeof args[1] === 'string' && error?.code === 'ENOENT'
+        && typeof error.path === 'string' && resolve(error.path) === resolve(args[1], 'project-session.json')) {
+      throw Object.assign(new Error('project_session_not_found'), {
+        code: 'project_session_not_found', sessionDirectory: resolve(args[1]),
+      });
+    }
+    throw error;
+  }
+}
+
 /** Terminal rendering is a thin consumer of core session operations/events. */
-export async function runProjectCli(args, { write, signal } = {}) {
+async function runProjectCommand(args, { write, signal } = {}) {
   if (!args.length || args[0] === '--help') { write(help); return 0; }
   if (args[0] === 'status' && args.length === 2) {
     const state = readProjectSession(args[1]);
@@ -113,30 +129,32 @@ export async function runProjectCli(args, { write, signal } = {}) {
 
 /** Launchers and plan files use the same terminal/session implementation. */
 export async function runProjectPlan(source, { write, signal, headless = false, approved = false,
-  expectedBaseCommit, onEvent, onSession, compact = false, conversation } = {}) {
-  return runSessionTerminal(source, { write, signal, headless, approved, expectedBaseCommit, onEvent, onSession, compact, conversation });
+  expectedBaseCommit, onEvent, onSession, onComplete, compact = false, conversation, guided = false } = {}) {
+  return runSessionTerminal(source, { write, signal, headless, approved, expectedBaseCommit, onEvent, onSession, onComplete, compact, conversation, guided });
 }
 
 /** An explicit resume shares every terminal control with an initial launch. */
 export async function runProjectResume(sessionRoot, agentId, { prompt, write, signal, headless = false,
-  approved = false, onEvent, conversation } = {}) {
+  approved = false, onEvent, onComplete, guided = false, conversation } = {}) {
   let observe;
   let approve;
   const prepared = await resumeProjectSession(sessionRoot, agentId, { prompt, signal,
     onEvent: event => observe?.(event), onApproval: request => approve?.(request) ?? false });
   try {
     return await runSessionTerminal(prepared.launchPlan, { write, signal, headless, approved,
-      prepared, onEvent, conversation, observe: callback => { observe = callback; },
+      prepared, onEvent, onComplete, guided, conversation, observe: callback => { observe = callback; },
       bindApproval: callback => { approve = callback; } });
   } finally { prepared.stop(); }
 }
 
 async function runSessionTerminal(source, { write, signal, headless, approved, prepared, observe,
-  bindApproval, expectedBaseCommit, onEvent, onSession, compact = false, conversation } = {}) {
+  bindApproval, expectedBaseCommit, onEvent, onSession, onComplete, compact = false, conversation, guided = false } = {}) {
   const plan = validateProjectPlan(source);
   if (expectedBaseCommit !== undefined && (typeof expectedBaseCommit !== 'string'
     || !/^[a-f0-9]{40,64}$/.test(expectedBaseCommit))) throw new TypeError('Use the exact reviewed project base commit.');
   if (onEvent !== undefined && typeof onEvent !== 'function') throw new TypeError('onEvent must be a function.');
+  if (onComplete !== undefined && typeof onComplete !== 'function') throw new TypeError('onComplete must be a function.');
+  if (typeof guided !== 'boolean') throw new TypeError('guided must be a boolean.');
   if (conversation !== undefined && (!conversation || typeof conversation.send !== 'function'
     || typeof conversation.stop !== 'function' || typeof conversation.bind !== 'function')) {
     throw new TypeError('A conversation requires send, stop and bind functions.');
@@ -815,15 +833,22 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
         : 'Socket or file-descriptor capacity is unavailable. The owned project was stopped and retained; inspect system resources before retrying.'),
       { code: cleanupUnconfirmed ? 'cleanup_unconfirmed' : 'local_socket_exhausted' });
     }
+    const offerGuidance = !closed && !signal?.aborted;
     if (terminal && !closed) {
-      write('Agents ended. Inspect and explicitly integrate contributions, or :quit to retain all worktrees.\n');
-      acceptingApprovals = Boolean(conversation);
-      reporting = false;
-      showPrompt();
-      await terminalClosed;
+      if (guided) {
+        write('Work retained. Returning to guided review and next steps.\n');
+        close();
+      } else {
+        write('Agents ended. Inspect and explicitly integrate contributions, or :quit to retain all worktrees.\n');
+        acceptingApprovals = Boolean(conversation);
+        reporting = false;
+        showPrompt();
+        await terminalClosed;
+      }
     }
     await commandQueue;
     if (conversationFailure) throw conversationFailure;
+    if (!guided || offerGuidance) await onComplete?.(report);
     return report.status === 'succeeded' ? 0 : 1;
   } finally {
     signal?.removeEventListener('abort', onAbort);

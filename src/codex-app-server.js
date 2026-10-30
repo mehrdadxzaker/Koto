@@ -486,7 +486,7 @@ export function createCodexAppServerSession({ id = 'codex', command, cwd, model,
       current.handle.stop();
       throw failure(current.error ?? 'native_cancelled');
     }
-    await rpc(current, 'initialize', { clientInfo: { name: 'koto', title: 'Koto', version: '3.0.0-alpha.0' },
+    await rpc(current, 'initialize', { clientInfo: { name: 'koto', title: 'Koto', version: '3.0.0-alpha.1' },
       capabilities: { experimentalApi: false } }, Math.min(15_000, timeoutMs));
     sendMessage(current, { method: 'initialized' });
     const accountInfo = await rpc(current, 'account/read', { refreshToken: false });

@@ -1,6 +1,6 @@
 {
   "name": "@mehrdadz/koto-desktop",
-  "version": "3.0.0-alpha.0",
+  "version": "3.0.0-alpha.1",
   "private": true,
   "type": "module",
   "description": "A sidebar and the real Koto terminal in one local desktop window.",

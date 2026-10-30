@@ -1,9 +1,9 @@
 export { runWorkflow, validateWorkflow } from './core.js';
-export { createProjectSession, resumeProjectSession, readProjectSession, prepareProjectFollowUp, validateProjectPlan, inspectProjectSession, integrateProjectSession, finalizeProjectSessionIntegration, inspectProjectContributionAttempt, reconcileProjectContributionAttempt } from './project-session.js';
+export { createProjectSession, resumeProjectSession, readProjectSession, prepareProjectFollowUp, validateProjectPlan, inspectProjectSession, integrateProjectSession, finalizeProjectSessionIntegration, inspectProjectContributionAttempt, reconcileProjectContributionAttempt, inspectProjectMerge, mergeProjectSession } from './project-session.js';
 export { buildDarwinPtyHelper, resolveDarwinPtyHelper } from './native-helper.js';
 export { buildProjectPlan, preflightProjectPlan } from './project-plan.js';
 export { createAgentProfile, describeAgentProfile, AGENT_PROFILE_DEFAULTS } from './agent-profiles.js';
-export { inspectLaunchProject, resolveAgentExecutable } from './launch-preflight.js';
+export { inspectLaunchProject, discoverProjectRoot, resolveAgentExecutable } from './launch-preflight.js';
 export { prepareProject } from './project-setup.js';
 export { createNativeAgentSession } from './native-agent.js';
 export { createCodingAgentSession } from './coding-agent.js';

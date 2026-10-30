@@ -19,7 +19,7 @@ of the published release. Keep the invocation directory separate from artifacts.
 Run the pinned package instead of a possibly unrelated global `koto` executable:
 
 ```sh
-npx --yes --registry=https://registry.npmjs.org/ --package=@mehrdadz/koto@3.0.0-alpha.0 -- koto --version
+npx --yes --registry=https://registry.npmjs.org/ --package=@mehrdadz/koto@3.0.0-alpha.1 -- koto --version
 ```
 
 Use that full prefix for every Koto call. Node.js 22+ and Git are prerequisites.

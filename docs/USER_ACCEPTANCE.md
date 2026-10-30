@@ -14,7 +14,17 @@ for the selected model. The advanced PTY slice also needs existing developer
 tools to build the host helper. Native interactive behavior on Linux and Windows
 must be observed on those actual hosts before claiming equivalent acceptance.
 
-## Current observation checkpoint — October 28, 2026
+## Current Codex CLI checkpoint — October 30, 2026
+
+Issue [#543](https://github.com/mehrdadxzaker/Koto/issues/543) is closed as
+completed for its owner-confirmed CLI delivery contract. The
+[current acceptance matrix](CORE_STATUS.md#current-codex-cli-closure) combines
+the retained acquisition/cooperation and native-platform evidence with the
+[published alpha.3 fresh Homebrew Codex workflow](RELEASE_ALPHA3.md).
+The checklist below remains a manual observation guide; unexercised conditional
+branches keep their individual evidence status.
+
+## Earlier observation checkpoint — October 28, 2026
 
 These labels describe the named installed observations, not a blanket pass for
 all instructional or conditional branches below. Exact artifact bindings,

@@ -28,8 +28,56 @@ project work, native terminal controls, supported conversation continuation and
 approval-based integration. **Koto is alpha software.** The recorded CLI
 acceptance is tracked in [#543](https://github.com/mehrdadxzaker/Koto/issues/543);
 [installation and release notes](docs/INSTALLATION.md) track npm publication and
-registry verification separately. IDE plugins and Koto's own UI are the next
-delivery phase, using the same JavaScript core.
+registry verification separately. An unsigned macOS ARM64 desktop preview and
+the new IDE preview use the same JavaScript core; each interface has its own
+verification boundary.
+
+## Latest
+
+- **October 30, 2026 — #543 CLI completion confirmed; GitHub check inconsistency resolved.**
+  One exact-job rerun produced consistent successful checks on the same merge
+  commit, preserving the original contradictory attempt. The
+  [CLI acceptance matrix](docs/CORE_STATUS.md#current-codex-cli-closure) ties the
+  completed contract to actual onboarding, local/Codex cooperation, review,
+  merge-back and resume evidence. Everyday Codex CLI use remains the priority.
+- **October 30, 2026 — CLI `3.0.0-alpha.3` released and verified through Homebrew.**
+  Run `koto` in your Git project, including a subdirectory. It reuses your existing
+  Codex subscription and guides review, explicit approval, merge-back to the
+  original branch and resume. A fresh public Homebrew install on macOS ARM64
+  passed project/subscription discovery, two real Codex coding turns, both
+  reviewed original-branch merges, restart and same-conversation continuation.
+  The resumed review showed only the new change. npm's `latest` and `alpha` tags,
+  Homebrew and Linux select the same frozen archive. See the
+  [release and fresh-workflow record](docs/RELEASE_ALPHA3.md), with the separate
+  [candidate observations](docs/GUIDED_WORKFLOW_VERIFICATION.md) and limits.
+- **CLI `3.0.0-alpha.2` released and verified through Homebrew.** Saved local
+  workers no longer load a model when returning to a Codex conversation. Local
+  work retains its approved model and endpoint; existing Ollama workers remain
+  usable alongside saved managed models. Help exposes everyday controls, and
+  missing-session errors explain recovery. A fresh public Homebrew install on
+  macOS ARM64 passed automatic ChatGPT subscription discovery, real Codex coding,
+  explicit review/integration, restart and same-conversation resume. The resumed
+  review showed only the new change. See the historical
+  [release and workflow record](docs/RELEASE_ALPHA2.md) and
+  [earlier candidate observations](docs/CODEX_CLI_VERIFICATION.md).
+- **Codex CLI first.** Koto's primary workflow is everyday CLI use with your
+  existing Codex/ChatGPT subscription. Smooth onboarding, remembered projects,
+  review and resuming the same conversation take priority. Desktop and IDE
+  integrations remain optional.
+- **October 29, 2026 — CLI `3.0.0-alpha.1` released.**
+  [Release notes](https://github.com/mehrdadxzaker/Koto/releases/tag/v3.0.0-alpha.1).
+  Fresh Homebrew onboarding, real Codex/local contributions, reviewed
+  integration and same-conversation resume passed on macOS ARM64. The rebuilt
+  unsigned desktop preview reused that same state and passed its own workflow;
+  [#543](https://github.com/mehrdadxzaker/Koto/issues/543) preserves the evidence
+  and historical platform limits.
+- **Koto IDE preview `0.1.0`** bundles the published `3.0.0-alpha.1` core,
+  reusing subscriptions, optional local models, projects and sessions. Actual
+  onboarding, coding, review, exact-session resume, integration and lifecycle
+  controls were observed in VS Code `1.144.0` and Cursor `3.27.22` on macOS ARM64.
+  Saved-session refresh and Stop presentation fixes are included. See the
+  [installation and verification details](docs/IDE_PLUGINS.md), including earlier failures.
+  Other IDE/OS combinations, remote/web use and Marketplace publication are outside this verification.
 
 ## How it works
 
@@ -43,7 +91,7 @@ delivery phase, using the same JavaScript core.
 | See and control work | Live output, process/native status, per-agent stop, native terminal input, resize and detach |
 | Decide what to keep | Contribution diffs, approval bound to current contents, and integration into a separate worktree |
 | Return to earlier work | Remembered setup and saved builds; supported exact-conversation continuation and review of later integration deltas |
-| Use another interface later | Shared discovery, planning, session and integration APIs with TypeScript declarations |
+| Use another interface | Desktop and IDE previews consume shared discovery, planning, session and integration operations |
 
 ### Observed with real agents
 
@@ -64,14 +112,35 @@ See [current evidence](docs/CORE_STATUS.md) and the
 
 ## Quick start
 
-You need **Node.js 22+ with npm**. Project work also needs Git on an absolute PATH
+Choose Homebrew, the Linux installer, or npm/npx. Project work needs Git on an absolute PATH
 entry and a clean, committed Git repository. Koto can discover existing native
 clients or offer their private installation and native sign-in. You can use a
 subscription, a local model, or both; a local-model download is optional.
 
 ### 1. Open Koto
 
-The alpha release installation path is:
+With Homebrew:
+
+```sh
+brew tap mehrdadxzaker/koto https://github.com/mehrdadxzaker/Koto.git
+brew install mehrdadxzaker/koto/koto
+koto
+```
+
+On x64 or ARM64 GNU/Linux, the installer acquires its own verified Node runtime:
+
+```sh
+curl -fsSL --connect-timeout 10 --max-time 30 \
+  https://raw.githubusercontent.com/mehrdadxzaker/Koto/main/install.sh | sh
+"$HOME/.local/bin/koto"
+```
+
+The installer uses `~/.local/share/koto` and `~/.local/bin`, prints PATH guidance
+when needed, and preserves account/model/project state on uninstall. See
+[installation](docs/INSTALLATION.md) for Linux prerequisites, custom locations,
+updates and removal. Both routes package the published alpha CLI.
+
+With **Node.js 22+ and npm** already installed:
 
 ```sh
 npm install --global @mehrdadz/koto@alpha
@@ -87,7 +156,7 @@ npx --yes @mehrdadz/koto@alpha
 To select the exact prerelease version instead of following the `alpha` tag:
 
 ```sh
-npm install --global @mehrdadz/koto@3.0.0-alpha.0
+npm install --global @mehrdadz/koto@3.0.0-alpha.3
 koto
 ```
 
@@ -134,7 +203,7 @@ Or build and install the local package from that checkout:
 
 ```sh
 npm pack --ignore-scripts
-npm install --global ./mehrdadz-koto-3.0.0-alpha.0.tgz
+npm install --global ./mehrdadz-koto-3.0.0-alpha.1.tgz
 koto
 ```
 
@@ -237,7 +306,7 @@ No hand-written JSON plan is required for normal setup.
 | Cancellation | Owned process/session or Job Object cleanup must be confirmed. `cleanup_unconfirmed` blocks resume and integration. |
 | Recovery | No automatic task replay, conflict decision or worktree deletion. Pending integration outcomes require explicit reconciliation; native clients may perform their own retries. |
 | Evidence | Source/helper CI, package identity and actual task outcomes are separate. Observed platform/client limits are recorded in the acceptance documents. |
-| Delivery | CLI and shared API are implemented; IDE plugins and Koto's own UI remain planned. Alpha publication and registry-install verification are separate release steps. |
+| Delivery | CLI `3.0.0-alpha.1` is released; the desktop is an unsigned macOS ARM64 preview. IDE preview journeys were observed in VS Code `1.144.0` and Cursor `3.27.22` on macOS ARM64; other hosts and Marketplace delivery retain separate gates. |
 
 Private choices normally live in `~/.koto/preferences.json`; `KOTO_STATE_DIR`
 selects another private absolute state directory for the guided journey. Session

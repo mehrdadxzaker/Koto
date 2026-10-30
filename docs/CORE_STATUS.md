@@ -1,6 +1,83 @@
 # Current core delivery evidence
 
-Checkpoint: October 28, 2026.
+Checkpoint: October 30, 2026.
+
+## Current Codex CLI closure
+
+The owner-confirmed CLI delivery contract in
+[#543](https://github.com/mehrdadxzaker/Koto/issues/543) is complete; the issue is
+closed as completed. Its October 27 contract makes UI and IDE delivery subsequent
+phases. Everyday Codex CLI use remains the priority.
+
+The published `3.0.0-alpha.3` CLI passed a fresh public Homebrew installation and
+two real Codex coding turns on macOS ARM64. Bare `koto` selected the current Git
+project from a subdirectory, reused the existing ChatGPT subscription and let the
+operator skip local models. Guided review, explicit approval and a separate
+merge prompt put each accepted change on the original branch. An ordinary quit
+and restart resumed the same captured native conversation and worktree; the next
+review showed only the new contribution. Both runs exited normally, all three
+worktrees were clean, and independent inspection confirmed owned-process absence.
+The [alpha.3 release record](RELEASE_ALPHA3.md) binds the installed 54 payloads,
+archive, actual prompts, original-branch commits and six continuity checks.
+
+| CLI acceptance criterion | Accepted evidence | Scope |
+| --- | --- | --- |
+| Open Koto with sensible defaults | Fresh alpha.3 Homebrew use from a nested project folder, without session paths or JSON setup | Existing macOS ARM64 host with empty Koto application state |
+| Bring existing subscriptions | Discovery followed by useful native Codex work in the same alpha.3 journey | Existing ChatGPT login; credentials stay with Codex |
+| Optionally add local models | Actual pinned runtime/Qwen3 4B download and useful local work at `8291701`; alpha.3 also exercised skipping models | [Fresh and returning Mac CLI](#fresh-and-returning-mac-cli); no new alpha.3 model download |
+| Choose a project and describe work | Edited two-agent plan and useful Codex/local contributions at `8291701`; alpha.3 guided a real single-Codex task | Explicit ownership and launch approval; [recorded cooperation](#fresh-and-returning-mac-cli) |
+| Work, control, review and integrate | Actual two-Codex native terminals, independent stop and reviewed integration at `8291701`; alpha.3 added both guided original-branch merges | [Native controls](#mac-native-terminals-and-structured-native-continuation) and [guided recovery observations](GUIDED_WORKFLOW_VERIFICATION.md) retain their source identities |
+| Return with minimal friction | Remembered setup and same local-session continuation at `8291701`; alpha.3 restart and same-native-Codex conversation/worktree continuation | Incremental review, explicit second merge and confirmed cleanup |
+| Validate supported-platform claims | Accepted Mac, Linux ARM64/OpenCode and Windows/OpenCode observations below; alpha.3 installer observations on four architectures | [Historical native evidence](#recorded-platform-observations-and-rejected-windows-retries) retains its actual revisions, failures and timeout/cancellation outcomes |
+
+Fresh acquisition/cooperation receipt SHA-256:
+`3dc6d8516466b91f198110c5d111ed65a949c98fb80031dfb09d254cef741410`.
+The current fresh-Homebrew independent audit SHA-256 is
+`4cd0de92ade507a8421a8dd7cd8ea42e3876d8466bf9b1645901231231abdfb0`.
+The historical evidence below supplies the earlier acceptance slices; it is not
+relabeled as fresh alpha.3 native Linux/Windows or local-model execution.
+Unexercised conditional branches in the [manual acceptance guide](USER_ACCEPTANCE.md)
+retain their individual status. General model quality and live Claude inference
+remain outside this closure claim.
+
+## Earlier Homebrew, Codex and desktop checkpoint — October 29, 2026
+
+A fresh Mac ARM64 Homebrew installation of `@mehrdadz/koto@3.0.0-alpha.0`
+matched all 54 immutable npm payloads. Actual CLI onboarding discovered the
+existing ChatGPT login, selected a real Koto checkout, and completed two Codex
+coding tasks, review and explicit integration. After closing and reopening the
+installed CLI, a worker continued its original native conversation and worktree;
+the next review contained only its subsequent changes.
+
+This run also exposed a shared-core defect: with two configured workers, a valid
+one-task response inherited concurrency two and was rejected before launch.
+The corrected source at `540f4977092f7fb1e31c4ad9eb46b4b04f90bb7b`
+validates the requested budget before capping it to the generated task count.
+Fresh source onboarding with the real subscription then produced concurrency
+one, launched one Codex task, and completed coding, review and integration.
+The published alpha still contains the defect; these observations do not
+replace its frozen npm archive or update its Homebrew/Linux pins.
+
+The separately packaged Mac ARM64 desktop preview at
+`fb69a59a70cc29a6a1a4ac2b23082546a41c5d47` opened the CLI-created project and
+saved session through its sidebar, reused the ChatGPT subscription and loaded
+the same retained Qwen3 4B files without another download. A real Codex
+continuation made another code change in the original native conversation;
+desktop review showed the new delta and explicit integration accepted it.
+Stop CLI retained the session, and ordinary app quit left all seven recorded
+app/helper/CLI/model process identities absent. Desktop source and the published
+CLI are different revisions of this repository's shared core, not byte-identical
+release artifacts. No local-model coding-quality, Windows/Linux desktop or
+signed/notarized desktop-release claim follows from this observation.
+
+The first two host installs hit Homebrew's nested OpenSSL lock bug. A normal
+Homebrew update resolved it; required dependency upgrades also required a normal
+repair of the older default Node installation. The first UI automation call
+stalled; its bounded app owner timed out and the later explicit-state run above
+completed normally. These failed attempts remain separate from successful
+native observations. No automated suites, fixture agents or benchmarks ran.
+
+## Earlier CLI acceptance checkpoint
 
 The recorded CLI acceptance scope is complete: actual fresh/returning Mac use,
 local/native contributions, structured continuation and review/integration;

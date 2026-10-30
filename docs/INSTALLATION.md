@@ -1,6 +1,82 @@
 # Install Koto
 
-Koto requires Node.js 22 or later with npm. The Node.js core has no runtime
+Choose Homebrew, the Linux installer, or npm/npx. All three install the same
+published alpha CLI. The optional agent skill uses an independently pinned
+release of that same CLI.
+
+## Homebrew
+
+Add Koto's current repository as a tap, then install its formula:
+
+```sh
+brew tap mehrdadxzaker/koto https://github.com/mehrdadxzaker/Koto.git
+brew install mehrdadxzaker/koto/koto
+koto
+```
+
+Homebrew installs its `node@24` dependency automatically. The qualified formula
+name selects Koto from this tap and trusts that formula rather than the entire
+repository. This is an upstream tap, not a Homebrew/core listing. The installed
+command and product name remain `koto` and Koto.
+
+Use `brew upgrade mehrdadxzaker/koto/koto` for updates and
+`brew uninstall mehrdadxzaker/koto/koto` to remove the formula. Account, model and
+project state under `~/.koto` is separate from the Homebrew installation.
+
+## Linux installer
+
+On supported x64 or ARM64 GNU/Linux, install without first setting up Node/npm:
+
+```sh
+curl -fsSL --connect-timeout 10 --max-time 30 \
+  https://raw.githubusercontent.com/mehrdadxzaker/Koto/main/install.sh | sh
+"$HOME/.local/bin/koto"
+```
+
+The [portable shell installer](../install.sh) downloads the pinned CLI archive
+and official Node.js runtime, verifies both SHA-256 checksums before extraction
+or execution, and installs for the current user without `sudo`. It uses one
+download at a time with finite deadlines and bounded retries. The default
+installation is `~/.local/share/koto`, with a command in `~/.local/bin`. If that
+bin directory is not on PATH, follow the printed PATH instruction; the installer
+does not edit shell profiles.
+
+Requirements are `curl`, GNU coreutils/findutils/tar, `xz`, GNU libc 2.28 or newer, and a
+Linux kernel supported by Node.js (4.18 or newer). Alpine/musl and other CPU
+architectures are not supported by these pinned runtime downloads. Git remains
+required for project work. Local models and native clients are selected through
+the normal Koto onboarding; installation does not acquire models or credentials.
+
+Repeat the installer to verify/reuse an owned installation. To select private
+locations or remove only the installed program and its owned command link:
+
+```sh
+sh install.sh --prefix /absolute/private/koto --bin-dir /absolute/private/bin
+sh install.sh --uninstall
+```
+
+Download the installer first when using those commands; repeat custom paths for
+custom-location removal. Uninstall preserves `~/.koto`, downloaded models,
+native-agent authentication and projects. Existing unrelated command files or
+installation directories are refused rather than overwritten.
+Custom locations also require ancestor directories controlled by your user or
+root and not writable by other users; root-owned sticky directories such as
+`/tmp` are allowed.
+
+The pinned CLI, Node version and artifact digests are recorded in
+[the distribution manifest](../install/manifest.json). These recipes package the
+published `3.0.0-alpha.3` release. Its archive SHA-256 is
+`3e0686a1578a3df30d65d55a8789715df00c84e2d878ccd8ed3e76251839ee39`.
+Older releases, the optional skill and IDE preview retain their own immutable
+pins until separately updated and verified. See the [alpha.3 release record](RELEASE_ALPHA3.md).
+
+## npm and npx prerequisites
+
+The npm/npx route requires Node.js 22 or later with npm.
+
+## Shared runtime and terminal support
+
+The Node.js core has no runtime
 dependencies, required build step or installation hook. Native process helpers
 ship as versioned C source for macOS, Linux and Windows. Build the host helper
 explicitly with an already installed toolchain; package installation never
@@ -27,16 +103,16 @@ Or open it without a global installation:
 npx --yes @mehrdadz/koto@alpha
 ```
 
-To pin the first alpha version explicitly:
+To pin the current alpha release explicitly:
 
 ```sh
-npm install --global @mehrdadz/koto@3.0.0-alpha.0
+npm install --global @mehrdadz/koto@3.0.0-alpha.3
 ```
 
 Alpha releases can change. Source, native-platform and registry-installation
-acceptance are recorded separately in [current evidence](CORE_STATUS.md). A
-release command here does not establish that its registry publication or fresh
-installation has completed.
+acceptance are recorded separately in [current evidence](CORE_STATUS.md) and the
+[alpha.3 release record](RELEASE_ALPHA3.md). Publication, package-manager
+installation and a real native-agent workflow are separate observations.
 
 ## Koto skill for Codex and Claude Code
 
@@ -72,8 +148,9 @@ the skill identifier and command are `koto`. If it is missing, check
 agent and installation scope, then restart the agent.
 
 The skill is an optional set of [instructions](../skills/koto/SKILL.md) over the
-existing CLI. It uses the exact published `@mehrdadz/koto@3.0.0-alpha.0` release
-through `npx`, so an old `koto` executable on your PATH cannot silently select a
+existing CLI. It uses the exact published `@mehrdadz/koto@3.0.0-alpha.1` release
+through `npx`. This skill pin remains separate from the alpha.3 Homebrew/CLI
+release; an old `koto` executable on your PATH cannot silently select a
 different runtime. It invokes the package from a private empty directory to
 avoid npm selecting a same-named source project. The first invocation needs
 registry access and may prompt
@@ -82,7 +159,7 @@ account or provider API key is required for subscription use. For guided account
 discovery or optional local-model setup, open Koto in a real terminal:
 
 ```sh
-npx --yes --registry=https://registry.npmjs.org/ --package=@mehrdadz/koto@3.0.0-alpha.0 -- koto
+npx --yes --registry=https://registry.npmjs.org/ --package=@mehrdadz/koto@3.0.0-alpha.1 -- koto
 ```
 
 Downloads and native sign-in follow the CLI's normal guided choices. In a host
@@ -120,18 +197,18 @@ From a reviewed source checkout:
 npm pack
 ```
 
-Copy the resulting `mehrdadz-koto-3.0.0-alpha.0.tgz` to another machine with
+Copy the resulting `mehrdadz-koto-3.0.0-alpha.3.tgz` to another machine with
 Node.js and npm, then install or run it:
 
 ```sh
-npm install --global ./mehrdadz-koto-3.0.0-alpha.0.tgz
+npm install --global ./mehrdadz-koto-3.0.0-alpha.3.tgz
 koto --version
 ```
 
 For execution without global installation:
 
 ```sh
-npx --yes --package ./mehrdadz-koto-3.0.0-alpha.0.tgz koto --help
+npx --yes --package ./mehrdadz-koto-3.0.0-alpha.3.tgz koto --help
 ```
 
 Local packaging and installation do not publish to the npm registry.
@@ -176,7 +253,7 @@ koto terminal build
 koto terminal info
 ```
 
-The guided launcher's **Set up terminal support** option performs the same
+The **Set up terminal support** option in `koto setup` performs the same
 explicit build or verifies an existing matching artifact. It never starts a
 model. The builders target x64 and arm64; native behavior still requires
 observation on the selected host:
@@ -201,8 +278,9 @@ process lifetime rather than limiting filesystem or network permissions.
 Retained `cleanup_unconfirmed` outcomes block resume and integration on every
 platform. Follow the [acceptance run](USER_ACCEPTANCE.md) for actual host evidence.
 
-IDE plugins and Koto's UI will be separate ways to use the installed core. They
-are planned and no placeholder package is installed today.
+Koto remains CLI-first. Its optional [desktop UI](DESKTOP_UI.md) and
+[IDE plugin preview](IDE_PLUGINS.md) reuse the shared core. Their own guides
+describe installation and host-specific qualification.
 
 Use `npm uninstall --global @mehrdadz/koto` to remove a global installation.
 Koto creates no startup hooks; model downloads occur only after a selected guided
