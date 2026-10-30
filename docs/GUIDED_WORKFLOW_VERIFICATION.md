@@ -3,8 +3,10 @@
 Observed on October 29, 2026, on macOS ARM64 with Node 24.22.2. The installed
 `3.0.0-alpha.3` candidate adds current-project selection and guided review,
 original-branch merge and native continuation through the shared core.
-Public alpha.2, Homebrew/Linux recipes, optional skill and IDE previews keep
-their existing frozen pins. This record does not claim publication of alpha.3.
+This record preserves candidate qualification before publication. Publication,
+installer updates and the subsequent fresh Homebrew workflow are tracked in the
+[alpha.3 release record](RELEASE_ALPHA3.md). The earlier candidate identity below
+remains unchanged; later publication does not relabel its evidence.
 
 ## Installed candidate
 

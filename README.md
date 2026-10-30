@@ -34,14 +34,15 @@ verification boundary.
 
 ## Latest
 
-- **CLI `3.0.0-alpha.3` candidate — guided Codex workflow.** Run `koto` in
+- **CLI `3.0.0-alpha.3` published — guided Codex workflow.** Run `koto` in
   your Git project, including a subdirectory. It selects that project, reuses an
   existing Codex subscription, and guides review, approval, merging back to the
   original branch and same-conversation resume. Each merge requires explicit
   approval of the displayed changes and a clean, unchanged branch; saved work
   stays available when merging needs attention. See the
-  [workflow verification record](docs/GUIDED_WORKFLOW_VERIFICATION.md).
-  Public npm and Homebrew remain on alpha.2 until this candidate is released.
+  [workflow verification record](docs/GUIDED_WORKFLOW_VERIFICATION.md). The public
+  npm archive is independently verified; Homebrew/Linux pins and fresh Homebrew
+  qualification are tracked in the [release record](docs/RELEASE_ALPHA3.md).
 - **CLI `3.0.0-alpha.2` released and verified through Homebrew.** Saved local
   workers no longer load a model when returning to a Codex conversation. Local
   work retains its approved model and endpoint; existing Ollama workers remain
@@ -49,8 +50,8 @@ verification boundary.
   missing-session errors explain recovery. A fresh public Homebrew install on
   macOS ARM64 passed automatic ChatGPT subscription discovery, real Codex coding,
   explicit review/integration, restart and same-conversation resume. The resumed
-  review showed only the new change. npm's `alpha` and `latest` tags select this
-  release; see the [release and workflow record](docs/RELEASE_ALPHA2.md) and
+  review showed only the new change. See the historical
+  [release and workflow record](docs/RELEASE_ALPHA2.md) and
   [earlier candidate observations](docs/CODEX_CLI_VERIFICATION.md).
 - **Codex CLI first.** Koto's primary workflow is everyday CLI use with your
   existing Codex/ChatGPT subscription. Smooth onboarding, remembered projects,
@@ -148,7 +149,7 @@ npx --yes @mehrdadz/koto@alpha
 To select the exact prerelease version instead of following the `alpha` tag:
 
 ```sh
-npm install --global @mehrdadz/koto@3.0.0-alpha.2
+npm install --global @mehrdadz/koto@3.0.0-alpha.3
 koto
 ```
 
