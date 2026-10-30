@@ -51,14 +51,16 @@ export function canRenderMarkdownCompletely(text) {
   return !prepareMarkdown(text).truncated;
 }
 
-/** Bounded text presentation, not an HTML renderer or terminal escape parser. */
-export function renderMarkdown(text, { columns = process.stdout.columns ?? 80, plain = false, noColor = process.env.NO_COLOR !== undefined } = {}) {
+/** Bounded text presentation, not an HTML renderer or terminal escape parser.
+ * Literal source/diffs retain the bounded sanitized source lines unchanged; the
+ * terminal owns visual wrapping instead of Markdown or whitespace transforms. */
+export function renderMarkdown(text, { columns = process.stdout.columns ?? 80, plain = false, noColor = process.env.NO_COLOR !== undefined, literal = false } = {}) {
   columns = Math.max(12, Math.min(300, Number(columns) || 80)) - 1;
   const color = !plain && !noColor && process.env.TERM !== 'dumb';
   const ink = (value, code) => color ? `\x1b[${code}m${value}\x1b[0m` : value;
   let code = false;
   const { bounded, sourceLines, visibleLines, totalLines, truncated } = prepareMarkdown(text);
-  const rendered = visibleLines.flatMap(line => {
+  const rendered = literal ? [...visibleLines] : visibleLines.flatMap(line => {
     const fence = line.match(/^\s*```(.*)$/);
     if (fence) { code = !code; return [ink(code ? `── ${fence[1] || 'code'} ──` : '────────', '2')]; }
     if (code) return wrapLine(`  ${line}`, columns, '  ').map(value => ink(value, '2'));

@@ -104,13 +104,13 @@ export async function runChat({ write, signal: parentSignal, version, project: s
     }
     await savePreferences(preferences);
   };
-  const print = text => {
+  const print = (text, { literal = false } = {}) => {
     view.pause(); input?.clear();
     const body = visible(text);
     transcript.push({ at: new Date().toISOString(), text: body.slice(0, 32_768) });
     transcriptBytes += Buffer.byteLength(transcript.at(-1).text);
     while (transcript.length > 200 || transcriptBytes > 256 * 1024) transcriptBytes -= Buffer.byteLength(transcript.shift().text);
-    write(`${renderMarkdown(body, { columns: process.stdout.columns ?? 80, plain, noColor: process.env.NO_COLOR !== undefined })}\n`);
+    write(`${renderMarkdown(body, { columns: process.stdout.columns ?? 80, plain, noColor: process.env.NO_COLOR !== undefined, literal })}\n`);
     input?.redraw();
   };
   const stop = () => { activeConversationController?.abort(); coordinator?.stop(); nativeSession?.stop(); };
@@ -917,7 +917,7 @@ export async function runChat({ write, signal: parentSignal, version, project: s
         print(`The approved changes exceed this terminal's complete review bounds. Saved integration: ${integration}. Review its full Git diff before merging into your project; this view has not authorized a merge.`);
         return false;
       }
-      print(displayed);
+      print(displayed, { literal: true });
       if (preview.unmergedAgentIds?.length) print(`Other contributions stay retained: ${preview.unmergedAgentIds.join(', ')}`);
       if (await ask(`Type merge to put these approved changes on ${preview.branch}, or Enter to keep for later: `) !== 'merge') {
         print('Approved changes retained. Choose Merge later when you are ready.');
@@ -955,7 +955,7 @@ export async function runChat({ write, signal: parentSignal, version, project: s
       const review = await inspectProjectSession(directory, agent.id);
       const diff = review.integrationDiff ?? review.diff;
       const displayed = `Review ${agent.id} (${review.agentStatus}):\n${diff}`;
-      print(displayed);
+      print(displayed, { literal: true });
       if (review.untracked?.length) print(`Untracked files: ${review.untracked.join(', ')}`);
       if (review.outsideOwnership.length) { print(`Outside planned ownership: ${review.outsideOwnership.join(', ')}. Resolve ownership before accepting.`); continue; }
       if (!diff.trim() && !review.untracked?.length) { print('No new changes to accept from this agent.'); continue; }
