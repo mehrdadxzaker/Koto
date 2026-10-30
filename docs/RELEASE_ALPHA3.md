@@ -47,6 +47,32 @@ readiness was explicitly unverified there; the four installation successes do
 not establish four native Codex coding workflows. The local Mac journey below
 is a separate acceptance observation. The recipes retain the existing Node pin.
 
+## Documentation main check reconciliation
+
+The fresh Homebrew record merged in
+[#636](https://github.com/mehrdadxzaker/Koto/pull/636) as
+`0bf6ea44fb05af3226cda973fa9ce5e6014088be`, with the reviewed tree and expected
+parents. Its first source workflow reported success, but Ubuntu Node 22 job
+`124113762610` returned contradictory metadata: `in_progress`, `success` and a
+completion timestamp. The original job/check responses remain an unknown status
+observation; they are not rewritten as terminal success.
+
+One GitHub exact-job rerun created
+[CI attempt 2](https://github.com/mehrdadxzaker/Koto/actions/runs/41070720238/attempts/2)
+on that same merge commit and ref. Replacement Ubuntu Node 22 job `124126300542`
+and its IDE-package/required dependents completed successfully. The five other
+source rows retained their original execution timestamps under new provider IDs;
+they are carried-forward results, not five new executions. All 12 latest checks
+now have consistent `completed`/`success` metadata. The four
+[distribution observations](https://github.com/mehrdadxzaker/Koto/actions/runs/41070720180)
+remain on attempt 1, with independently inspected artifacts. No check conclusion
+was manually changed, protection bypassed or release republished.
+
+This resolves the current qualification uncertainty while preserving the
+historical contradiction. The [CLI closure matrix](CORE_STATUS.md#current-codex-cli-closure)
+records the accepted #543 contract separately from individual conditional
+branches and historical native-platform observations.
+
 ## Fresh Homebrew guided workflow
 
 Observed on October 30, 2026 on macOS ARM64. The host used Node 24.22.2 from the

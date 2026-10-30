@@ -34,6 +34,12 @@ verification boundary.
 
 ## Latest
 
+- **October 30, 2026 — #543 CLI completion confirmed; GitHub check inconsistency resolved.**
+  One exact-job rerun produced consistent successful checks on the same merge
+  commit, preserving the original contradictory attempt. The
+  [CLI acceptance matrix](docs/CORE_STATUS.md#current-codex-cli-closure) ties the
+  completed contract to actual onboarding, local/Codex cooperation, review,
+  merge-back and resume evidence. Everyday Codex CLI use remains the priority.
 - **October 30, 2026 — CLI `3.0.0-alpha.3` released and verified through Homebrew.**
   Run `koto` in your Git project, including a subdirectory. It reuses your existing
   Codex subscription and guides review, explicit approval, merge-back to the
