@@ -517,9 +517,15 @@ export async function runChat({ write, signal: parentSignal, version, project: s
       await owner.cancelContext();
       if (quitting || signal?.aborted || request.signal?.aborted || owner !== input || owner.closed) return false;
       const details = Object.fromEntries(Object.entries(request).filter(([key, value]) => key !== 'signal' && typeof value !== 'function'));
-      const encoded = JSON.stringify(details, null, 2);
+      const encoded = JSON.stringify(details, null, 2).replace(/[\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g,
+        character => `\\u${character.charCodeAt(0).toString(16).padStart(4, '0')}`);
       if (Buffer.byteLength(encoded) > 65_536) return false;
-      print(`\nAgent permission request:\n${encoded}`);
+      const displayed = `\nAgent permission request:\n${encoded}`;
+      if (!canRenderMarkdownCompletely(visible(displayed))) {
+        print('Permission request is too large to display completely. No action was approved.');
+        return false;
+      }
+      print(displayed, { literal: true });
       try {
         const expiry = Date.parse(request.approvalExpiresAt ?? '');
         const title = `Native permission request · this action only${Number.isFinite(expiry) ? ` · expires ${new Date(expiry).toLocaleTimeString()}` : ''}`;

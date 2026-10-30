@@ -412,9 +412,10 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
       try {
         detail = JSON.stringify(Object.fromEntries(Object.entries(request).filter(([key]) => key !== 'signal')), null, 2);
       } catch { return false; }
-      if (!detail || Buffer.byteLength(detail) > 65_536) return false;
-      detail = detail.replace(/[\u202a-\u202e\u2066-\u2069]/g,
+      if (!detail) return false;
+      detail = detail.replace(/[\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g,
         character => `\\u${character.charCodeAt(0).toString(16).padStart(4, '0')}`);
+      if (Buffer.byteLength(detail) > 65_536) return false;
       const expiresAt = typeof request.approvalExpiresAt === 'string' && Number.isFinite(Date.parse(request.approvalExpiresAt))
         ? new Date(request.approvalExpiresAt).toISOString() : undefined;
       const timeoutMs = Number.isSafeInteger(request.approvalTimeoutMs) && request.approvalTimeoutMs > 0
