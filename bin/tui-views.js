@@ -1,6 +1,8 @@
 import { cellWidth, graphemes, terminalText, wrapText } from './tui-text.js';
 
 const clean = value => terminalText(value);
+const MARKDOWN_SOURCE_UNITS = 256 * 1024;
+const MARKDOWN_SOURCE_LINES = 6000;
 function boundedText(value, maximum, unit = 'bytes') {
   const source = String(value);
   const total = unit === 'bytes' ? Buffer.byteLength(source) : source.length;
@@ -33,17 +35,29 @@ function wrapLine(line, columns, continuation = '') {
   return lines;
 }
 
+function prepareMarkdown(text) {
+  const source = clean(text);
+  const bounded = boundedText(source, MARKDOWN_SOURCE_UNITS, 'units');
+  const sourceLines = bounded.text.split('\n');
+  const visibleLines = sourceLines.slice(0, MARKDOWN_SOURCE_LINES);
+  return { bounded, sourceLines, visibleLines, totalLines: source.split('\n').length,
+    truncated: bounded.truncated || visibleLines.length < sourceLines.length };
+}
+
+/** Whether every sanitized source line fits the renderer's presentation bounds.
+ * This pure check uses the same preparation as rendering, including CR/tab and
+ * terminal-control normalization; it does not establish semantic diff review. */
+export function canRenderMarkdownCompletely(text) {
+  return !prepareMarkdown(text).truncated;
+}
+
 /** Bounded text presentation, not an HTML renderer or terminal escape parser. */
 export function renderMarkdown(text, { columns = process.stdout.columns ?? 80, plain = false, noColor = process.env.NO_COLOR !== undefined } = {}) {
   columns = Math.max(12, Math.min(300, Number(columns) || 80)) - 1;
   const color = !plain && !noColor && process.env.TERM !== 'dumb';
   const ink = (value, code) => color ? `\x1b[${code}m${value}\x1b[0m` : value;
   let code = false;
-  const source = clean(text);
-  const bounded = boundedText(source, 256 * 1024, 'units');
-  const sourceLines = bounded.text.split('\n');
-  const visibleLines = sourceLines.slice(0, 6000);
-  const totalLines = source.split('\n').length;
+  const { bounded, sourceLines, visibleLines, totalLines, truncated } = prepareMarkdown(text);
   const rendered = visibleLines.flatMap(line => {
     const fence = line.match(/^\s*```(.*)$/);
     if (fence) { code = !code; return [ink(code ? `── ${fence[1] || 'code'} ──` : '────────', '2')]; }
@@ -55,7 +69,7 @@ export function renderMarkdown(text, { columns = process.stdout.columns ?? 80, p
     return wrapLine(line, columns, ' '.repeat(Math.min(indent, 12))).map(value =>
       value.replace(/\*\*([^*\n]+)\*\*/g, (_, part) => ink(part, '1')).replace(/`([^`\n]+)`/g, (_, part) => ink(part, '36')));
   });
-  if (bounded.truncated || visibleLines.length < sourceLines.length) rendered.push(
+  if (truncated) rendered.push(
     `[Response display truncated: ${visibleLines.length} of ${totalLines} source lines shown; ${bounded.truncated ? 'the final displayed line may be an excerpt' : `${sourceLines.length - visibleLines.length} source lines omitted`}.]`);
   return rendered.join('\n');
 }

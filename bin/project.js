@@ -160,6 +160,9 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
     throw new TypeError('A conversation requires send, stop and bind functions.');
   }
   const interactive = !headless && process.stdin.isTTY && process.stdout.isTTY;
+  const plain = conversation?.plain === true || process.env.KOTO_PLAIN === '1'
+    || process.env.KOTO_SCREEN_READER === '1' || process.env.TERM === 'dumb'
+    || !interactive || typeof process.stdin.setRawMode !== 'function';
   const initialRaw = process.stdin.isRaw === true;
   if (!interactive && !approved) throw new Error('project_explicit_start_required');
   write(`Project: ${visible(plan.project)}\nGoal: ${visible(plan.goal)}\nConcurrency: ${plan.maxConcurrency}\n`);
@@ -320,7 +323,7 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
   const suggestions = createTuiSuggestions({ getCatalog: catalog, getCommands: () => controlCommands,
     getSessions: () => session ? [session.status()] : [], getQueue: () => heldMessages });
   const makeTerminal = () => {
-    const next = createTuiReadline({ write, signal, suggest: suggestions, plain: conversation?.plain,
+    const next = createTuiReadline({ write, signal, suggest: suggestions, plain,
       ...(typeof conversation?.previewContext === 'function' ? { onContext: async ({ draft, signal: contextSignal }) => {
         if (pendingControls || attachment || approvalActive || reporting) throw new Error('Return to the Agents prompt before previewing draft context.');
         view?.pause();
@@ -745,7 +748,7 @@ async function runSessionTerminal(source, { write, signal, headless, approved, p
       });
     };
     if (terminal) controls();
-    view = createActivityView({ write, enabled: interactive,
+    view = createActivityView({ write, enabled: interactive && !plain,
       beforeRender: () => { if (promptVisible && !controlTyping && !approvalActive && !attachment) clearPrompt(); },
       afterRender: () => { if (promptVisible && terminal && !terminal.closed && !controlTyping && !approvalActive && !attachment) terminal.redraw(); },
       onError: close });

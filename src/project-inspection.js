@@ -155,6 +155,12 @@ async function gitMetadata(root, { signal, nativeHelperDirectory } = {}) {
   if (lines.length !== 2 || await realpath(lines[0]) !== root || !/^[a-f0-9]{40,64}$/.test(lines[1])) {
     throw failure('inspection_git_unavailable', 'The selected directory is not a committed Git project root.');
   }
+  // Status can invoke a repository's clean/process filters. Apply the same
+  // custom-driver refusal as workspace preflight before inspecting worktree state.
+  const custom = await run(['config', '--name-only', '--get-regexp', String.raw`^(filter\..*|merge\..*\.driver)$`], [0, 1]);
+  if (custom.output.trim()) {
+    throw failure('inspection_custom_git_driver_unsupported', 'This repository configures custom Git filters or merge drivers. Read-only inspection is unavailable until that configuration is separately reviewed.');
+  }
   const branch = await run(['symbolic-ref', '--quiet', '--short', 'HEAD'], [0, 1]);
   const status = await run(['status', '--porcelain=v1', '-z', '--untracked-files=normal', '--ignore-submodules=all'], [0], { partial: true });
   const listed = await run(['ls-files', '--cached', '--others', '--exclude-standard', '-z'], [0], { maxBytes: 128 * 1024, partial: true });
@@ -178,6 +184,7 @@ export async function inspectProjectContext(project, { signal, nativeHelperDirec
     if (error.code?.endsWith('cleanup_unconfirmed')) throw error;
     git = { status: 'unavailable', dirty: null };
     inventory = { paths: [], truncated: true };
+    if (error.code === 'inspection_custom_git_driver_unsupported') warnings.push(error.message);
     warnings.push('Safe Git inventory, HEAD and dirty state could not be established. No directory-scan fallback or source findings are claimed.');
   }
   abort(signal);

@@ -18,7 +18,7 @@ import { createTerminalInput } from './tui-input.js';
 import { TUI_COMMANDS, TUI_HELP as help } from './tui-commands.js';
 import { discoverTuiCatalog, createTuiSuggestions, readSkillContext } from '../src/tui-catalog.js';
 import { inspectProjectContext, readProjectContextFiles } from '../src/project-inspection.js';
-import { renderMarkdown, planItems, taskItems, diffItems, formatCompletion, formatError } from './tui-views.js';
+import { renderMarkdown, canRenderMarkdownCompletely, planItems, taskItems, diffItems, formatCompletion, formatError } from './tui-views.js';
 import { loadPromptHistory, savePromptHistory, clearPromptHistory } from './tui-history.js';
 import { runProjectPlan, runProjectResume } from './project.js';
 import { configureAccounts, configureLocalModels } from './onboarding.js';
@@ -602,6 +602,7 @@ export async function runChat({ write, signal: parentSignal, version, project: s
     coordinator = createCoordinator({ session: {
       get sessionId() { return selectedSession.sessionId; },
       stop() { selectedSession.stop(); },
+      canSendPrompt(prompt) { return selectedSession.canSendPrompt?.(prompt) ?? true; },
       async send(...args) {
         const outcome = await selectedSession.send(...args);
         // Some adapters have no close result. Retain cleanup uncertainty from
@@ -874,8 +875,8 @@ export async function runChat({ write, signal: parentSignal, version, project: s
     const candidates = savedBuilds();
     if (!candidates.length) return undefined;
     let saved = candidates.find(item => item.directory === preferences.selectedSession) ?? candidates[0];
-    if (action === 'sessions') {
-      const answer = requestedId ?? await browse('Saved work · choose to select, Esc to return', candidates.map((item, index) => {
+    if (choose && candidates.length > 1) {
+      const answer = await browse('Saved work · choose to select, Esc to return', candidates.map((item, index) => {
         let detail;
         try { const state = readProjectSession(item.directory); detail = `${formatCompletion(state)}\nProject: ${item.project}\nBuild base: ${state.projectRoot}\nSaved: ${item.savedAt}\n${state.agents.map(agent => `${agent.id}: ${agent.status}`).join('\n')}`; }
         catch (error) { recoverable(error); detail = `Saved state needs attention: ${error.message}`; }
@@ -910,7 +911,13 @@ export async function runChat({ write, signal: parentSignal, version, project: s
     try {
       const preview = await inspectProjectMerge(directory);
       if (preview.status === 'already-merged') { print('These approved changes are already in your project.'); return true; }
-      print(`Approved changes to merge into ${preview.projectRoot}\nBranch: ${preview.branch}\n${preview.diff}`);
+      const displayed = `Approved changes to merge into ${preview.projectRoot}\nBranch: ${preview.branch}\n${preview.diff}`;
+      if (!canRenderMarkdownCompletely(visible(displayed)) || diffItems(preview.diff)[0]?.truncated) {
+        const integration = readProjectSession(directory).integration.path;
+        print(`The approved changes exceed this terminal's complete review bounds. Saved integration: ${integration}. Review its full Git diff before merging into your project; this view has not authorized a merge.`);
+        return false;
+      }
+      print(displayed);
       if (preview.unmergedAgentIds?.length) print(`Other contributions stay retained: ${preview.unmergedAgentIds.join(', ')}`);
       if (await ask(`Type merge to put these approved changes on ${preview.branch}, or Enter to keep for later: `) !== 'merge') {
         print('Approved changes retained. Choose Merge later when you are ready.');
@@ -934,11 +941,11 @@ export async function runChat({ write, signal: parentSignal, version, project: s
     const prompt = await ask(`What should ${id} do next? `);
     if (!prompt) return false;
     await prepareLocalAgent(state.agents.find(agent => agent.id === id));
-    input.close();
+    await saveHistory(); await closeInput();
     let completed;
     try { await runProjectResume(saved.directory, id, { prompt, write, signal, guided: true,
-      onComplete: report => { completed = report; } }); }
-    finally { if (!quitting && !signal.aborted) input = makeInput(); }
+      onComplete: report => { completed = report; }, conversation: runningConversation() }); }
+    finally { if (!quitting && !signal.aborted) { input = makeInput(); await restoreHistory(); } }
     return Boolean(completed);
   }
 
@@ -947,10 +954,15 @@ export async function runChat({ write, signal: parentSignal, version, project: s
     for (const agent of state.agents) {
       const review = await inspectProjectSession(directory, agent.id);
       const diff = review.integrationDiff ?? review.diff;
-      print(`Review ${agent.id} (${review.agentStatus}):\n${diff}`);
+      const displayed = `Review ${agent.id} (${review.agentStatus}):\n${diff}`;
+      print(displayed);
       if (review.untracked?.length) print(`Untracked files: ${review.untracked.join(', ')}`);
       if (review.outsideOwnership.length) { print(`Outside planned ownership: ${review.outsideOwnership.join(', ')}. Resolve ownership before accepting.`); continue; }
       if (!diff.trim() && !review.untracked?.length) { print('No new changes to accept from this agent.'); continue; }
+      if (!canRenderMarkdownCompletely(visible(displayed)) || diffItems(review)[0]?.truncated) {
+        print(`This contribution exceeds the bounded TUI preview. Review its complete core diff with koto project inspect ${JSON.stringify(directory)} ${agent.id}; the partial preview cannot authorize integration here.`);
+        continue;
+      }
       if (await ask(`Type approve to accept this displayed contribution from ${agent.id}, or Enter to keep it for later: `) !== 'approve') {
         print(`${agent.id}: retained without approval.`); continue;
       }
@@ -958,10 +970,20 @@ export async function runChat({ write, signal: parentSignal, version, project: s
       print(`${agent.id}: ${result.status}. Reviewed result: ${result.integration.path}`);
       if (result.status !== 'integrated') { print('Resolve the retained integration before merging or resuming.'); return; }
     }
-    let id = requestedId;
-    if (!id) {
-      id = await choose({ title: `Choose contribution to ${action}`, items: taskItems(state) });
-      if (!id) return;
+    const updated = readProjectSession(directory);
+    if (updated.agents.some(agent => agent.integration?.status === 'integrated' || agent.lastSuccessfulIntegration)) {
+      await mergeSavedBuild(directory);
+    } else print('No approved file changes to merge. Your saved conversation is available to resume.');
+  }
+
+  async function guidedWork(saved, { reviewFirst = false } = {}) {
+    if (!saved) { print('No saved build for this project yet. Describe what you want to build.'); return; }
+    if (reviewFirst) {
+      try { await reviewSavedBuild(saved.directory); }
+      catch (error) {
+        if (['chat_quit', 'chat_cancelled'].includes(error.code) || signal.aborted || blocksFurtherWork(error)) throw error;
+        print(`Saved work needs attention: ${error.message}`);
+      }
     }
     while (!quitting && !signal.aborted) {
       const state = readProjectSession(saved.directory);
@@ -994,11 +1016,7 @@ export async function runChat({ write, signal: parentSignal, version, project: s
     if (['sessions', 'work'].includes(action)) { await guidedWork(saved); return; }
     if (action === 'merge') { await mergeSavedBuild(saved.directory); return; }
     if (action === 'resume') {
-      const prompt = await ask(`What should ${id} do next? `);
-      if (!prompt) return;
-      await saveHistory(); await closeInput();
-      try { await runProjectResume(saved.directory, id, { prompt, write, signal, conversation: runningConversation() }); }
-      finally { if (!quitting && !signal?.aborted) { input = makeInput(); await restoreHistory(); } }
+      if (await resumeSavedBuild(saved, requestedId)) await guidedWork(saved, { reviewFirst: true });
       return;
     }
     const state = readProjectSession(saved.directory);
@@ -1010,7 +1028,7 @@ export async function runChat({ write, signal: parentSignal, version, project: s
     await browse(`Diff from ${id} · Right expands, PgUp/PgDn scrolls`, preview);
     if (review.outsideOwnership.length) print(`Outside planned ownership: ${review.outsideOwnership.join(', ')}`);
     if (action !== 'integrate') { print(`Use /integrate ${id} to review and accept these changes.`); return; }
-    if (preview[0]?.truncated) throw new Error(`This contribution exceeds the bounded TUI preview. Review its complete core diff with koto project inspect ${JSON.stringify(saved.directory)} ${id}; the partial preview cannot authorize integration here.`);
+    if (preview[0]?.truncated || preview.some(item => item.detail && !canRenderMarkdownCompletely(item.detail))) throw new Error(`This contribution exceeds the bounded TUI preview. Review its complete core diff with koto project inspect ${JSON.stringify(saved.directory)} ${id}; the partial preview cannot authorize integration here.`);
     if (await choose({ title: `Integrate this reviewed contribution from ${id}?`, items: [
       { value: 'cancel', label: 'Keep for review' }, { value: 'integrate', label: 'Integrate reviewed changes', description: `Exact review ${review.reviewToken}; integration workspace only` },
     ] }) !== 'integrate') return;
@@ -1172,13 +1190,19 @@ export async function runChat({ write, signal: parentSignal, version, project: s
         print(`Plan unchanged: ${error.message}`);
       }
     }
+    for (const agent of proposal.plan.agents) await prepareLocalAgent(agent);
     currentMode = 'build'; view.pause(); await saveHistory(); await closeInput();
+    let completed;
     try {
       await runProjectPlan(proposal.plan, { write, signal, approved: true,
         expectedBaseCommit: proposal.project.baseCommit, onSession: rememberProjectSession, compact: true,
         guided: true, onComplete: report => { completed = report; },
         conversation: runningConversation() });
     } finally { if (!quitting && !signal?.aborted) { input = makeInput(); await restoreHistory(); } }
+    if (completed && !quitting && !signal.aborted) {
+      const saved = savedBuilds().find(item => item.directory === completed.sessionRoot);
+      await guidedWork(saved, { reviewFirst: true });
+    }
   }
 
   async function modelCommand(args) {
@@ -1309,6 +1333,13 @@ export async function runChat({ write, signal: parentSignal, version, project: s
     }
     await refreshCatalog(); await restoreHistory();
     print('Ask about your project or describe a change. Project questions inspect actual files; changes prepare a plan for approval.\nPress / for commands, @ for files and agents. /installed lists discovered capabilities; /help explains controls.\nPrompt history is stored privately per project. /history clear removes it; KOTO_NO_HISTORY=1 disables saving.');
+    if (savedBuilds().length && !quitting && !signal.aborted) {
+      try { await guidedWork(await chooseSavedBuild()); }
+      catch (error) {
+        if (['chat_quit', 'chat_cancelled'].includes(error.code) || signal.aborted || blocksFurtherWork(error)) throw error;
+        print(`Saved work needs attention: ${error.message}`);
+      }
+    }
     while (!quitting && !signal?.aborted && !input.closed) {
       const followUpGoal = followUpGoals.shift();
       const message = followUpGoal === undefined ? await ask('You> ', { complete: true }) : undefined;
@@ -1330,8 +1361,8 @@ export async function runChat({ write, signal: parentSignal, version, project: s
             if (kind) await selectCoordinator(kind, true, args[1]);
           } else if (command === '/model' && args.length <= 1) {
             const selected = args[0] ?? await choose({ title: 'Model selection · native defaults may not expose a model ID', items: [
-              ...catalog.models.map(item => ({ value: item.id, label: item.label, description: `${item.kind} · ${item.status} · ${item.description}` })),
-              { value: '__custom__', label: 'Enter native model ID', description: 'Use an exact model supported by the selected native client' },
+              ...catalog.models.filter(item => item.kind === selectedKind()).map(item => ({ value: item.id, label: item.label, description: `${item.kind} · ${item.status} · ${item.description}` })),
+              ...(selectedKind() === 'local' ? [] : [{ value: '__custom__', label: 'Enter native model ID', description: 'Use an exact model supported by the selected native client' }]),
             ] });
             const model = selected === '__custom__' ? await ask('Native model ID> ') : selected;
             if (model) await selectCoordinator(selectedKind(), true, undefined, model);

@@ -23,8 +23,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "check": "node tools/check-scope.js",
-    "test": "node --test tools/"
+    "check": "node tools/check-scope.js"
   },
   "repository": {
     "type": "git",

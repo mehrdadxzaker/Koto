@@ -34,6 +34,12 @@ verification boundary.
 
 ## Latest
 
+- **Unreleased CLI work — project inspection and a portable terminal interface.**
+  Source builds add project-backed questions, slash/mention menus, context preview,
+  private prompt history and richer task/diff views. Guided Codex review,
+  merge-back and exact-conversation resume remain part of the same workflow.
+  See [terminal controls](docs/TUI.md) and [verification boundaries](docs/TUI_ACCEPTANCE.md).
+  IDE packaging dependencies now lock Azure Identity `4.14.1` and MSAL Node `7.1.2`.
 - **October 30, 2026 — #543 CLI completion confirmed; GitHub check inconsistency resolved.**
   One exact-job rerun produced consistent successful checks on the same merge
   commit, preserving the original contradictory attempt. The

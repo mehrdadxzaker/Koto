@@ -772,6 +772,8 @@ export interface AgentSessionResult {
 export interface AgentSession {
   readonly sessionId?: string | undefined;
   readonly pid?: number | null | undefined;
+  /** Optional read-only capacity check, including retained context and output reserve. */
+  canSendPrompt?(text: string): boolean;
   send(text: string, options?: { signal?: AbortSignal | undefined }): Promise<AgentSessionResult>;
   stop(): void;
   close?(): Promise<CommandOutcome | undefined>;

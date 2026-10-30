@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { existsSync, lstatSync, readFileSync, readdirSync, realpathSync } from 'node:fs';
 import { builtinModules } from 'node:module';
 import path from 'node:path';
@@ -215,10 +216,15 @@ function checkIdeDelivery() {
       }
       payloadNames.add(name);
     }
-    const sourcePayloads = new Set([...files].filter(name => /^(?:bin|src)\//.test(name))
-      .concat(['package.json', 'LICENSE', 'README.md', 'README.fa.md']));
-    if (sourcePayloads.size !== payloadNames.size || [...sourcePayloads].some(name => !payloadNames.has(name))) {
-      fail('The IDE integrity inventory must cover all core/CLI sources and published package metadata');
+    // The IDE ships its independently qualified alpha.1 archive. Unreleased CLI
+    // additions must not alter that frozen inventory; its package build also
+    // compares every record with the downloaded archive's bytes and modes.
+    const frozenInventory = (Array.isArray(integrity.payloads) ? integrity.payloads : [])
+      .map(payload => [payload.path, payload.bytes, payload.sha256, payload.mode])
+      .sort((left, right) => left[0] < right[0] ? -1 : left[0] > right[0] ? 1 : 0);
+    if (createHash('sha256').update(JSON.stringify(frozenInventory)).digest('hex')
+        !== '8b36f31038caa60eded0ce65caae3c76911b265a7aff0e7e34bdbb904538ed66') {
+      fail('The IDE integrity inventory must retain its independently verified frozen payload identities');
     }
     // These are delivery declarations, not a substitute for native host trust,
     // activation, process cleanup or model-work observations.

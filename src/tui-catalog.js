@@ -61,14 +61,14 @@ async function discoverSkills(project, signal, warnings) {
   const codexHome = process.env.CODEX_HOME && path.isAbsolute(process.env.CODEX_HOME) ? process.env.CODEX_HOME : path.join(homedir(), '.codex');
   const definitions = [
     ...(project ? [
-      { directory: path.join(project, '.agents', 'skills'), provider: 'codex', scope: 'project' },
-      { directory: path.join(project, '.codex', 'skills'), provider: 'codex', scope: 'project' },
-      { directory: path.join(project, '.claude', 'skills'), provider: 'claude', scope: 'project' },
-      { directory: path.join(project, 'skills'), provider: 'koto', scope: 'project' },
+      { directory: path.join(project, '.agents', 'skills'), provider: 'codex', scope: 'project', rootId: 'agents' },
+      { directory: path.join(project, '.codex', 'skills'), provider: 'codex', scope: 'project', rootId: 'codex' },
+      { directory: path.join(project, '.claude', 'skills'), provider: 'claude', scope: 'project', rootId: 'claude' },
+      { directory: path.join(project, 'skills'), provider: 'koto', scope: 'project', rootId: 'skills' },
     ] : []),
-    { directory: path.join(homedir(), '.agents', 'skills'), provider: 'codex', scope: 'user' },
-    { directory: path.join(codexHome, 'skills'), provider: 'codex', scope: 'user' },
-    { directory: path.join(homedir(), '.claude', 'skills'), provider: 'claude', scope: 'user' },
+    { directory: path.join(homedir(), '.agents', 'skills'), provider: 'codex', scope: 'user', rootId: 'agents' },
+    { directory: path.join(codexHome, 'skills'), provider: 'codex', scope: 'user', rootId: 'codex' },
+    { directory: path.join(homedir(), '.claude', 'skills'), provider: 'claude', scope: 'user', rootId: 'claude' },
   ];
   const result = [], seen = new Set();
   let scanned = 0;
@@ -105,7 +105,7 @@ async function discoverSkills(project, signal, warnings) {
           const content = await readBounded(canonical, SKILL_BYTES, signal);
           const meta = frontmatter(content, path.basename(directory));
           const relative = definition.slot ?? (path.relative(root, directory).split(path.sep).join('/') || path.basename(directory));
-          const id = `${definition.provider}:${definition.scope}:${relative.split('/').map(encodeURIComponent).join('/')}`;
+          const id = `${definition.provider}:${definition.scope}:${definition.rootId}:${relative.split('/').map(encodeURIComponent).join('/')}`;
           const item = { id, value: id, label: meta.name, name: meta.name, description: meta.description,
             provider: definition.provider, scope: definition.scope, path: canonical, status: 'installed',
             readiness: 'unverified', manualOnly: true };
