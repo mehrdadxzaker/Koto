@@ -44,16 +44,19 @@ Usage:
 
 Everyday use: run koto, then type /help for all conversation controls.
   /build GOAL                Propose coding work for review and explicit launch
+  /work                      Guided review, merge approved changes and resume
   /sessions                  Return to saved builds
   /review [AGENT]            Inspect contributions before /integrate [AGENT]
   /resume [AGENT]            Continue a saved agent in its original workspace
+  /merge                     Merge reviewed, approved changes into your project
   /accounts                  Change subscriptions
   /models add                Choose an optional local model
 
 Advanced workflows: run executes commands declared in the selected workflow.
 Worker commands receive a JSON assignment on stdin and return text on stdout.
 The CLI and desktop preview use this core; IDE plugins can consume it too.
-First launch finds native subscription logins and offers optional local models.
+Run koto inside your Git project; it selects that project automatically.
+First launch reuses an existing Codex subscription and offers optional local models.
 No provider API key is required. Returning launches remember your setup.
 `;
 

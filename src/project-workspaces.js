@@ -244,6 +244,7 @@ async function createWorkspaces({ projectRoot, controlRoot, sessionId, agents, n
   if (initial.raw) throw failure('workspace_project_dirty', 'Commit or preserve all project changes before starting an isolated session.');
   const baseCommit = (await git(project.root, ['rev-parse', '--verify', 'HEAD^{commit}'])).stdout.trim();
   if (!SHA.test(baseCommit)) throw failure('workspace_invalid_base');
+  const projectBranch = (await git(project.root, ['symbolic-ref', '--quiet', 'HEAD'], { allow: [0, 1] })).stdout.trim() || null;
   const control = resolve(controlRoot ?? join(tmpdir(), 'koto-project-control'));
   await mkdir(control, { recursive: true, mode: 0o700 });
   const canonicalControl = await canonical(control);
@@ -266,7 +267,7 @@ async function createWorkspaces({ projectRoot, controlRoot, sessionId, agents, n
   const hooks = join(sessionRoot, 'disabled-hooks');
   await mkdir(hooks, { mode: 0o700 });
   const entry = name => ({ path: join(workspaceRoot, name), branch: `koto/${sessionId}/${name}`, sessionRoot });
-  const manifest = { schemaVersion: 1, sessionId, projectRoot: project.root, baseCommit,
+  const manifest = { schemaVersion: 1, sessionId, projectRoot: project.root, projectBranch, baseCommit,
     commonDir: project.commonDir, controlRoot: canonicalControl, sessionRoot, workspaceRoot,
     ...(nativeHelperDirectory === undefined ? {} : { nativeHelperDirectory }),
     integration: entry('integration'), agents: Object.fromEntries(ids.map(id => [id, entry(`agent-${id}`)])) };
@@ -275,7 +276,8 @@ async function createWorkspaces({ projectRoot, controlRoot, sessionId, agents, n
     await git(project.root, ['worktree', 'add', '--no-track', '-b', workspace.branch, workspace.path, baseCommit], { hooks });
   }
   if ((await status(project.root, hooks)).raw
-    || (await git(project.root, ['rev-parse', 'HEAD'], { hooks })).stdout.trim() !== baseCommit) {
+    || (await git(project.root, ['rev-parse', 'HEAD'], { hooks })).stdout.trim() !== baseCommit
+    || ((await git(project.root, ['symbolic-ref', '--quiet', 'HEAD'], { hooks, allow: [0, 1] })).stdout.trim() || null) !== projectBranch) {
     throw failure('workspace_project_changed', 'The project changed during preparation; created worktrees were preserved.');
   }
   return manifest;
@@ -386,6 +388,7 @@ function receiptBinding(receipt) {
   return JSON.stringify({ workspace: workspace(receipt.workspace), integration: workspace(receipt.integration),
     snapshotCommit: receipt.snapshotCommit, contributionCommit: receipt.contributionCommit,
     contributionBaseCommit: receipt.contributionBaseCommit,
+    integrationBaseCommit: receipt.integrationBaseCommit,
     reviewTree: receipt.reviewTree, integrationCommit: receipt.integrationCommit });
 }
 
@@ -531,6 +534,146 @@ async function inspect(context, previousIntegration, suppliedBasis) {
  */
 export async function inspectWorkspace({ workspace, previousIntegration } = {}) {
   return withWorkspaceTransport(workspace, async () => inspect(await owned(workspace), previousIntegration));
+}
+
+async function noProjectOperation(context, directory) {
+  for (const name of ['MERGE_HEAD', 'CHERRY_PICK_HEAD', 'REVERT_HEAD', 'rebase-merge', 'rebase-apply', 'sequencer']) {
+    const filename = (await git(directory, ['rev-parse', '--git-path', name], { hooks: context.hooks })).stdout.trim();
+    try {
+      await lstat(resolve(directory, filename));
+      throw failure('project_merge_git_operation_pending', 'Finish or preserve the existing Git merge, rebase or cherry-pick before merging approved Koto changes.');
+    } catch (error) { if (error.code !== 'ENOENT') throw error; }
+  }
+}
+
+async function approvedIntegrationHistory(context, integrationCommit) {
+  const { manifest, hooks, workspace } = context;
+  const archives = (await readdir(manifest.sessionRoot)).filter(name => /^contribution-attempt-[a-f0-9-]{36}\.json$/.test(name));
+  const changed = () => failure('project_merge_integration_changed', 'The integration history contains changes without a retained approval receipt. Keep the workspaces and review this merge manually.');
+  if (archives.length > 1024) throw changed();
+  const approved = new Map();
+  for (const name of archives) {
+    let attempt;
+    try { attempt = await readPrivateJson(join(manifest.sessionRoot, name), 128 * 1024); }
+    catch { throw changed(); }
+    const receipt = attempt?.result;
+    if (attempt?.resolution !== 'record-result' || receipt?.status !== 'integrated') continue;
+    if (attempt.kind !== 'koto-contribution-attempt' || attempt.schemaVersion !== 1
+      || attempt.sessionRoot !== manifest.sessionRoot || attempt.sessionId !== manifest.sessionId
+      || attempt.baseCommit !== manifest.baseCommit
+      || !Object.hasOwn(manifest.agents, attempt.agentId)
+      || !sameWorkspace(receipt.integration, workspace)
+      || !sameWorkspace(receipt.workspace, manifest.agents[attempt.agentId])
+      || !sameWorkspace(attempt.workspace, receipt.workspace) || !sameWorkspace(attempt.integration, workspace)
+      || ![receipt.integrationCommit, receipt.integrationBaseCommit].every(value => typeof value === 'string' && SHA.test(value))) throw changed();
+    if (attempt.operation === 'integrate') {
+      if (receipt.integrationBaseCommit !== attempt.before?.integrationHead || !/^[a-f0-9]{64}$/.test(attempt.approval ?? '')) throw changed();
+    } else if (attempt.operation === 'resolve') {
+      // A conflict-resolution commit has its own explicit full-commit approval.
+      if (attempt.approval !== receipt.integrationCommit || receipt.resolvedFromCommit !== attempt.conflictIntegration?.integrationCommit
+        || receipt.integrationBaseCommit !== attempt.conflictIntegration?.integrationBaseCommit) throw changed();
+    } else throw changed();
+    const previous = approved.get(receipt.integrationCommit);
+    if (previous && previous !== receipt.integrationBaseCommit) throw changed();
+    approved.set(receipt.integrationCommit, receipt.integrationBaseCommit);
+  }
+  const lines = (await git(workspace.path, ['rev-list', '--first-parent', '--parents', '--max-count=1025',
+    integrationCommit, '--not', manifest.baseCommit], { hooks })).stdout.trim().split('\n').filter(Boolean);
+  if (lines.length > 1024) throw changed();
+  let cursor = integrationCommit;
+  for (const line of lines) {
+    const [commit, parent, ...others] = line.split(' ');
+    if (commit !== cursor || !parent || others.length || approved.get(commit) !== parent) throw changed();
+    cursor = parent;
+  }
+  if (cursor !== manifest.baseCommit) throw changed();
+}
+
+async function projectMergeSnapshot({ integration, projectRoot, projectBranch, expectedProjectCommit, integrationCommit }) {
+  const context = await owned(integration);
+  const { manifest, hooks } = context;
+  if (manifest.projectRoot !== projectRoot || manifest.projectBranch !== projectBranch
+    || typeof projectBranch !== 'string' || !projectBranch.startsWith('refs/heads/')
+    || /^refs\/heads\/koto\/[^/]+\/(?:integration|agent-.+)$/.test(projectBranch)) {
+    throw failure('project_merge_origin_unavailable', 'This saved build has no supported original-branch binding. Keep its integration workspace and merge it manually, or start a new build from your own project.');
+  }
+  const integrationHead = (await git(integration.path, ['rev-parse', 'HEAD'], { hooks })).stdout.trim();
+  if (Array.isArray(integrationCommit)) {
+    if (integrationCommit.length < 1 || integrationCommit.length > 8 || !integrationCommit.includes(integrationHead)) {
+      throw failure('project_merge_integration_changed', 'The integration head is not a retained approved contribution.');
+    }
+    integrationCommit = integrationHead;
+  }
+  if (![expectedProjectCommit, integrationCommit].every(value => typeof value === 'string' && SHA.test(value))) {
+    throw failure('project_merge_integration_changed', 'The retained merge target is invalid. Inspect the saved build before continuing.');
+  }
+  const original = await repository(projectRoot, hooks);
+  if (original.root !== projectRoot || original.commonDir !== manifest.commonDir) throw failure('workspace_repository_changed');
+  if ((await git(original.root, ['config', '--bool', '--get', 'merge.verifySignatures'], { hooks, allow: [0, 1] })).stdout.trim() === 'true') {
+    throw failure('project_merge_signature_policy_unsupported', 'This project requires verified commit signatures. Review and merge the Koto integration with your normal signature-verification workflow.');
+  }
+  const originalContext = { ...context, workspace: { path: original.root, branch: projectBranch, sessionRoot: manifest.sessionRoot } };
+  await indexPath(originalContext);
+  await indexPath(context);
+  await noProjectOperation(context, original.root);
+  await noProjectOperation(context, integration.path);
+  const branch = (await git(original.root, ['symbolic-ref', '--quiet', 'HEAD'], { hooks, allow: [0, 1] })).stdout.trim();
+  const beforeCommit = (await git(original.root, ['rev-parse', 'HEAD'], { hooks })).stdout.trim();
+  if (branch !== projectBranch || beforeCommit !== expectedProjectCommit) {
+    throw failure('project_merge_original_changed', 'Your project branch or commit changed since this build started or last merged. Keep the Koto workspaces; review and merge manually, or start a new build from the current project.');
+  }
+  if ((await status(original.root, hooks)).raw) {
+    throw failure('project_merge_original_dirty', 'Your project has local changes. Commit or preserve them with your normal Git workflow, then ask Koto to merge again. Nothing was stashed or discarded.');
+  }
+  if ((await status(integration.path, hooks)).raw
+    || (await git(integration.path, ['rev-parse', 'HEAD'], { hooks })).stdout.trim() !== integrationCommit) {
+    throw failure('project_merge_integration_changed', 'The reviewed integration workspace changed. Inspect and recover its recorded approved commit before merging.');
+  }
+  await approvedIntegrationHistory(context, integrationCommit);
+  const ancestor = await git(original.root, ['merge-base', '--is-ancestor', beforeCommit, integrationCommit], { hooks, allow: [0, 1] });
+  if (ancestor.code !== 0) {
+    throw failure('project_merge_original_changed', 'The project and approved integration have diverged. Koto only fast-forwards a clean unchanged original branch; review this merge manually.');
+  }
+  const tree = (await git(integration.path, ['rev-parse', 'HEAD^{tree}'], { hooks })).stdout.trim();
+  const diff = (await git(integration.path, ['diff', '--no-ext-diff', '--no-textconv', '--no-color', '--no-renames', beforeCommit, integrationCommit, '--'], { hooks })).stdout;
+  const changedPaths = (await git(integration.path, ['diff', '--name-only', '-z', '--no-renames', beforeCommit, integrationCommit, '--'], { hooks })).stdout.split('\0').filter(Boolean);
+  // Recheck every observed Git store before returning an approval-bound view.
+  if ((await status(original.root, hooks)).raw || (await status(integration.path, hooks)).raw
+    || (await git(original.root, ['rev-parse', 'HEAD'], { hooks })).stdout.trim() !== beforeCommit
+    || (await git(original.root, ['symbolic-ref', '--quiet', 'HEAD'], { hooks, allow: [0, 1] })).stdout.trim() !== branch
+    || (await git(integration.path, ['rev-parse', 'HEAD'], { hooks })).stdout.trim() !== integrationCommit) {
+    throw failure('project_merge_review_changed', 'The project changed while preparing the merge. Review it again before approving.');
+  }
+  const view = { status: beforeCommit === integrationCommit ? 'already-merged' : 'ready', projectRoot,
+    branch: projectBranch.slice('refs/heads/'.length), beforeCommit, integrationCommit, changedPaths, diff };
+  return { ...view, reviewToken: digest(JSON.stringify({ manifest, view, tree })) };
+}
+
+/** Observe the original checkout and approved integration; no branch is changed. */
+export async function inspectWorkspaceProjectMerge(options) {
+  return withWorkspaceTransport(options.integration, () => projectMergeSnapshot(options));
+}
+
+/** One ordinary, explicitly approved fast-forward. Unknown outcomes stay owned
+ * by the caller's durable intent; no reset, stash, retry or rollback is performed.
+ */
+export async function mergeWorkspaceProject(options) {
+  return withWorkspaceTransport(options.integration, async () => {
+    const view = await projectMergeSnapshot(options);
+    if (view.reviewToken !== options.approve) throw failure('project_merge_review_changed', 'The displayed merge changed. Review the current changes before approving again.');
+    if (view.status === 'already-merged') return view;
+    await options.beforeMutation(view);
+    const current = await projectMergeSnapshot(options);
+    if (current.reviewToken !== view.reviewToken) throw failure('project_merge_review_changed', 'The project changed after approval. Inspect the retained merge attempt before continuing.');
+    const context = await owned(options.integration);
+    await git(view.projectRoot, ['-c', 'submodule.recurse=false', '-c', 'protocol.allow=never',
+      '-c', 'merge.autoStash=false',
+      'merge', '--ff-only', '--no-autostash', '--no-edit', '--no-stat', '--no-squash', '--commit', view.integrationCommit],
+    { hooks: context.hooks, env: { GIT_CONFIG_COUNT: '1',
+      GIT_CONFIG_KEY_0: `branch.${view.branch}.mergeOptions`, GIT_CONFIG_VALUE_0: '' } });
+    await projectMergeSnapshot({ ...options, expectedProjectCommit: view.integrationCommit });
+    return { ...view, status: 'merged' };
+  });
 }
 
 async function contributionTargetState(target) {
@@ -751,7 +894,7 @@ async function integrateOwnedWorkspace({ workspace, integration, baseCommit, exp
     const conflicts = finalStatus.entries.filter(entry => /^(DD|AU|UD|UA|DU|AA|UU)$/.test(entry.code)).map(entry => entry.path);
     if (result.code !== 0 && !conflicts.length) throw failure('workspace_integration_failed', result.stderr.trim() || 'Git did not complete integration; inspect the preserved worktree.');
     const receipt = { status: conflicts.length ? 'conflicts' : 'integrated', workspace: source.workspace, integration: target.workspace,
-      snapshotCommit, contributionCommit: contribution, contributionBaseCommit, reviewTree: review.tree,
+      snapshotCommit, contributionCommit: contribution, contributionBaseCommit, integrationBaseCommit: integrationHead, reviewTree: review.tree,
       integrationCommit: (await git(target.workspace.path, ['rev-parse', 'HEAD'], { hooks: target.hooks })).stdout.trim(),
       conflicts, statusEntries: finalStatus.entries };
     try {

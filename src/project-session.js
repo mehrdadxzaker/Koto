@@ -6,9 +6,10 @@ import { runWorkflow } from './core.js';
 import { startCommand } from './command-session.js';
 import { startTerminalCommand } from './terminal-session.js';
 import { resolveTerminalHelper } from './terminal-helper.js';
-import { createProjectWorkspaces } from './project-workspaces.js';
+import { createProjectWorkspaces, inspectWorkspaceProjectMerge, mergeWorkspaceProject } from './project-workspaces.js';
 import { inspectLaunchProject } from './launch-preflight.js';
-import { persist, readState, agentRecord, requireSettled, lease, assertNoContributionAttempt } from './project-session-store.js';
+import { persist, readState, agentRecord, requireSettled, lease, assertNoContributionAttempt,
+  PROJECT_MERGE_ATTEMPT_FILE, readPrivateJson, writePrivateJson, removePrivateRecord } from './project-session-store.js';
 import { inspectContribution as inspect, integrateApprovedContribution, finalizeApprovedContribution,
   inspectProjectContributionAttempt, reconcileProjectContributionAttempt } from './approved-contribution.js';
 export { inspectProjectContributionAttempt, reconcileProjectContributionAttempt } from './approved-contribution.js';
@@ -139,6 +140,14 @@ export async function prepareProjectFollowUp(sessionRoot) {
     requireSettled(state);
     const integrated = state.agents.filter(agent => (agent.lastSuccessfulIntegration ?? agent.integration)?.status === 'integrated');
     for (const agent of integrated) await inspect(state, agent.id); // validates owned worktrees and retained receipts/history
+    if (state.projectMerge?.status === 'merged') {
+      const merge = await inspectMerge(state);
+      if (merge.status === 'already-merged') {
+        const project = await inspectLaunchProject(state.projectRoot);
+        if (project.baseCommit !== merge.integrationCommit || project.branch !== merge.branch) fail('project_follow_up_original_changed');
+        return { ...project, sessionRoot: state.sessionRoot, sourceProjectRoot: state.projectRoot, fromIntegration: false };
+      }
+    }
     const project = await inspectLaunchProject(integrated.length ? state.integration.path : state.projectRoot);
     if (integrated.length && (project.projectRoot !== state.integration.path || project.branch !== state.integration.branch
       || !integrated.some(agent => (agent.lastSuccessfulIntegration ?? agent.integration).integrationCommit === project.baseCommit))) {
@@ -157,6 +166,107 @@ export function integrateProjectSession(sessionRoot, agentId, options = {}) {
 /** Acknowledge a manually reviewed conflict resolution at the exact target HEAD. */
 export function finalizeProjectSessionIntegration(sessionRoot, agentId, options = {}) {
   return finalizeApprovedContribution(sessionRoot, agentId, options);
+}
+
+function mergeFailure(code, message) { return Object.assign(new Error(message), { code }); }
+
+function validatePreviousMerge(state) {
+  const previous = state.projectMerge;
+  if (previous === undefined) return undefined;
+  const valid = previous?.schemaVersion === 1 && previous.status === 'merged'
+    && previous.projectRoot === state.projectRoot && previous.branch === state.projectBranch?.slice('refs/heads/'.length)
+    && typeof previous.attemptId === 'string' && /^[a-f0-9-]{36}$/.test(previous.attemptId)
+    && [previous.beforeCommit, previous.integrationCommit].every(value => /^[a-f0-9]{40,64}$/.test(value ?? ''))
+    && /^[a-f0-9]{64}$/.test(previous.approval ?? '');
+  if (!valid) throw mergeFailure('project_merge_integration_changed', 'The retained original-project merge receipt is invalid. Keep the saved build and inspect it before continuing.');
+  let saved;
+  try { saved = readPrivateJson(path.join(state.sessionRoot, `project-merge-${previous.attemptId}.json`), 128 * 1024); }
+  catch { throw mergeFailure('project_merge_integration_changed', 'The original-project merge receipt is unavailable. Inspect the saved build before merging again.'); }
+  if (saved.kind !== 'koto-project-merge-receipt' || saved.sessionRoot !== state.sessionRoot
+    || fingerprint(saved.result) !== fingerprint(previous)) {
+    throw mergeFailure('project_merge_integration_changed', 'The retained original-project merge receipt changed. Inspect the saved build before merging again.');
+  }
+  return previous;
+}
+
+async function inspectMerge(state) {
+  requireSettled(state);
+  const previous = validatePreviousMerge(state);
+  const receipts = [], unmergedAgentIds = [];
+  for (const agent of state.agents) {
+    const review = await inspect(state, agent.id); // checks owned worktrees and each retained integration's source/target history
+    const receipt = agent.lastSuccessfulIntegration ?? (agent.integration?.status === 'integrated' ? agent.integration : undefined);
+    if (receipt) receipts.push(receipt);
+    if (review.integrationChangedPaths.length || review.conflicts?.length || review.outsideOwnership.length) unmergedAgentIds.push(agent.id);
+  }
+  const expectedProjectCommit = previous?.integrationCommit ?? state.baseCommit;
+  // The target can only be the exact head of a recorded successful integration,
+  // never an unreviewed later commit made directly in its worktree.
+  const candidates = receipts.length ? receipts.map(receipt => receipt.integrationCommit) : [state.baseCommit];
+  const view = await inspectWorkspaceProjectMerge({ integration: state.integration, projectRoot: state.projectRoot,
+    projectBranch: state.projectBranch, expectedProjectCommit, integrationCommit: [...new Set(candidates)] });
+  return { ...view, sessionRoot: state.sessionRoot, unmergedAgentIds,
+    reviewToken: fingerprint({ state, view }) };
+}
+
+/** Preview only already-approved integration changes back to the recorded
+ * original checkout. Other agents' unintegrated edits remain in their worktrees.
+ */
+export async function inspectProjectMerge(sessionRoot) {
+  const release = lease(sessionRoot, { purpose: 'project-merge-preview' });
+  try { return await inspectMerge(readState(sessionRoot)); }
+  finally { release(); }
+}
+
+/** Explicitly merge a displayed approved result into a clean unchanged original
+ * branch. Git and session JSON are separate stores: retain any ambiguous intent
+ * and block further operations rather than replay or undo an uncertain merge.
+ */
+export async function mergeProjectSession(sessionRoot, { approve } = {}) {
+  if (typeof approve !== 'string' || !/^[a-f0-9]{64}$/.test(approve)) {
+    throw mergeFailure('project_merge_review_token_required', 'Review the approved project changes before confirming their merge.');
+  }
+  const release = lease(sessionRoot, { purpose: 'project-merge' });
+  let attempt;
+  const marker = path.join(sessionRoot, PROJECT_MERGE_ATTEMPT_FILE);
+  try {
+    const state = readState(sessionRoot);
+    const view = await inspectMerge(state);
+    if (view.status === 'already-merged' && state.projectMerge?.approval === approve) return view;
+    if (view.reviewToken !== approve) throw mergeFailure('project_merge_review_changed', 'The displayed merge changed. Review its current diff before approving again.');
+    if (view.status === 'already-merged') return view;
+    const previous = validatePreviousMerge(state);
+    const workspaceView = await inspectWorkspaceProjectMerge({ integration: state.integration, projectRoot: state.projectRoot,
+      projectBranch: state.projectBranch, expectedProjectCommit: previous?.integrationCommit ?? state.baseCommit,
+      integrationCommit: view.integrationCommit });
+    const result = await mergeWorkspaceProject({ integration: state.integration, projectRoot: state.projectRoot,
+      projectBranch: state.projectBranch, expectedProjectCommit: view.beforeCommit, integrationCommit: view.integrationCommit,
+      approve: workspaceView.reviewToken, beforeMutation() {
+        attempt = { kind: 'koto-project-merge-attempt', schemaVersion: 1, attemptId: randomUUID(),
+          sessionRoot: state.sessionRoot, sessionId: state.sessionId, ownerPid: process.pid,
+          leaseId: release.leaseId, phase: 'running', startedAt: new Date().toISOString(),
+          projectRoot: view.projectRoot, branch: view.branch, beforeCommit: view.beforeCommit,
+          integrationCommit: view.integrationCommit, approval: approve };
+        writePrivateJson(marker, attempt, { exclusive: true, limit: 128 * 1024 });
+      } });
+    const merged = { schemaVersion: 1, status: 'merged', attemptId: attempt.attemptId,
+      projectRoot: result.projectRoot, branch: result.branch, beforeCommit: result.beforeCommit,
+      integrationCommit: result.integrationCommit, mergedAt: new Date().toISOString(), approval: approve };
+    writePrivateJson(path.join(state.sessionRoot, `project-merge-${attempt.attemptId}.json`),
+      { kind: 'koto-project-merge-receipt', schemaVersion: 1, sessionRoot: state.sessionRoot, result: merged }, { exclusive: true, limit: 128 * 1024 });
+    state.projectMerge = merged;
+    persist(state);
+    removePrivateRecord(marker);
+    return { ...view, status: 'merged' };
+  } catch (error) {
+    if (attempt) {
+      attempt.phase = 'unresolved';
+      attempt.error = String(error.code ?? error.message).slice(0, 1024);
+      try { writePrivateJson(marker, attempt, { limit: 128 * 1024 }); } catch { /* Preserve the original pre-mutation marker. */ }
+      throw mergeFailure('project_merge_attempt_unresolved', 'The merge back to your project could not be fully confirmed. Keep the saved session and inspect the original branch before continuing; no automatic retry or rollback was performed.');
+    }
+    throw error;
+  } finally { release(); }
 }
 
 function expand(template, values) {
@@ -189,7 +299,7 @@ export async function createProjectSession(source, { onEvent, signal, onApproval
     nativeHelperDirectory: plan.nativeHelperDirectory,
     controlRoot: plan.controlRoot ?? path.join(homedir(), '.koto', 'sessions') });
   const state = { schemaVersion: 1, kind: 'koto-project-session', sessionId, createdAt: new Date().toISOString(),
-    sessionRoot: workspaces.sessionRoot, projectRoot: workspaces.projectRoot, baseCommit: workspaces.baseCommit,
+    sessionRoot: workspaces.sessionRoot, projectRoot: workspaces.projectRoot, projectBranch: workspaces.projectBranch, baseCommit: workspaces.baseCommit,
     goal: plan.goal, timeoutMs: plan.timeoutMs, maxConcurrency: plan.maxConcurrency,
     ...(plan.prerequisites ? { prerequisites: plan.prerequisites } : {}),
     ...(plan.nativeHelperDirectory ? { nativeHelperDirectory: plan.nativeHelperDirectory } : {}),
