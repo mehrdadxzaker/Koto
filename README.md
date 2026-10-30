@@ -34,18 +34,16 @@ verification boundary.
 
 ## Latest
 
-- **CLI `3.0.0-alpha.2` — everyday Codex improvements.** Saved local
-  workers no longer load a model when returning to a Codex conversation. Koto
-  starts the selected runtime for local coordination, an approved local task or
-  a local continuation without substituting another model or endpoint. Top-level
-  help exposes everyday controls, and missing-session errors explain recovery.
-  Existing Ollama workers remain usable alongside saved managed models.
-  Fresh packed installation, subscription discovery, real Codex coding, reviewed
-  integration and same-conversation resume passed on macOS ARM64; see the
-  [verification record](docs/CODEX_CLI_VERIFICATION.md). The exact npm release
-  is now published and independently verified. Homebrew and Linux recipes pin
-  that same archive; fresh Homebrew qualification is
-  tracked separately in the [alpha.2 release record](docs/RELEASE_ALPHA2.md).
+- **CLI `3.0.0-alpha.2` released and verified through Homebrew.** Saved local
+  workers no longer load a model when returning to a Codex conversation. Local
+  work retains its approved model and endpoint; existing Ollama workers remain
+  usable alongside saved managed models. Help exposes everyday controls, and
+  missing-session errors explain recovery. A fresh public Homebrew install on
+  macOS ARM64 passed automatic ChatGPT subscription discovery, real Codex coding,
+  explicit review/integration, restart and same-conversation resume. The resumed
+  review showed only the new change. npm's `alpha` and `latest` tags select this
+  release; see the [release and workflow record](docs/RELEASE_ALPHA2.md) and
+  [earlier candidate observations](docs/CODEX_CLI_VERIFICATION.md).
 - **Codex CLI first.** Koto's primary workflow is everyday CLI use with your
   existing Codex/ChatGPT subscription. Smooth onboarding, remembered projects,
   review and resuming the same conversation take priority. Desktop and IDE
