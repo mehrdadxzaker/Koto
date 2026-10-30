@@ -60,6 +60,15 @@ automatic retry; a native CLI may make internal retries within its deadline.
 
 ## Supervise, inspect and integrate
 
+The normal `koto` conversation now guides review after agents finish, followed by
+an optional, separately approved merge back to the original project branch and
+saved-agent resume. See [guided sessions](GUIDED_SESSIONS.md). Its shared-core
+`inspectProjectMerge()` and `mergeProjectSession()` APIs bind the displayed diff
+to a clean, unchanged captured branch and perform an ordinary fast-forward.
+The advanced integration commands below still write only the integration branch.
+Older sessions without an original-branch binding require manual merge-back;
+no target is inferred from a path or native conversation.
+
 Pipe output is tagged by agent and stdout/stderr, with terminal control bytes
 removed from display. Declared native adapters observe bounded stdout JSONL;
 stderr is not treated as native lifecycle. Native terminal screen output appears

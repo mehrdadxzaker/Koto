@@ -6,14 +6,19 @@ Run the installed CLI:
 koto
 ```
 
-`koto start` opens the same conversation. From a source checkout, use
-`node bin/koto.js`. Setup runs once; later launches remember your account
-selection, downloaded models, project and saved builds.
+Run it inside your Git project, including a subdirectory. Koto selects that
+project ahead of the remembered default, and finds that project's saved builds.
+Outside a Git project, it asks before opening the remembered project.
+`koto start` opens the same conversation; `koto start --project /path/to/project`
+is an explicit override. From a source checkout, use `node bin/koto.js`.
+Setup runs once and remembers your subscription, optional models and saved work.
 
 ## First launch
 
 Koto finds supported Codex and Claude Code installations and asks each native
-client for its login status. Choose a listed account to reuse your ChatGPT or
+client for its login status. On first setup, an existing ready Codex/ChatGPT
+login is selected automatically. `/accounts` lets you change the choice. If no
+ready Codex login is available, choose a listed account to reuse your ChatGPT or
 Claude subscription. If sign-in is needed, Koto can open that client's native
 sign-in flow. If the client is missing, you can approve installing its official
 package into Koto's private directory. An existing native login is a discovery
@@ -26,8 +31,9 @@ sizes, licenses and memory guidance. After your confirmation, Koto acquires a
 pinned llama.cpp runtime and verifies the selected model download. Existing
 verified assets are reused. You can skip local setup and use your subscription.
 
-Choose a project folder, or enter `new PATH` to create an empty project after
-confirmation. Enter `later` to keep chatting without a project. An existing
+When launched inside a Git project, its canonical root is selected automatically.
+Otherwise, choose a project folder, or enter `new PATH` to create an empty project
+after confirmation. Enter `later` to keep chatting without a project. An existing
 project must be a clean, committed Git repository. If it needs attention, Koto
 explains the problem and lets you choose again; your files stay available for
 you to review. Use `/project PATH` or `/new PATH` to change the project later.
@@ -42,6 +48,34 @@ The configured agents work through the shared core in isolated
 worktrees, with observed progress and native permission requests when needed.
 
 ## Everyday use
+
+After a build finishes and owned process cleanup is confirmed, Koto returns to
+guided review automatically. For each changed contribution it displays the diff;
+type `approve` to accept it into the integration workspace, or Enter to retain it
+without approval. Failed or partial work keeps its observed status and still
+requires your own review.
+
+Koto then displays the aggregate approved changes and the original project and
+branch. Type `merge` to fast-forward that clean, unchanged project branch to the
+approved result. Other unapproved contributions remain in their worktrees.
+Declining preserves the approved integration for later. Dirty or moved branches,
+divergence, changed approvals and unknown merge outcomes stop the operation with
+recovery guidance; Koto does not stash, reset or force the project. Git and session
+records are separate stores, so an ambiguous merge is retained for inspection.
+Older sessions without a captured original branch require manual merge-back or a
+new build; their existing review and native continuation remain available.
+
+The next-step menu offers Review, Resume, Merge, New task and another saved build.
+On a returning `koto` launch, this project's saved-work menu opens directly.
+Choose Resume, enter the next task, inspect the continuation and type `start`.
+Koto keeps the native conversation, worktree, executable, model and account; the
+next review excludes previously integrated changes. New tasks start from the
+project branch after approved merge-back, or explicitly from the project when
+you choose New task. Earlier unmerged work remains in saved builds.
+`/work` opens these choices at any time; existing slash and terminal controls
+remain available for direct use. Advanced manual/headless project launches keep
+their existing control flow. A build starts with one selected-subscription worker
+by default; `/add` configures more when you want concurrent agents.
 
 Returning users enter the conversation with their saved setup. Koto checks the
 selected native login. On a returning launch, a managed local model starts only
@@ -90,7 +124,8 @@ Saved work is available without copying session directories:
 
 | Command | Action |
 | --- | --- |
-| `/sessions` | Show the current project's saved builds; choose one when several exist. |
+| `/work` or `/sessions` | Open guided saved-work choices for the current project. |
+| `/merge` | Preview approved changes and explicitly merge into the captured project branch. |
 | `/review` | Choose a saved agent and inspect its contribution. |
 | `/integrate` | Choose an agent, inspect its current diff and type `integrate` to accept it. |
 | `/resume` | Choose a saved agent, describe its next task and approve the exact continuation. |

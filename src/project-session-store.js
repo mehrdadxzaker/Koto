@@ -3,6 +3,7 @@ import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 
 export const CONTRIBUTION_ATTEMPT_FILE = 'contribution-attempt.json';
+export const PROJECT_MERGE_ATTEMPT_FILE = 'project-merge-attempt.json';
 export const ATTEMPT_LIMIT = 128 * 1024;
 const STATE_LIMIT = 1024 * 1024;
 
@@ -80,9 +81,15 @@ export function agentRecord(state, id) {
 }
 
 export function assertNoContributionAttempt(sessionRoot) {
-  try { lstatSync(path.join(sessionRoot, CONTRIBUTION_ATTEMPT_FILE)); }
-  catch (error) { if (error.code === 'ENOENT') return; throw error; }
-  fail('project_contribution_attempt_unresolved');
+  for (const [filename, code] of [[CONTRIBUTION_ATTEMPT_FILE, 'project_contribution_attempt_unresolved'],
+    [PROJECT_MERGE_ATTEMPT_FILE, 'project_merge_attempt_unresolved']]) {
+    try { lstatSync(path.join(sessionRoot, filename)); }
+    catch (error) { if (error.code === 'ENOENT') continue; throw error; }
+    if (code === 'project_merge_attempt_unresolved') {
+      throw Object.assign(new Error('An earlier merge back to your project needs inspection. Keep the saved session and inspect the original branch before retrying; Koto will not replay or undo it automatically.'), { code });
+    }
+    fail(code);
+  }
 }
 
 export function hasUnconfirmedCleanup(agent) {

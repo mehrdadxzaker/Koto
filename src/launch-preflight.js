@@ -113,6 +113,57 @@ async function git(executable, cwd, args, allow = [0], nativeHelperDirectory) {
   return { code: result.exitCode, stdout: output.stdout.join('') };
 }
 
+/** Find the current working tree without requiring a clean index or a first commit. */
+export async function discoverProjectRoot(directory = process.cwd(), { nativeHelperDirectory } = {}) {
+  if (typeof directory !== 'string' || !directory.trim() || /[\x00-\x1f\x7f]/.test(directory)
+    || Buffer.byteLength(directory) > 4096) {
+    throw failure('launch_invalid_project', 'Choose an existing project folder path without control characters.');
+  }
+  let current;
+  try {
+    current = await realpath(path.resolve(directory));
+    if (!(await lstat(current)).isDirectory()) throw new Error('not_directory');
+  } catch {
+    throw failure('launch_project_unavailable', 'The current project folder is unavailable. Choose an existing, readable directory.');
+  }
+  // Discover only Git metadata boundaries, never project configuration. This
+  // also lets us reject a project-owned Git executable before invoking it when
+  // the user launches Koto from a nested source folder.
+  let candidate = current;
+  for (let depth = 0; ; depth += 1) {
+    if (depth >= 256) throw failure('launch_project_depth_limit', 'Open Koto closer to the project root.');
+    let found = false;
+    try { await lstat(path.join(candidate, '.git')); found = true; }
+    catch (error) {
+      if (error.code !== 'ENOENT' && error.code !== 'ENOTDIR') {
+        throw failure('launch_project_unavailable', 'Git metadata could not be inspected. Check this project folder before continuing.');
+      }
+    }
+    if (found) break;
+    const parent = path.dirname(candidate);
+    if (parent === candidate) return undefined;
+    candidate = parent;
+  }
+  let executable;
+  try { executable = await resolveAgentExecutable(process.platform === 'win32' ? 'git.exe' : 'git'); }
+  catch { throw failure('launch_git_unavailable', 'Install Git and add its executable directory to an absolute PATH entry before opening this project.'); }
+  if (inside(candidate, executable)) {
+    throw failure('launch_git_executable_overlap', 'Git must be installed outside the project. Select a PATH that resolves Git to its installed executable.');
+  }
+  const top = await git(executable, current, ['rev-parse', '--show-toplevel'], [0], nativeHelperDirectory);
+  let root;
+  try {
+    root = await realpath(top.stdout.trim());
+    if (!(await lstat(root)).isDirectory()) throw new Error('not_directory');
+  } catch {
+    throw failure('launch_project_unavailable', 'Git reported an unavailable project root. Resolve the repository path before continuing.');
+  }
+  if (inside(root, executable)) {
+    throw failure('launch_git_executable_overlap', 'Git must be installed outside the project. Select a PATH that resolves Git to its installed executable.');
+  }
+  return root;
+}
+
 /** Inspect the same clean, committed repository root required by project workspaces. */
 export async function inspectLaunchProject(projectPath = process.cwd(), { nativeHelperDirectory } = {}) {
   if (typeof projectPath !== 'string' || !projectPath.trim() || projectPath.includes('\0') || Buffer.byteLength(projectPath) > 4096) {

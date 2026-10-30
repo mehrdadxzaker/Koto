@@ -1,6 +1,6 @@
 {
   "name": "@mehrdadz/koto",
-  "version": "3.0.0-alpha.2",
+  "version": "3.0.0-alpha.3",
   "description": "A shared core for commercial and open-source agents to work together.",
   "type": "module",
   "engines": {

@@ -8,7 +8,7 @@ const checkQuit = answer => {
   return answer;
 };
 
-export async function configureAccounts({ ask, print, preferences, signal, login, installClient }) {
+export async function configureAccounts({ ask, print, preferences, signal, login, installClient, preferExistingCodex = false }) {
   let automatic = false;
   for (;;) {
     print('Finding your Codex and Claude Code subscription logins…');
@@ -21,6 +21,10 @@ export async function configureAccounts({ ask, print, preferences, signal, login
       print(`  ${index + 1}. ${account.label} — ${account.message}`);
     }
     print('Uses native subscription logins. No provider API key is required.');
+    if (preferExistingCodex && !preferences.coordinator) {
+      const codex = accounts.find(account => account.kind === 'codex' && account.status === 'ready');
+      if (codex) { print('Using your existing ChatGPT subscription through Codex. /accounts changes this choice.'); return codex; }
+    }
     if (accounts.some(account => account.status === 'missing')) print('Enter rescan to look for current native installations again.');
     const ready = accounts.findIndex(account => account.status === 'ready'
       && account.kind === preferences.coordinator?.kind);

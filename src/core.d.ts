@@ -363,6 +363,8 @@ export interface ProjectIntegrationResult {
   contributionCommit?: string | undefined;
   /** Missing only on receipts retained by an older package. */
   contributionBaseCommit?: string | undefined;
+  /** Exact integration HEAD before the approved cherry-pick; required for automatic original-project merge history. */
+  integrationBaseCommit?: string | undefined;
   reviewTree: string;
   integrationCommit: string;
   conflicts: string[];
@@ -468,6 +470,8 @@ export interface ProjectSessionState {
   createdAt: string;
   sessionRoot: string;
   projectRoot: string;
+  /** Full original local branch ref captured at creation; null for detached HEAD. Older sessions omit it. */
+  projectBranch?: string | null | undefined;
   baseCommit: string;
   goal: string;
   timeoutMs: number;
@@ -482,7 +486,38 @@ export interface ProjectSessionState {
   eventSequence?: number | undefined;
   finishedAt?: string | undefined;
   report?: { status: RunStatus; error?: string | undefined } | undefined;
+  /** Retained successful fast-forward back to the original project. */
+  projectMerge?: ProjectMergeReceipt | undefined;
 }
+
+export interface ProjectMergeInspection {
+  status: 'ready' | 'already-merged';
+  sessionRoot: string;
+  projectRoot: string;
+  /** Display name of the captured original local branch. */
+  branch: string;
+  beforeCommit: string;
+  integrationCommit: string;
+  changedPaths: string[];
+  diff: string;
+  /** These agents' subsequent/unapproved edits remain in their own worktrees. */
+  unmergedAgentIds: string[];
+  reviewToken: string;
+}
+
+export interface ProjectMergeReceipt {
+  schemaVersion: 1;
+  status: 'merged';
+  attemptId: string;
+  projectRoot: string;
+  branch: string;
+  beforeCommit: string;
+  integrationCommit: string;
+  mergedAt: string;
+  approval: string;
+}
+
+export type ProjectMergeResult = Omit<ProjectMergeInspection, 'status'> & { status: 'merged' | 'already-merged' };
 
 export interface ProjectInspection extends ProjectWorkspace {
   agentId: string;
@@ -613,6 +648,10 @@ export function resumeProjectSession(sessionRoot: string, agentId: string,
 /** Read a detached retained state snapshot without launching or resuming a process. */
 export function readProjectSession(sessionRoot: string): ProjectSessionState;
 export function inspectProjectSession(sessionRoot: string, agentId: string): Promise<ProjectInspection>;
+/** Inspect approved integration changes before merging into the original checkout. */
+export function inspectProjectMerge(sessionRoot: string): Promise<ProjectMergeInspection>;
+/** One explicit fast-forward of a clean unchanged original branch; unknown outcomes are retained. */
+export function mergeProjectSession(sessionRoot: string, options: { approve: string }): Promise<ProjectMergeResult>;
 export function integrateProjectSession(sessionRoot: string, agentId: string,
   options: { approve: string; onEvent?: ((event: ProjectEvent) => unknown) | undefined }): Promise<ProjectIntegrationResult>;
 /** Retain approval of the exact clean integration commit after manual conflict resolution. */
@@ -701,6 +740,9 @@ export const AGENT_PROFILE_DEFAULTS: Readonly<{
   opencode: Readonly<{ timeoutMs: number }>;
 }>;
 export function resolveAgentExecutable(command: string, options?: { unsetEnv?: readonly string[] }): Promise<string>;
+/** Find the canonical Git root from the current or a nested directory; outside Git returns undefined. */
+export function discoverProjectRoot(directory?: string | undefined,
+  options?: { nativeHelperDirectory?: string | undefined }): Promise<string | undefined>;
 export function inspectLaunchProject(projectPath?: string | undefined,
   options?: { nativeHelperDirectory?: string | undefined }): Promise<{
   projectRoot: string; baseCommit: string; branch?: string | undefined;
