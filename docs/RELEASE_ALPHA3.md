@@ -29,17 +29,91 @@ anonymous metadata and archive downloads matched the frozen publication, includi
 all 54 payloads and permissions. Both `latest` and `alpha` select alpha.3; each
 native mutation was performed once, without republishing after delayed visibility.
 
-Homebrew and Linux recipes bind that exact public npm archive and keep the
-existing Node pin. Their alpha.3 installation observations and the separate
-fresh-host Codex workflow are qualified below.
+## Published Homebrew and Linux distribution
+
+The alpha.3 recipes were merged normally in
+[#635](https://github.com/mehrdadxzaker/Koto/pull/635) as
+`e067e0ff27e1c3957c0714fbb71ca3f901215ac3`. Its tree matches the reviewed head.
+All eight exact-main [source checks](https://github.com/mehrdadxzaker/Koto/actions/runs/41068302234)
+and all four [distribution observations](https://github.com/mehrdadxzaker/Koto/actions/runs/41068302233)
+passed on their first attempts. Retained installation artifacts independently
+bound the observed CLI to the frozen alpha.3 archive, recipe commit and clean
+project state.
+
+Those distribution observations cover Homebrew on macOS ARM64 and Intel, and the
+Linux installer on x64 and ARM64. They establish installation/payload identity,
+planning/preflight and owned uninstall behavior on those runners. Native-agent
+readiness was explicitly unverified there; the four installation successes do
+not establish four native Codex coding workflows. The local Mac journey below
+is a separate acceptance observation. The recipes retain the existing Node pin.
 
 ## Fresh Homebrew guided workflow
 
-Pending the new public recipe: ordinary Koto-only fresh installation, exact
-installed payload identity, subscription/current-project discovery, real Codex
-coding, guided review and original-branch merge, restart, same-conversation
-resume, incremental review and a second original-branch merge. Success will be
-recorded here only after the actual installed release completes that journey.
+Observed on October 30, 2026 on macOS ARM64. The host used Node 24.22.2 from the
+existing Homebrew `24.22.2_1` keg and the exact published alpha.3 package above.
+
+1. Preserve and verify the existing alpha.2 Koto keg backup. Fast-forward only
+   the clean canonical tap to the merged alpha.3 recipe. Ordinarily uninstall
+   Koto, confirm its keg and global wrapper are absent, then install from a new
+   private download cache. No forced removal, dependency cleanup or untap.
+2. Compare all 54 installed payloads with the frozen public archive in contents,
+   size, permissions and complete file inventory. Verify the global Homebrew
+   wrapper and run its actual version/help controls. The wrapper selects Node24;
+   all 17 bounded installation commands exited 0 and confirmed child cleanup.
+3. Invoke literal `koto` from `bin` inside a clean clone of the actual Koto project
+   at packed source `69359551c75dd5114c868cceb16235ef024708c7`, on the named original
+   branch `codex-workflow`. No project flag, copied setup or agent/session path is
+   supplied. Koto selects the canonical project, automatically discovers and uses
+   the existing native ChatGPT login, and accepts declining optional models.
+   Credentials stay with the native client; the observation controller neither
+   inspects nor copies credential files and supplies no provider API key.
+4. Request one Codex worker owning only `bin/koto.js`. Review the one-worker plan
+   and type `build`. Codex adds `-V` to the existing version-alias array. Completion
+   opens the guided diff automatically. Type `approve` to accept that exact
+   contribution, inspect the separate original-project/branch diff, and type
+   `merge` to put it on the original branch. No agent ID, `:review` or manual Git
+   merge command is needed.
+5. Manually run `--version`, `-v` and `-V` in the original project. Each returns
+   its expected alpha.3 version. The original HEAD equals the approved integration
+   commit; the original, worker and integration workspaces are clean, with changes
+   confined to `bin/koto.js`.
+6. Quit ordinarily and reopen bare `koto` in the project. The saved-work choices
+   appear automatically. Select Resume, describe the next task, inspect the
+   continuation and type `start`. The original native conversation ID, worktree,
+   origin fingerprint, executable, account binding and native kind are preserved.
+7. Codex changes only the help line to list all three aliases. The guided diff
+   shows only that new line, excluding the earlier integration. Type `approve`,
+   inspect the original-branch preview and type `merge`. The original HEAD advances
+   to this second approved integration commit. Manually check help and all three
+   version flags in the original project, then quit ordinarily.
+
+Both native attempts succeeded, both reviewed merges updated the captured
+original branch, and the second contribution was exactly one help-line change.
+The original, worker and integration workspaces were clean at the final positive
+snapshot; only `bin/koto.js` differed from the project base. Both CLI invocations
+exited 0 without cleanup signals, and their supervised groups were observed
+absent. An independent process inspection also observed the known native workers
+and controllers absent, with no active process using the owned worktree paths or
+working directories.
+
+One native inspection command initially passed an option-like pattern to `rg`
+and failed. The agent recovered with a subsequent inspection and produced the
+requested change. That failed activity remains in the transcript; the successful
+coding turn does not mean every intermediate native command succeeded.
+
+The installation preserved all three existing Node kegs (`24.22.1`, `24.22.2` and
+`24.22.2_1`), the selected Node opt link and binary identity, default Koto state,
+and the verified alpha.2 backup. Fresh setup, session metadata and verification
+worktrees used a private Koto profile; user projects and credentials were not
+replaced. These two verification contributions remain in the separate real-
+project clone and do not modify the frozen published CLI.
+
+Private evidence retains actual prompts, displayed diffs, explicit approvals,
+original/integration commits, continuity comparisons and process-lifecycle
+receipts. Native IDs, account credentials and private machine paths are not
+published. The earlier candidate's declined/dirty/stale merge and project-switch
+observations remain in [its own record](GUIDED_WORKFLOW_VERIFICATION.md); they
+are not relabeled as new Homebrew observations.
 
 Existing optional skill, UI and IDE delivery pins remain independently frozen.
 This CLI release does not imply new native UI/IDE, Linux/Windows coding, live
